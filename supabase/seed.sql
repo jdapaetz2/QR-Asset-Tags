@@ -1,7 +1,7 @@
 -- seed.sql — Demo data for AssetTag QR (Northridge Rentals + 4 assets).
 --
 -- Idempotent: fixed UUIDs + ON CONFLICT, so it can be re-run safely.
--- Apply AFTER db/migrations/0001_init.sql and 0002_storage.sql.
+-- Apply AFTER supabase/migrations/0001_init.sql and 0002_storage.sql.
 --
 -- NOTE: `profiles` rows require real `auth.users` and so are NOT seeded here —
 -- creating the first platform owner / customer admin is part of Sprint 1 /

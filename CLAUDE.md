@@ -38,9 +38,9 @@ lib/
   constants.ts       product/branding strings (no hard-coded customer branding)
   supabase/          client (browser), server (RLS, cookies), admin (service-role, server-only)
   auth/roles.ts      role constants/types shared with the DB
-db/
+supabase/
   migrations/        0001_init.sql (schema + RLS + policies), 0002_storage.sql (buckets + policies)
-  seed/seed.sql      Northridge Rentals + 4 demo assets
+  seed.sql           Northridge Rentals + 4 demo assets
 docs/                planning docs
 ```
 
@@ -58,4 +58,4 @@ docs/                planning docs
 - Build in vertical, demoable slices (see `docs/SPRINT_PLAN.md`). MVP only — no
   premature abstractions, no out-of-scope features (`docs/NON_GOALS.md`).
 - Manual external steps (create Supabase project, set `.env.local`, apply
-  `db/migrations` + `db/seed`, connect Vercel) are owned by the operator.
+  `supabase/migrations` + `supabase/seed.sql`, connect Vercel) are owned by the operator.
