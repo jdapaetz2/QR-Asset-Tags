@@ -23,31 +23,6 @@ begin
 end;
 $$;
 
--- Resolve the caller's organization. SECURITY DEFINER so it bypasses RLS on
--- `profiles` and cannot cause recursive policy evaluation.
-create or replace function public.current_org_id()
-returns uuid
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select organization_id from public.profiles where auth_user_id = auth.uid();
-$$;
-
--- True when the caller is a platform owner (cross-org access).
-create or replace function public.is_platform_owner()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1 from public.profiles
-    where auth_user_id = auth.uid() and role = 'platform_owner'
-  );
-$$;
 
 -- ---------------------------------------------------------------------------
 -- Tables (+ RLS enabled + updated_at triggers)
@@ -88,6 +63,33 @@ create table public.profiles (
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
+
+-- Resolve the caller's organization. SECURITY DEFINER so it bypasses RLS on
+-- `profiles` and cannot cause recursive policy evaluation.
+create or replace function public.current_org_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select organization_id from public.profiles where auth_user_id = auth.uid();
+$$;
+
+-- True when the caller is a platform owner (cross-org access).
+create or replace function public.is_platform_owner()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where auth_user_id = auth.uid() and role = 'platform_owner'
+  );
+$$;
+
 alter table public.profiles enable row level security;
 create index profiles_organization_id_idx on public.profiles (organization_id);
 create trigger profiles_set_updated_at
