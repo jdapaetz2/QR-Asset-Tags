@@ -1,10 +1,10 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile, landingPathForRole } from "@/lib/auth/session";
 
 const COMING_SOON = [
-  { title: "Assets", note: "Manage equipment records" },
   { title: "Submissions", note: "Damage reports & support requests" },
   { title: "QR Pages", note: "Public equipment pages & tags" },
   { title: "Settings", note: "Organization profile & branding" },
@@ -51,9 +51,18 @@ export default async function DashboardPage() {
 
       <section>
         <h2 className="mb-3 text-sm font-medium text-muted-foreground">
-          Coming soon
+          Manage
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Link
+            href="/dashboard/assets"
+            className="rounded-lg border bg-card p-4 transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <h3 className="font-medium">Assets</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Manage equipment records
+            </p>
+          </Link>
           {COMING_SOON.map((card) => (
             <div
               key={card.title}
