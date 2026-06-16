@@ -26,10 +26,10 @@
 -- Platform owner (organization_id is NULL — cross-org access via RLS).
 insert into public.profiles (auth_user_id, organization_id, name, email, role)
 values (
-  '00000000-0000-0000-0000-000000000000',  -- ← replace with the owner's auth UID
+  'PASTE_PLATFORM_OWNER_AUTH_UID_HERE',  -- ← replace with the owner's auth UID
   null,
   'Platform Owner',
-  'owner@example.com',                      -- ← replace
+  'your-real-email@example.com',                      -- ← replace
   'platform_owner'
 )
 on conflict (auth_user_id) do nothing;
@@ -37,7 +37,7 @@ on conflict (auth_user_id) do nothing;
 -- Customer admin for Northridge Rentals (seeded org id from supabase/seed.sql).
 insert into public.profiles (auth_user_id, organization_id, name, email, role)
 values (
-  '00000000-0000-0000-0000-000000000001',  -- ← replace with the admin's auth UID
+  'PASTE_NORTHRIDGE_ADMIN_AUTH_UID_HERE',  -- ← replace with the admin's auth UID
   '11111111-1111-4111-8111-111111111111',  -- Northridge Rentals
   'Northridge Admin',
   'admin@northridge-rentals.example',       -- ← replace
