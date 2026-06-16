@@ -32,7 +32,7 @@ Decisions that aren't fully settled by `docs/PROJECT_CONTEXT.md` / `CLAUDE.md`. 
 ## Branding & domains
 
 13. **Public URL domain** — what production domain hosts `/t/{short_code}` (and will pilots get vanity domains)? *Default (assumption):* a single platform domain for MVP; per-customer domains are out of scope.
-14. **Short-code format** — length and character set for `short_code` (the demo uses `EX017DEMO`). *Default:* short, uppercase, collision-checked, human-readable where convenient.
+14. **Short-code format** — length and character set for `short_code` (the demo uses `demo-ex017`). *Default:* short, uppercase, collision-checked, human-readable where convenient.
 
 ## Commercial
 
