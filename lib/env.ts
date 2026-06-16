@@ -43,6 +43,16 @@ export const serverEnv = {
   get supabaseServiceRoleKey(): string {
     return requireServerEnv("SUPABASE_SERVICE_ROLE_KEY");
   },
+  /**
+   * Salt for hashing scan-event IPs. Optional: returns "" if unset so scan
+   * logging never crashes (a hash with an empty salt still stores no raw IP).
+   */
+  get scanIpHashSalt(): string {
+    if (typeof window !== "undefined") {
+      throw new Error('Refusing to read server-only env var "SCAN_IP_HASH_SALT" in the browser');
+    }
+    return process.env.SCAN_IP_HASH_SALT ?? "";
+  },
 };
 
 // Exposed for unit testing.
