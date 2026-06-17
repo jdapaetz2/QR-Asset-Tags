@@ -84,7 +84,7 @@ Permanent QR routing layer. The QR encodes the platform URL, not a third-party l
 | organization_id | uuid | FK → organizations |
 | asset_id | uuid | FK → assets |
 | short_code | text | unique; used in `/t/{short_code}` |
-| public_url | text | full permanent URL, e.g. https://example.com/t/EX017DEMO |
+| public_url | text | full permanent URL, e.g. https://example.com/t/demo-ex017 |
 | status | text | active / disabled |
 | last_scanned_at | timestamptz | nullable |
 | created_at / updated_at | timestamptz | |

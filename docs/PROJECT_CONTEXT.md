@@ -140,7 +140,7 @@ The QR code should encode a permanent URL controlled by this platform.
 
 Example:
 
-https://example.com/t/EX017DEMO
+https://example.com/t/demo-ex017
 
 The QR should not encode a disposable third-party manual link, Airtable link, Google Drive link, or temporary route.
 

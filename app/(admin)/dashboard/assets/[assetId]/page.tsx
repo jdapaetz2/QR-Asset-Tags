@@ -3,9 +3,25 @@ import { notFound } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
-import { updateAsset } from "@/lib/assets/actions";
+import { updateAsset, setAssetPublicStatus } from "@/lib/assets/actions";
 import { AssetForm } from "@/components/asset-form";
 import { Button } from "@/components/ui/button";
+import { ActionButton } from "@/components/action-button";
+import { QrLinkSection, type QrLinkRow } from "@/components/qr-link-section";
+
+function Check({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <li className="flex items-center gap-2 text-sm">
+      <span
+        className={ok ? "text-foreground" : "text-muted-foreground"}
+        aria-hidden
+      >
+        {ok ? "✓" : "✗"}
+      </span>
+      <span className={ok ? "" : "text-muted-foreground"}>{label}</span>
+    </li>
+  );
+}
 
 export default async function EditAssetPage({
   params,
@@ -27,18 +43,24 @@ export default async function EditAssetPage({
 
   if (!asset) notFound();
 
-  // RLS-scoped: equipment page (if any) for this asset, for the status line.
+  // RLS-scoped reads for status + QR management.
   const { data: page } = await supabase
     .from("equipment_pages")
     .select("is_published")
     .eq("asset_id", assetId)
     .maybeSingle();
 
-  const pageStatus = !page
-    ? "Missing"
-    : page.is_published
-      ? "Published"
-      : "Draft";
+  const { data: qrData } = await supabase
+    .from("qr_links")
+    .select("id, short_code, status, last_scanned_at, created_at")
+    .eq("asset_id", assetId)
+    .order("created_at", { ascending: true });
+
+  const links = (qrData ?? []) as QrLinkRow[];
+  const isPublic = asset.public_status === "public";
+  const pageStatus = !page ? "Missing" : page.is_published ? "Published" : "Draft";
+  const hasLink = links.length > 0;
+  const hasActiveLink = links.some((l) => l.status === "active");
 
   return (
     <div className="flex flex-col gap-6">
@@ -57,6 +79,43 @@ export default async function EditAssetPage({
         </p>
       </section>
 
+      {/* Readiness checklist */}
+      <section className="rounded-lg border bg-card p-4">
+        <h2 className="mb-3 font-medium">Public page readiness</h2>
+        <ul className="flex flex-col gap-1">
+          <Check ok={isPublic} label="Asset is public" />
+          <Check ok={!!page} label="Equipment page exists" />
+          <Check ok={!!page?.is_published} label="Equipment page is published" />
+          <Check ok={hasLink} label="QR link exists" />
+          <Check ok={hasActiveLink} label="QR link is active" />
+        </ul>
+        <p className="mt-3 text-xs text-muted-foreground">
+          The public scan page is live only when the asset is public, its equipment
+          page is published, and a QR link is active.
+        </p>
+      </section>
+
+      {/* Publish control */}
+      <section className="flex items-center justify-between rounded-lg border bg-card p-4">
+        <div className="text-sm">
+          <h2 className="font-medium">Visibility</h2>
+          <p className="text-muted-foreground">
+            This asset is {isPublic ? "public" : "private"}.
+          </p>
+        </div>
+        <ActionButton
+          action={setAssetPublicStatus.bind(
+            null,
+            assetId,
+            isPublic ? "private" : "public"
+          )}
+          variant="outline"
+        >
+          {isPublic ? "Make private" : "Make public"}
+        </ActionButton>
+      </section>
+
+      {/* Equipment page */}
       <section className="flex items-center justify-between rounded-lg border bg-card p-4">
         <div className="text-sm">
           <h2 className="font-medium">Equipment page</h2>
@@ -69,6 +128,10 @@ export default async function EditAssetPage({
         </Button>
       </section>
 
+      {/* QR link management */}
+      <QrLinkSection assetId={assetId} links={links} />
+
+      {/* Asset fields */}
       <AssetForm
         action={updateAsset.bind(null, assetId)}
         asset={asset}

@@ -1,14 +1,17 @@
--- seed.sql — Demo data for AssetTag QR (Northridge Rentals + 4 assets).
+-- 0003_seed.sql — Demo data for AssetTag QR (Northridge Rentals + 4 canonical assets).
+-- Mirror of supabase/seed.sql, applied as a migration so `supabase db push` seeds
+-- a remote/hosted database. Kept in sync with seed.sql.
 --
--- Idempotent: fixed UUIDs + ON CONFLICT, so it can be re-run safely.
--- Apply AFTER supabase/migrations/0001_init.sql and 0002_storage.sql.
+-- Canonical demo set (see docs/PILOT_CUSTOMER_DEMO.md):
+--   demo-ex017   EXCAVATOR-017  Excavator 017        Mini Excavator
+--   demo-tr014   TRAILER-014    Trailer 014          Utility Trailer
+--   demo-gen008  GEN-008        Generator 008        Portable Generator
+--   demo-comp003 COMPACTOR-003  Plate Compactor 003  Plate Compactor
 --
--- NOTE: `profiles` rows require real `auth.users` and so are NOT seeded here —
--- creating the first platform owner / customer admin is part of Sprint 1 /
--- manual onboarding (see docs/MVP_SCOPE.md, docs/OPEN_QUESTIONS.md #4).
+-- Idempotent: fixed UUIDs + ON CONFLICT. For databases provisioned before the
+-- canonical rename, the alignment is applied by 0004_align_demo_seed.sql.
 --
--- The `public_url` values below assume the platform host below — adjust them to
--- match NEXT_PUBLIC_SITE_URL for your environment.
+-- NOTE: `profiles` rows require real `auth.users` and so are NOT seeded here.
 
 -- Organization --------------------------------------------------------------
 insert into public.organizations (
@@ -36,17 +39,17 @@ insert into public.assets (
   serial_number, year, public_status, internal_notes
 ) values
   ('21111111-1111-4111-8111-111111111101', '11111111-1111-4111-8111-111111111111',
-   'EXCAVATOR-017', 'Mini Excavator', 'Mini Excavator', 'Kubota', 'U17',
+   'EXCAVATOR-017', 'Excavator 017', 'Mini Excavator', 'Kubota', 'U17',
    'KBU17-2022-0417', 2022, 'public', 'Hydraulic line replaced 2025-02; check tracks.'),
   ('21111111-1111-4111-8111-111111111102', '11111111-1111-4111-8111-111111111111',
-   'SCISSOR-204', 'Scissor Lift', 'Aerial Lift', 'Genie', 'GS-1930',
-   'GEN1930-2021-0204', 2021, 'public', 'Annual inspection due 2026-09.'),
+   'TRAILER-014', 'Trailer 014', 'Utility Trailer', 'Big Tex', '35SA',
+   'BTX35SA-2021-0014', 2021, 'public', 'Annual DOT inspection due 2026-09; check tire tread.'),
   ('21111111-1111-4111-8111-111111111103', '11111111-1111-4111-8111-111111111111',
-   'GENERATOR-051', 'Towable Generator', 'Power Generation', 'Generac', 'XG8000E',
-   'GNC8000-2023-0051', 2023, 'public', 'Service hours logged in maintenance binder.'),
+   'GEN-008', 'Generator 008', 'Portable Generator', 'Generac', 'XG8000E',
+   'GNC8000-2023-0008', 2023, 'public', 'Service hours logged in maintenance binder.'),
   ('21111111-1111-4111-8111-111111111104', '11111111-1111-4111-8111-111111111111',
-   'COMPACTOR-088', 'Plate Compactor', 'Compaction', 'Wacker Neuson', 'WP1550',
-   'WNP1550-2020-0088', 2020, 'public', 'Belt guard replaced 2024-11.')
+   'COMPACTOR-003', 'Plate Compactor 003', 'Plate Compactor', 'Wacker Neuson', 'WP1550',
+   'WNP1550-2020-0003', 2020, 'public', 'Belt guard replaced 2024-11.')
 on conflict (id) do nothing;
 
 -- Equipment pages (published) ----------------------------------------------
@@ -66,12 +69,12 @@ insert into public.equipment_pages (
    true),
   ('31111111-1111-4111-8111-111111111102', '21111111-1111-4111-8111-111111111102',
    '11111111-1111-4111-8111-111111111111',
-   'Genie GS-1930 Scissor Lift',
-   'Connect the battery, check the emergency stop is out, and test controls at ground level first.',
-   'Do not exceed the rated load. Use the guardrails and never climb on them.',
-   'Electric. Charge fully before returning; do not operate while charging.',
-   'Fully lower the platform, charge the batteries, and coil the charging cord.',
-   'If the platform will not raise, verify the battery charge and that the e-stop is released.',
+   'Big Tex 35SA Utility Trailer',
+   'Couple the trailer to the hitch, latch the coupler, cross and attach the safety chains, and connect the lighting plug. Confirm the lights work before towing.',
+   'Do not exceed the rated load. Check tire pressure and that brake/turn lights work before each trip. Distribute the load evenly.',
+   null,
+   'Sweep out the bed, secure the ramps/gate, lower the jack, and return with the chains coiled.',
+   'If the lights do not work, check the plug connection and the tow vehicle fuse. If the coupler will not latch, clear debris and confirm the ball size matches.',
    'For emergencies call 911. For equipment issues call the support number on this page.',
    true),
   ('31111111-1111-4111-8111-111111111103', '21111111-1111-4111-8111-111111111103',
@@ -102,15 +105,15 @@ insert into public.qr_links (
   id, organization_id, asset_id, short_code, public_url, status
 ) values
   ('41111111-1111-4111-8111-111111111101', '11111111-1111-4111-8111-111111111111',
-   '21111111-1111-4111-8111-111111111101', 'EX017DEMO',
-   'https://app.example.com/t/EX017DEMO', 'active'),
+   '21111111-1111-4111-8111-111111111101', 'demo-ex017',
+   'https://app.example.com/t/demo-ex017', 'active'),
   ('41111111-1111-4111-8111-111111111102', '11111111-1111-4111-8111-111111111111',
-   '21111111-1111-4111-8111-111111111102', 'SL204DEMO',
-   'https://app.example.com/t/SL204DEMO', 'active'),
+   '21111111-1111-4111-8111-111111111102', 'demo-tr014',
+   'https://app.example.com/t/demo-tr014', 'active'),
   ('41111111-1111-4111-8111-111111111103', '11111111-1111-4111-8111-111111111111',
-   '21111111-1111-4111-8111-111111111103', 'GN051DEMO',
-   'https://app.example.com/t/GN051DEMO', 'active'),
+   '21111111-1111-4111-8111-111111111103', 'demo-gen008',
+   'https://app.example.com/t/demo-gen008', 'active'),
   ('41111111-1111-4111-8111-111111111104', '11111111-1111-4111-8111-111111111111',
-   '21111111-1111-4111-8111-111111111104', 'PC088DEMO',
-   'https://app.example.com/t/PC088DEMO', 'active')
+   '21111111-1111-4111-8111-111111111104', 'demo-comp003',
+   'https://app.example.com/t/demo-comp003', 'active')
 on conflict (short_code) do nothing;

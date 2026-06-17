@@ -6,7 +6,7 @@
 
 AssetTag QR is a web-based QR equipment info system for equipment rental businesses. Each physical rental asset carries a durable QR tag. When a renter, operator, or staff member scans it, a mobile-friendly hosted equipment page opens with the right information for that specific asset: startup steps, manuals, safety notes, return instructions, support contact, and action buttons for damage reports, support requests, and return checklists.
 
-The QR encodes a permanent platform-controlled URL (e.g. `https://example.com/t/EX017DEMO`), so the destination content can change for years without ever reprinting the physical tag.
+The QR encodes a permanent platform-controlled URL (e.g. `https://example.com/t/demo-ex017`), so the destination content can change for years without ever reprinting the physical tag.
 
 This is **not** a native app, a CMMS, a rental booking platform, an inventory system, or a maintenance platform. It is a focused, hosted equipment-info service.
 
