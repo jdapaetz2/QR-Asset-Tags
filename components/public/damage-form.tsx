@@ -64,15 +64,17 @@ export function DamageForm({ shortCode }: { shortCode: string }) {
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Photos * (up to {MAX_FILES}, 10 MB each)</span>
+        <span className="font-medium">Photos (optional, up to {MAX_FILES}, 10 MB each)</span>
         <input
           className={inputClass}
           type="file"
           name="media"
           accept={ALLOWED_IMAGE_TYPES.join(",")}
           multiple
-          required
         />
+        <span className="text-xs text-muted-foreground">
+          Photos are optional but helpful, especially for visible damage.
+        </span>
       </label>
 
       {/* Honeypot: hidden from humans; bots that fill it are silently dropped. */}

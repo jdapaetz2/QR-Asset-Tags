@@ -25,8 +25,8 @@ describe("isAllowedImageType / extForMime", () => {
 });
 
 describe("validateUploadFiles", () => {
-  it("requires at least one and at most five", () => {
-    expect(validateUploadFiles([])).toMatch(/at least one/i);
+  it("allows zero files (media is optional) but caps at five", () => {
+    expect(validateUploadFiles([])).toBeNull();
     expect(
       validateUploadFiles(
         Array.from({ length: 6 }, () => ({ type: "image/png", size: 1 }))

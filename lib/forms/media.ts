@@ -29,11 +29,14 @@ export function extForMime(type: string): string {
   return EXT_BY_MIME[type] ?? "bin";
 }
 
-/** Validate a set of uploaded files. Returns an error message or null. */
+/**
+ * Validate a set of uploaded files. Returns an error message or null. Media is
+ * optional, so zero files is valid; when files are present they must all pass
+ * the type/size/count checks.
+ */
 export function validateUploadFiles(
   files: { type: string; size: number }[]
 ): string | null {
-  if (files.length === 0) return "Attach at least one photo.";
   if (files.length > MAX_FILES) return `Attach at most ${MAX_FILES} photos.`;
   for (const file of files) {
     if (!isAllowedImageType(file.type)) {
