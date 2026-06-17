@@ -96,3 +96,35 @@ export async function updateAsset(
 
   redirect(`/dashboard/assets/${assetId}`);
 }
+
+const PUBLIC_STATUSES = ["public", "private"] as const;
+
+/**
+ * Explicit publish control: set an asset public or private. Kept separate from
+ * `updateAsset` so publishing is a deliberate, isolated action. RLS scopes the
+ * update to the caller's own organization.
+ */
+export async function setAssetPublicStatus(
+  assetId: string,
+  status: string,
+  _prev: AssetFormState,
+  _formData: FormData
+): Promise<AssetFormState> {
+  if (!(PUBLIC_STATUSES as readonly string[]).includes(status)) {
+    return { error: "Invalid status." };
+  }
+  await requireProfile();
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("assets")
+    .update({ public_status: status })
+    .eq("id", assetId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { error: "Could not update the asset." };
+  if (!data) return { error: "Asset not found." };
+
+  redirect(`/dashboard/assets/${assetId}`);
+}
