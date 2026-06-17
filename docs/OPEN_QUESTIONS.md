@@ -32,7 +32,7 @@ Decisions that aren't fully settled by `docs/PROJECT_CONTEXT.md` / `CLAUDE.md`. 
 ## Branding & domains
 
 13. **Public URL domain** — what production domain hosts `/t/{short_code}` (and will pilots get vanity domains)? *Default (assumption):* a single platform domain for MVP; per-customer domains are out of scope.
-14. **Short-code format** — length and character set for `short_code` (the demo uses `demo-ex017`). *Default:* short, uppercase, collision-checked, human-readable where convenient.
+14. **Short-code format** — length and character set for `short_code` (the demo uses `demo-ex017`). *Resolved (Sprint 3B):* auto-generated codes are 8 lowercase URL-safe characters from an ambiguity-free alphabet (no `0/1/l/o/i`), collision-checked on insert (`lib/qr/short-code.ts`); human-readable codes like the demo set are still allowed.
 
 ## Commercial
 

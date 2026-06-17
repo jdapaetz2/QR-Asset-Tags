@@ -59,6 +59,7 @@ export default async function EditAssetPage({
   const links = (qrData ?? []) as QrLinkRow[];
   const isPublic = asset.public_status === "public";
   const pageStatus = !page ? "Missing" : page.is_published ? "Published" : "Draft";
+  const hasLink = links.length > 0;
   const hasActiveLink = links.some((l) => l.status === "active");
 
   return (
@@ -85,7 +86,8 @@ export default async function EditAssetPage({
           <Check ok={isPublic} label="Asset is public" />
           <Check ok={!!page} label="Equipment page exists" />
           <Check ok={!!page?.is_published} label="Equipment page is published" />
-          <Check ok={hasActiveLink} label="Active QR link exists" />
+          <Check ok={hasLink} label="QR link exists" />
+          <Check ok={hasActiveLink} label="QR link is active" />
         </ul>
         <p className="mt-3 text-xs text-muted-foreground">
           The public scan page is live only when the asset is public, its equipment
