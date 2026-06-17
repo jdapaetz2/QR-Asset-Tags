@@ -11,8 +11,6 @@ import {
   validateSupportRequest,
 } from "@/lib/forms/validate";
 
-export type { PublicFormState };
-
 /** Public damage-report intake. */
 export async function submitDamageReport(
   shortCode: string,
