@@ -158,10 +158,12 @@ export function PublicEquipmentPage({
         <ActionLink href={`/forms/${shortCode}/damage`} internal>
           Report Damage
         </ActionLink>
-        <DisabledAction>Return Checklist</DisabledAction>
-        {support.phone || support.email ? (
-          <ActionLink href="#support">Contact Support</ActionLink>
-        ) : null}
+        <ActionLink href={`/forms/${shortCode}/return`} internal>
+          Return Checklist
+        </ActionLink>
+        <ActionLink href={`/forms/${shortCode}/support`} internal>
+          Request Support
+        </ActionLink>
       </nav>
 
       {/* Content sections */}

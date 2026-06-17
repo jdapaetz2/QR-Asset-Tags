@@ -1,13 +1,12 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import { resolvePublicEquipment } from "@/lib/public/resolve";
-import { DamageForm } from "@/components/public/damage-form";
+import { ReturnForm } from "@/components/public/return-form";
 import { PublicFormLayout } from "@/components/public/public-form-layout";
 import { UnavailableNotice } from "@/components/public/unavailable-notice";
 
-// Public, no-login form. Dynamic — eligibility is resolved per request.
 export const dynamic = "force-dynamic";
 
-export default async function DamageReportPage({
+export default async function ReturnChecklistPage({
   params,
 }: {
   params: Promise<{ shortCode: string }>;
@@ -21,12 +20,12 @@ export default async function DamageReportPage({
   return (
     <PublicFormLayout
       shortCode={shortCode}
-      title="Report damage"
+      title="Return checklist"
       orgName={resolved.org.name ?? "Rental Equipment"}
       assetName={resolved.asset.asset_name}
       assetCode={resolved.asset.asset_code}
     >
-      <DamageForm shortCode={shortCode} />
+      <ReturnForm shortCode={shortCode} />
     </PublicFormLayout>
   );
 }

@@ -1,118 +1,101 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
-import { redirect } from "next/navigation";
-
-import { createPublicClient } from "@/lib/supabase/public";
-import { resolvePublicEquipment } from "@/lib/public/resolve";
-import { HONEYPOT_FIELD, validateDamageReport } from "@/lib/forms/validate";
 import {
-  mediaObjectName,
-  submissionPathPrefix,
-  validateUploadFiles,
-} from "@/lib/forms/media";
+  readString,
+  submitPublicForm,
+  type PublicFormState,
+} from "@/lib/forms/submit";
+import {
+  validateDamageReport,
+  validateReturnChecklist,
+  validateSupportRequest,
+} from "@/lib/forms/validate";
 
-export type DamageFormState = { error?: string };
+export type { PublicFormState };
 
-const SUBMISSIONS_BUCKET = "submissions";
-
-type UploadedFile = { type: string; size: number; arrayBuffer(): Promise<ArrayBuffer> };
-
-function readString(formData: FormData, key: string): string | null {
-  const value = formData.get(key);
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed.length === 0 ? null : trimmed;
-}
-
-function readFiles(formData: FormData): UploadedFile[] {
-  return formData
-    .getAll("media")
-    .filter(
-      (entry): entry is File => typeof entry !== "string" && entry.size > 0
-    );
-}
-
-/**
- * Public damage-report intake. organization_id, asset_id, form_type and status
- * are derived server-side — never from form input — and RLS re-checks the asset
- * is public + org-matched on insert. Uses the anon client only (no service-role).
- */
+/** Public damage-report intake. */
 export async function submitDamageReport(
   shortCode: string,
-  _prev: DamageFormState,
+  _prev: PublicFormState,
   formData: FormData
-): Promise<DamageFormState> {
-  // Honeypot: a filled hidden field means a bot. Silently accept without saving.
-  if (readString(formData, HONEYPOT_FIELD)) {
-    redirect(`/forms/${shortCode}/damage/thanks`);
-  }
-
-  const supabase = createPublicClient();
-
-  // Same public eligibility as /t/[shortCode]; blocks private/draft/disabled/missing.
-  const resolved = await resolvePublicEquipment(supabase, shortCode);
-  if (!resolved) {
-    return { error: "This form is no longer available." };
-  }
-
+): Promise<PublicFormState> {
   const name = readString(formData, "name");
   const email = readString(formData, "email");
   const phone = readString(formData, "phone");
   const urgency = readString(formData, "urgency");
   const description = readString(formData, "description");
 
-  const fieldError = validateDamageReport({
-    name,
-    email,
-    phone,
-    urgency,
-    description,
+  return submitPublicForm(shortCode, formData, {
+    formType: "damage_report",
+    thanksSlug: "damage",
+    fieldError: validateDamageReport({ name, email, phone, urgency, description }),
+    submittedBy: { name, email, phone },
+    dataJson: { urgency: urgency ?? null, description },
   });
-  if (fieldError) return { error: fieldError };
+}
 
-  const files = readFiles(formData);
-  const fileError = validateUploadFiles(
-    files.map((f) => ({ type: f.type, size: f.size }))
-  );
-  if (fileError) return { error: fileError };
+/** Public support-request intake. */
+export async function submitSupportRequest(
+  shortCode: string,
+  _prev: PublicFormState,
+  formData: FormData
+): Promise<PublicFormState> {
+  const name = readString(formData, "name");
+  const email = readString(formData, "email");
+  const phone = readString(formData, "phone");
+  const preferred = readString(formData, "preferred_contact_method");
+  const description = readString(formData, "description");
 
-  // Server-built, org/asset-scoped storage path (matches the anon-insert policy).
-  const submissionId = randomUUID();
-  const prefix = submissionPathPrefix(
-    resolved.organizationId,
-    resolved.assetId,
-    submissionId
-  );
-
-  const mediaPaths: string[] = [];
-  for (const file of files) {
-    const path = `${prefix}/${mediaObjectName(randomUUID(), file.type)}`;
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const { error } = await supabase.storage
-      .from(SUBMISSIONS_BUCKET)
-      .upload(path, bytes, { contentType: file.type, upsert: false });
-    if (error) {
-      return { error: "Could not upload your photos. Please try again." };
-    }
-    mediaPaths.push(path);
-  }
-
-  const { error: insertError } = await supabase.from("form_submissions").insert({
-    organization_id: resolved.organizationId,
-    asset_id: resolved.assetId,
-    form_type: "damage_report",
-    status: "new",
-    submitted_by_name: name,
-    submitted_by_email: email,
-    submitted_by_phone: phone,
-    submission_data_json: { urgency: urgency ?? null, description },
-    media_urls: mediaPaths,
+  return submitPublicForm(shortCode, formData, {
+    formType: "support_request",
+    thanksSlug: "support",
+    fieldError: validateSupportRequest({
+      name,
+      email,
+      phone,
+      preferred_contact_method: preferred,
+      description,
+    }),
+    submittedBy: { name, email, phone },
+    dataJson: { preferred_contact_method: preferred ?? null, description },
   });
+}
 
-  if (insertError) {
-    return { error: "Could not submit your report. Please try again." };
-  }
+/** Public return-checklist intake (contact optional). */
+export async function submitReturnChecklist(
+  shortCode: string,
+  _prev: PublicFormState,
+  formData: FormData
+): Promise<PublicFormState> {
+  const name = readString(formData, "name");
+  const email = readString(formData, "email");
+  const phone = readString(formData, "phone");
+  const condition_notes = readString(formData, "condition_notes");
+  const fuel_or_charge_level = readString(formData, "fuel_or_charge_level");
+  const cleaned = readString(formData, "cleaned");
+  const accessories_returned = readString(formData, "accessories_returned");
+  const damage_observed = readString(formData, "damage_observed");
 
-  redirect(`/forms/${shortCode}/damage/thanks`);
+  return submitPublicForm(shortCode, formData, {
+    formType: "return_checklist",
+    thanksSlug: "return",
+    fieldError: validateReturnChecklist({
+      name,
+      email,
+      phone,
+      condition_notes,
+      fuel_or_charge_level,
+      cleaned,
+      accessories_returned,
+      damage_observed,
+    }),
+    submittedBy: { name, email, phone },
+    dataJson: {
+      condition_notes,
+      fuel_or_charge_level,
+      cleaned: cleaned ?? null,
+      accessories_returned: accessories_returned ?? null,
+      damage_observed: damage_observed ?? null,
+    },
+  });
 }

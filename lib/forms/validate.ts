@@ -46,3 +46,60 @@ export function validateDamageReport(input: DamageReportInput): string | null {
   }
   return null;
 }
+
+export const PREFERRED_CONTACT_METHODS = ["email", "phone", "text"] as const;
+export const YES_NO = ["yes", "no"] as const;
+
+export type SupportRequestInput = {
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  preferred_contact_method: string | null;
+  description: string | null;
+};
+
+export function validateSupportRequest(input: SupportRequestInput): string | null {
+  const name = clean(input.name);
+  const email = clean(input.email);
+  const phone = clean(input.phone);
+  const description = clean(input.description);
+  const method = clean(input.preferred_contact_method);
+
+  if (!name) return "Your name is required.";
+  if (!description) return "A description of the issue is required.";
+  if (!email && !phone) return "Provide an email or a phone number.";
+  if (email && !EMAIL_RE.test(email)) return "Enter a valid email address.";
+  if (method && !(PREFERRED_CONTACT_METHODS as readonly string[]).includes(method)) {
+    return "Select a valid preferred contact method.";
+  }
+  return null;
+}
+
+export type ReturnChecklistInput = {
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  condition_notes: string | null;
+  fuel_or_charge_level: string | null;
+  cleaned: string | null;
+  accessories_returned: string | null;
+  damage_observed: string | null;
+};
+
+export function validateReturnChecklist(input: ReturnChecklistInput): string | null {
+  // Contact info is optional on the return checklist (see docs/USER_STORIES.md PS-5).
+  const email = clean(input.email);
+  if (email && !EMAIL_RE.test(email)) return "Enter a valid email address.";
+
+  for (const value of [
+    input.cleaned,
+    input.accessories_returned,
+    input.damage_observed,
+  ]) {
+    const v = clean(value);
+    if (v && !(YES_NO as readonly string[]).includes(v)) {
+      return "Answer the yes/no questions.";
+    }
+  }
+  return null;
+}

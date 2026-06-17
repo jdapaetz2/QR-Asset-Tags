@@ -5,7 +5,7 @@ import { FormThanks } from "@/components/public/form-thanks";
 
 export const dynamic = "force-dynamic";
 
-export default async function DamageThanksPage({
+export default async function ReturnThanksPage({
   params,
 }: {
   params: Promise<{ shortCode: string }>;
@@ -17,7 +17,7 @@ export default async function DamageThanksPage({
   return (
     <FormThanks
       shortCode={shortCode}
-      title="Report received"
+      title="Return checklist submitted"
       detail={
         resolved
           ? `${resolved.asset.asset_name} · ${resolved.asset.asset_code}`
