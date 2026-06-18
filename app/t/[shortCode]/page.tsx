@@ -1,6 +1,7 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import { recordScan } from "@/lib/scan/record";
 import { resolvePublicEquipment } from "@/lib/public/resolve";
+import { getPublicDocuments } from "@/lib/public/documents";
 import { PublicEquipmentPage } from "@/components/public/public-equipment-page";
 import { UnavailableNotice } from "@/components/public/unavailable-notice";
 
@@ -25,12 +26,16 @@ export default async function PublicScanPage({
     organizationId: resolved.organizationId,
   });
 
+  // Public documents (RLS restricts to public docs of this public asset).
+  const documents = await getPublicDocuments(supabase, resolved.assetId);
+
   return (
     <PublicEquipmentPage
       shortCode={shortCode}
       asset={resolved.asset}
       page={resolved.page}
       org={resolved.org}
+      documents={documents}
     />
   );
 }

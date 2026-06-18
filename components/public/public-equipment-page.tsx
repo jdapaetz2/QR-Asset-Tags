@@ -2,6 +2,11 @@ import Link from "next/link";
 
 import { PRODUCT_NAME } from "@/lib/constants";
 import { resolveSupportContact } from "@/lib/public/equipment";
+import {
+  findDocumentHref,
+  type PublicDocument,
+} from "@/lib/public/documents";
+import { DOCUMENT_TYPE_LABELS, type DocumentType } from "@/lib/documents/validate";
 
 export type PublicAsset = {
   asset_code: string;
@@ -56,19 +61,28 @@ function ActionLink({
   href,
   children,
   internal = false,
+  newTab = false,
 }: {
   href: string;
   children: React.ReactNode;
   internal?: boolean;
+  newTab?: boolean;
 }) {
   const className =
     "flex h-12 w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground";
-  return internal ? (
-    <Link href={href} className={className}>
-      {children}
-    </Link>
-  ) : (
-    <a href={href} className={className}>
+  if (internal) {
+    return (
+      <Link href={href} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <a
+      href={href}
+      className={className}
+      {...(newTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+    >
       {children}
     </a>
   );
@@ -91,14 +105,18 @@ export function PublicEquipmentPage({
   asset,
   page,
   org,
+  documents,
 }: {
   shortCode: string;
   asset: PublicAsset;
   page: PublicPage;
   org: PublicOrg;
+  documents: PublicDocument[];
 }) {
   const orgName = org?.name ?? "Rental Equipment";
   const support = resolveSupportContact(asset, org);
+  const manualHref = findDocumentHref(documents, "manual");
+  const startupHref = findDocumentHref(documents, "startup_guide");
   const makeModel = [asset.make, asset.model].filter(Boolean).join(" ");
 
   return (
@@ -151,10 +169,22 @@ export function PublicEquipmentPage({
 
       {/* Action buttons */}
       <nav className="flex flex-col gap-2">
-        {page.quick_start_text ? (
+        {startupHref ? (
+          <ActionLink href={startupHref} newTab>
+            Start-Up Guide
+          </ActionLink>
+        ) : page.quick_start_text ? (
           <ActionLink href="#quick-start">Start-Up Guide</ActionLink>
-        ) : null}
-        <DisabledAction>Manual</DisabledAction>
+        ) : (
+          <DisabledAction>Start-Up Guide</DisabledAction>
+        )}
+        {manualHref ? (
+          <ActionLink href={manualHref} newTab>
+            Manual
+          </ActionLink>
+        ) : (
+          <DisabledAction>Manual</DisabledAction>
+        )}
         <ActionLink href={`/forms/${shortCode}/damage`} internal>
           Report Damage
         </ActionLink>
@@ -175,6 +205,37 @@ export function PublicEquipmentPage({
         <Section title="Troubleshooting" body={page.troubleshooting_notes} />
         <Section title="Emergency" body={page.emergency_notes} />
       </div>
+
+      {/* Public documents */}
+      {documents.length > 0 ? (
+        <section className="rounded-lg border bg-card p-4">
+          <h2 className="mb-2 text-sm font-semibold">Documents</h2>
+          <ul className="flex flex-col gap-2 text-sm">
+            {documents.map((doc) => (
+              <li
+                key={doc.id}
+                className="flex items-center justify-between gap-3"
+              >
+                <span className="min-w-0">
+                  <span className="font-medium">{doc.title}</span>{" "}
+                  <span className="text-xs text-muted-foreground">
+                    {DOCUMENT_TYPE_LABELS[doc.document_type as DocumentType] ??
+                      doc.document_type}
+                  </span>
+                </span>
+                <a
+                  href={doc.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 underline-offset-4 hover:underline"
+                >
+                  Open
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {/* Support contact */}
       {support.phone || support.email ? (

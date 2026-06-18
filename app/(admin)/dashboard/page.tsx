@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { requireProfile, landingPathForRole } from "@/lib/auth/session";
 
 const COMING_SOON = [
-  { title: "Submissions", note: "Damage reports & support requests" },
   { title: "QR Pages", note: "Public equipment pages & tags" },
   { title: "Settings", note: "Organization profile & branding" },
 ];
@@ -61,6 +60,15 @@ export default async function DashboardPage() {
             <h3 className="font-medium">Assets</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Manage equipment records
+            </p>
+          </Link>
+          <Link
+            href="/dashboard/submissions"
+            className="rounded-lg border bg-card p-4 transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <h3 className="font-medium">Submissions</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Damage reports & support requests
             </p>
           </Link>
           {COMING_SOON.map((card) => (
