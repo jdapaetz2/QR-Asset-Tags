@@ -75,13 +75,29 @@ export default async function SubmissionsPage({
   const { data } = await query;
   const rows = (data ?? []) as unknown as SubmissionRow[];
 
+  // Carry the active filters into the CSV export so it matches what's shown.
+  const exportParams = new URLSearchParams();
+  if (formType) exportParams.set("form_type", formType);
+  if (status) exportParams.set("status", status);
+  if (assetId) exportParams.set("asset_id", assetId);
+  const exportQuery = exportParams.toString();
+  const exportHref = `/dashboard/submissions/export${exportQuery ? `?${exportQuery}` : ""}`;
+
   return (
     <div className="flex flex-col gap-6">
-      <section>
-        <h1 className="text-2xl font-semibold tracking-tight">Submissions</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {rows.length} submission{rows.length === 1 ? "" : "s"}
-        </p>
+      <section className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Submissions</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {rows.length} submission{rows.length === 1 ? "" : "s"}
+          </p>
+        </div>
+        <a
+          href={exportHref}
+          className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+        >
+          Export CSV
+        </a>
       </section>
 
       {/* Simple GET-form filters */}
