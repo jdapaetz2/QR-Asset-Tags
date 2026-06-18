@@ -128,6 +128,21 @@ export default async function EditAssetPage({
         </Button>
       </section>
 
+      {/* Documents */}
+      <section className="flex items-center justify-between rounded-lg border bg-card p-4">
+        <div className="text-sm">
+          <h2 className="font-medium">Documents</h2>
+          <p className="text-muted-foreground">
+            Manuals, guides, and links for this asset.
+          </p>
+        </div>
+        <Button asChild variant="outline">
+          <Link href={`/dashboard/assets/${assetId}/documents`}>
+            Manage documents
+          </Link>
+        </Button>
+      </section>
+
       {/* QR link management */}
       <QrLinkSection assetId={assetId} links={links} />
 
