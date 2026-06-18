@@ -6,6 +6,11 @@ import { ROLES } from "@/lib/auth/roles";
 import { publicEnv } from "@/lib/env";
 import { buildPublicQrUrl } from "@/lib/qr/url";
 import { isProductionBaseUrl, assetReadiness } from "@/lib/qr/production";
+import {
+  EC_OPTIONS,
+  SIZE_OPTIONS,
+  normalizeErrorCorrection,
+} from "@/lib/qr/svg";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -26,6 +31,9 @@ function asArray(value: string | string[] | undefined): string[] {
   return Array.isArray(value) ? value : value ? [value] : [];
 }
 
+const selectClass =
+  "rounded-md border bg-background px-2 py-1.5 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring";
+
 export default async function ProductionPage({
   searchParams,
 }: {
@@ -37,6 +45,10 @@ export default async function ProductionPage({
   const sp = await searchParams;
   const orgId = firstString(sp.org);
   const selectedIds = asArray(sp.select);
+  const ec = normalizeErrorCorrection(firstString(sp.ec));
+  const size = SIZE_OPTIONS.includes(firstString(sp.size) as never)
+    ? firstString(sp.size)
+    : "2.0";
 
   const baseUrl = publicEnv.siteUrl;
   const baseIsProd = isProductionBaseUrl(baseUrl);
@@ -206,6 +218,13 @@ export default async function ProductionPage({
 
   const selected = rows.filter((r) => selectedIds.includes(r.asset.id));
 
+  const sheetParams = new URLSearchParams();
+  sheetParams.set("org", orgId);
+  sheetParams.set("ec", ec);
+  sheetParams.set("size", size);
+  for (const s of selected) sheetParams.append("select", s.asset.id);
+  const sheetHref = `/owner/production/qr-sheet.svg?${sheetParams.toString()}`;
+
   return (
     <div className="flex flex-col gap-6">
       {header}
@@ -225,8 +244,45 @@ export default async function ProductionPage({
         </p>
       </section>
 
+      <section className="rounded-lg border bg-card p-4 text-sm">
+        <h2 className="font-medium">Scan-safe equipment tag</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Black-on-white, square modules, high error correction, quiet zone — no
+          logo or styling. This is the default export.
+        </p>
+        <ul className="mt-2 list-disc pl-5 text-xs text-muted-foreground">
+          <li>
+            Higher error correction improves resilience but can make the QR denser.
+            Use larger physical tags for dense QR codes.
+          </li>
+          <li>Final physical tag size must be tested after engraving/printing.</li>
+        </ul>
+      </section>
+
       <form method="get" className="flex flex-col gap-3">
         <input type="hidden" name="org" value={orgId} />
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-muted-foreground">Error correction</span>
+            <select name="ec" defaultValue={ec} className={selectClass}>
+              {EC_OPTIONS.map((level) => (
+                <option key={level} value={level}>
+                  {level}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-muted-foreground">Size (in)</span>
+            <select name="size" defaultValue={size} className={selectClass}>
+              {SIZE_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <div className="overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/50 text-left text-muted-foreground">
@@ -290,8 +346,18 @@ export default async function ProductionPage({
                       )}
                     </td>
                     <td className="px-3 py-2">
-                      {qrUrl ? (
-                        <code className="font-mono text-xs">{qrUrl}</code>
+                      {qrUrl && qr ? (
+                        <div className="flex flex-col gap-1">
+                          <code className="font-mono text-xs">{qrUrl}</code>
+                          <a
+                            href={`/owner/production/qr.svg?short=${encodeURIComponent(
+                              qr.short_code
+                            )}&ec=${ec}&size=${size}`}
+                            className="text-xs underline-offset-4 hover:underline"
+                          >
+                            Download SVG
+                          </a>
+                        </div>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
@@ -321,20 +387,28 @@ export default async function ProductionPage({
             Select assets above to build a production list.
           </p>
         ) : (
-          <ul className="flex flex-col gap-1 text-sm">
-            {selected.map(({ asset, qrUrl }) => (
-              <li key={asset.id} className="flex flex-wrap items-baseline gap-2">
-                <span className="font-medium">{asset.asset_code}</span>
-                {qrUrl ? (
-                  <code className="font-mono text-xs">{qrUrl}</code>
-                ) : (
-                  <span className="text-xs text-muted-foreground">
-                    no QR link — not ready
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="flex flex-col gap-1 text-sm">
+              {selected.map(({ asset, qrUrl }) => (
+                <li key={asset.id} className="flex flex-wrap items-baseline gap-2">
+                  <span className="font-medium">{asset.asset_code}</span>
+                  {qrUrl ? (
+                    <code className="font-mono text-xs">{qrUrl}</code>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      no QR link — not ready
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <a
+              href={sheetHref}
+              className="mt-3 inline-flex rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+            >
+              Download SVG sheet
+            </a>
+          </>
         )}
       </section>
     </div>
