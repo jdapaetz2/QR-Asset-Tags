@@ -36,7 +36,7 @@ export type DocumentFormInput = {
   link_status?: string | null;
 };
 
-function isHttpUrl(value: string): boolean {
+export function isHttpUrl(value: string): boolean {
   try {
     const u = new URL(value);
     return u.protocol === "http:" || u.protocol === "https:";
