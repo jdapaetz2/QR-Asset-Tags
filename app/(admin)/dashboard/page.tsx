@@ -71,6 +71,15 @@ export default async function DashboardPage() {
               Damage reports & support requests
             </p>
           </Link>
+          <Link
+            href="/dashboard/analytics"
+            className="rounded-lg border bg-card p-4 transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <h3 className="font-medium">Analytics</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Scan & submission activity
+            </p>
+          </Link>
           {COMING_SOON.map((card) => (
             <div
               key={card.title}
