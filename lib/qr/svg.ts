@@ -1,5 +1,7 @@
 import QRCode from "qrcode";
 
+import { QUIET_ZONE, SIZE_OPTIONS, svgWidthForSize } from "@/lib/qr/constants";
+
 /**
  * Scan-safe QR SVG generation for the platform-admin production workspace.
  *
@@ -9,7 +11,10 @@ import QRCode from "qrcode";
  * `${base}/t/${short_code}` (never the stored `public_url`).
  */
 
-export const QUIET_ZONE = 4; // modules; never zero
+// Re-exported so existing importers can keep importing from "@/lib/qr/svg".
+export { QUIET_ZONE, SIZE_OPTIONS, svgWidthForSize };
+export type { SizeInches } from "@/lib/qr/constants";
+
 const FG = "#000000";
 const BG = "#ffffff";
 
@@ -21,20 +26,6 @@ export function normalizeErrorCorrection(level: string | null | undefined): Erro
   return (EC_OPTIONS as readonly string[]).includes(level ?? "")
     ? (level as ErrorCorrection)
     : "H";
-}
-
-export const SIZE_OPTIONS = ["1.5", "2.0", "2.5"] as const;
-export type SizeInches = (typeof SIZE_OPTIONS)[number];
-
-const WIDTH_BY_SIZE: Record<string, number> = {
-  "1.5": 384,
-  "2.0": 512,
-  "2.5": 640,
-};
-
-/** Pixel width for the SVG (vector, so this is just the rendered box). Default 2.0in. */
-export function svgWidthForSize(size: string | null | undefined): number {
-  return WIDTH_BY_SIZE[size ?? ""] ?? WIDTH_BY_SIZE["2.0"];
 }
 
 function sanitizeSegment(value: string): string {
@@ -59,17 +50,58 @@ function xmlEscape(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-export type QrSvgOptions = { ec?: string | null; size?: string | null };
+/** A logo to overlay: a self-contained data URI + size as % of the QR. */
+export type QrLogo = { dataUri: string; pct: number };
 
-/** Single scan-safe QR SVG encoding `url`. */
+export type QrSvgOptions = {
+  ec?: string | null;
+  size?: string | null;
+  fg?: string | null;
+  bg?: string | null;
+  logo?: QrLogo | null;
+};
+
+function normalizeColor(value: string | null | undefined, fallback: string): string {
+  return value && /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
+}
+
+/**
+ * Single QR SVG encoding `url`. Scan-safe by default (black/white, square, quiet
+ * zone). Optional fg/bg colors and a centered logo (with a knockout background)
+ * for Branded mode — the logo is composed into a self-contained SVG (data URI).
+ */
 export async function buildQrSvg(url: string, options: QrSvgOptions = {}): Promise<string> {
-  return QRCode.toString(url, {
+  const ec = normalizeErrorCorrection(options.ec);
+  const dark = normalizeColor(options.fg, FG);
+  const light = normalizeColor(options.bg, BG);
+
+  const svg = await QRCode.toString(url, {
     type: "svg",
-    errorCorrectionLevel: normalizeErrorCorrection(options.ec),
+    errorCorrectionLevel: ec,
     margin: QUIET_ZONE,
     width: svgWidthForSize(options.size),
-    color: { dark: FG, light: BG },
+    color: { dark, light },
   });
+
+  if (!options.logo?.dataUri || options.logo.pct <= 0) return svg;
+
+  // viewBox is "0 0 N N" where N = module count + 2 * quiet zone; place the logo
+  // in those units so it scales with the rendered SVG.
+  const moduleCount = QRCode.create(url, { errorCorrectionLevel: ec }).modules.size;
+  const n = moduleCount + QUIET_ZONE * 2;
+  const logoSize = (n * Math.min(options.logo.pct, 20)) / 100;
+  const logoXY = (n - logoSize) / 2;
+  const knockout = logoSize * 1.18;
+  const knockoutXY = (n - knockout) / 2;
+
+  const overlay =
+    `<rect x="${knockoutXY}" y="${knockoutXY}" width="${knockout}" height="${knockout}" rx="${
+      knockout * 0.12
+    }" fill="${light}"/>` +
+    `<image x="${logoXY}" y="${logoXY}" width="${logoSize}" height="${logoSize}" ` +
+    `href="${options.logo.dataUri}" preserveAspectRatio="xMidYMid meet"/>`;
+
+  return svg.replace("</svg>", `${overlay}</svg>`);
 }
 
 export type QrSheetItem = { label: string; url: string };

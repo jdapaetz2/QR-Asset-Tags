@@ -62,6 +62,22 @@ describe("buildQrSvg", () => {
       buildQrSvg("https://tags.example.com/t/x", { ec: "M", size: "1.5" })
     ).resolves.toContain("<svg");
   });
+
+  it("embeds a centered logo as a self-contained image when provided", async () => {
+    const svg = await buildQrSvg("https://tags.example.com/t/demo-ex017", {
+      ec: "H",
+      logo: { dataUri: "data:image/png;base64,AAAA", pct: 15 },
+    });
+    expect(svg).toContain("<image");
+    expect(svg).toContain("data:image/png;base64,AAAA");
+    expect(svg.trimEnd().endsWith("</svg>")).toBe(true);
+    expect(svg).not.toContain("app.example.com");
+  });
+
+  it("does not add an image when no logo is given", async () => {
+    const svg = await buildQrSvg("https://tags.example.com/t/x", { ec: "H" });
+    expect(svg).not.toContain("<image");
+  });
 });
 
 describe("buildQrSheetSvg", () => {

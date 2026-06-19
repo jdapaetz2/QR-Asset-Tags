@@ -11,6 +11,7 @@ import {
   SIZE_OPTIONS,
   normalizeErrorCorrection,
 } from "@/lib/qr/svg";
+import { BrandedExportForm } from "@/components/qr/branded-export-form";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -160,7 +161,7 @@ export default async function ProductionPage({
   // ---- Selected organization: asset production list ------------------------
   const { data: orgRow } = await supabase
     .from("organizations")
-    .select("name")
+    .select("name, logo_url")
     .eq("id", orgId)
     .maybeSingle();
 
@@ -224,6 +225,17 @@ export default async function ProductionPage({
   sheetParams.set("size", size);
   for (const s of selected) sheetParams.append("select", s.asset.id);
   const sheetHref = `/owner/production/qr-sheet.svg?${sheetParams.toString()}`;
+
+  // Assets that have a QR link, for the optional branded export.
+  const qrAssets = rows
+    .filter((r) => r.qr && r.qrUrl)
+    .map((r) => ({
+      id: r.asset.id,
+      asset_code: r.asset.asset_code,
+      short_code: r.qr!.short_code,
+      qrUrl: r.qrUrl!,
+    }));
+  const orgHasLogo = Boolean(orgRow?.logo_url);
 
   return (
     <div className="flex flex-col gap-6">
@@ -410,6 +422,19 @@ export default async function ProductionPage({
             </a>
           </>
         )}
+      </section>
+
+      <section className="rounded-lg border bg-card p-4">
+        <h2 className="mb-1 font-medium">Branded export (optional)</h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Scan-safe is the default. Branded QR codes (logo, colors) trade some
+          robustness for branding — follow the scanability guidance below.
+        </p>
+        <BrandedExportForm
+          assets={qrAssets}
+          orgHasLogo={orgHasLogo}
+          baseIsProd={baseIsProd}
+        />
       </section>
     </div>
   );
