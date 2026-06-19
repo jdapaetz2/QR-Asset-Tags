@@ -5,7 +5,13 @@ import { requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
 import { publicEnv } from "@/lib/env";
 import { buildPublicQrUrl } from "@/lib/qr/url";
-import { isProductionBaseUrl, assetReadiness } from "@/lib/qr/production";
+import {
+  isProductionBaseUrl,
+  assetReadiness,
+  TAG_SIZE_OPTIONS,
+  MATERIAL_OPTIONS,
+  MOUNTING_OPTIONS,
+} from "@/lib/qr/production";
 import {
   EC_OPTIONS,
   SIZE_OPTIONS,
@@ -50,6 +56,12 @@ export default async function ProductionPage({
   const size = SIZE_OPTIONS.includes(firstString(sp.size) as never)
     ? firstString(sp.size)
     : "2.0";
+
+  // Batch tag metadata (non-persistent — carried in query params only).
+  const tagSize = firstString(sp.tag_size);
+  const material = firstString(sp.material);
+  const mounting = firstString(sp.mounting_method);
+  const productionNotes = firstString(sp.production_notes);
 
   const baseUrl = publicEnv.siteUrl;
   const baseIsProd = isProductionBaseUrl(baseUrl);
@@ -219,12 +231,19 @@ export default async function ProductionPage({
 
   const selected = rows.filter((r) => selectedIds.includes(r.asset.id));
 
-  const sheetParams = new URLSearchParams();
-  sheetParams.set("org", orgId);
-  sheetParams.set("ec", ec);
-  sheetParams.set("size", size);
-  for (const s of selected) sheetParams.append("select", s.asset.id);
-  const sheetHref = `/owner/production/qr-sheet.svg?${sheetParams.toString()}`;
+  const exportParams = new URLSearchParams();
+  exportParams.set("org", orgId);
+  exportParams.set("ec", ec);
+  exportParams.set("size", size);
+  if (tagSize) exportParams.set("tag_size", tagSize);
+  if (material) exportParams.set("material", material);
+  if (mounting) exportParams.set("mounting_method", mounting);
+  if (productionNotes) exportParams.set("production_notes", productionNotes);
+  for (const s of selected) exportParams.append("select", s.asset.id);
+  const query = exportParams.toString();
+  const sheetHref = `/owner/production/qr-sheet.svg?${query}`;
+  const csvHref = `/owner/production/export.csv?${query}`;
+  const productionSheetHref = `/owner/production/sheet?${query}`;
 
   // Assets that have a QR link, for the optional branded export.
   const qrAssets = rows
@@ -294,7 +313,54 @@ export default async function ProductionPage({
               ))}
             </select>
           </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-muted-foreground">Tag size</span>
+            <select name="tag_size" defaultValue={tagSize} className={selectClass}>
+              <option value="">—</option>
+              {TAG_SIZE_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-muted-foreground">Material</span>
+            <select name="material" defaultValue={material} className={selectClass}>
+              <option value="">—</option>
+              {MATERIAL_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-muted-foreground">Mounting</span>
+            <select
+              name="mounting_method"
+              defaultValue={mounting}
+              className={selectClass}
+            >
+              <option value="">—</option>
+              {MOUNTING_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-muted-foreground">Production notes (batch)</span>
+          <input
+            type="text"
+            name="production_notes"
+            defaultValue={productionNotes}
+            placeholder="Applies to the whole batch on the CSV and sheet"
+            className={selectClass}
+          />
+        </label>
         <div className="overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/50 text-left text-muted-foreground">
@@ -414,12 +480,34 @@ export default async function ProductionPage({
                 </li>
               ))}
             </ul>
-            <a
-              href={sheetHref}
-              className="mt-3 inline-flex rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-            >
-              Download SVG sheet
-            </a>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <a
+                href={sheetHref}
+                className="inline-flex rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+              >
+                Download SVG sheet
+              </a>
+              <a
+                href={csvHref}
+                className="inline-flex rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+              >
+                Download CSV
+              </a>
+              <a
+                href={productionSheetHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+              >
+                Production sheet
+              </a>
+            </div>
+            {!baseIsProd ? (
+              <p className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-muted-foreground">
+                This base URL is not suitable for physical production tags unless
+                intentional.
+              </p>
+            ) : null}
           </>
         )}
       </section>

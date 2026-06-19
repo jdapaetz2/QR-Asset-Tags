@@ -2,6 +2,32 @@
  * Pure helpers for the platform-admin QR production workspace. No I/O.
  */
 
+/** Default QR preset for production exports — scan-safe (branded sheet is deferred). */
+export const QR_STYLE_PRESET = "scan-safe";
+
+/** Batch tag-metadata option lists (non-persistent; carried in query params). */
+export const TAG_SIZE_OPTIONS = [
+  "1.5in square",
+  "2in square",
+  "2in x 1in",
+  "custom",
+] as const;
+
+export const MATERIAL_OPTIONS = [
+  "anodized aluminum",
+  "stainless",
+  "acrylic",
+  "other",
+] as const;
+
+export const MOUNTING_OPTIONS = [
+  "adhesive",
+  "rivet",
+  "screw",
+  "zip tie",
+  "other",
+] as const;
+
 /**
  * Whether a base URL is safe for printing on physical tags. Localhost and Vercel
  * preview hosts are NOT — a permanent tag must point at the real production domain.
