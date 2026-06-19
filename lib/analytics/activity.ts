@@ -105,6 +105,50 @@ export type AssetActivity = {
   submissionCount: number;
 };
 
+/** Sort options for the per-asset activity table (most-active-first variants). */
+export const ASSET_SORTS = [
+  "scans_desc",
+  "submissions_desc",
+  "last_scanned_desc",
+] as const;
+export type AssetSort = (typeof ASSET_SORTS)[number];
+
+/** Validate a `sort` query param; anything unknown/missing falls back safely. */
+export function normalizeAssetSort(value: unknown): AssetSort {
+  return typeof value === "string" &&
+    (ASSET_SORTS as readonly string[]).includes(value)
+    ? (value as AssetSort)
+    : "scans_desc";
+}
+
+function lastScannedMs(value: string | null): number {
+  if (!value) return -Infinity; // nulls sort last under descending order
+  const t = new Date(value).getTime();
+  return Number.isNaN(t) ? -Infinity : t;
+}
+
+/**
+ * Non-mutating sort of composed per-asset rows. Descending by the chosen metric;
+ * rows without a last-scanned time sort last for `last_scanned_desc`.
+ */
+export function sortAssetRows<
+  T extends { totalScans: number; submissionCount: number; lastScannedAt: string | null },
+>(rows: T[], sort: AssetSort): T[] {
+  const copy = [...rows];
+  copy.sort((a, b) => {
+    switch (sort) {
+      case "submissions_desc":
+        return b.submissionCount - a.submissionCount;
+      case "last_scanned_desc":
+        return lastScannedMs(b.lastScannedAt) - lastScannedMs(a.lastScannedAt);
+      case "scans_desc":
+      default:
+        return b.totalScans - a.totalScans;
+    }
+  });
+  return copy;
+}
+
 /** Per-asset scan totals (with latest scan time) and submission counts. */
 export function perAssetActivity(
   scans: ScanRow[],

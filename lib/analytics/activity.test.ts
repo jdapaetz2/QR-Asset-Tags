@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  normalizeAssetSort,
   perAssetActivity,
+  sortAssetRows,
   summarizeActivity,
   type ScanRow,
   type SubmissionRow,
@@ -89,5 +91,49 @@ describe("perAssetActivity", () => {
       lastScannedAt: null,
       submissionCount: 1,
     });
+  });
+});
+
+describe("normalizeAssetSort", () => {
+  it("accepts known sorts and falls back to scans_desc otherwise", () => {
+    expect(normalizeAssetSort("submissions_desc")).toBe("submissions_desc");
+    expect(normalizeAssetSort("last_scanned_desc")).toBe("last_scanned_desc");
+    expect(normalizeAssetSort("scans_desc")).toBe("scans_desc");
+    expect(normalizeAssetSort("nonsense")).toBe("scans_desc");
+    expect(normalizeAssetSort(undefined)).toBe("scans_desc");
+    expect(normalizeAssetSort(["scans_desc"])).toBe("scans_desc");
+  });
+});
+
+describe("sortAssetRows", () => {
+  const rows = [
+    { id: "a", totalScans: 1, submissionCount: 5, lastScannedAt: daysAgo(2) },
+    { id: "b", totalScans: 9, submissionCount: 0, lastScannedAt: null },
+    { id: "c", totalScans: 4, submissionCount: 2, lastScannedAt: daysAgo(1) },
+  ];
+
+  it("sorts by scans, submissions, and last scanned (nulls last)", () => {
+    expect(sortAssetRows(rows, "scans_desc").map((r) => r.id)).toEqual([
+      "b",
+      "c",
+      "a",
+    ]);
+    expect(sortAssetRows(rows, "submissions_desc").map((r) => r.id)).toEqual([
+      "a",
+      "c",
+      "b",
+    ]);
+    // c (1d) before a (2d); b has no scan time → last.
+    expect(sortAssetRows(rows, "last_scanned_desc").map((r) => r.id)).toEqual([
+      "c",
+      "a",
+      "b",
+    ]);
+  });
+
+  it("does not mutate the input array", () => {
+    const before = rows.map((r) => r.id);
+    sortAssetRows(rows, "scans_desc");
+    expect(rows.map((r) => r.id)).toEqual(before);
   });
 });
