@@ -5,7 +5,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { QUIET_ZONE, SIZE_OPTIONS } from "@/lib/qr/constants";
 import {
-  BRANDED_EC_OPTIONS,
   LOGO_ALLOWED_TYPES,
   LOGO_MAX_PCT,
   LOGO_SAFE_PCT,
@@ -14,6 +13,9 @@ import {
   SCAN_DISCLAIMER,
   brandedWarnings,
 } from "@/lib/qr/branded";
+
+// Branded/logo exports always use error correction H (scanability over styling).
+const BRANDED_EC = "H";
 
 export type BrandedAsset = {
   id: string;
@@ -41,7 +43,6 @@ export function BrandedExportForm({
   baseIsProd: boolean;
 }) {
   const [short, setShort] = useState(assets[0]?.short_code ?? "");
-  const [ec, setEc] = useState<string>("H");
   const [size, setSize] = useState<string>("2.0");
   const [fg, setFg] = useState("#000000");
   const [bg, setBg] = useState("#ffffff");
@@ -60,11 +61,10 @@ export function BrandedExportForm({
   const selected = assets.find((a) => a.short_code === short) ?? assets[0];
   const hasLogo =
     (logoSource === "org" && orgHasLogo) || (logoSource === "upload" && hasFile);
-  const effectiveEc = hasLogo ? "H" : ec;
 
   const warnings = brandedWarnings({
     hasLogo,
-    ec: effectiveEc,
+    ec: BRANDED_EC,
     logoPct,
     sizeInches: size,
     baseIsProd,
@@ -97,25 +97,14 @@ export function BrandedExportForm({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-sm">
+        <div className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Error correction</span>
-          <select
-            name="ec"
-            value={effectiveEc}
-            onChange={(e) => setEc(e.target.value)}
-            disabled={hasLogo}
-            className={fieldClass}
-          >
-            {BRANDED_EC_OPTIONS.map((level) => (
-              <option key={level} value={level}>
-                {level}
-              </option>
-            ))}
-          </select>
+          <input type="hidden" name="ec" value={BRANDED_EC} />
+          <p className="py-1.5">H, forced for branded/logo exports</p>
           <span className="text-xs text-muted-foreground">
             Use H for dirty, scratched, or logo-bearing equipment tags.
           </span>
-        </label>
+        </div>
 
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Size (in)</span>
@@ -206,11 +195,6 @@ export function BrandedExportForm({
         ) : (
           <input type="hidden" name="logoPct" value={logoPct} />
         )}
-        {hasLogo ? (
-          <p className="text-xs text-muted-foreground">
-            A logo forces error correction H on export.
-          </p>
-        ) : null}
       </fieldset>
 
       {/* Scanability summary */}
@@ -220,7 +204,7 @@ export function BrandedExportForm({
           <code className="font-mono text-foreground">{selected.qrUrl}</code>
         </p>
         <p className="mt-1">
-          Error correction: {effectiveEc} · Quiet zone: {QUIET_ZONE} modules · Logo:{" "}
+          Error correction: {BRANDED_EC} · Quiet zone: {QUIET_ZONE} modules · Logo:{" "}
           {hasLogo ? `${logoPct}%` : "none"}
         </p>
         <p className="mt-1">{RECOMMENDED_PHYSICAL_NOTE}</p>

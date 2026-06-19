@@ -8,7 +8,6 @@ import { buildPublicQrUrl } from "@/lib/qr/url";
 import { buildQrSvg, sanitizeSvgFilename, type QrLogo } from "@/lib/qr/svg";
 import {
   clampLogoPercent,
-  normalizeBrandedEc,
   validateLogoFile,
   LOGO_ALLOWED_TYPES,
   LOGO_MAX_BYTES,
@@ -114,10 +113,8 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // A logo always forces error correction H; otherwise allow Q/H.
-  const ec = logo ? "H" : normalizeBrandedEc(String(form.get("ec") ?? ""));
-
-  return svgResponse(supabase, shortCode, { ec, size, fg, bg, logo });
+  // Branded/logo exports always use error correction H (scanability over styling).
+  return svgResponse(supabase, shortCode, { ec: "H", size, fg, bg, logo });
 }
 
 /** Best-effort fetch + embed of an org logo URL. Returns null on any problem. */
