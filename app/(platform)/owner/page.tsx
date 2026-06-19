@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
@@ -32,11 +34,19 @@ export default async function OwnerPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section>
-        <h1 className="text-2xl font-semibold tracking-tight">Organizations</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {orgs.length} organization{orgs.length === 1 ? "" : "s"}
-        </p>
+      <section className="flex items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Organizations</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {orgs.length} organization{orgs.length === 1 ? "" : "s"}
+          </p>
+        </div>
+        <Link
+          href="/owner/analytics"
+          className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+        >
+          Analytics
+        </Link>
       </section>
 
       <div className="overflow-x-auto rounded-lg border">

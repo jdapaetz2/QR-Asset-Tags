@@ -10,7 +10,10 @@ export type NavItem = { label: string; href: string };
 
 export function navForRole(role: Role): NavItem[] {
   if (role === ROLES.PLATFORM_OWNER) {
-    return [{ label: "Organizations", href: "/owner" }];
+    return [
+      { label: "Organizations", href: "/owner" },
+      { label: "Production", href: "/owner/production" },
+    ];
   }
   return [{ label: "Dashboard", href: "/dashboard" }];
 }
