@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { PublicFooter } from "@/components/public/public-footer";
+
 /** Mobile-first header shell for the public forms. Asset is shown, not editable. */
 export function PublicFormLayout({
   shortCode,
@@ -7,6 +9,7 @@ export function PublicFormLayout({
   orgName,
   assetName,
   assetCode,
+  poweredByLabel,
   children,
 }: {
   shortCode: string;
@@ -14,6 +17,7 @@ export function PublicFormLayout({
   orgName: string;
   assetName: string;
   assetCode: string;
+  poweredByLabel?: string | null;
   children: React.ReactNode;
 }) {
   return (
@@ -26,11 +30,25 @@ export function PublicFormLayout({
           ← Back to equipment page
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">{title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {orgName} · {assetName} ({assetCode})
-        </p>
       </header>
+
+      {/* Asset is locked to the scanned tag — shown read-only, never editable. */}
+      <section className="rounded-lg border bg-muted/40 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Equipment
+          </span>
+          <span className="text-xs text-muted-foreground">Locked to this tag</span>
+        </div>
+        <p className="mt-1 text-sm font-medium">{assetName}</p>
+        <p className="text-xs text-muted-foreground">
+          {orgName} · {assetCode}
+        </p>
+      </section>
+
       {children}
+
+      <PublicFooter poweredByLabel={poweredByLabel} />
     </main>
   );
 }

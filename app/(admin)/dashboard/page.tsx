@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile, landingPathForRole } from "@/lib/auth/session";
+import { roleLabel } from "@/lib/auth/roles";
 
 const COMING_SOON = [
   { title: "QR Pages", note: "Public equipment pages & tags" },
@@ -32,7 +33,8 @@ export default async function DashboardPage() {
           {org?.name ?? "Your organization"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Signed in as {profile.name ?? profile.email ?? "user"} · {profile.role}
+          Signed in as {profile.name ?? profile.email ?? "user"} ·{" "}
+          {roleLabel(profile.role)}
         </p>
       </section>
 

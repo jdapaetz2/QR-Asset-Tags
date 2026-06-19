@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-import { PRODUCT_NAME } from "@/lib/constants";
 import { resolveSupportContact } from "@/lib/public/equipment";
+import { PublicFooter } from "@/components/public/public-footer";
 import {
   findDocumentHref,
   type PublicDocument,
@@ -257,13 +257,7 @@ export function PublicEquipmentPage({
       ) : null}
 
       {/* Footer */}
-      <footer className="mt-auto border-t pt-4 text-center text-xs text-muted-foreground">
-        <p>{org?.powered_by_label ?? `Powered by ${PRODUCT_NAME}`}</p>
-        <p className="mt-1">
-          Always follow on-site safety guidance and the equipment&apos;s official
-          documentation.
-        </p>
-      </footer>
+      <PublicFooter poweredByLabel={org?.powered_by_label} />
     </main>
   );
 }
