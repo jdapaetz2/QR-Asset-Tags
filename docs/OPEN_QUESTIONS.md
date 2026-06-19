@@ -41,3 +41,8 @@ Decisions that aren't fully settled by `docs/PROJECT_CONTEXT.md` / `CLAUDE.md`. 
 ## Link management
 
 16. **Link-check trigger** — MVP is manual "mark as checked." Confirm there's no scheduled checking in MVP. *Default (assumption):* manual only; scheduled checks are post-MVP (data model is ready).
+
+## Security / abuse
+
+17. **Public-form rate limiting** — public submission/upload endpoints have a honeypot but no rate limit (a shared store is needed, so it is not a small change). *Default:* defer to a post-pilot fast-follow (edge/middleware rate limit keyed on IP-hash + asset). Tracked in `docs/PILOT_READINESS.md` (Sprint 7A audit).
+18. **Permissive anon insert on the `submissions` storage bucket** — the `submissions public insert` policy (`0002_storage.sql`) allows anon PUT under any `org/<id>/…` path without checking the org exists. Anon cannot read objects back, and MIME/size caps apply, so this is a storage-spam/cost vector, not a data leak. *Default:* defer; post-pilot, validate the org segment or route uploads through a server action that checks a resolved public asset. Tracked in `docs/PILOT_READINESS.md`.
