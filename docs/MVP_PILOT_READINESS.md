@@ -99,3 +99,31 @@ Be clear about the boundary during pilots. The MVP intentionally does **not** in
   scope; a separate pre-use inspection is not.
 
 See [NON_GOALS.md](NON_GOALS.md) for the full non-goals list.
+
+## 5. Final review — Sprint 7D
+
+Final pilot-readiness review of branch `sprint-7-pilot-readiness`. **No
+pilot-blocking issues found; no code changes required.**
+
+- **Gates:** `lint` clean · `typecheck` clean · `test` 105 passed (23 files) ·
+  `build` compiled successfully with every required route in the manifest.
+- **Route smoke:** public (`/`, `/t/[shortCode]`, `/forms/[shortCode]/{damage,support,return}`),
+  customer admin (`/dashboard`, `/dashboard/assets`, `/dashboard/submissions`,
+  `/dashboard/analytics`), and platform admin (`/owner`, `/owner/production` +
+  exports) all compile and route as expected.
+- **Security spot-checks (all hold):** customer admin is blocked from
+  `/owner/production` (`requireRole` on every `/owner` route); logged-out users are
+  redirected from `/dashboard` (`proxy.ts` matcher); `/t/*` and `/forms/*` are
+  public; anon cannot read/list submissions or private storage buckets; analytics
+  exposes no raw IP (only `asset_id, scanned_at`); the service-role client is unused
+  in public/customer flows.
+- **Docs:** deployment checklist, production-domain caution, and known limitations
+  are present and accurate; no secrets in `docs/` or `README.md`.
+
+**Deferred post-MVP items:** public-form rate limiting and the permissive anon
+`submissions`-bucket insert (both in section 3) — abuse/cost concerns, not data
+leaks. Roadmap items (billing, booking, CMMS, native app, etc.) are in section 4
+and [NON_GOALS.md](NON_GOALS.md).
+
+**Verdict: the MVP is pilot-ready, and `sprint-7-pilot-readiness` is ready to merge
+to `main`.**
