@@ -7,7 +7,6 @@ import { roleLabel } from "@/lib/auth/roles";
 
 const COMING_SOON = [
   { title: "QR Pages", note: "Public equipment pages & tags" },
-  { title: "Settings", note: "Organization profile & branding" },
 ];
 
 export default async function DashboardPage() {
@@ -80,6 +79,15 @@ export default async function DashboardPage() {
             <h3 className="font-medium">Analytics</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Scan & submission activity
+            </p>
+          </Link>
+          <Link
+            href="/dashboard/settings"
+            className="rounded-lg border bg-card p-4 transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <h3 className="font-medium">Settings</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Organization profile, support contact, and scanner page branding
             </p>
           </Link>
           {COMING_SOON.map((card) => (

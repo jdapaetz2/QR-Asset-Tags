@@ -13,6 +13,11 @@ export const DEFAULT_BRAND_COLOR = "#0f172a";
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
+/** Strict `#RRGGBB` test — the only color shape we accept from user input. */
+export function isHexColor(value: unknown): value is string {
+  return typeof value === "string" && HEX_RE.test(value);
+}
+
 /**
  * Return `value` only if it is a strict `#RRGGBB` hex; otherwise `fallback`.
  * Never returns untrusted text — the output is always a known-safe hex.
@@ -21,7 +26,7 @@ export function safeBrandColor(
   value: string | null | undefined,
   fallback: string = DEFAULT_BRAND_COLOR
 ): string {
-  return typeof value === "string" && HEX_RE.test(value) ? value : fallback;
+  return isHexColor(value) ? value : fallback;
 }
 
 /** Relative luminance (0–1) of a validated `#RRGGBB` hex, per WCAG. */

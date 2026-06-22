@@ -59,13 +59,14 @@ export default async function OwnerPage() {
               <th className="px-4 py-2 font-medium">Plan</th>
               <th className="px-4 py-2 font-medium">Asset limit</th>
               <th className="px-4 py-2 font-medium">Created</th>
+              <th className="px-4 py-2 font-medium sr-only">Actions</th>
             </tr>
           </thead>
           <tbody>
             {orgs.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-4 py-6 text-center text-muted-foreground"
                 >
                   No organizations yet.
@@ -85,6 +86,14 @@ export default async function OwnerPage() {
                   </td>
                   <td className="px-4 py-2 text-muted-foreground">
                     {formatDate(org.created_at)}
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    <Link
+                      href={`/owner/organizations/${org.id}/settings`}
+                      className="text-sm underline-offset-4 hover:underline"
+                    >
+                      Settings
+                    </Link>
                   </td>
                 </tr>
               ))
