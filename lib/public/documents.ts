@@ -1,12 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { isHttpUrl } from "@/lib/documents/validate";
+import { isHttpUrl, type LinkStatus } from "@/lib/documents/validate";
 
 /**
  * Public documents for the /t/[shortCode] page. Visibility is enforced by RLS:
  * the anon `documents_public_select` policy returns only public documents of
  * public assets, and the anon `documents public read` storage policy permits
  * signing only those hosted objects. Private documents are never read or signed.
+ *
+ * `link_status` is carried through so the page can suppress known-broken links
+ * and soften ones flagged for review (we never auto-check links here).
  */
 
 const DOCUMENTS_BUCKET = "documents";
@@ -18,6 +21,7 @@ export type PublicDocument = {
   /** A ready-to-open URL (external link or a short-lived signed URL). */
   href: string;
   external: boolean;
+  link_status: LinkStatus;
 };
 
 type DocRow = {
@@ -26,7 +30,19 @@ type DocRow = {
   document_type: string;
   url: string | null;
   storage_path: string | null;
+  link_status: string | null;
 };
+
+function normalizeLinkStatus(value: string | null): LinkStatus {
+  return value === "ok" || value === "broken" || value === "needs_review"
+    ? value
+    : "unknown";
+}
+
+/** A document is openable unless it has been flagged broken. */
+export function isDocumentOpenable(doc: PublicDocument): boolean {
+  return doc.link_status !== "broken";
+}
 
 export async function getPublicDocuments(
   supabase: SupabaseClient,
@@ -34,7 +50,7 @@ export async function getPublicDocuments(
 ): Promise<PublicDocument[]> {
   const { data } = await supabase
     .from("documents")
-    .select("id, title, document_type, url, storage_path")
+    .select("id, title, document_type, url, storage_path, link_status")
     .eq("asset_id", assetId)
     .order("document_type", { ascending: true });
 
@@ -42,6 +58,7 @@ export async function getPublicDocuments(
   const docs: PublicDocument[] = [];
 
   for (const row of rows) {
+    const link_status = normalizeLinkStatus(row.link_status);
     if (row.url) {
       // Only render valid http(s) links.
       if (isHttpUrl(row.url)) {
@@ -51,6 +68,7 @@ export async function getPublicDocuments(
           document_type: row.document_type,
           href: row.url,
           external: true,
+          link_status,
         });
       }
       continue;
@@ -66,6 +84,7 @@ export async function getPublicDocuments(
           document_type: row.document_type,
           href: signed.signedUrl,
           external: false,
+          link_status,
         });
       }
       // If signing fails (e.g. policy not yet applied), skip silently.
@@ -75,10 +94,16 @@ export async function getPublicDocuments(
   return docs;
 }
 
-/** First public document href of a given type, or null. Pure. */
+/**
+ * First openable public document href of a given type, or null. Known-broken
+ * documents are skipped so primary action buttons never point at a dead link.
+ */
 export function findDocumentHref(
   docs: PublicDocument[],
   documentType: string
 ): string | null {
-  return docs.find((d) => d.document_type === documentType)?.href ?? null;
+  return (
+    docs.find((d) => d.document_type === documentType && isDocumentOpenable(d))
+      ?.href ?? null
+  );
 }

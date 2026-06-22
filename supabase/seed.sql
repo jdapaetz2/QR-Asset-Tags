@@ -39,20 +39,24 @@ on conflict (id) do nothing;
 -- Assets --------------------------------------------------------------------
 insert into public.assets (
   id, organization_id, asset_code, asset_name, category, make, model,
-  serial_number, year, public_status, internal_notes
+  serial_number, year, public_status, cover_image_url, internal_notes
 ) values
   ('21111111-1111-4111-8111-111111111101', '11111111-1111-4111-8111-111111111111',
    'EXCAVATOR-017', 'Excavator 017', 'Mini Excavator', 'Kubota', 'U17',
-   'KBU17-2022-0417', 2022, 'public', 'Hydraulic line replaced 2025-02; check tracks.'),
+   'KBU17-2022-0417', 2022, 'public', '/demo-assets/excavator-017.svg',
+   'Hydraulic line replaced 2025-02; check tracks.'),
   ('21111111-1111-4111-8111-111111111102', '11111111-1111-4111-8111-111111111111',
    'TRAILER-014', 'Trailer 014', 'Utility Trailer', 'Big Tex', '35SA',
-   'BTX35SA-2021-0014', 2021, 'public', 'Annual DOT inspection due 2026-09; check tire tread.'),
+   'BTX35SA-2021-0014', 2021, 'public', '/demo-assets/trailer-014.svg',
+   'Annual DOT inspection due 2026-09; check tire tread.'),
   ('21111111-1111-4111-8111-111111111103', '11111111-1111-4111-8111-111111111111',
    'GEN-008', 'Generator 008', 'Portable Generator', 'Generac', 'XG8000E',
-   'GNC8000-2023-0008', 2023, 'public', 'Service hours logged in maintenance binder.'),
+   'GNC8000-2023-0008', 2023, 'public', '/demo-assets/generator-008.svg',
+   'Service hours logged in maintenance binder.'),
   ('21111111-1111-4111-8111-111111111104', '11111111-1111-4111-8111-111111111111',
    'COMPACTOR-003', 'Plate Compactor 003', 'Plate Compactor', 'Wacker Neuson', 'WP1550',
-   'WNP1550-2020-0003', 2020, 'public', 'Belt guard replaced 2024-11.')
+   'WNP1550-2020-0003', 2020, 'public', '/demo-assets/compactor-003.svg',
+   'Belt guard replaced 2024-11.')
 on conflict (id) do nothing;
 
 -- Equipment pages (published) ----------------------------------------------

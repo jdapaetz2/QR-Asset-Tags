@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Plate Compactor 003">
+  <rect width="640" height="360" fill="#eef2f7"/>
+  <rect x="0" y="300" width="640" height="60" fill="#e2e8f0"/>
+  <!-- base plate -->
+  <path d="M210 280 L450 280 L470 300 L190 300 Z" fill="#334155"/>
+  <!-- engine block -->
+  <rect x="250" y="190" width="150" height="80" rx="10" fill="#1d4ed8"/>
+  <rect x="266" y="205" width="60" height="50" rx="6" fill="#dbeafe"/>
+  <!-- air filter / tank -->
+  <rect x="340" y="175" width="50" height="40" rx="8" fill="#475569"/>
+  <!-- handle -->
+  <path d="M395 215 L505 150" stroke="#0f172a" stroke-width="12" stroke-linecap="round"/>
+  <rect x="500" y="135" width="40" height="14" rx="7" fill="#0f172a"/>
+  <text x="40" y="64" font-family="system-ui, sans-serif" font-size="30" font-weight="700" fill="#0f172a">Plate Compactor 003</text>
+  <text x="40" y="98" font-family="system-ui, sans-serif" font-size="20" fill="#64748b">Plate Compactor</text>
+</svg>

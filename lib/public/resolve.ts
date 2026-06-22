@@ -16,6 +16,7 @@ import type {
 export type PublicOrgRecord = {
   name: string | null;
   logo_url: string | null;
+  primary_color: string | null;
   support_phone: string | null;
   support_email: string | null;
   powered_by_label: string | null;
@@ -65,7 +66,9 @@ export async function resolvePublicEquipment(
   // Organization branding (anon RLS: active org, branding columns only — no billing).
   const { data: org } = await supabase
     .from("organizations")
-    .select("name, logo_url, support_phone, support_email, powered_by_label")
+    .select(
+      "name, logo_url, primary_color, support_phone, support_email, powered_by_label"
+    )
     .eq("id", link.organization_id)
     .maybeSingle<PublicOrgRecord>();
   if (!org) return null;
