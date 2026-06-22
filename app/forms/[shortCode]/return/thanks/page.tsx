@@ -28,6 +28,7 @@ export default async function ReturnThanksPage({
           ? resolveSupportContact(resolved.asset, resolved.org)
           : { phone: null, email: null }
       }
+      poweredByLabel={resolved?.org.powered_by_label ?? null}
     />
   );
 }

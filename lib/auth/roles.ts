@@ -23,3 +23,15 @@ export function isRole(value: unknown): value is Role {
     typeof value === "string" && (ALL_ROLES as readonly string[]).includes(value)
   );
 }
+
+/** Human-friendly labels so UI never shows raw role identifiers. */
+export const ROLE_LABELS: Record<Role, string> = {
+  platform_owner: "Platform admin",
+  customer_admin: "Administrator",
+  customer_staff: "Staff",
+};
+
+/** Display label for a role; falls back to the raw value for unknown inputs. */
+export function roleLabel(role: string): string {
+  return isRole(role) ? ROLE_LABELS[role] : role;
+}

@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AssetTag QR
 
-## Getting Started
+Hosted equipment-info system for equipment rental. A permanent QR tag on a piece
+of equipment resolves to a public, mobile-first page with instructions, manuals,
+and support — and lets renters file damage/support/return submissions that land in
+a customer admin dashboard. The tag is printed once; the content stays live.
 
-First, run the development server:
+## Stack
+
+- Next.js (App Router) + TypeScript, Tailwind v4 + shadcn/ui
+- Supabase — Postgres, auth, storage, row-level security
+- Vercel hosting (Stripe deferred — billing fields exist, not implemented)
+
+See [AGENTS.md](AGENTS.md) for Next.js 16 / React 19 / Tailwind v4 specifics.
+
+## Getting started
+
+1. Set environment variables in `.env.local` (see
+   [docs/ONBOARDING_RUNBOOK.md](docs/ONBOARDING_RUNBOOK.md) §1):
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+   `SUPABASE_SERVICE_ROLE_KEY` (server only), `NEXT_PUBLIC_SITE_URL`,
+   `SCAN_IP_HASH_SALT`.
+2. Apply migrations `0001`–`0006` and (optionally) `supabase/seed.sql` for the
+   Northridge Rentals demo data.
+3. Run the dev server.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev        # local dev server
+npm run lint       # ESLint
+npm run typecheck  # tsc --noEmit
+npm test           # Vitest
+npm run build      # production build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Documentation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [docs/CODE_HANDOFF.md](docs/CODE_HANDOFF.md) — engineering handoff
+- [docs/ONBOARDING_RUNBOOK.md](docs/ONBOARDING_RUNBOOK.md) — manually onboard a pilot customer
+- [docs/PILOT_DEMO_SCRIPT.md](docs/PILOT_DEMO_SCRIPT.md) — click-by-click demo script
+- [docs/MVP_PILOT_READINESS.md](docs/MVP_PILOT_READINESS.md) — go/no-go checklist, security posture, limitations
+- [docs/PRD.md](docs/PRD.md) · [docs/MVP_SCOPE.md](docs/MVP_SCOPE.md) · [docs/NON_GOALS.md](docs/NON_GOALS.md)
+- [docs/DATA_MODEL.md](docs/DATA_MODEL.md) · [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md) · [docs/SPRINT_PLAN.md](docs/SPRINT_PLAN.md)

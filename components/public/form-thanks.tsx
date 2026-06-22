@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { SupportContact } from "@/lib/public/equipment";
+import { PublicFooter } from "@/components/public/public-footer";
 
 /** Shared success view for public form submissions. */
 export function FormThanks({
@@ -8,14 +9,17 @@ export function FormThanks({
   title,
   detail,
   support,
+  poweredByLabel,
 }: {
   shortCode: string;
   title: string;
   detail: string | null;
   support: SupportContact;
+  poweredByLabel?: string | null;
 }) {
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-6 py-16 text-center">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-6 py-10">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
       <div className="flex size-12 items-center justify-center rounded-full border text-xl">
         ✓
       </div>
@@ -41,12 +45,15 @@ export function FormThanks({
         </div>
       ) : null}
 
-      <Link
-        href={`/t/${shortCode}`}
-        className="mt-6 text-sm text-muted-foreground underline-offset-4 hover:underline"
-      >
-        ← Back to equipment page
-      </Link>
+        <Link
+          href={`/t/${shortCode}`}
+          className="mt-6 text-sm text-muted-foreground underline-offset-4 hover:underline"
+        >
+          ← Back to equipment page
+        </Link>
+      </div>
+
+      <PublicFooter poweredByLabel={poweredByLabel} />
     </main>
   );
 }

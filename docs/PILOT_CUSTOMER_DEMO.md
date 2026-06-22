@@ -2,6 +2,10 @@
 
 A repeatable script for demoing the MVP to a pilot equipment-rental customer. It walks the full core loop using the **Northridge Rentals** demo organization. Branding shown is placeholder ("AssetTag QR" / "Powered by AssetTag QR") and will be replaced.
 
+> **Companion:** for the concise click-by-click version to follow live on a call,
+> use [PILOT_DEMO_SCRIPT.md](PILOT_DEMO_SCRIPT.md). This document is the narrative
+> version — framing, talking points, and what to say is coming later.
+
 ## Demo setup
 
 Demo organization: **Northridge Rentals**
