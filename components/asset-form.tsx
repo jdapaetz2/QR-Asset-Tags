@@ -102,11 +102,7 @@ export function AssetForm({
   const hasSomething = Boolean(previewSrc);
 
   return (
-    <form
-      action={formAction}
-      encType="multipart/form-data"
-      className="flex max-w-2xl flex-col gap-4"
-    >
+    <form action={formAction} className="flex max-w-2xl flex-col gap-4">
       {state.error ? (
         <p
           role="alert"
