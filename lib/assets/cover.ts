@@ -54,6 +54,18 @@ export function coverObjectName(uuid: string, mime: string): string {
 }
 
 /**
+ * Conflict rule for the single-save flow: when a file is chosen it wins, so the
+ * typed URL/path is ignored (blanked) and the uploaded image's URL is saved
+ * instead. With no file, the typed value is used as-is (empty clears the cover).
+ */
+export function coverUrlForSave(input: {
+  hasFile: boolean;
+  urlValue: string | null | undefined;
+}): string {
+  return input.hasFile ? "" : (input.urlValue ?? "");
+}
+
+/**
  * If `url` is an app-managed public cover object for this exact org/asset, return
  * its storage object path (for safe best-effort cleanup); otherwise null. External
  * URLs and `/demo-assets/...` paths are never app-managed and return null.

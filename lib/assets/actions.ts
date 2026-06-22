@@ -1,12 +1,33 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth/session";
 import { normalizeAssetForm, type RawAssetForm } from "@/lib/assets/validate";
+import {
+  COVER_BUCKET,
+  coverObjectName,
+  coverPathPrefix,
+  coverUrlForSave,
+  managedCoverObjectPath,
+  validateCoverFile,
+} from "@/lib/assets/cover";
 
 export type AssetFormState = { error?: string };
+
+type UploadedFile = {
+  type: string;
+  size: number;
+  arrayBuffer(): Promise<ArrayBuffer>;
+};
+
+function readCoverFile(formData: FormData): UploadedFile | null {
+  const entry = formData.get("file");
+  if (typeof entry === "string" || !entry || entry.size === 0) return null;
+  return entry;
+}
 
 const FIELDS = [
   "asset_code",
@@ -64,35 +85,97 @@ export async function createAsset(
   redirect(`/dashboard/assets/${data.id}`);
 }
 
-/** Update an asset the caller owns (RLS limits this to their own organization). */
+/**
+ * Update an asset the caller owns (RLS limits this to their own organization).
+ * Single save flow: persists the text fields AND the cover image — either an
+ * uploaded file (which wins over the URL field) or the validated URL/path, or
+ * null to clear it.
+ */
 export async function updateAsset(
   assetId: string,
   _prev: AssetFormState,
   formData: FormData
 ): Promise<AssetFormState> {
-  await requireProfile();
+  const profile = await requireProfile();
 
-  const result = normalizeAssetForm(readForm(formData));
+  const file = readCoverFile(formData);
+
+  const raw = readForm(formData);
+  // File wins: ignore the typed URL when a file is chosen (avoids stale-URL errors).
+  raw.cover_image_url = coverUrlForSave({
+    hasFile: Boolean(file),
+    urlValue: raw.cover_image_url,
+  });
+
+  const result = normalizeAssetForm(raw);
   if (!result.value) return { error: result.error };
 
+  // Validate the upload before any I/O.
+  if (file) {
+    const fileError = validateCoverFile({ type: file.type, size: file.size });
+    if (fileError) return { error: fileError };
+    if (!profile.organization_id) {
+      return { error: "Your account is not attached to an organization." };
+    }
+  }
+
   const supabase = await createClient();
-  // public_status is intentionally not updated here (publishing is Sprint 3).
+
+  // RLS-scoped: another org's asset isn't returned → blocks cross-org edits, and
+  // gives us the previous cover image for best-effort cleanup.
+  const { data: existing } = await supabase
+    .from("assets")
+    .select("organization_id, cover_image_url")
+    .eq("id", assetId)
+    .maybeSingle();
+  if (!existing) return { error: "Asset not found." };
+
+  // Resolve the final cover image: an uploaded file wins; otherwise the URL field.
+  let coverImageUrl = result.value.cover_image_url;
+  let uploadedPath: string | null = null;
+  if (file && profile.organization_id) {
+    uploadedPath = `${coverPathPrefix(
+      profile.organization_id,
+      assetId
+    )}/${coverObjectName(randomUUID(), file.type)}`;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const { error: uploadError } = await supabase.storage
+      .from(COVER_BUCKET)
+      .upload(uploadedPath, bytes, { contentType: file.type, upsert: false });
+    if (uploadError) {
+      return { error: "Could not upload the image. Please try again." };
+    }
+    // Stable public URL (public bucket) — never a signed/expiring URL.
+    coverImageUrl = supabase.storage
+      .from(COVER_BUCKET)
+      .getPublicUrl(uploadedPath).data.publicUrl;
+  }
+
+  // public_status is intentionally not updated here (publishing is its own action).
   const { data, error } = await supabase
     .from("assets")
-    .update(result.value)
+    .update({ ...result.value, cover_image_url: coverImageUrl })
     .eq("id", assetId)
     .select("id")
     .maybeSingle();
 
-  if (error) {
-    if (error.code === "23505") {
+  if (error || !data) {
+    // Roll back a just-uploaded object so we don't orphan it.
+    if (uploadedPath) {
+      await supabase.storage.from(COVER_BUCKET).remove([uploadedPath]);
+    }
+    if (error?.code === "23505") {
       return { error: "An asset with that code already exists." };
     }
-    return { error: "Could not save changes. Please try again." };
-  }
-  if (!data) {
     // No row updated → not the caller's asset (or missing). RLS is the boundary.
-    return { error: "Asset not found." };
+    return { error: error ? "Could not save changes. Please try again." : "Asset not found." };
+  }
+
+  // Best-effort: remove the previous app-managed object (never external URLs).
+  const orgId = profile.organization_id ?? existing.organization_id;
+  const oldPath = managedCoverObjectPath(existing.cover_image_url, orgId, assetId);
+  if (oldPath && oldPath !== uploadedPath) {
+    await supabase.storage.from(COVER_BUCKET).remove([oldPath]);
   }
 
   redirect(`/dashboard/assets/${assetId}`);

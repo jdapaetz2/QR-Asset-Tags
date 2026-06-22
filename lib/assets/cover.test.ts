@@ -5,6 +5,7 @@ import {
   COVER_MAX_BYTES,
   coverObjectName,
   coverPathPrefix,
+  coverUrlForSave,
   isAllowedCoverType,
   managedCoverObjectPath,
   validateCoverFile,
@@ -40,6 +41,23 @@ describe("coverPathPrefix / coverObjectName", () => {
     expect(coverObjectName("uuid-1", "image/jpeg")).toBe("uuid-1.jpg");
     expect(coverObjectName("uuid-1", "image/png")).toBe("uuid-1.png");
     expect(coverObjectName("uuid-1", "image/webp")).toBe("uuid-1.webp");
+  });
+});
+
+describe("coverUrlForSave (file wins)", () => {
+  it("blanks the typed URL when a file is chosen", () => {
+    expect(
+      coverUrlForSave({ hasFile: true, urlValue: "https://old.example.com/x.jpg" })
+    ).toBe("");
+    expect(coverUrlForSave({ hasFile: true, urlValue: null })).toBe("");
+  });
+
+  it("uses the typed URL/path when no file is chosen", () => {
+    expect(
+      coverUrlForSave({ hasFile: false, urlValue: "/demo-assets/excavator-017.svg" })
+    ).toBe("/demo-assets/excavator-017.svg");
+    expect(coverUrlForSave({ hasFile: false, urlValue: "" })).toBe("");
+    expect(coverUrlForSave({ hasFile: false, urlValue: null })).toBe("");
   });
 });
 
