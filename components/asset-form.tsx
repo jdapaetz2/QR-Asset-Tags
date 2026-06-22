@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -72,6 +72,7 @@ export function AssetForm({
     action,
     {}
   );
+  const [cover, setCover] = useState(asset?.cover_image_url ?? "");
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-4">
@@ -103,6 +104,38 @@ export function AssetForm({
           type="email"
           defaultValue={asset?.support_email_override}
         />
+      </div>
+
+      {/* Cover image: validated URL or /demo-assets/ path, shown on the public page. */}
+      <div className="flex flex-col gap-2">
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">Cover image</span>
+          <input
+            name="cover_image_url"
+            type="text"
+            value={cover}
+            onChange={(e) => setCover(e.target.value)}
+            placeholder="https://… image URL or /demo-assets/…"
+            className={inputClass}
+          />
+          <span className="text-xs text-muted-foreground">
+            Public https image URL or a <code>/demo-assets/…</code> path. Shown as
+            the hero photo on the public scan page; leave blank for the branded
+            placeholder.
+          </span>
+        </label>
+        {cover.trim() ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={cover.trim()}
+            alt="Cover preview"
+            className="aspect-video w-full max-w-xs rounded-md border object-cover"
+          />
+        ) : (
+          <div className="flex aspect-video w-full max-w-xs items-center justify-center rounded-md border bg-muted text-xs text-muted-foreground">
+            No cover image yet
+          </div>
+        )}
       </div>
 
       <Field

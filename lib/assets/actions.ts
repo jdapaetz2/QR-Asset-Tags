@@ -18,6 +18,7 @@ const FIELDS = [
   "year",
   "support_phone_override",
   "support_email_override",
+  "cover_image_url",
   "internal_notes",
 ] as const;
 

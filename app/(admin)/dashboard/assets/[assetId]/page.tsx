@@ -36,7 +36,7 @@ export default async function EditAssetPage({
   const { data: asset } = await supabase
     .from("assets")
     .select(
-      "asset_code, asset_name, category, make, model, serial_number, year, support_phone_override, support_email_override, internal_notes, public_status"
+      "asset_code, asset_name, category, make, model, serial_number, year, support_phone_override, support_email_override, cover_image_url, internal_notes, public_status"
     )
     .eq("id", assetId)
     .maybeSingle();
