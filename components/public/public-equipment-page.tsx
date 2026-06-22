@@ -112,18 +112,6 @@ function DocAction({
   );
 }
 
-function DisabledAction({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      aria-disabled="true"
-      className="flex h-12 w-full items-center justify-center gap-2 rounded-lg border px-4 text-sm font-medium text-muted-foreground opacity-60"
-    >
-      {children}
-      <span className="rounded-full border px-2 py-0.5 text-xs">Soon</span>
-    </span>
-  );
-}
-
 /** Compact sticky bar shown only on mobile so the key actions are always reachable. */
 function StickyActionBar({
   shortCode,
@@ -267,7 +255,7 @@ export function PublicEquipmentPage({
         ) : null}
       </div>
 
-      {/* Action buttons */}
+      {/* Action buttons — only show what actually works (no disabled placeholders). */}
       <nav className="flex flex-col gap-2">
         {startupHref ? (
           <DocAction href={startupHref} brand={brand}>
@@ -281,16 +269,12 @@ export function PublicEquipmentPage({
           >
             Start-Up Guide
           </a>
-        ) : (
-          <DisabledAction>Start-Up Guide</DisabledAction>
-        )}
+        ) : null}
         {manualHref ? (
           <DocAction href={manualHref} brand={brand}>
             Manual
           </DocAction>
-        ) : (
-          <DisabledAction>Manual</DisabledAction>
-        )}
+        ) : null}
         <PrimaryAction
           href={`/forms/${shortCode}/damage`}
           brand={brand}
