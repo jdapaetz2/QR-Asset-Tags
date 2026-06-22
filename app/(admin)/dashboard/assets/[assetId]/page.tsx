@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
 import { updateAsset, setAssetPublicStatus } from "@/lib/assets/actions";
 import { AssetForm } from "@/components/asset-form";
+import { CoverImageSection } from "@/components/cover-image-section";
 import { Button } from "@/components/ui/button";
 import { ActionButton } from "@/components/action-button";
 import { QrLinkSection, type QrLinkRow } from "@/components/qr-link-section";
@@ -145,6 +146,9 @@ export default async function EditAssetPage({
 
       {/* QR link management */}
       <QrLinkSection assetId={assetId} links={links} />
+
+      {/* Cover image (public) — upload or use the URL field below */}
+      <CoverImageSection assetId={assetId} coverUrl={asset.cover_image_url} />
 
       {/* Asset fields */}
       <AssetForm
