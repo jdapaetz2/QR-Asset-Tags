@@ -45,9 +45,14 @@ export default async function AssetsPage() {
             {assets.length} asset{assets.length === 1 ? "" : "s"}
           </p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/assets/new">New asset</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline">
+            <Link href="/dashboard/assets/import">Import CSV</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/dashboard/assets/new">New asset</Link>
+          </Button>
+        </div>
       </section>
 
       <div className="overflow-x-auto rounded-lg border">
