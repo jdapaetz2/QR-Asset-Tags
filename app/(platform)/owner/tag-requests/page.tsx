@@ -7,6 +7,7 @@ import {
   TAG_REQUEST_STATUSES,
   tagRequestStatusLabel,
   isTagRequestStatus,
+  parseViewedFilter,
 } from "@/lib/tags/tag-requests";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ type RequestRow = {
   material: string | null;
   tag_size: string | null;
   created_at: string;
+  platform_viewed_at: string | null;
   organization_id: string;
   organizations: { name: string | null } | null;
   tag_request_assets: { count: number }[];
@@ -45,18 +47,21 @@ export default async function OwnerTagRequestsPage({
   const sp = await searchParams;
   const statusFilter = firstString(sp.status);
   const orgFilter = firstString(sp.org);
+  const viewedFilter = parseViewedFilter(firstString(sp.viewed));
 
   const supabase = await createClient();
 
-  // Owner sees all orgs' requests (RLS owner bypass).
+  // Owner sees all orgs' requests (RLS owner bypass). Unviewed/new sort to the top.
   let query = supabase
     .from("tag_requests")
     .select(
-      "id, status, material, tag_size, created_at, organization_id, organizations(name), tag_request_assets(count)"
+      "id, status, material, tag_size, created_at, platform_viewed_at, organization_id, organizations(name), tag_request_assets(count)"
     )
+    .order("platform_viewed_at", { ascending: true, nullsFirst: true })
     .order("created_at", { ascending: false });
   if (isTagRequestStatus(statusFilter)) query = query.eq("status", statusFilter);
   if (orgFilter) query = query.eq("organization_id", orgFilter);
+  if (viewedFilter === "unviewed") query = query.is("platform_viewed_at", null);
 
   const { data } = await query;
   const requests = (data ?? []) as unknown as RequestRow[];
@@ -107,6 +112,13 @@ export default async function OwnerTagRequestsPage({
             ))}
           </select>
         </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-muted-foreground">View</span>
+          <select name="viewed" defaultValue={viewedFilter} className={selectClass}>
+            <option value="all">All</option>
+            <option value="unviewed">New / unviewed</option>
+          </select>
+        </label>
         <button
           type="submit"
           className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
@@ -147,7 +159,14 @@ export default async function OwnerTagRequestsPage({
                     {formatDate(r.created_at)}
                   </td>
                   <td className="px-4 py-2 font-medium">
-                    {r.organizations?.name ?? "—"}
+                    <span className="inline-flex flex-wrap items-center gap-2">
+                      {r.organizations?.name ?? "—"}
+                      {r.platform_viewed_at === null ? (
+                        <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-500">
+                          New
+                        </span>
+                      ) : null}
+                    </span>
                   </td>
                   <td className="px-4 py-2">
                     <span className="rounded-full border px-2 py-0.5 text-xs">

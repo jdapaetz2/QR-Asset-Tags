@@ -22,12 +22,23 @@ export default async function OwnerTagRequestPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRole(ROLES.PLATFORM_OWNER);
+  const profile = await requireRole(ROLES.PLATFORM_OWNER);
   const { id } = await params;
   const supabase = await createClient();
 
   const { request, assets } = await getTagRequestDetail(supabase, id);
   if (!request) notFound();
+
+  // Opening the request marks it viewed (idempotent; only ever sets it once, and
+  // never touches status). RLS already limits this UPDATE to the platform owner.
+  await supabase
+    .from("tag_requests")
+    .update({
+      platform_viewed_at: new Date().toISOString(),
+      platform_viewed_by_profile_id: profile.id,
+    })
+    .eq("id", id)
+    .is("platform_viewed_at", null);
 
   const { data: org } = await supabase
     .from("organizations")

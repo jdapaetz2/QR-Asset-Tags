@@ -40,6 +40,30 @@ export function tagRequestStatusLabel(status: string): string {
   return isTagRequestStatus(status) ? STATUS_LABELS[status] : status;
 }
 
+/**
+ * "Viewed" tracking is independent of status — `platform_viewed_at` records when
+ * the platform admin opened a request, so unviewed requests surface as new work.
+ */
+export const VIEWED_FILTERS = ["all", "unviewed"] as const;
+export type ViewedFilter = (typeof VIEWED_FILTERS)[number];
+
+export function parseViewedFilter(value: unknown): ViewedFilter {
+  return value === "unviewed" ? "unviewed" : "all";
+}
+
+/** Count unviewed (platform_viewed_at null) requests per organization. */
+export function unviewedCountByOrg(
+  rows: { organization_id: string; platform_viewed_at: string | null }[]
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const r of rows) {
+    if (r.platform_viewed_at === null) {
+      counts.set(r.organization_id, (counts.get(r.organization_id) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
 export type TagRequestInput = {
   material: string;
   mounting_method: string;

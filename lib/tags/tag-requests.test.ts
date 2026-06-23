@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   isTagRequestStatus,
+  parseViewedFilter,
   tagRequestStatusLabel,
+  unviewedCountByOrg,
   validateTagRequest,
 } from "./tag-requests";
 
@@ -27,6 +29,44 @@ describe("tagRequestStatusLabel", () => {
   it("humanizes known statuses and passes through unknown", () => {
     expect(tagRequestStatusLabel("in_production")).toBe("In production");
     expect(tagRequestStatusLabel("mystery")).toBe("mystery");
+  });
+});
+
+describe("parseViewedFilter", () => {
+  it("accepts 'unviewed' and falls back to 'all'", () => {
+    expect(parseViewedFilter("unviewed")).toBe("unviewed");
+    expect(parseViewedFilter("all")).toBe("all");
+    expect(parseViewedFilter("bogus")).toBe("all");
+    expect(parseViewedFilter(undefined)).toBe("all");
+  });
+});
+
+describe("unviewedCountByOrg", () => {
+  it("counts only unviewed rows, grouped by organization", () => {
+    const counts = unviewedCountByOrg([
+      { organization_id: "a", platform_viewed_at: null },
+      { organization_id: "a", platform_viewed_at: null },
+      { organization_id: "a", platform_viewed_at: "2026-01-01T00:00:00Z" },
+      { organization_id: "b", platform_viewed_at: null },
+    ]);
+    expect(counts.get("a")).toBe(2);
+    expect(counts.get("b")).toBe(1);
+  });
+
+  it("treats viewed state as independent of status (unviewed still counts)", () => {
+    // An in_production request that hasn't been opened is still "new" for the badge.
+    const counts = unviewedCountByOrg([
+      { organization_id: "a", platform_viewed_at: null },
+    ]);
+    expect(counts.get("a")).toBe(1);
+  });
+
+  it("returns an empty map when everything is viewed", () => {
+    expect(
+      unviewedCountByOrg([
+        { organization_id: "a", platform_viewed_at: "2026-01-01T00:00:00Z" },
+      ]).size
+    ).toBe(0);
   });
 });
 
