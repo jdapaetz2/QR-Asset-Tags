@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireOrgId } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { AssetImport } from "@/components/asset-import";
+import { getOrgCategories } from "@/lib/assets/categories";
 import { TEMPLATE_KEYS, TEMPLATE_VERIFY_NOTE } from "@/lib/onboarding/templates";
 
 export default async function ImportAssetsPage() {
@@ -15,6 +16,7 @@ export default async function ImportAssetsPage() {
     .select("key")
     .eq("is_active", true);
   const orgTemplateKeys = (orgTemplates ?? []).map((t) => t.key as string);
+  const orgCategories = await getOrgCategories(supabase);
 
   return (
     <div className="flex flex-col gap-6">
@@ -73,11 +75,34 @@ export default async function ImportAssetsPage() {
         <p className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-muted-foreground">
           {TEMPLATE_VERIFY_NOTE}
         </p>
+        <div className="mt-3 text-xs text-muted-foreground">
+          <p className="font-medium text-foreground">
+            Keep categories consistent
+          </p>
+          {orgCategories.length > 0 ? (
+            <p className="mt-1">
+              Reuse one of your existing categories to avoid duplicates:{" "}
+              <span className="text-foreground">{orgCategories.join(", ")}</span>.
+            </p>
+          ) : (
+            <p className="mt-1">
+              You have no categories yet — the ones you type become your category
+              list.
+            </p>
+          )}
+          <p className="mt-1">
+            A CSV can&apos;t contain dropdowns, so copy spellings exactly. New
+            categories are allowed; the preview flags them before import.
+          </p>
+        </div>
       </section>
 
       <section className="rounded-lg border bg-card p-4">
         <h2 className="mb-3 text-sm font-medium">2. Upload &amp; preview</h2>
-        <AssetImport orgTemplateKeys={orgTemplateKeys} />
+        <AssetImport
+          orgTemplateKeys={orgTemplateKeys}
+          orgCategories={orgCategories}
+        />
       </section>
     </div>
   );

@@ -6,12 +6,16 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { importAssets, type ImportState } from "@/lib/onboarding/actions";
 import { parseImportRows, type ParsedImport } from "@/lib/onboarding/import";
+import { detectNewCategories } from "@/lib/assets/categories";
 
 export function AssetImport({
   orgTemplateKeys = [],
+  orgCategories = [],
 }: {
   /** This org's custom template keys, so the preview matches server resolution. */
   orgTemplateKeys?: string[];
+  /** This org's existing categories, to warn about new ones in the upload. */
+  orgCategories?: string[];
 }) {
   const [state, formAction, pending] = useActionState<ImportState, FormData>(
     importAssets,
@@ -47,6 +51,9 @@ export function AssetImport({
             <li>Rows skipped: {s.skipped}</li>
             <li>Equipment pages created: {s.pagesCreated}</li>
             <li>QR links created: {s.qrCreated}</li>
+            {s.newCategories.length > 0 ? (
+              <li>New categories added: {s.newCategories.join(", ")}</li>
+            ) : null}
           </ul>
           {s.rowErrors.length > 0 ? (
             <div className="mt-3 text-sm">
@@ -77,6 +84,15 @@ export function AssetImport({
   const errorCount = parsed
     ? parsed.rows.filter((r) => r.errors.length > 0).length
     : 0;
+  // Categories in the upload that don't exist yet (informational, non-blocking).
+  const newCategories = parsed
+    ? detectNewCategories(
+        parsed.rows
+          .filter((r) => r.errors.length === 0)
+          .map((r) => r.asset?.category ?? null),
+        orgCategories
+      )
+    : [];
 
   return (
     <div className="flex flex-col gap-4">
@@ -98,6 +114,16 @@ export function AssetImport({
                 <li key={w}>{w}</li>
               ))}
             </ul>
+          ) : null}
+
+          {newCategories.length > 0 ? (
+            <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-muted-foreground">
+              These new categories will be created by this import:{" "}
+              <span className="font-medium text-foreground">
+                {newCategories.join(", ")}
+              </span>
+              .
+            </p>
           ) : null}
 
           <p className="text-sm text-muted-foreground">

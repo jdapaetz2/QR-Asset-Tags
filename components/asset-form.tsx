@@ -64,12 +64,15 @@ export function AssetForm({
   action,
   asset,
   assetId,
+  categories = [],
   submitLabel,
 }: {
   action: AssetFormAction;
   asset?: AssetDefaults;
   /** When set (edit mode), enables cover-image file upload in the same save. */
   assetId?: string;
+  /** Existing org categories offered as datalist suggestions. */
+  categories?: string[];
   submitLabel: string;
 }) {
   const [state, formAction, pending] = useActionState<AssetFormState, FormData>(
@@ -115,7 +118,23 @@ export function AssetForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <Field name="asset_code" label="Asset code" defaultValue={asset?.asset_code} required />
         <Field name="asset_name" label="Asset name" defaultValue={asset?.asset_name} required />
-        <Field name="category" label="Category" defaultValue={asset?.category} />
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">Category</span>
+          <input
+            name="category"
+            list="asset-categories"
+            defaultValue={asset?.category ?? undefined}
+            className={inputClass}
+          />
+          <datalist id="asset-categories">
+            {categories.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+          <span className="text-xs text-muted-foreground">
+            Choose an existing category or type a new one.
+          </span>
+        </label>
         <Field name="make" label="Make" defaultValue={asset?.make} />
         <Field name="model" label="Model" defaultValue={asset?.model} />
         <Field name="serial_number" label="Serial number" defaultValue={asset?.serial_number} />

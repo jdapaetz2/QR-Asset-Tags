@@ -9,6 +9,10 @@ import { shortCodeFromBytes, SHORT_CODE_LENGTH } from "@/lib/qr/short-code";
 import { buildPublicQrUrl } from "@/lib/qr/url";
 import { parseImportRows } from "@/lib/onboarding/import";
 import {
+  detectNewCategories,
+  getOrgCategories,
+} from "@/lib/assets/categories";
+import {
   resolveImportTemplate,
   type TemplateContent,
 } from "@/lib/onboarding/org-templates";
@@ -18,6 +22,7 @@ export type ImportSummary = {
   skipped: number;
   qrCreated: number;
   pagesCreated: number;
+  newCategories: string[];
   rowErrors: { row: number; assetCode: string; message: string }[];
 };
 
@@ -76,11 +81,19 @@ export async function importAssets(
     return { error: "No valid rows to import. Fix the highlighted errors first." };
   }
 
+  // New categories this import will introduce (informational, never blocking).
+  const existingCategories = await getOrgCategories(supabase);
+  const newCategories = detectNewCategories(
+    validRows.map((r) => r.asset!.category),
+    existingCategories
+  );
+
   const summary: ImportSummary = {
     created: 0,
     skipped: 0,
     qrCreated: 0,
     pagesCreated: 0,
+    newCategories,
     rowErrors: [],
   };
 

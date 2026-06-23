@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
 import { Button } from "@/components/ui/button";
+import { getOrgCategories } from "@/lib/assets/categories";
 import {
   parseAssetListParams,
   sanitizeSearch,
@@ -134,15 +135,8 @@ export default async function AssetsPage({
     pageByAsset.set(p.asset_id, p.is_published);
   }
 
-  // Distinct categories for the filter dropdown (across all of the org's assets).
-  const { data: catData } = await supabase.from("assets").select("category");
-  const categories = Array.from(
-    new Set(
-      (catData ?? [])
-        .map((c) => (c as { category: string | null }).category)
-        .filter((c): c is string => Boolean(c))
-    )
-  ).sort();
+  // Distinct, normalized categories for the filter dropdown (own org only).
+  const categories = await getOrgCategories(supabase);
 
   const rows = allRows
     .map((asset) => {

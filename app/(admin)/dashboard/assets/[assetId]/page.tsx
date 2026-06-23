@@ -11,6 +11,7 @@ import {
   deleteAsset,
 } from "@/lib/assets/actions";
 import { deleteEligibility } from "@/lib/assets/list";
+import { getOrgCategories } from "@/lib/assets/categories";
 import { AssetForm } from "@/components/asset-form";
 import { Button } from "@/components/ui/button";
 import { ActionButton } from "@/components/action-button";
@@ -49,6 +50,8 @@ export default async function EditAssetPage({
     .maybeSingle();
 
   if (!asset) notFound();
+
+  const categories = await getOrgCategories(supabase);
 
   // RLS-scoped reads for status + QR management.
   const { data: page } = await supabase
@@ -180,6 +183,7 @@ export default async function EditAssetPage({
         action={updateAsset.bind(null, assetId)}
         asset={asset}
         assetId={assetId}
+        categories={categories}
         submitLabel="Save changes"
       />
 
@@ -189,8 +193,8 @@ export default async function EditAssetPage({
           <h2 className="font-medium">Lifecycle</h2>
           <p className="text-sm text-muted-foreground">
             {isArchived
-              ? "This asset is archived and hidden from the active list and public page."
-              : "Archive retires the asset from the working list and public page without deleting its history."}
+              ? "This asset is archived: hidden from active lists and its public page, but its QR links, scans, submissions, and documents are kept. Restore it any time."
+              : "Archive hides the asset from active lists and its public page while keeping all history (QR links, scans, submissions, documents). Permanent delete is only for brand-new mistakes with no history — anything with QR links, scans, submissions, or documents should be archived, not deleted."}
           </p>
         </div>
         <div className="flex flex-wrap items-start gap-3">
