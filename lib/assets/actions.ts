@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth/session";
 import { normalizeAssetForm, type RawAssetForm } from "@/lib/assets/validate";
+import { deleteEligibility } from "@/lib/assets/list";
 import {
   COVER_BUCKET,
   coverObjectName,
@@ -211,4 +212,87 @@ export async function setAssetPublicStatus(
   if (!data) return { error: "Asset not found." };
 
   redirect(`/dashboard/assets/${assetId}`);
+}
+
+/** Archive (retire) an asset — hides it from the default list; history is kept. */
+export async function archiveAsset(
+  assetId: string,
+  _prev: AssetFormState,
+  _formData: FormData
+): Promise<AssetFormState> {
+  await requireProfile();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("assets")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", assetId)
+    .select("id")
+    .maybeSingle();
+  if (error) return { error: "Could not archive the asset." };
+  if (!data) return { error: "Asset not found." };
+  redirect(`/dashboard/assets/${assetId}`);
+}
+
+/** Restore an archived asset back to the active list. */
+export async function restoreAsset(
+  assetId: string,
+  _prev: AssetFormState,
+  _formData: FormData
+): Promise<AssetFormState> {
+  await requireProfile();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("assets")
+    .update({ archived_at: null })
+    .eq("id", assetId)
+    .select("id")
+    .maybeSingle();
+  if (error) return { error: "Could not restore the asset." };
+  if (!data) return { error: "Asset not found." };
+  redirect(`/dashboard/assets/${assetId}`);
+}
+
+/**
+ * Permanently delete an asset — ONLY when it has no dependent history. The check
+ * is re-run server-side (never trust the UI). Anything with QR links, scans,
+ * submissions, documents, or an equipment page must be archived instead. RLS
+ * scopes everything to the caller's own organization.
+ */
+export async function deleteAsset(
+  assetId: string,
+  _prev: AssetFormState,
+  _formData: FormData
+): Promise<AssetFormState> {
+  await requireProfile();
+  const supabase = await createClient();
+
+  // Confirm the asset is the caller's (RLS) before counting dependencies.
+  const { data: asset } = await supabase
+    .from("assets")
+    .select("id")
+    .eq("id", assetId)
+    .maybeSingle();
+  if (!asset) return { error: "Asset not found." };
+
+  const count = async (table: string): Promise<number> => {
+    const { count } = await supabase
+      .from(table)
+      .select("id", { count: "exact", head: true })
+      .eq("asset_id", assetId);
+    return count ?? 0;
+  };
+  const deps = {
+    qr: await count("qr_links"),
+    scans: await count("scan_events"),
+    submissions: await count("form_submissions"),
+    documents: await count("documents"),
+    page: await count("equipment_pages"),
+  };
+  const { canDelete, reason } = deleteEligibility(deps);
+  if (!canDelete) return { error: reason };
+
+  const { error } = await supabase.from("assets").delete().eq("id", assetId);
+  if (error) return { error: "Could not delete the asset." };
+
+  redirect("/dashboard/assets");
 }

@@ -3,7 +3,14 @@ import { notFound } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
-import { updateAsset, setAssetPublicStatus } from "@/lib/assets/actions";
+import {
+  updateAsset,
+  setAssetPublicStatus,
+  archiveAsset,
+  restoreAsset,
+  deleteAsset,
+} from "@/lib/assets/actions";
+import { deleteEligibility } from "@/lib/assets/list";
 import { AssetForm } from "@/components/asset-form";
 import { Button } from "@/components/ui/button";
 import { ActionButton } from "@/components/action-button";
@@ -36,7 +43,7 @@ export default async function EditAssetPage({
   const { data: asset } = await supabase
     .from("assets")
     .select(
-      "asset_code, asset_name, category, make, model, serial_number, year, support_phone_override, support_email_override, cover_image_url, internal_notes, public_status"
+      "asset_code, asset_name, category, make, model, serial_number, year, support_phone_override, support_email_override, cover_image_url, internal_notes, public_status, archived_at"
     )
     .eq("id", assetId)
     .maybeSingle();
@@ -58,9 +65,26 @@ export default async function EditAssetPage({
 
   const links = (qrData ?? []) as QrLinkRow[];
   const isPublic = asset.public_status === "public";
+  const isArchived = Boolean(asset.archived_at);
   const pageStatus = !page ? "Missing" : page.is_published ? "Published" : "Draft";
   const hasLink = links.length > 0;
   const hasActiveLink = links.some((l) => l.status === "active");
+
+  // Dependency counts decide whether a permanent delete is safe.
+  const countRows = async (table: string): Promise<number> => {
+    const { count } = await supabase
+      .from(table)
+      .select("id", { count: "exact", head: true })
+      .eq("asset_id", assetId);
+    return count ?? 0;
+  };
+  const deleteCheck = deleteEligibility({
+    qr: links.length,
+    scans: await countRows("scan_events"),
+    submissions: await countRows("form_submissions"),
+    documents: await countRows("documents"),
+    page: page ? 1 : 0,
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -71,8 +95,13 @@ export default async function EditAssetPage({
         >
           ← Assets
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+        <h1 className="mt-2 flex flex-wrap items-center gap-2 text-2xl font-semibold tracking-tight">
           {asset.asset_name}
+          {isArchived ? (
+            <span className="rounded-full border border-amber-500/40 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-500">
+              Archived
+            </span>
+          ) : null}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {asset.asset_code} · {asset.public_status}
@@ -153,6 +182,40 @@ export default async function EditAssetPage({
         assetId={assetId}
         submitLabel="Save changes"
       />
+
+      {/* Lifecycle: archive (reversible) and permanent delete (safe only) */}
+      <section className="flex flex-col gap-3 rounded-lg border bg-card p-4">
+        <div>
+          <h2 className="font-medium">Lifecycle</h2>
+          <p className="text-sm text-muted-foreground">
+            {isArchived
+              ? "This asset is archived and hidden from the active list and public page."
+              : "Archive retires the asset from the working list and public page without deleting its history."}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-start gap-3">
+          {isArchived ? (
+            <ActionButton action={restoreAsset.bind(null, assetId)} variant="outline">
+              Restore
+            </ActionButton>
+          ) : (
+            <ActionButton action={archiveAsset.bind(null, assetId)} variant="outline">
+              Archive
+            </ActionButton>
+          )}
+          {deleteCheck.canDelete ? (
+            <ActionButton
+              action={deleteAsset.bind(null, assetId)}
+              variant="destructive"
+              confirm="Permanently delete this asset? This cannot be undone."
+            >
+              Delete permanently
+            </ActionButton>
+          ) : (
+            <p className="max-w-md text-xs text-muted-foreground">{deleteCheck.reason}</p>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

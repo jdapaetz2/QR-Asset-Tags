@@ -18,10 +18,13 @@ export function ActionButton({
   action,
   children,
   variant = "primary",
+  confirm,
 }: {
   action: ActionFn;
   children: React.ReactNode;
-  variant?: "primary" | "outline";
+  variant?: "primary" | "outline" | "destructive";
+  /** When set, a native confirm must be accepted before the action runs. */
+  confirm?: string;
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     action,
@@ -33,11 +36,20 @@ export function ActionButton({
   const styles =
     variant === "outline"
       ? "border hover:bg-accent hover:text-accent-foreground"
-      : "bg-primary text-primary-foreground hover:bg-primary/90";
+      : variant === "destructive"
+        ? "border border-destructive/40 text-destructive hover:bg-destructive/10"
+        : "bg-primary text-primary-foreground hover:bg-primary/90";
 
   return (
     <form action={formAction} className="inline-flex flex-col gap-1">
-      <button type="submit" disabled={pending} className={`${base} ${styles}`}>
+      <button
+        type="submit"
+        disabled={pending}
+        className={`${base} ${styles}`}
+        onClick={(e) => {
+          if (confirm && !window.confirm(confirm)) e.preventDefault();
+        }}
+      >
         {children}
       </button>
       {state.error ? (
