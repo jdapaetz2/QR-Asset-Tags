@@ -91,6 +91,15 @@ export default async function DashboardPage() {
             </p>
           </Link>
           <Link
+            href="/dashboard/tag-requests"
+            className="rounded-lg border bg-card p-4 transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <h3 className="font-medium">Tag requests</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Request physical QR tags from AssetTag QR
+            </p>
+          </Link>
+          <Link
             href="/dashboard/settings"
             className="rounded-lg border bg-card p-4 transition-colors hover:bg-accent hover:text-accent-foreground"
           >

@@ -41,12 +41,20 @@ export default async function OwnerPage() {
             {orgs.length} organization{orgs.length === 1 ? "" : "s"}
           </p>
         </div>
-        <Link
-          href="/owner/analytics"
-          className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-        >
-          Analytics
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/owner/tag-requests"
+            className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+          >
+            Tag requests
+          </Link>
+          <Link
+            href="/owner/analytics"
+            className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+          >
+            Analytics
+          </Link>
+        </div>
       </section>
 
       <div className="overflow-x-auto rounded-lg border">
