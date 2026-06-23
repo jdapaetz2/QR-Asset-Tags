@@ -45,6 +45,18 @@ export function detectNewCategories(
   return candidates.filter((c) => !existingKeys.has(normalizeCategoryKey(c)));
 }
 
+/**
+ * Whether an import must be confirmed before it can run: true when the upload would
+ * create new categories and the user hasn't explicitly confirmed. Enforced
+ * server-side (the client panel is convenience only).
+ */
+export function requiresCategoryConfirmation(
+  newCategories: string[],
+  confirmed: boolean
+): boolean {
+  return newCategories.length > 0 && !confirmed;
+}
+
 /** RLS-scoped list of the caller's organization's distinct, tidy categories. */
 export async function getOrgCategories(
   supabase: SupabaseClient

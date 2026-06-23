@@ -11,6 +11,7 @@ import { parseImportRows } from "@/lib/onboarding/import";
 import {
   detectNewCategories,
   getOrgCategories,
+  requiresCategoryConfirmation,
 } from "@/lib/assets/categories";
 import {
   resolveImportTemplate,
@@ -26,7 +27,13 @@ export type ImportSummary = {
   rowErrors: { row: number; assetCode: string; message: string }[];
 };
 
-export type ImportState = { error?: string; summary?: ImportSummary };
+export type ImportState = {
+  error?: string;
+  summary?: ImportSummary;
+  /** Set when the import was blocked pending new-category confirmation. */
+  needsCategoryConfirm?: boolean;
+  newCategories?: string[];
+};
 
 const MAX_QR_ATTEMPTS = 5;
 
@@ -81,12 +88,24 @@ export async function importAssets(
     return { error: "No valid rows to import. Fix the highlighted errors first." };
   }
 
-  // New categories this import will introduce (informational, never blocking).
+  // New categories this import would introduce.
   const existingCategories = await getOrgCategories(supabase);
   const newCategories = detectNewCategories(
     validRows.map((r) => r.asset!.category),
     existingCategories
   );
+
+  // Server-side gate: creating new categories requires explicit confirmation.
+  // (The client preview is convenience only — never trust it.)
+  const confirmed = formData.get("confirm_new_categories") === "true";
+  if (requiresCategoryConfirmation(newCategories, confirmed)) {
+    return {
+      needsCategoryConfirm: true,
+      newCategories,
+      error:
+        "These categories are new for this organization. Confirm to create them, or change the CSV.",
+    };
+  }
 
   const summary: ImportSummary = {
     created: 0,

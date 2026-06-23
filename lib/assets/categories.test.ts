@@ -4,6 +4,7 @@ import {
   dedupeCategories,
   detectNewCategories,
   normalizeCategoryKey,
+  requiresCategoryConfirmation,
 } from "./categories";
 
 describe("normalizeCategoryKey", () => {
@@ -54,5 +55,17 @@ describe("detectNewCategories", () => {
 
   it("returns nothing when all categories already exist", () => {
     expect(detectNewCategories(["Mini Excavator"], ["mini excavator"])).toEqual([]);
+  });
+});
+
+describe("requiresCategoryConfirmation", () => {
+  it("blocks when there are new categories and no confirmation", () => {
+    expect(requiresCategoryConfirmation(["Material Handling"], false)).toBe(true);
+  });
+  it("allows once confirmed", () => {
+    expect(requiresCategoryConfirmation(["Material Handling"], true)).toBe(false);
+  });
+  it("allows when there are no new categories", () => {
+    expect(requiresCategoryConfirmation([], false)).toBe(false);
   });
 });
