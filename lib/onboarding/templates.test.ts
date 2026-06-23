@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   EQUIPMENT_TEMPLATES,
   TEMPLATE_KEYS,
+  TEMPLATE_META,
   isTemplateKey,
+  templateCatalog,
 } from "./templates";
 
 describe("equipment templates", () => {
@@ -62,5 +64,47 @@ describe("equipment templates", () => {
     expect(isTemplateKey("mini_excavator")).toBe(true);
     expect(isTemplateKey("forklift")).toBe(false);
     expect(isTemplateKey("")).toBe(false);
+  });
+
+  it("has catalog metadata (name/type/description) for every key", () => {
+    for (const key of TEMPLATE_KEYS) {
+      const meta = TEMPLATE_META[key];
+      expect(meta.name).toBeTruthy();
+      expect(meta.equipmentType).toBeTruthy();
+      expect(meta.description).toBeTruthy();
+    }
+  });
+});
+
+describe("templateCatalog", () => {
+  it("returns every template with all seven labeled fields", () => {
+    const catalog = templateCatalog();
+    expect(catalog).toHaveLength(TEMPLATE_KEYS.length);
+    for (const entry of catalog) {
+      expect(entry.key).toBeTruthy();
+      expect(entry.name).toBeTruthy();
+      expect(entry.fields.map((f) => f.label)).toEqual([
+        "Headline",
+        "Quick start",
+        "Safety",
+        "Fuel / power",
+        "Return",
+        "Troubleshooting",
+        "Emergency",
+      ]);
+    }
+  });
+
+  it("previews electrical test equipment with no fuel/engine field content", () => {
+    const electrical = templateCatalog().find(
+      (e) => e.key === "electrical_test_equipment"
+    )!;
+    const text = electrical.fields
+      .map((f) => f.value ?? "")
+      .join(" ")
+      .toLowerCase();
+    for (const banned of ["engine", "fuel", "oil", "hydraulic"]) {
+      expect(text).not.toContain(banned);
+    }
   });
 });

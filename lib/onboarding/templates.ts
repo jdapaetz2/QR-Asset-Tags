@@ -187,3 +187,92 @@ export const TEMPLATE_KEYS = Object.keys(EQUIPMENT_TEMPLATES) as TemplateKey[];
 export function isTemplateKey(value: string): value is TemplateKey {
   return Object.prototype.hasOwnProperty.call(EQUIPMENT_TEMPLATES, value);
 }
+
+/** Catalog metadata so admins can recognize a template before importing. */
+export type TemplateMeta = {
+  name: string;
+  equipmentType: string;
+  description: string;
+};
+
+export const TEMPLATE_META: Record<TemplateKey, TemplateMeta> = {
+  mini_excavator: {
+    name: "Mini excavator",
+    equipmentType: "Compact excavator / digger (diesel)",
+    description:
+      "Walk-around, swing-radius safety, fuel/fluid checks, and return basics for a small tracked excavator.",
+  },
+  utility_trailer: {
+    name: "Utility trailer",
+    equipmentType: "Towable utility / flatbed trailer (no engine)",
+    description:
+      "Coupling, safety chains, lighting check, load safety, and return — no fuel or engine content.",
+  },
+  portable_generator: {
+    name: "Portable generator",
+    equipmentType: "Gasoline portable generator",
+    description:
+      "Open-air placement, carbon-monoxide safety, fueling, and shutdown basics.",
+  },
+  plate_compactor: {
+    name: "Plate compactor",
+    equipmentType: "Walk-behind plate compactor (gasoline)",
+    description:
+      "Operating, hearing/foot PPE, engine-oil check, and return basics.",
+  },
+  scissor_lift: {
+    name: "Scissor lift",
+    equipmentType: "Vertical aerial work platform",
+    description:
+      "Level-ground setup, fall-protection reminder, power check, and return — generic power source.",
+  },
+  skid_steer: {
+    name: "Skid steer",
+    equipmentType: "Compact loader with attachments (diesel)",
+    description:
+      "Walk-around, attachment safety, fuel/fluid checks, and return basics.",
+  },
+  air_compressor: {
+    name: "Air compressor",
+    equipmentType: "Portable / towable air compressor",
+    description:
+      "Hose and fitting safety, pressure handling, power check, and return.",
+  },
+  electrical_test_equipment: {
+    name: "Electrical test equipment",
+    equipmentType: "Meters, testers, and probes (no engine or fuel)",
+    description:
+      "Leads/probes inspection, battery/charge, accessories returned, case/connector condition, and calibration reminders. Intentionally avoids fuel, engine, oil, and hydraulics.",
+  },
+};
+
+/** The seven editable page fields, in display order, with friendly labels. */
+export const TEMPLATE_FIELDS = [
+  { key: "headline", label: "Headline" },
+  { key: "quick_start_text", label: "Quick start" },
+  { key: "safety_notes", label: "Safety" },
+  { key: "fuel_power_notes", label: "Fuel / power" },
+  { key: "return_notes", label: "Return" },
+  { key: "troubleshooting_notes", label: "Troubleshooting" },
+  { key: "emergency_notes", label: "Emergency" },
+] as const satisfies readonly { key: keyof EquipmentTemplate; label: string }[];
+
+export type TemplateCatalogEntry = TemplateMeta & {
+  key: TemplateKey;
+  fields: { label: string; value: string | null }[];
+};
+
+/** Pure catalog view: metadata + the labeled field content each template inserts. */
+export function templateCatalog(): TemplateCatalogEntry[] {
+  return TEMPLATE_KEYS.map((key) => {
+    const template = EQUIPMENT_TEMPLATES[key];
+    return {
+      key,
+      ...TEMPLATE_META[key],
+      fields: TEMPLATE_FIELDS.map(({ key: fieldKey, label }) => ({
+        label,
+        value: template[fieldKey],
+      })),
+    };
+  });
+}

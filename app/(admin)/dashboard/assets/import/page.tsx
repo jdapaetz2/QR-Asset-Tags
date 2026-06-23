@@ -29,14 +29,29 @@ export default async function ImportAssetsPage() {
           Download the CSV template, fill one row per asset (<code>asset_code</code>{" "}
           and <code>asset_name</code> are required), then upload it below.
         </p>
-        <a
-          href="/dashboard/assets/import/template.csv"
-          className="mt-3 inline-flex rounded-md border px-3 py-1.5 hover:bg-accent hover:text-accent-foreground"
-        >
-          Download CSV template
-        </a>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <a
+            href="/dashboard/assets/import/template.csv"
+            className="inline-flex rounded-md border px-3 py-1.5 hover:bg-accent hover:text-accent-foreground"
+          >
+            Download CSV template
+          </a>
+          <Link
+            href="/dashboard/assets/templates"
+            className="inline-flex rounded-md border px-3 py-1.5 hover:bg-accent hover:text-accent-foreground"
+          >
+            View template catalog
+          </Link>
+        </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          Template keys for equipment pages: {TEMPLATE_KEYS.join(", ")}.
+          Equipment-page template keys: {TEMPLATE_KEYS.join(", ")}. Open the{" "}
+          <Link
+            href="/dashboard/assets/templates"
+            className="underline-offset-4 hover:underline"
+          >
+            template catalog
+          </Link>{" "}
+          to preview each one and copy its <code>template_key</code>.
         </p>
         <p className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-muted-foreground">
           {TEMPLATE_VERIFY_NOTE}
