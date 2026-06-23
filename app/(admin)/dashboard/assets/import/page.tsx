@@ -1,11 +1,20 @@
 import Link from "next/link";
 
 import { requireOrgId } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
 import { AssetImport } from "@/components/asset-import";
 import { TEMPLATE_KEYS, TEMPLATE_VERIFY_NOTE } from "@/lib/onboarding/templates";
 
 export default async function ImportAssetsPage() {
   await requireOrgId();
+
+  // This org's active custom template keys, so the preview accepts them too.
+  const supabase = await createClient();
+  const { data: orgTemplates } = await supabase
+    .from("equipment_page_templates")
+    .select("key")
+    .eq("is_active", true);
+  const orgTemplateKeys = (orgTemplates ?? []).map((t) => t.key as string);
 
   return (
     <div className="flex flex-col gap-6">
@@ -51,7 +60,15 @@ export default async function ImportAssetsPage() {
           >
             template catalog
           </Link>{" "}
-          to preview each one and copy its <code>template_key</code>.
+          to preview each one and copy its <code>template_key</code>. You can also{" "}
+          <Link
+            href="/dashboard/templates"
+            className="underline-offset-4 hover:underline"
+          >
+            create custom templates
+          </Link>{" "}
+          for your organization — a custom key overrides the built-in of the same
+          name.
         </p>
         <p className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-muted-foreground">
           {TEMPLATE_VERIFY_NOTE}
@@ -60,7 +77,7 @@ export default async function ImportAssetsPage() {
 
       <section className="rounded-lg border bg-card p-4">
         <h2 className="mb-3 text-sm font-medium">2. Upload &amp; preview</h2>
-        <AssetImport />
+        <AssetImport orgTemplateKeys={orgTemplateKeys} />
       </section>
     </div>
   );

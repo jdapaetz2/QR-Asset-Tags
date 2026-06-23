@@ -82,6 +82,15 @@ export default async function DashboardPage() {
             </p>
           </Link>
           <Link
+            href="/dashboard/templates"
+            className="rounded-lg border bg-card p-4 transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <h3 className="font-medium">Templates</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Equipment page templates for import
+            </p>
+          </Link>
+          <Link
             href="/dashboard/settings"
             className="rounded-lg border bg-card p-4 transition-colors hover:bg-accent hover:text-accent-foreground"
           >

@@ -9,7 +9,7 @@
 import { parseCsv } from "@/lib/csv/parse";
 import { normalizeAssetForm, type AssetInput } from "@/lib/assets/validate";
 import { csvField } from "@/lib/submissions/csv";
-import { isTemplateKey, type TemplateKey } from "@/lib/onboarding/templates";
+import { isTemplateKey } from "@/lib/onboarding/templates";
 
 export const IMPORT_COLUMNS = [
   "asset_code",
@@ -31,7 +31,8 @@ export const IMPORT_COLUMNS = [
 export type ImportColumn = (typeof IMPORT_COLUMNS)[number];
 
 export type ImportRowFlags = {
-  templateKey: TemplateKey | null;
+  /** A built-in system key or an organization custom template key (or null). */
+  templateKey: string | null;
   createQrLink: boolean;
   publishAsset: boolean;
   publishEquipmentPage: boolean;
@@ -68,7 +69,10 @@ export function parseImportBool(
   return { error: `Invalid ${field} value "${value}" (use true or false).` };
 }
 
-export function parseImportRows(text: string): ParsedImport {
+export function parseImportRows(
+  text: string,
+  extraKeys: ReadonlySet<string> = new Set()
+): ParsedImport {
   const table = parseCsv(text);
   const fileWarnings: string[] = [];
 
@@ -151,14 +155,17 @@ export function parseImportRows(text: string): ParsedImport {
       publishEquipmentPage: readBool("publish_equipment_page"),
     };
 
-    // Template key (unknown → warn, allow import without a template).
+    // Template key: a built-in system key or one of this org's custom keys.
+    // Unknown → warn, allow import without a template.
     const tplRaw = (get("template_key") ?? "").trim();
     if (tplRaw) {
-      if (isTemplateKey(tplRaw)) flags.templateKey = tplRaw;
-      else
+      if (isTemplateKey(tplRaw) || extraKeys.has(tplRaw)) {
+        flags.templateKey = tplRaw;
+      } else {
         warnings.push(
           `Unknown template_key "${tplRaw}" — importing without a template page.`
         );
+      }
     }
 
     rows.push({

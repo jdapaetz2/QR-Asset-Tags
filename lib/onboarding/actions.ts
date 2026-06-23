@@ -8,7 +8,10 @@ import { publicEnv } from "@/lib/env";
 import { shortCodeFromBytes, SHORT_CODE_LENGTH } from "@/lib/qr/short-code";
 import { buildPublicQrUrl } from "@/lib/qr/url";
 import { parseImportRows } from "@/lib/onboarding/import";
-import { EQUIPMENT_TEMPLATES } from "@/lib/onboarding/templates";
+import {
+  resolveImportTemplate,
+  type TemplateContent,
+} from "@/lib/onboarding/org-templates";
 
 export type ImportSummary = {
   created: number;
@@ -43,13 +46,36 @@ export async function importAssets(
     return { error: "Upload a CSV file first." };
   }
 
-  const { rows } = parseImportRows(csvText);
+  const supabase = await createClient();
+
+  // The org's active custom templates (RLS-scoped). These override same-key system
+  // templates and add new keys that import should accept.
+  const { data: orgTemplates } = await supabase
+    .from("equipment_page_templates")
+    .select(
+      "key, headline, quick_start_text, safety_notes, fuel_power_notes, return_notes, troubleshooting_notes, emergency_notes"
+    )
+    .eq("organization_id", organizationId)
+    .eq("is_active", true);
+  const orgByKey = new Map<string, TemplateContent>();
+  for (const t of (orgTemplates ?? []) as ({ key: string } & TemplateContent)[]) {
+    orgByKey.set(t.key, {
+      headline: t.headline,
+      quick_start_text: t.quick_start_text,
+      safety_notes: t.safety_notes,
+      fuel_power_notes: t.fuel_power_notes,
+      return_notes: t.return_notes,
+      troubleshooting_notes: t.troubleshooting_notes,
+      emergency_notes: t.emergency_notes,
+    });
+  }
+
+  const { rows } = parseImportRows(csvText, new Set(orgByKey.keys()));
   const validRows = rows.filter((r) => r.errors.length === 0 && r.asset && r.flags);
   if (validRows.length === 0) {
     return { error: "No valid rows to import. Fix the highlighted errors first." };
   }
 
-  const supabase = await createClient();
   const summary: ImportSummary = {
     created: 0,
     skipped: 0,
@@ -97,25 +123,28 @@ export async function importAssets(
     summary.created += 1;
     const assetId = created.id as string;
 
-    // Optional equipment page from a template (draft unless explicitly published).
+    // Optional equipment page from a template (org custom overrides same-key
+    // system template). Draft unless explicitly published.
     if (flags.templateKey) {
-      const tpl = EQUIPMENT_TEMPLATES[flags.templateKey];
-      const { error: pageError } = await supabase.from("equipment_pages").upsert(
-        {
-          asset_id: assetId,
-          organization_id: organizationId,
-          headline: tpl.headline,
-          quick_start_text: tpl.quick_start_text,
-          safety_notes: tpl.safety_notes,
-          fuel_power_notes: tpl.fuel_power_notes,
-          return_notes: tpl.return_notes,
-          troubleshooting_notes: tpl.troubleshooting_notes,
-          emergency_notes: tpl.emergency_notes,
-          is_published: flags.publishEquipmentPage,
-        },
-        { onConflict: "asset_id" }
-      );
-      if (!pageError) summary.pagesCreated += 1;
+      const tpl = resolveImportTemplate(flags.templateKey, orgByKey);
+      if (tpl) {
+        const { error: pageError } = await supabase.from("equipment_pages").upsert(
+          {
+            asset_id: assetId,
+            organization_id: organizationId,
+            headline: tpl.headline,
+            quick_start_text: tpl.quick_start_text,
+            safety_notes: tpl.safety_notes,
+            fuel_power_notes: tpl.fuel_power_notes,
+            return_notes: tpl.return_notes,
+            troubleshooting_notes: tpl.troubleshooting_notes,
+            emergency_notes: tpl.emergency_notes,
+            is_published: flags.publishEquipmentPage,
+          },
+          { onConflict: "asset_id" }
+        );
+        if (!pageError) summary.pagesCreated += 1;
+      }
     }
 
     // Optional QR link (retry on the unlikely short_code collision).

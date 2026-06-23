@@ -86,6 +86,16 @@ describe("parseImportRows", () => {
     expect(rows[0].flags?.templateKey).toBeNull();
   });
 
+  it("accepts an organization custom template key via extraKeys", () => {
+    const { rows } = parseImportRows(
+      csv("EX-1,A,,,,,,,,,electrical_meter_kit,false,false,false"),
+      new Set(["electrical_meter_kit"])
+    );
+    expect(rows[0].errors).toEqual([]);
+    expect(rows[0].warnings).toEqual([]);
+    expect(rows[0].flags?.templateKey).toBe("electrical_meter_kit");
+  });
+
   it("ignores an organization_id column and warns", () => {
     const text = [
       "organization_id," + HEADER,

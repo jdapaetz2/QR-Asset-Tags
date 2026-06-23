@@ -7,7 +7,12 @@ import { Button } from "@/components/ui/button";
 import { importAssets, type ImportState } from "@/lib/onboarding/actions";
 import { parseImportRows, type ParsedImport } from "@/lib/onboarding/import";
 
-export function AssetImport() {
+export function AssetImport({
+  orgTemplateKeys = [],
+}: {
+  /** This org's custom template keys, so the preview matches server resolution. */
+  orgTemplateKeys?: string[];
+}) {
   const [state, formAction, pending] = useActionState<ImportState, FormData>(
     importAssets,
     {}
@@ -26,7 +31,7 @@ export function AssetImport() {
     }
     const text = await file.text();
     setCsvText(text);
-    setParsed(parseImportRows(text));
+    setParsed(parseImportRows(text, new Set(orgTemplateKeys)));
     setFileName(file.name);
   }
 

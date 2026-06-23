@@ -1,14 +1,44 @@
 import Link from "next/link";
 
 import { requireOrgId } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
 import {
   templateCatalog,
+  TEMPLATE_FIELDS,
   TEMPLATE_VERIFY_NOTE,
 } from "@/lib/onboarding/templates";
+
+export const dynamic = "force-dynamic";
+
+type OrgTemplateRow = {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  category: string | null;
+  headline: string | null;
+  quick_start_text: string | null;
+  safety_notes: string | null;
+  fuel_power_notes: string | null;
+  return_notes: string | null;
+  troubleshooting_notes: string | null;
+  emergency_notes: string | null;
+};
 
 export default async function TemplateCatalogPage() {
   await requireOrgId();
   const catalog = templateCatalog();
+
+  // This organization's custom templates (RLS-scoped), shown read-only here.
+  const supabase = await createClient();
+  const { data: orgData } = await supabase
+    .from("equipment_page_templates")
+    .select(
+      "id, key, name, description, category, headline, quick_start_text, safety_notes, fuel_power_notes, return_notes, troubleshooting_notes, emergency_notes"
+    )
+    .eq("is_system", false)
+    .order("name", { ascending: true });
+  const orgTemplates = (orgData ?? []) as OrgTemplateRow[];
 
   return (
     <div className="flex flex-col gap-6">
@@ -48,6 +78,60 @@ export default async function TemplateCatalogPage() {
         <p className="mt-2">{TEMPLATE_VERIFY_NOTE}</p>
       </section>
 
+      {/* Organization custom templates */}
+      {orgTemplates.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-medium text-muted-foreground">
+              Your organization templates
+            </h2>
+            <Link
+              href="/dashboard/templates"
+              className="text-sm underline-offset-4 hover:underline"
+            >
+              Manage templates
+            </Link>
+          </div>
+          {orgTemplates.map((tpl) => (
+            <section key={tpl.id} className="rounded-lg border bg-card p-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h3 className="text-lg font-semibold">{tpl.name}</h3>
+                <code className="rounded bg-muted px-2 py-0.5 font-mono text-xs">
+                  {tpl.key}
+                </code>
+              </div>
+              {tpl.category ? (
+                <p className="mt-1 text-sm text-muted-foreground">{tpl.category}</p>
+              ) : null}
+              {tpl.description ? (
+                <p className="mt-2 text-sm">{tpl.description}</p>
+              ) : null}
+              <dl className="mt-4 flex flex-col gap-3 border-t pt-4">
+                {TEMPLATE_FIELDS.map((field) => (
+                  <div key={field.key} className="grid gap-1 sm:grid-cols-[8rem_1fr]">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {field.label}
+                    </dt>
+                    <dd className="text-sm">
+                      {tpl[field.key] ? (
+                        <span className="whitespace-pre-line">{tpl[field.key]}</span>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          Not used by this template
+                        </span>
+                      )}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ))}
+        </section>
+      ) : null}
+
+      <h2 className="text-sm font-medium text-muted-foreground">
+        Built-in templates
+      </h2>
       <div className="flex flex-col gap-6">
         {catalog.map((tpl) => (
           <section key={tpl.key} className="rounded-lg border bg-card p-4">
