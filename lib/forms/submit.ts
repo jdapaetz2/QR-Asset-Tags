@@ -9,6 +9,7 @@ import {
   submissionPathPrefix,
   validateUploadFiles,
 } from "@/lib/forms/media";
+import { notifySubmission } from "@/lib/notifications/notify";
 
 /**
  * Shared server-side core for all public form submissions (damage / support /
@@ -108,7 +109,11 @@ export async function submitPublicForm(
     mediaPaths.push(path);
   }
 
+  // Use the id we already generated as the row id so we can build a stable admin
+  // link for the notification without selecting the row back (anon can't read
+  // submissions).
   const { error: insertError } = await supabase.from("form_submissions").insert({
+    id: submissionId,
     organization_id: resolved.organizationId,
     asset_id: resolved.assetId,
     form_type: config.formType,
@@ -123,6 +128,16 @@ export async function submitPublicForm(
   if (insertError) {
     return { error: "Could not submit the form. Please try again." };
   }
+
+  // Best-effort email alert. notifySubmission swallows its own errors, so a
+  // notification failure can never block the submission.
+  await notifySubmission({
+    organizationId: resolved.organizationId,
+    formType: config.formType,
+    assetId: resolved.assetId,
+    submittedBy: config.submittedBy,
+    submissionId,
+  });
 
   redirect(thanks);
 }

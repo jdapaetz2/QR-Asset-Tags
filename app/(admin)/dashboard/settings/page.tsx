@@ -7,6 +7,8 @@ import {
   OrgSettingsForm,
   type OrgSettingsDefaults,
 } from "@/components/org-settings-form";
+import { NotificationSettingsForm } from "@/components/notification-settings-form";
+import type { NotificationSettings } from "@/lib/notifications/settings";
 
 // Settings reads/writes are per-request and auth-scoped; never cache.
 export const dynamic = "force-dynamic";
@@ -18,8 +20,18 @@ export default async function SettingsPage() {
   // RLS-scoped: the caller only ever sees/edits their own organization.
   const { data: org } = await supabase
     .from("organizations")
-    .select("name, support_phone, support_email, website_url, primary_color, logo_url")
+    .select(
+      "name, support_phone, support_email, website_url, primary_color, logo_url, notification_email, notify_damage_reports, notify_support_requests, notify_return_checklists, notify_tag_request_updates"
+    )
     .maybeSingle();
+
+  const notificationSettings: NotificationSettings = {
+    notification_email: org?.notification_email ?? null,
+    notify_damage_reports: org?.notify_damage_reports ?? true,
+    notify_support_requests: org?.notify_support_requests ?? true,
+    notify_return_checklists: org?.notify_return_checklists ?? false,
+    notify_tag_request_updates: org?.notify_tag_request_updates ?? false,
+  };
 
   // A sample scan page link for the preview (first active QR link, if any).
   const { data: qr } = await supabase
@@ -57,6 +69,16 @@ export default async function SettingsPage() {
         }) as OrgSettingsDefaults}
         sampleHref={sampleHref}
       />
+
+      <section className="border-t pt-6">
+        <h2 className="text-lg font-semibold tracking-tight">Notifications</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Email alerts for public submissions and tag request updates.
+        </p>
+        <div className="mt-4">
+          <NotificationSettingsForm settings={notificationSettings} />
+        </div>
+      </section>
     </div>
   );
 }

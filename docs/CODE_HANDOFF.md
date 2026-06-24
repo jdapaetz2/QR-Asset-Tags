@@ -44,6 +44,10 @@ Set these in `.env.local` and in Vercel project settings (do not commit secrets)
 - `NEXT_PUBLIC_SITE_URL` (base for permanent QR URLs, e.g. the `/t/{short_code}` host)
 - Storage bucket name(s) and any upload size/type config
 - Anti-abuse config (rate-limit window, honeypot field name)
+- `RESEND_API_KEY` and `NOTIFICATION_FROM_EMAIL` (server only — submission/tag-request
+  notification emails via Resend). Both optional: leave blank to run notifications in
+  dry-run mode (logged, never sent). `NOTIFICATION_FROM_EMAIL` must be a Resend-verified
+  sender. Never commit these.
 
 The service-role key is used only in trusted server contexts (e.g. deriving `organization_id` on public submission intake). Never ship it to the browser.
 

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
 import { isTagRequestStatus } from "@/lib/tags/tag-requests";
+import { notifyTagRequestStatus } from "@/lib/notifications/notify";
 
 export type TagRequestOwnerState = { error?: string };
 
@@ -39,11 +40,18 @@ export async function updateTagRequest(
     .from("tag_requests")
     .update(update)
     .eq("id", tagRequestId)
-    .select("id")
+    .select("id, organization_id, status")
     .maybeSingle();
 
   if (error) return { error: "Could not update the tag request." };
   if (!data) return { error: "Tag request not found." };
+
+  // Best-effort customer email alert. notifyTagRequestStatus swallows its own
+  // errors, so a notification failure can never block the status update.
+  await notifyTagRequestStatus({
+    organizationId: data.organization_id as string,
+    status: data.status as string,
+  });
 
   redirect(`/owner/tag-requests/${tagRequestId}`);
 }
