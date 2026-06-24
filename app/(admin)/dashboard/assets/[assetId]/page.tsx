@@ -109,6 +109,12 @@ export default async function EditAssetPage({
         <p className="mt-1 text-sm text-muted-foreground">
           {asset.asset_code} · {asset.public_status}
         </p>
+        <Link
+          href={`/dashboard/assets/${assetId}/timeline`}
+          className="mt-2 inline-flex text-sm underline-offset-4 hover:underline"
+        >
+          View timeline →
+        </Link>
       </section>
 
       {/* Readiness checklist */}

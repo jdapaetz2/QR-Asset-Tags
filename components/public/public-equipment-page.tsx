@@ -9,6 +9,7 @@ import {
 import { DOCUMENT_TYPE_LABELS, type DocumentType } from "@/lib/documents/validate";
 import { safeBrandColor, readableTextOn } from "@/lib/public/brand";
 import { PublicFooter } from "@/components/public/public-footer";
+import { AcknowledgementForm } from "@/components/public/acknowledgement-form";
 
 export type PublicAsset = {
   asset_code: string;
@@ -401,6 +402,9 @@ export function PublicEquipmentPage({
           </p>
         )}
       </section>
+
+      {/* Optional acknowledgement */}
+      <AcknowledgementForm shortCode={shortCode} brand={brand} />
 
       {/* Footer */}
       <PublicFooter poweredByLabel={org?.powered_by_label} />
