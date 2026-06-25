@@ -21,6 +21,10 @@ export type TimelineEvent = {
   title: string;
   detail?: string;
   badge?: string;
+  /** Contact line for an acknowledgement (email · phone), when present. */
+  contact?: string;
+  /** The acknowledged statement text — shown so the record reads as a record. */
+  statement?: string;
   /** Admin link for more detail (e.g. the submission detail page). */
   href?: string;
   /** Number of private attachments (admins open them via `href`). */
@@ -41,6 +45,9 @@ export type TimelineInput = {
   acknowledgements: {
     id: string;
     name: string | null;
+    email: string | null;
+    phone: string | null;
+    statement: string | null;
     created_at: string;
   }[];
   tagRequests: {
@@ -66,11 +73,14 @@ export function buildAssetTimeline(input: TimelineInput): TimelineEvent[] {
   }
 
   for (const a of input.acknowledgements) {
+    const contact = [a.email, a.phone].filter(Boolean).join(" · ");
     events.push({
       kind: "acknowledgement",
       at: a.created_at,
       title: "Acknowledgement",
       detail: a.name ?? undefined,
+      contact: contact || undefined,
+      statement: a.statement ?? undefined,
     });
   }
 

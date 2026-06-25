@@ -81,11 +81,18 @@ export default async function EditAssetPage({
       .eq("asset_id", assetId);
     return count ?? 0;
   };
+  const [scansCount, submissionsCount, documentsCount, acknowledgementsCount] =
+    await Promise.all([
+      countRows("scan_events"),
+      countRows("form_submissions"),
+      countRows("documents"),
+      countRows("asset_acknowledgements"),
+    ]);
   const deleteCheck = deleteEligibility({
     qr: links.length,
-    scans: await countRows("scan_events"),
-    submissions: await countRows("form_submissions"),
-    documents: await countRows("documents"),
+    scans: scansCount,
+    submissions: submissionsCount,
+    documents: documentsCount,
     page: page ? 1 : 0,
   });
 
@@ -109,13 +116,26 @@ export default async function EditAssetPage({
         <p className="mt-1 text-sm text-muted-foreground">
           {asset.asset_code} · {asset.public_status}
         </p>
-        <Link
-          href={`/dashboard/assets/${assetId}/timeline`}
-          className="mt-2 inline-flex text-sm underline-offset-4 hover:underline"
-        >
-          View timeline →
-        </Link>
       </section>
+
+      {/* Activity timeline */}
+      <Link
+        href={`/dashboard/assets/${assetId}/timeline`}
+        className="flex items-center justify-between gap-3 rounded-lg border bg-card p-4 hover:bg-accent hover:text-accent-foreground"
+      >
+        <div>
+          <h2 className="font-medium">Activity timeline</h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Reports, checklists, acknowledgements, and tag history ·{" "}
+            {submissionsCount} submission{submissionsCount === 1 ? "" : "s"} ·{" "}
+            {acknowledgementsCount} acknowledgement
+            {acknowledgementsCount === 1 ? "" : "s"}
+          </p>
+        </div>
+        <span aria-hidden className="text-muted-foreground">
+          →
+        </span>
+      </Link>
 
       {/* Readiness checklist */}
       <section className="rounded-lg border bg-card p-4">

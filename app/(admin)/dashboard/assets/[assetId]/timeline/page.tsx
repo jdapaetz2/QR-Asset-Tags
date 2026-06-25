@@ -51,7 +51,7 @@ export default async function AssetTimelinePage({
         .eq("asset_id", assetId),
       supabase
         .from("asset_acknowledgements")
-        .select("id, name, created_at")
+        .select("id, name, email, phone, statement, created_at")
         .eq("asset_id", assetId),
       supabase
         .from("tag_request_assets")
@@ -90,6 +90,9 @@ export default async function AssetTimelinePage({
     acknowledgements: (acks ?? []) as {
       id: string;
       name: string | null;
+      email: string | null;
+      phone: string | null;
+      statement: string | null;
       created_at: string;
     }[],
     tagRequests,
@@ -139,9 +142,10 @@ export default async function AssetTimelinePage({
                 </span>
               </div>
 
-              {e.detail || e.attachmentCount || e.href ? (
+              {e.detail || e.contact || e.attachmentCount || e.href ? (
                 <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                   {e.detail ? <span>{e.detail}</span> : null}
+                  {e.contact ? <span>{e.contact}</span> : null}
                   {e.attachmentCount ? (
                     <span>
                       {e.attachmentCount} attachment
@@ -157,6 +161,12 @@ export default async function AssetTimelinePage({
                     </Link>
                   ) : null}
                 </div>
+              ) : null}
+
+              {e.statement ? (
+                <p className="mt-2 border-l-2 pl-3 text-sm italic text-muted-foreground">
+                  “{e.statement}”
+                </p>
               ) : null}
             </li>
           ))}

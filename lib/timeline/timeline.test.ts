@@ -25,7 +25,14 @@ describe("buildAssetTimeline", () => {
         },
       ],
       acknowledgements: [
-        { id: "a1", name: "Pat", created_at: "2026-02-01T00:00:00Z" },
+        {
+          id: "a1",
+          name: "Pat",
+          email: "pat@site.test",
+          phone: null,
+          statement: "I acknowledge the safety notes.",
+          created_at: "2026-02-01T00:00:00Z",
+        },
       ],
       tagRequests: [{ id: "t1", status: "in_production", created_at: "2026-04-01T00:00:00Z" }],
     });
@@ -36,6 +43,27 @@ describe("buildAssetTimeline", () => {
       "acknowledgement", // Feb
       "created", // Jan
     ]);
+  });
+
+  it("carries the acknowledgement name, contact, and statement as a record", () => {
+    const [ack] = buildAssetTimeline({
+      ...base,
+      assetCreatedAt: null,
+      acknowledgements: [
+        {
+          id: "a1",
+          name: "Pat",
+          email: "pat@site.test",
+          phone: "555-0100",
+          statement: "I acknowledge the safety notes.",
+          created_at: "2026-02-01T00:00:00Z",
+        },
+      ],
+    });
+    expect(ack.kind).toBe("acknowledgement");
+    expect(ack.detail).toBe("Pat");
+    expect(ack.contact).toBe("pat@site.test · 555-0100");
+    expect(ack.statement).toBe("I acknowledge the safety notes.");
   });
 
   it("carries submission status, attachment count, and an admin link", () => {
