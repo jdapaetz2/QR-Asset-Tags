@@ -50,6 +50,8 @@ export async function submitAcknowledgement(
     email,
     phone,
     statement: ACKNOWLEDGEMENT_STATEMENT,
+    // Server-derived from the active session (never from client input). Nullable.
+    rental_session_id: resolved.activeRentalSessionId,
   });
 
   if (error) {

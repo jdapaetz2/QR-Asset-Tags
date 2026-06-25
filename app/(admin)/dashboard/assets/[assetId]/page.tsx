@@ -16,6 +16,10 @@ import { AssetForm } from "@/components/asset-form";
 import { Button } from "@/components/ui/button";
 import { ActionButton } from "@/components/action-button";
 import { QrLinkSection, type QrLinkRow } from "@/components/qr-link-section";
+import {
+  RentalStatusForm,
+  type ActiveRentalSession,
+} from "@/components/rental-status-form";
 
 function Check({ ok, label }: { ok: boolean; label: string }) {
   return (
@@ -65,6 +69,14 @@ export default async function EditAssetPage({
     .select("id, short_code, status, last_scanned_at, created_at")
     .eq("asset_id", assetId)
     .order("created_at", { ascending: true });
+
+  // Active rental session (RLS-scoped). Drives the public acknowledgement prompt.
+  const { data: rentalSession } = await supabase
+    .from("asset_rental_sessions")
+    .select("id, rental_reference, renter_label, started_at")
+    .eq("asset_id", assetId)
+    .eq("status", "active")
+    .maybeSingle<ActiveRentalSession>();
 
   const links = (qrData ?? []) as QrLinkRow[];
   const isPublic = asset.public_status === "public";
@@ -172,6 +184,9 @@ export default async function EditAssetPage({
           {isPublic ? "Make private" : "Make public"}
         </ActionButton>
       </section>
+
+      {/* Rental status */}
+      <RentalStatusForm assetId={assetId} session={rentalSession ?? null} />
 
       {/* Equipment page */}
       <section className="flex items-center justify-between rounded-lg border bg-card p-4">

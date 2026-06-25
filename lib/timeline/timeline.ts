@@ -13,6 +13,8 @@ export type TimelineKind =
   | "submission"
   | "acknowledgement"
   | "tag_request"
+  | "rental_started"
+  | "rental_ended"
   | "archived";
 
 export type TimelineEvent = {
@@ -55,6 +57,14 @@ export type TimelineInput = {
     status: string;
     created_at: string;
   }[];
+  rentalSessions: {
+    id: string;
+    status: string;
+    rental_reference: string | null;
+    renter_label: string | null;
+    started_at: string;
+    returned_at: string | null;
+  }[];
 };
 
 export function buildAssetTimeline(input: TimelineInput): TimelineEvent[] {
@@ -91,6 +101,24 @@ export function buildAssetTimeline(input: TimelineInput): TimelineEvent[] {
       title: "Tag request",
       badge: tagRequestStatusLabel(t.status),
     });
+  }
+
+  for (const r of input.rentalSessions) {
+    const who = [r.renter_label, r.rental_reference].filter(Boolean).join(" · ");
+    events.push({
+      kind: "rental_started",
+      at: r.started_at,
+      title: "Rental started",
+      detail: who || undefined,
+    });
+    if (r.returned_at) {
+      events.push({
+        kind: "rental_ended",
+        at: r.returned_at,
+        title: r.status === "cancelled" ? "Rental cancelled" : "Rental returned",
+        detail: who || undefined,
+      });
+    }
   }
 
   if (input.archivedAt) {

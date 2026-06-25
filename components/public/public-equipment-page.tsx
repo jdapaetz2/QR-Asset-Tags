@@ -10,6 +10,7 @@ import { DOCUMENT_TYPE_LABELS, type DocumentType } from "@/lib/documents/validat
 import { safeBrandColor, readableTextOn } from "@/lib/public/brand";
 import { PublicFooter } from "@/components/public/public-footer";
 import { AcknowledgementForm } from "@/components/public/acknowledgement-form";
+import { AckPrompt } from "@/components/public/ack-prompt";
 
 export type PublicAsset = {
   asset_code: string;
@@ -172,12 +173,16 @@ function StickyActionBar({
 export function PublicEquipmentPage({
   shortCode,
   asset,
+  assetId,
+  activeRentalSessionId,
   page,
   org,
   documents,
 }: {
   shortCode: string;
   asset: PublicAsset;
+  assetId: string;
+  activeRentalSessionId: string | null;
   page: PublicPage;
   org: PublicOrg;
   documents: PublicDocument[];
@@ -430,6 +435,14 @@ export function PublicEquipmentPage({
         docLabel={stickyDocLabel}
         brand={brand}
         brandText={brandText}
+      />
+
+      {/* Once-per-rental acknowledgement prompt (only when rented) */}
+      <AckPrompt
+        shortCode={shortCode}
+        assetId={assetId}
+        sessionId={activeRentalSessionId}
+        brand={brand}
       />
     </main>
   );

@@ -8,6 +8,7 @@ const base: TimelineInput = {
   submissions: [],
   acknowledgements: [],
   tagRequests: [],
+  rentalSessions: [],
 };
 
 describe("buildAssetTimeline", () => {
@@ -85,6 +86,44 @@ describe("buildAssetTimeline", () => {
     expect(event.badge).toBe("reviewed");
     expect(event.attachmentCount).toBe(3);
     expect(event.href).toBe("/dashboard/submissions/s9");
+  });
+
+  it("emits rental started and ended events, newest-first", () => {
+    const events = buildAssetTimeline({
+      ...base,
+      assetCreatedAt: null,
+      rentalSessions: [
+        {
+          id: "r1",
+          status: "returned",
+          rental_reference: "RA-1",
+          renter_label: "Crew B",
+          started_at: "2026-03-01T00:00:00Z",
+          returned_at: "2026-03-10T00:00:00Z",
+        },
+      ],
+    });
+    expect(events.map((e) => e.kind)).toEqual(["rental_ended", "rental_started"]);
+    expect(events[0].title).toBe("Rental returned");
+    expect(events[1].detail).toBe("Crew B · RA-1");
+  });
+
+  it("omits the ended event for a still-active session", () => {
+    const events = buildAssetTimeline({
+      ...base,
+      assetCreatedAt: null,
+      rentalSessions: [
+        {
+          id: "r2",
+          status: "active",
+          rental_reference: null,
+          renter_label: null,
+          started_at: "2026-04-01T00:00:00Z",
+          returned_at: null,
+        },
+      ],
+    });
+    expect(events.map((e) => e.kind)).toEqual(["rental_started"]);
   });
 
   it("includes an archived event only when archivedAt is set", () => {

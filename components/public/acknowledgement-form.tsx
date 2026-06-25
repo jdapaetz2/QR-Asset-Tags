@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { HONEYPOT_FIELD } from "@/lib/forms/validate";
@@ -8,7 +8,10 @@ import {
   submitAcknowledgement,
   type AcknowledgementState,
 } from "@/lib/acknowledgements/actions";
-import { ACKNOWLEDGEMENT_STATEMENT } from "@/lib/acknowledgements/acknowledgements";
+import {
+  ACKNOWLEDGEMENT_STATEMENT,
+  ACKNOWLEDGEMENT_DISCLAIMER,
+} from "@/lib/acknowledgements/acknowledgements";
 
 const fieldClass =
   "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring";
@@ -20,14 +23,21 @@ const fieldClass =
 export function AcknowledgementForm({
   shortCode,
   brand,
+  onAcknowledged,
 }: {
   shortCode: string;
   brand: string;
+  /** Called once after a successful submit (e.g. to persist the prompt-dismiss key). */
+  onAcknowledged?: () => void;
 }) {
   const [state, formAction, pending] = useActionState<
     AcknowledgementState,
     FormData
   >(submitAcknowledgement.bind(null, shortCode), {});
+
+  useEffect(() => {
+    if (state.ok) onAcknowledged?.();
+  }, [state.ok, onAcknowledged]);
 
   return (
     <section
@@ -86,6 +96,10 @@ export function AcknowledgementForm({
             />
             <span>{ACKNOWLEDGEMENT_STATEMENT}</span>
           </label>
+
+          <p className="text-xs text-muted-foreground">
+            {ACKNOWLEDGEMENT_DISCLAIMER}
+          </p>
 
           {/* Honeypot: hidden from humans; bots that fill it are silently dropped. */}
           <div aria-hidden className="hidden">

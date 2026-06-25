@@ -20,6 +20,8 @@ const KIND_LABELS: Record<TimelineEvent["kind"], string> = {
   submission: "Submission",
   acknowledgement: "Acknowledgement",
   tag_request: "Tag request",
+  rental_started: "Rental",
+  rental_ended: "Rental",
   archived: "Archived",
 };
 
@@ -43,7 +45,7 @@ export default async function AssetTimelinePage({
   if (!asset) notFound();
 
   // All reads are RLS-scoped to the caller's org and filtered to this asset.
-  const [{ data: submissions }, { data: acks }, { data: tagAssets }] =
+  const [{ data: submissions }, { data: acks }, { data: tagAssets }, { data: rentals }] =
     await Promise.all([
       supabase
         .from("form_submissions")
@@ -56,6 +58,10 @@ export default async function AssetTimelinePage({
       supabase
         .from("tag_request_assets")
         .select("tag_request:tag_requests(id, status, created_at)")
+        .eq("asset_id", assetId),
+      supabase
+        .from("asset_rental_sessions")
+        .select("id, status, rental_reference, renter_label, started_at, returned_at")
         .eq("asset_id", assetId),
     ]);
 
@@ -96,6 +102,14 @@ export default async function AssetTimelinePage({
       created_at: string;
     }[],
     tagRequests,
+    rentalSessions: (rentals ?? []) as {
+      id: string;
+      status: string;
+      rental_reference: string | null;
+      renter_label: string | null;
+      started_at: string;
+      returned_at: string | null;
+    }[],
   });
 
   return (

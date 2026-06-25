@@ -9,6 +9,10 @@
 export const ACKNOWLEDGEMENT_STATEMENT =
   "I acknowledge that I have access to the rental company's instructions, safety notes, and support contact for this asset.";
 
+/** Careful, non-overreaching disclaimer shown alongside the acknowledgement. */
+export const ACKNOWLEDGEMENT_DISCLAIMER =
+  "This is not a substitute for manufacturer instructions, training, or applicable safety requirements.";
+
 export type AcknowledgementInput = {
   name: string | null;
   acknowledged: boolean;
