@@ -9,6 +9,8 @@ import {
   OrgSettingsForm,
   type OrgSettingsDefaults,
 } from "@/components/org-settings-form";
+import { ExportSettingsForm } from "@/components/export-settings-form";
+import { toExportFlags } from "@/lib/export/types";
 
 export const dynamic = "force-dynamic";
 
@@ -24,10 +26,14 @@ export default async function OwnerOrgSettingsPage({
   // Platform owner can read any org (RLS owner bypass).
   const { data: org } = await supabase
     .from("organizations")
-    .select("name, support_phone, support_email, website_url, primary_color, logo_url")
+    .select(
+      "name, support_phone, support_email, website_url, primary_color, logo_url, customer_exports_enabled, export_assets_enabled, export_qr_mapping_enabled, export_documents_enabled, export_submissions_enabled"
+    )
     .eq("id", organizationId)
     .maybeSingle();
   if (!org) notFound();
+
+  const exportFlags = toExportFlags(org);
 
   const { data: qr } = await supabase
     .from("qr_links")
@@ -61,6 +67,30 @@ export default async function OwnerOrgSettingsPage({
         org={org as OrgSettingsDefaults}
         sampleHref={sampleHref}
       />
+
+      <section className="border-t pt-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold tracking-tight">Data exports</h2>
+          <Link
+            href={`/owner/organizations/${organizationId}/export`}
+            className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+          >
+            Export this org&apos;s data →
+          </Link>
+        </div>
+        <ExportSettingsForm organizationId={organizationId} flags={exportFlags} />
+      </section>
+
+      <section className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-muted-foreground">
+        <h2 className="font-medium text-foreground">Domain durability</h2>
+        <p className="mt-1">
+          Physical QR tags must point at a stable production/custom domain.
+          <code className="mx-1 rounded bg-background px-1">localhost</code> and Vercel
+          preview URLs are for testing only. The <code>short_code</code> is durable, but
+          the domain must be too — changing it after tags are produced breaks them unless
+          redirects are preserved. See <code>docs/QR_DOMAIN_STRATEGY.md</code>.
+        </p>
+      </section>
     </div>
   );
 }

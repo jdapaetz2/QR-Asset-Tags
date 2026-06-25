@@ -19,6 +19,7 @@ import {
   managedLogoObjectPath,
   validateLogoFile,
 } from "@/lib/org/logo";
+import { parseExportSettingsForm } from "@/lib/export/types";
 
 export type OrgSettingsState = { error?: string };
 
@@ -149,5 +150,32 @@ export async function updateOrgSettingsAsOwner(
   const supabase = await createClient();
   const result = await saveOrgSettings(supabase, organizationId, formData);
   if (result.error) return result;
+  redirect(`/owner/organizations/${organizationId}/settings`);
+}
+
+/**
+ * Platform-owner-only: set a customer organization's export flags. A DB trigger
+ * (0015) independently blocks any non-owner from changing these, so this is the
+ * single sanctioned path. `requireRole` is the route-level gate.
+ */
+export async function updateOrgExportSettings(
+  organizationId: string,
+  _prev: OrgSettingsState,
+  formData: FormData
+): Promise<OrgSettingsState> {
+  await requireRole(ROLES.PLATFORM_OWNER);
+  const flags = parseExportSettingsForm(formData);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("organizations")
+    .update(flags)
+    .eq("id", organizationId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { error: "Could not save export settings." };
+  if (!data) return { error: "Organization not found." };
+
   redirect(`/owner/organizations/${organizationId}/settings`);
 }

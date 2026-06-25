@@ -21,9 +21,10 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: org } = await supabase
     .from("organizations")
-    .select("name, slug, status")
+    .select("name, slug, status, customer_exports_enabled")
     .eq("id", profile.organization_id)
     .maybeSingle();
+  const exportsEnabled = Boolean(org?.customer_exports_enabled);
 
   return (
     <div className="flex flex-col gap-8">
@@ -108,6 +109,17 @@ export default async function DashboardPage() {
               Organization profile, support contact, and scanner page branding
             </p>
           </Link>
+          {exportsEnabled ? (
+            <Link
+              href="/dashboard/export"
+              className="rounded-lg border bg-card p-4 transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              <h3 className="font-medium">Export organization data</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Download your records as CSV
+              </p>
+            </Link>
+          ) : null}
           {COMING_SOON.map((card) => (
             <div
               key={card.title}
