@@ -5,6 +5,7 @@ import {
   deleteEligibility,
   matchesPageFilter,
   matchesQrFilter,
+  matchesRentalFilter,
   parseAssetListParams,
   sanitizeSearch,
 } from "./list";
@@ -18,8 +19,15 @@ describe("parseAssetListParams", () => {
       qr: "all",
       page: "all",
       lifecycle: "active",
+      rental: "all",
       sort: "asset_code",
     });
+  });
+
+  it("validates the rental filter, falling back to 'all'", () => {
+    expect(parseAssetListParams({ rental: "rented" }).rental).toBe("rented");
+    expect(parseAssetListParams({ rental: "available" }).rental).toBe("available");
+    expect(parseAssetListParams({ rental: "bogus" }).rental).toBe("all");
   });
 
   it("accepts valid values and rejects invalid ones to defaults", () => {
@@ -60,6 +68,17 @@ describe("sanitizeSearch", () => {
   });
   it("leaves a safe query untouched", () => {
     expect(sanitizeSearch("EXCAVATOR-017")).toBe("EXCAVATOR-017");
+  });
+});
+
+describe("matchesRentalFilter", () => {
+  it("filters by active rental session", () => {
+    expect(matchesRentalFilter("all", true)).toBe(true);
+    expect(matchesRentalFilter("all", false)).toBe(true);
+    expect(matchesRentalFilter("rented", true)).toBe(true);
+    expect(matchesRentalFilter("rented", false)).toBe(false);
+    expect(matchesRentalFilter("available", false)).toBe(true);
+    expect(matchesRentalFilter("available", true)).toBe(false);
   });
 });
 

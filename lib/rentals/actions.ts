@@ -8,6 +8,13 @@ import { isCloseStatus, normalizeRentalStart } from "@/lib/rentals/rentals";
 
 export type RentalActionState = { error?: string };
 
+/** Only allow redirects back into the asset area; default to the asset detail page. */
+function safeRedirect(redirectTo: string | undefined, assetId: string): string {
+  return redirectTo && redirectTo.startsWith("/dashboard/assets")
+    ? redirectTo
+    : `/dashboard/assets/${assetId}`;
+}
+
 /**
  * Start a rental session for one of the caller's own assets (RLS scopes every
  * write). organization_id comes from the profile, never user input. Rejects if the
@@ -16,6 +23,7 @@ export type RentalActionState = { error?: string };
  */
 export async function startRentalSession(
   assetId: string,
+  redirectTo: string,
   _prev: RentalActionState,
   formData: FormData
 ): Promise<RentalActionState> {
@@ -64,7 +72,7 @@ export async function startRentalSession(
     .update({ active_rental_session_id: session.id })
     .eq("id", assetId);
 
-  redirect(`/dashboard/assets/${assetId}`);
+  redirect(safeRedirect(redirectTo, assetId));
 }
 
 /**
@@ -75,6 +83,7 @@ export async function closeRentalSession(
   assetId: string,
   sessionId: string,
   status: string,
+  redirectTo: string,
   _prev: RentalActionState,
   _formData: FormData
 ): Promise<RentalActionState> {
@@ -102,5 +111,5 @@ export async function closeRentalSession(
     .update({ active_rental_session_id: null })
     .eq("id", assetId);
 
-  redirect(`/dashboard/assets/${assetId}`);
+  redirect(safeRedirect(redirectTo, assetId));
 }

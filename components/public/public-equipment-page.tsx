@@ -9,7 +9,6 @@ import {
 import { DOCUMENT_TYPE_LABELS, type DocumentType } from "@/lib/documents/validate";
 import { safeBrandColor, readableTextOn } from "@/lib/public/brand";
 import { PublicFooter } from "@/components/public/public-footer";
-import { AcknowledgementForm } from "@/components/public/acknowledgement-form";
 import { AckPrompt } from "@/components/public/ack-prompt";
 
 export type PublicAsset = {
@@ -304,18 +303,6 @@ export function PublicEquipmentPage({
         </PrimaryAction>
       </nav>
 
-      {/* Subtle pointer to the optional acknowledgement lower on the page */}
-      <a
-        href="#acknowledgement"
-        className="flex items-center justify-between gap-3 rounded-lg border border-dashed px-4 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-      >
-        <span>
-          Acknowledgement available — confirm you have the instructions and support
-          info.
-        </span>
-        <span aria-hidden>↓</span>
-      </a>
-
       {/* Content sections */}
       <div className="flex flex-col gap-3">
         <Section
@@ -419,11 +406,6 @@ export function PublicEquipmentPage({
           </p>
         )}
       </section>
-
-      {/* Optional acknowledgement */}
-      <div id="acknowledgement" className="scroll-mt-4">
-        <AcknowledgementForm shortCode={shortCode} brand={brand} />
-      </div>
 
       {/* Footer */}
       <PublicFooter poweredByLabel={org?.powered_by_label} />

@@ -9,6 +9,7 @@ export const PUBLIC_STATUS_FILTERS = ["all", "public", "private"] as const;
 export const QR_FILTERS = ["all", "has", "missing"] as const;
 export const PAGE_FILTERS = ["all", "published", "draft", "missing"] as const;
 export const LIFECYCLE_FILTERS = ["active", "archived", "all"] as const;
+export const RENTAL_FILTERS = ["all", "rented", "available"] as const;
 export const ASSET_SORTS = [
   "asset_code",
   "asset_name",
@@ -20,6 +21,7 @@ export type PublicStatusFilter = (typeof PUBLIC_STATUS_FILTERS)[number];
 export type QrFilter = (typeof QR_FILTERS)[number];
 export type PageFilter = (typeof PAGE_FILTERS)[number];
 export type LifecycleFilter = (typeof LIFECYCLE_FILTERS)[number];
+export type RentalFilter = (typeof RENTAL_FILTERS)[number];
 export type AssetSort = (typeof ASSET_SORTS)[number];
 export type AssetPageStatus = "published" | "draft" | "missing";
 
@@ -30,6 +32,7 @@ export type AssetListParams = {
   qr: QrFilter;
   page: PageFilter;
   lifecycle: LifecycleFilter;
+  rental: RentalFilter;
   sort: AssetSort;
 };
 
@@ -59,6 +62,7 @@ export function parseAssetListParams(
     qr: oneOf(firstString(sp.qr), QR_FILTERS, "all"),
     page: oneOf(firstString(sp.page), PAGE_FILTERS, "all"),
     lifecycle: oneOf(firstString(sp.lifecycle), LIFECYCLE_FILTERS, "active"),
+    rental: oneOf(firstString(sp.rental), RENTAL_FILTERS, "all"),
     sort: oneOf(firstString(sp.sort), ASSET_SORTS, "asset_code"),
   };
 }
@@ -90,6 +94,15 @@ export function matchesPageFilter(
   status: AssetPageStatus
 ): boolean {
   return filter === "all" ? true : filter === status;
+}
+
+export function matchesRentalFilter(
+  filter: RentalFilter,
+  hasActiveSession: boolean
+): boolean {
+  if (filter === "rented") return hasActiveSession;
+  if (filter === "available") return !hasActiveSession;
+  return true;
 }
 
 export type DeleteDeps = {

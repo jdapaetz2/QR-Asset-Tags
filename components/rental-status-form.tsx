@@ -36,10 +36,11 @@ export function RentalStatusForm({
   assetId: string;
   session: ActiveRentalSession | null;
 }) {
+  const detailHref = `/dashboard/assets/${assetId}`;
   const [state, formAction, pending] = useActionState<
     RentalActionState,
     FormData
-  >(startRentalSession.bind(null, assetId), {});
+  >(startRentalSession.bind(null, assetId, detailHref), {});
 
   if (session) {
     const detail = [session.renter_label, session.rental_reference]
@@ -65,7 +66,8 @@ export function RentalStatusForm({
                 null,
                 assetId,
                 session.id,
-                "returned"
+                "returned",
+                detailHref
               )}
               variant="outline"
             >
@@ -76,7 +78,8 @@ export function RentalStatusForm({
                 null,
                 assetId,
                 session.id,
-                "cancelled"
+                "cancelled",
+                detailHref
               )}
               variant="outline"
               confirm="Cancel this rental session? Use this only for mistaken starts."

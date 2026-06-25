@@ -3,17 +3,21 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
 import { Button } from "@/components/ui/button";
+import { ActionButton } from "@/components/action-button";
 import { getOrgCategories } from "@/lib/assets/categories";
+import { startRentalSession, closeRentalSession } from "@/lib/rentals/actions";
 import {
   parseAssetListParams,
   sanitizeSearch,
   assetPageStatus,
   matchesQrFilter,
   matchesPageFilter,
+  matchesRentalFilter,
   PUBLIC_STATUS_FILTERS,
   QR_FILTERS,
   PAGE_FILTERS,
   LIFECYCLE_FILTERS,
+  RENTAL_FILTERS,
   ASSET_SORTS,
 } from "@/lib/assets/list";
 
@@ -135,6 +139,17 @@ export default async function AssetsPage({
     pageByAsset.set(p.asset_id, p.is_published);
   }
 
+  // Active rental session per asset (one query, mapped by asset_id — no N+1). RLS
+  // scopes to the caller's organization.
+  const { data: rentalData } = await supabase
+    .from("asset_rental_sessions")
+    .select("asset_id, id")
+    .eq("status", "active");
+  const activeSessionByAsset = new Map<string, string>();
+  for (const r of (rentalData ?? []) as { asset_id: string; id: string }[]) {
+    activeSessionByAsset.set(r.asset_id, r.id);
+  }
+
   // Distinct, normalized categories for the filter dropdown (own org only).
   const categories = await getOrgCategories(supabase);
 
@@ -146,13 +161,30 @@ export default async function AssetsPage({
         pageByAsset.has(asset.id),
         pageByAsset.get(asset.id) ?? false
       );
-      return { asset, hasQr, hasActiveQr, pageStatus };
+      const activeSessionId = activeSessionByAsset.get(asset.id) ?? null;
+      return { asset, hasQr, hasActiveQr, pageStatus, activeSessionId };
     })
     .filter(
       (r) =>
         matchesQrFilter(params.qr, r.hasQr) &&
-        matchesPageFilter(params.page, r.pageStatus)
+        matchesPageFilter(params.page, r.pageStatus) &&
+        matchesRentalFilter(params.rental, r.activeSessionId !== null)
     );
+
+  // Preserve the current filters/sort when a quick toggle redirects back here.
+  const listHref = `/dashboard/assets${
+    typeof sp === "object"
+      ? (() => {
+          const qs = new URLSearchParams();
+          for (const [k, v] of Object.entries(sp)) {
+            const val = Array.isArray(v) ? v[0] : v;
+            if (typeof val === "string" && val) qs.set(k, val);
+          }
+          const s = qs.toString();
+          return s ? `?${s}` : "";
+        })()
+      : ""
+  }`;
 
   const filtersActive =
     Boolean(params.q) ||
@@ -160,7 +192,8 @@ export default async function AssetsPage({
     Boolean(params.category) ||
     params.qr !== "all" ||
     params.page !== "all" ||
-    params.lifecycle !== "active";
+    params.lifecycle !== "active" ||
+    params.rental !== "all";
 
   return (
     <div className="flex flex-col gap-6">
@@ -245,6 +278,16 @@ export default async function AssetsPage({
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm">
+          <span className="text-muted-foreground">Rental</span>
+          <select name="rental" defaultValue={params.rental} className={selectClass}>
+            {RENTAL_FILTERS.map((v) => (
+              <option key={v} value={v}>
+                {v === "all" ? "All" : v[0].toUpperCase() + v.slice(1)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">Sort</span>
           <select name="sort" defaultValue={params.sort} className={selectClass}>
             {ASSET_SORTS.map((v) => (
@@ -290,7 +333,7 @@ export default async function AssetsPage({
                 </td>
               </tr>
             ) : (
-              rows.map(({ asset, hasQr, hasActiveQr, pageStatus }) => (
+              rows.map(({ asset, hasQr, hasActiveQr, pageStatus, activeSessionId }) => (
                 <tr key={asset.id} className="border-b last:border-0">
                   <td className="whitespace-nowrap px-4 py-2 font-medium">
                     {asset.asset_code}
@@ -301,6 +344,9 @@ export default async function AssetsPage({
                   </td>
                   <td className="px-4 py-2">
                     <div className="flex flex-wrap gap-1">
+                      <Badge tone={activeSessionId ? "warn" : "muted"}>
+                        {activeSessionId ? "Rented" : "Available"}
+                      </Badge>
                       <Badge tone={asset.public_status === "public" ? "ok" : "muted"}>
                         {asset.public_status === "public" ? "Public" : "Private"}
                       </Badge>
@@ -323,12 +369,36 @@ export default async function AssetsPage({
                     {formatDate(asset.created_at)}
                   </td>
                   <td className="whitespace-nowrap px-4 py-2 text-right">
-                    <Link
-                      href={`/dashboard/assets/${asset.id}`}
-                      className="text-sm underline-offset-4 hover:underline"
-                    >
-                      View / edit
-                    </Link>
+                    <div className="flex items-center justify-end gap-3">
+                      {asset.archived_at ? null : activeSessionId ? (
+                        <ActionButton
+                          action={closeRentalSession.bind(
+                            null,
+                            asset.id,
+                            activeSessionId,
+                            "returned",
+                            listHref
+                          )}
+                          variant="outline"
+                          confirm="Mark this asset returned?"
+                        >
+                          Mark returned
+                        </ActionButton>
+                      ) : (
+                        <ActionButton
+                          action={startRentalSession.bind(null, asset.id, listHref)}
+                          variant="outline"
+                        >
+                          Mark rented
+                        </ActionButton>
+                      )}
+                      <Link
+                        href={`/dashboard/assets/${asset.id}`}
+                        className="text-sm underline-offset-4 hover:underline"
+                      >
+                        View / edit
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))
