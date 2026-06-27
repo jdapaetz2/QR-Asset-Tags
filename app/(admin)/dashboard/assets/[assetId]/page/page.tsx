@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
 import { saveEquipmentPage } from "@/lib/assets/equipment-actions";
+import { toPreviewDocuments, type DocRow } from "@/lib/public/documents";
 import { EquipmentPageForm } from "@/components/equipment-page-form";
 
 export default async function EquipmentPageEditor({
@@ -30,8 +31,20 @@ export default async function EquipmentPageEditor({
   // Org branding/support for the preview (own org via RLS).
   const { data: org } = await supabase
     .from("organizations")
-    .select("name, logo_url, primary_color, support_phone, support_email")
+    .select(
+      "name, logo_url, primary_color, support_phone, support_email, powered_by_label"
+    )
     .maybeSingle();
+
+  // Public documents only (visibility='public') → inert preview docs. Private docs and
+  // storage paths never reach the client; preview links don't navigate.
+  const { data: docRows } = await supabase
+    .from("documents")
+    .select("id, title, document_type, url, storage_path, link_status")
+    .eq("asset_id", assetId)
+    .eq("visibility", "public")
+    .order("document_type", { ascending: true });
+  const previewDocuments = toPreviewDocuments((docRows ?? []) as DocRow[]);
 
   // First QR link for this asset → drives the "Open public page" link + readiness.
   const { data: qr } = await supabase
@@ -77,16 +90,20 @@ export default async function EquipmentPageEditor({
           primary_color: org?.primary_color ?? null,
           support_phone: org?.support_phone ?? null,
           support_email: org?.support_email ?? null,
+          powered_by_label: org?.powered_by_label ?? null,
         }}
         asset={{
           asset_code: asset.asset_code,
           asset_name: asset.asset_name,
           category: asset.category,
+          make: null,
+          model: null,
           cover_image_url: asset.cover_image_url,
           public_status: asset.public_status,
           support_phone_override: asset.support_phone_override,
           support_email_override: asset.support_email_override,
         }}
+        documents={previewDocuments}
         shortCode={qr?.short_code ?? null}
         hasActiveQr={qr?.status === "active"}
       />

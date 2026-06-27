@@ -9,11 +9,12 @@ import { PRODUCT_NAME } from "@/lib/constants";
 import type { EquipmentFormState } from "@/lib/assets/equipment-actions";
 import type { EquipmentPageInput } from "@/lib/assets/equipment";
 import { equipmentReadiness } from "@/lib/assets/equipment";
-import {
-  EquipmentPagePreview,
-  type PreviewOrg,
-  type PreviewAsset,
-} from "@/components/public/equipment-page-preview";
+import type { PublicDocument } from "@/lib/public/documents";
+import type {
+  PublicOrg,
+  PublicAsset,
+} from "@/components/public/public-scanner-view";
+import { EquipmentPagePreview } from "@/components/public/equipment-page-preview";
 
 const textareaClass =
   "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring";
@@ -53,14 +54,16 @@ export function EquipmentPageForm({
   cancelHref,
   org,
   asset,
+  documents,
   shortCode,
   hasActiveQr,
 }: {
   action: EquipmentFormAction;
   page?: PageDefaults;
   cancelHref: string;
-  org: PreviewOrg;
-  asset: PreviewAsset & { public_status: string };
+  org: PublicOrg;
+  asset: PublicAsset & { public_status: string };
+  documents: PublicDocument[];
   shortCode: string | null;
   hasActiveQr: boolean;
 }) {
@@ -185,6 +188,8 @@ export function EquipmentPageForm({
           org={org}
           asset={asset}
           fields={fields}
+          documents={documents}
+          shortCode={shortCode}
         />
       </div>
     </div>
