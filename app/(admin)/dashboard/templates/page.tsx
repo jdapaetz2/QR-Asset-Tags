@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireOrgId } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   templateCatalog,
   TEMPLATE_VERIFY_NOTE,
@@ -56,10 +57,10 @@ export default async function TemplatesPage() {
           Your organization templates
         </h2>
         {orgTemplates.length === 0 ? (
-          <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
-            No custom templates yet. Create one, or copy a built-in template below to
-            customize it.
-          </p>
+          <EmptyState
+            title="No custom templates yet"
+            description="Templates pre-fill equipment page content so onboarding new assets is fast. Create one, or copy a built-in template below to customize it."
+          />
         ) : (
           <div className="overflow-x-auto rounded-lg border">
             <table className="w-full text-sm">

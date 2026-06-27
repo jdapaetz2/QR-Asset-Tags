@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile, landingPathForRole } from "@/lib/auth/session";
 import { roleLabel } from "@/lib/auth/roles";
+import { Card, CardTitle } from "@/components/ui/card";
 
 const COMING_SOON = [
   { title: "QR Pages", note: "Public equipment pages & tags" },
@@ -41,8 +42,8 @@ export default async function DashboardPage() {
         </p>
       </section>
 
-      <section className="rounded-lg border bg-card p-4 text-sm">
-        <h2 className="mb-3 font-medium">Organization</h2>
+      <Card className="text-sm">
+        <CardTitle className="mb-3">Organization</CardTitle>
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-muted-foreground">
           <dt>Name</dt>
           <dd className="text-foreground">{org?.name ?? "—"}</dd>
@@ -51,7 +52,7 @@ export default async function DashboardPage() {
           <dt>Status</dt>
           <dd className="text-foreground">{org?.status ?? "—"}</dd>
         </dl>
-      </section>
+      </Card>
 
       <section>
         <h2 className="mb-3 text-sm font-medium text-muted-foreground">

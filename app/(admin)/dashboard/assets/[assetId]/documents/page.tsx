@@ -7,6 +7,9 @@ import { createDocument, deleteDocument } from "@/lib/documents/actions";
 import { DOCUMENT_TYPE_LABELS, type DocumentType } from "@/lib/documents/validate";
 import { DocumentForm } from "@/components/document-form";
 import { ActionButton } from "@/components/action-button";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { documentLinkTone } from "@/lib/ui/status";
 
 const DOCUMENTS_BUCKET = "documents";
 
@@ -104,8 +107,11 @@ export default async function DocumentsPage({
           <tbody>
             {documents.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-6 text-center text-muted-foreground">
-                  No documents yet.
+                <td colSpan={8} className="px-4 py-6">
+                  <EmptyState
+                    title="No documents yet"
+                    description="Add manuals, start-up guides, and safety sheets as hosted files or links. Public documents appear on this asset's scan page for renters."
+                  />
                 </td>
               </tr>
             ) : (
@@ -115,9 +121,15 @@ export default async function DocumentsPage({
                   <tr key={doc.id} className="border-b last:border-0">
                     <td className="px-4 py-2 font-medium">{doc.title}</td>
                     <td className="px-4 py-2">{typeLabel(doc.document_type)}</td>
-                    <td className="px-4 py-2">{doc.visibility}</td>
-                    <td className="px-4 py-2 text-muted-foreground">
-                      {doc.link_status.replace(/_/g, " ")}
+                    <td className="px-4 py-2">
+                      <Badge tone={doc.visibility === "public" ? "success" : "neutral"}>
+                        {doc.visibility === "public" ? "Public" : "Private"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2">
+                      <Badge tone={documentLinkTone(doc.link_status)}>
+                        {doc.link_status.replace(/_/g, " ")}
+                      </Badge>
                     </td>
                     <td className="px-4 py-2">
                       {link?.href ? (

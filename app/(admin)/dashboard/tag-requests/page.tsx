@@ -3,7 +3,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { tagRequestStatusLabel } from "@/lib/tags/tag-requests";
+import { tagRequestStatusTone } from "@/lib/ui/status";
 
 export const dynamic = "force-dynamic";
 
@@ -61,8 +64,19 @@ export default async function TagRequestsPage() {
           <tbody>
             {requests.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
-                  No tag requests yet.
+                <td colSpan={6} className="px-4 py-6">
+                  <EmptyState
+                    title="No tag requests yet"
+                    description="Request physical QR tags from AssetTag QR for your assets — track each request's production status here."
+                    action={
+                      <Link
+                        href="/dashboard/tag-requests/new"
+                        className="text-sm underline-offset-4 hover:underline"
+                      >
+                        Request tags →
+                      </Link>
+                    }
+                  />
                 </td>
               </tr>
             ) : (
@@ -72,9 +86,9 @@ export default async function TagRequestsPage() {
                     {formatDate(r.created_at)}
                   </td>
                   <td className="px-4 py-2">
-                    <span className="rounded-full border px-2 py-0.5 text-xs">
+                    <Badge tone={tagRequestStatusTone(r.status)}>
                       {tagRequestStatusLabel(r.status)}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-4 py-2 text-muted-foreground">
                     {r.tag_request_assets?.[0]?.count ?? 0}

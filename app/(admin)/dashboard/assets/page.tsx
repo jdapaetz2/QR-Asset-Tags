@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
 import { Button } from "@/components/ui/button";
 import { ActionButton } from "@/components/action-button";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { getOrgCategories } from "@/lib/assets/categories";
 import { startRentalSession, closeRentalSession } from "@/lib/rentals/actions";
 import {
@@ -42,26 +44,6 @@ function formatDate(value: string): string {
 
 const selectClass =
   "rounded-md border bg-background px-2 py-1.5 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring";
-
-function Badge({
-  children,
-  tone = "muted",
-}: {
-  children: React.ReactNode;
-  tone?: "muted" | "ok" | "warn";
-}) {
-  const styles =
-    tone === "ok"
-      ? "border-emerald-500/40 text-emerald-700 dark:text-emerald-400"
-      : tone === "warn"
-        ? "border-amber-500/40 text-amber-700 dark:text-amber-500"
-        : "text-muted-foreground";
-  return (
-    <span className={`rounded-full border px-2 py-0.5 text-xs ${styles}`}>
-      {children}
-    </span>
-  );
-}
 
 const SORT_LABELS: Record<string, string> = {
   asset_code: "Code",
@@ -326,10 +308,26 @@ export default async function AssetsPage({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
-                  {filtersActive
-                    ? "No assets match these filters."
-                    : "No assets yet. Create your first one or import a CSV."}
+                <td colSpan={6} className="px-4 py-6">
+                  {filtersActive ? (
+                    <EmptyState
+                      title="No assets match these filters"
+                      description="Try clearing the search or filters to see all of your equipment."
+                    />
+                  ) : (
+                    <EmptyState
+                      title="No assets yet"
+                      description="Assets are your rental equipment records — each one gets a QR page renters can scan. Add your first asset or import a CSV to get started."
+                      action={
+                        <Link
+                          href="/dashboard/assets/new"
+                          className="text-sm underline-offset-4 hover:underline"
+                        >
+                          Add an asset →
+                        </Link>
+                      }
+                    />
+                  )}
                 </td>
               </tr>
             ) : (
@@ -344,25 +342,25 @@ export default async function AssetsPage({
                   </td>
                   <td className="px-4 py-2">
                     <div className="flex flex-wrap gap-1">
-                      <Badge tone={activeSessionId ? "warn" : "muted"}>
+                      <Badge tone={activeSessionId ? "warning" : "neutral"}>
                         {activeSessionId ? "Rented" : "Available"}
                       </Badge>
-                      <Badge tone={asset.public_status === "public" ? "ok" : "muted"}>
+                      <Badge tone={asset.public_status === "public" ? "success" : "neutral"}>
                         {asset.public_status === "public" ? "Public" : "Private"}
                       </Badge>
-                      <Badge tone={hasActiveQr ? "ok" : "warn"}>
+                      <Badge tone={hasActiveQr ? "success" : "warning"}>
                         {hasActiveQr ? "QR ready" : hasQr ? "QR inactive" : "No QR"}
                       </Badge>
-                      <Badge
-                        tone={pageStatus === "published" ? "ok" : "warn"}
-                      >
+                      <Badge tone={pageStatus === "published" ? "success" : "warning"}>
                         {pageStatus === "published"
                           ? "Page live"
                           : pageStatus === "draft"
                             ? "Page draft"
                             : "No page"}
                       </Badge>
-                      {asset.archived_at ? <Badge tone="warn">Archived</Badge> : null}
+                      {asset.archived_at ? (
+                        <Badge tone="warning">Archived</Badge>
+                      ) : null}
                     </div>
                   </td>
                   <td className="whitespace-nowrap px-4 py-2 text-muted-foreground">

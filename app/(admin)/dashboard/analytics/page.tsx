@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { requireOrgId } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { StatCard } from "@/components/ui/stat-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { assetReadiness } from "@/lib/qr/production";
 import {
   SUBMISSION_STATUSES,
@@ -44,34 +46,6 @@ function formatDateTime(value: string | null): string {
 
 function titleCase(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-function Stat({
-  label,
-  value,
-  href,
-}: {
-  label: string;
-  value: number;
-  href?: string;
-}) {
-  const body = (
-    <>
-      <div className="text-2xl font-semibold tabular-nums">{value}</div>
-      <div className="mt-1 text-xs text-muted-foreground">{label}</div>
-    </>
-  );
-  if (!href) {
-    return <div className="rounded-lg border bg-card p-4">{body}</div>;
-  }
-  return (
-    <Link
-      href={href}
-      className="rounded-lg border bg-card p-4 transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-    >
-      {body}
-    </Link>
-  );
 }
 
 function SortHeader({
@@ -202,17 +176,17 @@ export default async function AnalyticsPage({
           Overview
         </h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          <Stat label="Assets" value={assets.length} />
-          <Stat label="Active QR links" value={activeQrLinks} />
-          <Stat label="Total scans" value={summary.totalScans} />
-          <Stat label="Scans (7 days)" value={summary.scans7d} />
-          <Stat label="Scans (30 days)" value={summary.scans30d} />
-          <Stat
+          <StatCard label="Assets" value={assets.length} />
+          <StatCard label="Active QR links" value={activeQrLinks} />
+          <StatCard label="Total scans" value={summary.totalScans} />
+          <StatCard label="Scans (7 days)" value={summary.scans7d} />
+          <StatCard label="Scans (30 days)" value={summary.scans30d} />
+          <StatCard
             label="Total submissions"
             value={summary.totalSubmissions}
             href="/dashboard/submissions"
           />
-          <Stat
+          <StatCard
             label="New submissions"
             value={summary.newSubmissions}
             href="/dashboard/submissions?status=new"
@@ -227,7 +201,7 @@ export default async function AnalyticsPage({
         </h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {ANALYTICS_FORM_TYPES.map((t) => (
-            <Stat
+            <StatCard
               key={t}
               label={FORM_TYPE_LABELS[t]}
               value={summary.byType[t]}
@@ -244,7 +218,7 @@ export default async function AnalyticsPage({
         </h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {SUBMISSION_STATUSES.map((s) => (
-            <Stat
+            <StatCard
               key={s}
               label={titleCase(s)}
               value={summary.byStatus[s]}
@@ -259,6 +233,20 @@ export default async function AnalyticsPage({
         <h2 className="mb-3 text-sm font-medium text-muted-foreground">
           Per-asset activity
         </h2>
+        {sortedRows.length === 0 ? (
+          <EmptyState
+            title="No activity yet"
+            description="Once your assets have QR tags and renters start scanning, per-asset scan and submission counts will appear here."
+            action={
+              <Link
+                href="/dashboard/assets"
+                className="text-sm underline-offset-4 hover:underline"
+              >
+                Go to assets →
+              </Link>
+            }
+          />
+        ) : (
         <div className="overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/50 text-left text-muted-foreground">
@@ -281,17 +269,7 @@ export default async function AnalyticsPage({
               </tr>
             </thead>
             <tbody>
-              {sortedRows.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 py-6 text-center text-muted-foreground"
-                  >
-                    No assets yet.
-                  </td>
-                </tr>
-              ) : (
-                sortedRows.map((row) => (
+              {sortedRows.map((row) => (
                   <tr key={row.id} className="border-b last:border-0">
                     <td className="px-4 py-2 font-medium">{row.asset_code}</td>
                     <td className="px-4 py-2">{row.asset_name}</td>
@@ -322,11 +300,11 @@ export default async function AnalyticsPage({
                       </Link>
                     </td>
                   </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
+        )}
       </section>
     </div>
   );
