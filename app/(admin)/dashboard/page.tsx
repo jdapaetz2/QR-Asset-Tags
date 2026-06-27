@@ -9,6 +9,9 @@ const COMING_SOON = [
   { title: "QR Pages", note: "Public equipment pages & tags" },
 ];
 
+// Auth-scoped and reflects the org's current export toggle; never cache.
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const profile = await requireProfile();
 
