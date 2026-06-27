@@ -13,11 +13,16 @@ import type { NavItem } from "@/lib/auth/nav";
 export function NavLinks({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
 
+  // Longest matching href wins, so /dashboard/assets highlights "Assets" rather than
+  // the "/dashboard" root item (which would otherwise prefix-match every sub-route).
+  const matchLen = (href: string) =>
+    pathname === href || pathname.startsWith(`${href}/`) ? href.length : -1;
+  const bestLen = Math.max(...items.map((i) => matchLen(i.href)), -1);
+
   return (
     <nav className="flex flex-wrap items-center gap-1 text-sm">
       {items.map((item) => {
-        const active =
-          pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const active = matchLen(item.href) === bestLen && bestLen >= 0;
         return (
           <Link
             key={item.href}
