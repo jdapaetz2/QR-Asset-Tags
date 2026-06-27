@@ -7,6 +7,7 @@ import { ActionButton } from "@/components/action-button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
+import { AssetThumb } from "@/components/asset-thumb";
 import { getOrgCategories } from "@/lib/assets/categories";
 import { startRentalSession, closeRentalSession } from "@/lib/rentals/actions";
 import {
@@ -36,6 +37,7 @@ type AssetRow = {
   public_status: string;
   created_at: string;
   archived_at: string | null;
+  cover_image_url: string | null;
 };
 
 function formatDate(value: string): string {
@@ -68,7 +70,7 @@ export default async function AssetsPage({
   let query = supabase
     .from("assets")
     .select(
-      "id, asset_code, asset_name, category, make, model, public_status, created_at, archived_at"
+      "id, asset_code, asset_name, category, make, model, public_status, created_at, archived_at, cover_image_url"
     );
 
   const search = sanitizeSearch(params.q);
@@ -337,7 +339,13 @@ export default async function AssetsPage({
               rows.map(({ asset, hasQr, hasActiveQr, pageStatus, activeSessionId }) => (
                 <tr key={asset.id} className="border-b last:border-0">
                   <td className="whitespace-nowrap px-4 py-2 font-medium">
-                    {asset.asset_code}
+                    <span className="flex items-center gap-3">
+                      <AssetThumb
+                        src={asset.cover_image_url}
+                        alt={`Photo of ${asset.asset_name}`}
+                      />
+                      {asset.asset_code}
+                    </span>
                   </td>
                   <td className="px-4 py-2">{asset.asset_name}</td>
                   <td className="px-4 py-2 text-muted-foreground">
