@@ -5,6 +5,7 @@ import { requireOrgId } from "@/lib/auth/session";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { tagRequestStatusLabel } from "@/lib/tags/tag-requests";
 import { tagRequestStatusTone } from "@/lib/ui/status";
 
@@ -37,17 +38,15 @@ export default async function TagRequestsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Tag requests</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Request physical QR tags — AssetTag QR produces and fulfills them.
-          </p>
-        </div>
-        <Button asChild>
-          <Link href="/dashboard/tag-requests/new">New request</Link>
-        </Button>
-      </section>
+      <PageHeader
+        title="Tag requests"
+        description="Request physical QR tags — AssetTag QR produces and fulfills them."
+        actions={
+          <Button asChild>
+            <Link href="/dashboard/tag-requests/new">New request</Link>
+          </Button>
+        }
+      />
 
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">

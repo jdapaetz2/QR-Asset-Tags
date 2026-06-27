@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ActionButton } from "@/components/action-button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { getOrgCategories } from "@/lib/assets/categories";
 import { startRentalSession, closeRentalSession } from "@/lib/rentals/actions";
 import {
@@ -179,26 +180,28 @@ export default async function AssetsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Assets</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {rows.length} asset{rows.length === 1 ? "" : "s"}
-            {filtersActive ? " (filtered)" : ""}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="outline">
-            <Link href="/dashboard/assets/import">Import CSV</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/dashboard/assets/new">New asset</Link>
-          </Button>
-        </div>
-      </section>
+      <PageHeader
+        title="Assets"
+        description={`${rows.length} asset${rows.length === 1 ? "" : "s"}${
+          filtersActive ? " (filtered)" : ""
+        }`}
+        actions={
+          <>
+            <Button asChild variant="outline">
+              <Link href="/dashboard/assets/import">Import CSV</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/dashboard/assets/new">New asset</Link>
+            </Button>
+          </>
+        }
+      />
 
       {/* Search + filters + sort (GET form, mobile-friendly wrap) */}
-      <form method="get" className="flex flex-wrap items-end gap-3">
+      <form
+        method="get"
+        className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3"
+      >
         <label className="flex flex-1 flex-col gap-1 text-sm" style={{ minWidth: "12rem" }}>
           <span className="text-muted-foreground">Search</span>
           <input

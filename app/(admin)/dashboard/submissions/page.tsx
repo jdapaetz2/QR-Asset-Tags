@@ -107,7 +107,10 @@ export default async function SubmissionsPage({
       />
 
       {/* Simple GET-form filters */}
-      <form method="get" className="flex flex-wrap items-end gap-3">
+      <form
+        method="get"
+        className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3"
+      >
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">Type</span>
           <select name="form_type" defaultValue={formType} className={selectClass}>

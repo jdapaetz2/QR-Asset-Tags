@@ -4,6 +4,7 @@ import { requireOrgId } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { assetReadiness } from "@/lib/qr/production";
 import {
   SUBMISSION_STATUSES,
@@ -163,12 +164,10 @@ export default async function AnalyticsPage({
 
   return (
     <div className="flex flex-col gap-8">
-      <section>
-        <h1 className="text-2xl font-semibold tracking-tight">Analytics</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Scan and submission activity for your organization.
-        </p>
-      </section>
+      <PageHeader
+        title="Analytics"
+        description="Scan and submission activity for your organization."
+      />
 
       {/* Overview */}
       <section>

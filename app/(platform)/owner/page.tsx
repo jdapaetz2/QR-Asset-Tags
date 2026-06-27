@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
 import { unviewedCountByOrg } from "@/lib/tags/tag-requests";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -49,28 +50,26 @@ export default async function OwnerPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Organizations</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {orgs.length} organization{orgs.length === 1 ? "" : "s"}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/owner/tag-requests"
-            className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-          >
-            Tag requests
-          </Link>
-          <Link
-            href="/owner/analytics"
-            className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-          >
-            Analytics
-          </Link>
-        </div>
-      </section>
+      <PageHeader
+        title="Organizations"
+        description={`${orgs.length} organization${orgs.length === 1 ? "" : "s"}`}
+        actions={
+          <>
+            <Link
+              href="/owner/tag-requests"
+              className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+            >
+              Tag requests
+            </Link>
+            <Link
+              href="/owner/analytics"
+              className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+            >
+              Analytics
+            </Link>
+          </>
+        }
+      />
 
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
