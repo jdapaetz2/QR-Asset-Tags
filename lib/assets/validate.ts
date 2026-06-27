@@ -14,6 +14,7 @@ export type AssetInput = {
   year: number | null;
   support_phone_override: string | null;
   support_email_override: string | null;
+  cover_image_url: string | null;
   internal_notes: string | null;
 };
 
@@ -30,6 +31,23 @@ function clean(value: string | undefined): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed.length === 0 ? null : trimmed;
+}
+
+/**
+ * Accept a cover image reference only as a public http(s) image URL or a local
+ * `/demo-assets/…` path. Rejects relative paths, traversal, and non-http schemes
+ * (`javascript:`, `data:`, `ftp:`, …) so nothing unsafe lands in an <img src>.
+ */
+export function isValidCoverImage(value: string): boolean {
+  if (value.startsWith("/demo-assets/")) {
+    return !value.includes("..") && /^\/demo-assets\/[\w./-]+$/.test(value);
+  }
+  try {
+    const u = new URL(value);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 export function normalizeAssetForm(raw: RawAssetForm): NormalizeResult {
@@ -55,6 +73,13 @@ export function normalizeAssetForm(raw: RawAssetForm): NormalizeResult {
     return { error: "Support email override must be a valid email address." };
   }
 
+  const cover_image_url = clean(raw.cover_image_url);
+  if (cover_image_url && !isValidCoverImage(cover_image_url)) {
+    return {
+      error: "Cover image must be an https image URL or a /demo-assets/… path.",
+    };
+  }
+
   return {
     value: {
       asset_code,
@@ -66,6 +91,7 @@ export function normalizeAssetForm(raw: RawAssetForm): NormalizeResult {
       year,
       support_phone_override: clean(raw.support_phone_override),
       support_email_override,
+      cover_image_url,
       internal_notes: clean(raw.internal_notes),
     },
   };

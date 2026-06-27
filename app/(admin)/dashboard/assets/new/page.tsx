@@ -1,11 +1,15 @@
 import Link from "next/link";
 
 import { requireOrgId } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
 import { createAsset } from "@/lib/assets/actions";
+import { getOrgCategories } from "@/lib/assets/categories";
 import { AssetForm } from "@/components/asset-form";
 
 export default async function NewAssetPage() {
   await requireOrgId();
+  const supabase = await createClient();
+  const categories = await getOrgCategories(supabase);
 
   return (
     <div className="flex flex-col gap-6">
@@ -22,7 +26,11 @@ export default async function NewAssetPage() {
         </p>
       </section>
 
-      <AssetForm action={createAsset} submitLabel="Create asset" />
+      <AssetForm
+        action={createAsset}
+        categories={categories}
+        submitLabel="Create asset"
+      />
     </div>
   );
 }

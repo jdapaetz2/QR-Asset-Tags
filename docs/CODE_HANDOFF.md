@@ -44,6 +44,10 @@ Set these in `.env.local` and in Vercel project settings (do not commit secrets)
 - `NEXT_PUBLIC_SITE_URL` (base for permanent QR URLs, e.g. the `/t/{short_code}` host)
 - Storage bucket name(s) and any upload size/type config
 - Anti-abuse config (rate-limit window, honeypot field name)
+- `RESEND_API_KEY` and `NOTIFICATION_FROM_EMAIL` (server only — submission/tag-request
+  notification emails via Resend). Both optional: leave blank to run notifications in
+  dry-run mode (logged, never sent). `NOTIFICATION_FROM_EMAIL` must be a Resend-verified
+  sender. Never commit these.
 
 The service-role key is used only in trusted server contexts (e.g. deriving `organization_id` on public submission intake). Never ship it to the browser.
 
@@ -64,6 +68,8 @@ Create all MVP tables in migrations (see `docs/DATA_MODEL.md`) and **enable RLS 
 - **QR SVG export.** Generate SVG (per asset and bulk), plus CSV (`asset_code`, `asset_name`, `short_url`, `organization_name`) and a printable production sheet with tag metadata (size, material, mounting, code, short URL).
 - **Privacy.** Hash or truncate IPs into `scan_events.ip_hash`; never store raw IPs. Keep `internal_notes`, private docs, billing fields, and submissions off all public surfaces.
 - **Branding.** All branding is data-driven and generic; nothing hard-coded. "Powered by [Product Name]" comes from `organizations.powered_by_label`.
+- **Data exports (platform-gated).** Customer self-serve CSV export is OFF by default per org. The platform owner enables it per organization (master `customer_exports_enabled` + per-type flags on `organizations`, set on `/owner/organizations/[id]/settings`). Customers download enabled types at `/dashboard/export`; the platform owner can always export an org's data at `/owner/organizations/[id]/export` (support/offboarding). A DB trigger (`protect_export_flags`, migration 0015) ensures only the platform owner can change the flags. All export URLs are computed from `NEXT_PUBLIC_SITE_URL` (never the stored `qr_links.public_url`); CSVs are RFC-4180 escaped + formula-injection guarded and exclude private media. No service-role in export routes.
+- **QR domain durability.** Physical tags encode `${NEXT_PUBLIC_SITE_URL}/t/{short_code}`. The domain must be a stable production/custom host before tags are produced — `localhost`/preview URLs are test-only, and changing the domain later breaks printed tags unless redirects are preserved. See `docs/QR_DOMAIN_STRATEGY.md`.
 
 ## Quality gates
 

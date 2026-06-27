@@ -33,6 +33,8 @@ export default async function PublicScanPage({
     <PublicEquipmentPage
       shortCode={shortCode}
       asset={resolved.asset}
+      assetId={resolved.assetId}
+      activeRentalSessionId={resolved.activeRentalSessionId}
       page={resolved.page}
       org={resolved.org}
       documents={documents}

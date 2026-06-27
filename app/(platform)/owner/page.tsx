@@ -3,6 +3,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
+import { unviewedCountByOrg } from "@/lib/tags/tag-requests";
+
+export const dynamic = "force-dynamic";
 
 type OrgRow = {
   id: string;
@@ -32,6 +35,18 @@ export default async function OwnerPage() {
 
   const orgs = (data ?? []) as OrgRow[];
 
+  // Unviewed (new) tag requests per org — owner sees all (RLS bypass).
+  const { data: unviewed } = await supabase
+    .from("tag_requests")
+    .select("organization_id, platform_viewed_at")
+    .is("platform_viewed_at", null);
+  const unviewedByOrg = unviewedCountByOrg(
+    (unviewed ?? []) as {
+      organization_id: string;
+      platform_viewed_at: string | null;
+    }[]
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <section className="flex items-end justify-between gap-3">
@@ -41,12 +56,20 @@ export default async function OwnerPage() {
             {orgs.length} organization{orgs.length === 1 ? "" : "s"}
           </p>
         </div>
-        <Link
-          href="/owner/analytics"
-          className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-        >
-          Analytics
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/owner/tag-requests"
+            className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+          >
+            Tag requests
+          </Link>
+          <Link
+            href="/owner/analytics"
+            className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+          >
+            Analytics
+          </Link>
+        </div>
       </section>
 
       <div className="overflow-x-auto rounded-lg border">
@@ -59,22 +82,37 @@ export default async function OwnerPage() {
               <th className="px-4 py-2 font-medium">Plan</th>
               <th className="px-4 py-2 font-medium">Asset limit</th>
               <th className="px-4 py-2 font-medium">Created</th>
+              <th className="px-4 py-2 font-medium sr-only">Actions</th>
             </tr>
           </thead>
           <tbody>
             {orgs.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-4 py-6 text-center text-muted-foreground"
                 >
                   No organizations yet.
                 </td>
               </tr>
             ) : (
-              orgs.map((org) => (
+              orgs.map((org) => {
+                const newCount = unviewedByOrg.get(org.id) ?? 0;
+                return (
                 <tr key={org.id} className="border-b last:border-0">
-                  <td className="px-4 py-2 font-medium">{org.name}</td>
+                  <td className="px-4 py-2 font-medium">
+                    <span className="inline-flex flex-wrap items-center gap-2">
+                      {org.name}
+                      {newCount > 0 ? (
+                        <Link
+                          href={`/owner/tag-requests?org=${org.id}&viewed=unviewed`}
+                          className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-500/20 dark:text-amber-500"
+                        >
+                          {newCount} new
+                        </Link>
+                      ) : null}
+                    </span>
+                  </td>
                   <td className="px-4 py-2 text-muted-foreground">{org.slug}</td>
                   <td className="px-4 py-2">{org.status}</td>
                   <td className="px-4 py-2 text-muted-foreground">
@@ -86,8 +124,17 @@ export default async function OwnerPage() {
                   <td className="px-4 py-2 text-muted-foreground">
                     {formatDate(org.created_at)}
                   </td>
+                  <td className="px-4 py-2 text-right">
+                    <Link
+                      href={`/owner/organizations/${org.id}/settings`}
+                      className="text-sm underline-offset-4 hover:underline"
+                    >
+                      Settings
+                    </Link>
+                  </td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>

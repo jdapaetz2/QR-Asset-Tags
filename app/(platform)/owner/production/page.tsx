@@ -181,6 +181,8 @@ export default async function ProductionPage({
     .from("assets")
     .select("id, asset_code, asset_name, category, public_status")
     .eq("organization_id", orgId)
+    // Archived (retired) assets are not offered for tag production.
+    .is("archived_at", null)
     .order("asset_code", { ascending: true });
   const assets = (assetData ?? []) as AssetRow[];
 

@@ -18,6 +18,7 @@ type SubmissionDetail = {
   submitted_by_phone: string | null;
   submission_data_json: unknown;
   media_urls: unknown;
+  asset_id: string | null;
   asset: { asset_code: string; asset_name: string } | null;
 };
 
@@ -40,7 +41,7 @@ export default async function SubmissionDetailPage({
   const { data } = await supabase
     .from("form_submissions")
     .select(
-      "id, created_at, form_type, status, submitted_by_name, submitted_by_email, submitted_by_phone, submission_data_json, media_urls, asset:assets(asset_code, asset_name)"
+      "id, created_at, form_type, status, submitted_by_name, submitted_by_email, submitted_by_phone, submission_data_json, media_urls, asset_id, asset:assets(asset_code, asset_name)"
     )
     .eq("id", submissionId)
     .maybeSingle();
@@ -84,6 +85,14 @@ export default async function SubmissionDetailPage({
             : ""}
           {formatDateTime(submission.created_at)}
         </p>
+        {submission.asset_id ? (
+          <Link
+            href={`/dashboard/assets/${submission.asset_id}/timeline`}
+            className="mt-2 inline-flex text-sm underline-offset-4 hover:underline"
+          >
+            View asset timeline →
+          </Link>
+        ) : null}
       </section>
 
       {/* Status */}

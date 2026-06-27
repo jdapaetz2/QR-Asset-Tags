@@ -53,6 +53,23 @@ export const serverEnv = {
     }
     return process.env.SCAN_IP_HASH_SALT ?? "";
   },
+  /**
+   * Resend API key for notification emails. Optional: returns "" when unset so the
+   * notifier falls back to dry-run (logs, no send) instead of crashing.
+   */
+  get resendApiKey(): string {
+    if (typeof window !== "undefined") {
+      throw new Error('Refusing to read server-only env var "RESEND_API_KEY" in the browser');
+    }
+    return process.env.RESEND_API_KEY ?? "";
+  },
+  /** From address for notification emails (e.g. "Alerts <alerts@example.com>"). Optional. */
+  get notificationFromEmail(): string {
+    if (typeof window !== "undefined") {
+      throw new Error('Refusing to read server-only env var "NOTIFICATION_FROM_EMAIL" in the browser');
+    }
+    return process.env.NOTIFICATION_FROM_EMAIL ?? "";
+  },
 };
 
 // Exposed for unit testing.

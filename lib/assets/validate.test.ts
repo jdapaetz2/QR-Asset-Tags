@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizeAssetForm } from "./validate";
+import { isValidCoverImage, normalizeAssetForm } from "./validate";
 
 describe("normalizeAssetForm", () => {
   it("requires asset_code and asset_name", () => {
@@ -61,6 +61,43 @@ describe("normalizeAssetForm", () => {
     ).toBe("ops@example.com");
   });
 
+  it("accepts a valid cover image and maps empty to null", () => {
+    expect(
+      normalizeAssetForm({
+        asset_code: "a",
+        asset_name: "b",
+        cover_image_url: "https://cdn.example.com/excavator.jpg",
+      }).value?.cover_image_url
+    ).toBe("https://cdn.example.com/excavator.jpg");
+    expect(
+      normalizeAssetForm({
+        asset_code: "a",
+        asset_name: "b",
+        cover_image_url: "/demo-assets/excavator-017.svg",
+      }).value?.cover_image_url
+    ).toBe("/demo-assets/excavator-017.svg");
+    expect(
+      normalizeAssetForm({ asset_code: "a", asset_name: "b", cover_image_url: "  " })
+        .value?.cover_image_url
+    ).toBeNull();
+  });
+
+  it("rejects unsafe or non-image-URL cover values", () => {
+    for (const bad of [
+      "javascript:alert(1)",
+      "data:image/png;base64,AAAA",
+      "ftp://example.com/x.png",
+      "/etc/passwd",
+      "/demo-assets/../secret.svg",
+      "relative/path.png",
+    ]) {
+      expect(
+        normalizeAssetForm({ asset_code: "a", asset_name: "b", cover_image_url: bad })
+          .error
+      ).toMatch(/cover image/i);
+    }
+  });
+
   it("never produces an organization_id field", () => {
     const result = normalizeAssetForm({
       asset_code: "a",
@@ -68,5 +105,22 @@ describe("normalizeAssetForm", () => {
       organization_id: "attacker-supplied",
     } as Record<string, string>);
     expect(result.value).not.toHaveProperty("organization_id");
+  });
+});
+
+describe("isValidCoverImage", () => {
+  it("accepts http(s) URLs and /demo-assets/ paths", () => {
+    expect(isValidCoverImage("https://cdn.example.com/a.jpg")).toBe(true);
+    expect(isValidCoverImage("http://example.com/a.png")).toBe(true);
+    expect(isValidCoverImage("/demo-assets/trailer-014.svg")).toBe(true);
+  });
+
+  it("rejects other schemes, traversal, and relative paths", () => {
+    expect(isValidCoverImage("javascript:alert(1)")).toBe(false);
+    expect(isValidCoverImage("data:image/png;base64,AAAA")).toBe(false);
+    expect(isValidCoverImage("ftp://example.com/x")).toBe(false);
+    expect(isValidCoverImage("/demo-assets/../secret.svg")).toBe(false);
+    expect(isValidCoverImage("/uploads/x.png")).toBe(false);
+    expect(isValidCoverImage("relative.png")).toBe(false);
   });
 });

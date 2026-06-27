@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Trailer 014">
+  <rect width="640" height="360" fill="#eef2f7"/>
+  <rect x="0" y="300" width="640" height="60" fill="#e2e8f0"/>
+  <!-- bed -->
+  <rect x="140" y="190" width="330" height="30" rx="6" fill="#1d4ed8"/>
+  <!-- rails -->
+  <rect x="150" y="160" width="14" height="35" fill="#475569"/>
+  <rect x="300" y="160" width="14" height="35" fill="#475569"/>
+  <rect x="450" y="160" width="14" height="35" fill="#475569"/>
+  <rect x="150" y="158" width="320" height="10" rx="5" fill="#334155"/>
+  <!-- hitch -->
+  <path d="M140 205 L90 230 L120 240 L150 218 Z" fill="#334155"/>
+  <circle cx="92" cy="232" r="9" fill="#0f172a"/>
+  <!-- wheels -->
+  <circle cx="250" cy="240" r="26" fill="#334155"/>
+  <circle cx="250" cy="240" r="11" fill="#94a3b8"/>
+  <circle cx="380" cy="240" r="26" fill="#334155"/>
+  <circle cx="380" cy="240" r="11" fill="#94a3b8"/>
+  <text x="40" y="64" font-family="system-ui, sans-serif" font-size="30" font-weight="700" fill="#0f172a">Trailer 014</text>
+  <text x="40" y="98" font-family="system-ui, sans-serif" font-size="20" fill="#64748b">Utility Trailer</text>
+</svg>

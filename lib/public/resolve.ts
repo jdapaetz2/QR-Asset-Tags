@@ -16,6 +16,7 @@ import type {
 export type PublicOrgRecord = {
   name: string | null;
   logo_url: string | null;
+  primary_color: string | null;
   support_phone: string | null;
   support_email: string | null;
   powered_by_label: string | null;
@@ -25,6 +26,8 @@ export type ResolvedPublicEquipment = {
   organizationId: string;
   assetId: string;
   qrLinkId: string;
+  /** Opaque id of the asset's active rental session, or null. Drives the ack prompt. */
+  activeRentalSessionId: string | null;
   asset: PublicAsset;
   page: PublicPage;
   org: PublicOrgRecord;
@@ -43,13 +46,14 @@ export async function resolvePublicEquipment(
   if (!link) return null;
 
   // Public asset — public-safe columns only (internal_notes is not granted to anon).
+  // active_rental_session_id is an opaque pointer (anon may read just this column).
   const { data: asset } = await supabase
     .from("assets")
     .select(
-      "asset_code, asset_name, category, make, model, cover_image_url, support_phone_override, support_email_override"
+      "asset_code, asset_name, category, make, model, cover_image_url, support_phone_override, support_email_override, active_rental_session_id"
     )
     .eq("id", link.asset_id)
-    .maybeSingle<PublicAsset>();
+    .maybeSingle<PublicAsset & { active_rental_session_id: string | null }>();
   if (!asset) return null;
 
   // Published equipment page (anon RLS shows only is_published=true of a public asset).
@@ -65,7 +69,9 @@ export async function resolvePublicEquipment(
   // Organization branding (anon RLS: active org, branding columns only — no billing).
   const { data: org } = await supabase
     .from("organizations")
-    .select("name, logo_url, support_phone, support_email, powered_by_label")
+    .select(
+      "name, logo_url, primary_color, support_phone, support_email, powered_by_label"
+    )
     .eq("id", link.organization_id)
     .maybeSingle<PublicOrgRecord>();
   if (!org) return null;
@@ -74,6 +80,7 @@ export async function resolvePublicEquipment(
     organizationId: link.organization_id,
     assetId: link.asset_id,
     qrLinkId: link.id,
+    activeRentalSessionId: asset.active_rental_session_id ?? null,
     asset,
     page,
     org,

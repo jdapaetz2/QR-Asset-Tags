@@ -9,6 +9,13 @@ limitations so expectations are honest. Pair with
 > **Business rule:** QR/tag production is controlled by the AssetTag QR platform
 > admin (`platform_owner`) only, via `/owner/production`. Customer admins manage
 > content and submissions but never get production exports.
+>
+> **Data exports & domain durability:** customer self-serve CSV export is a
+> platform-controlled trust/offboarding capability — **disabled by default**, enabled
+> per organization by the platform admin (`/owner/organizations/[id]/settings`); the
+> platform admin can always export an org's data (`/owner/organizations/[id]/export`).
+> Physical tags require a durable production/custom domain before production — see
+> [QR_DOMAIN_STRATEGY.md](QR_DOMAIN_STRATEGY.md).
 
 ## 1. Functional go/no-go checklist
 
