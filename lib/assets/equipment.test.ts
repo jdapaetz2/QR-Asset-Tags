@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizeEquipmentPageForm } from "./equipment";
+import { equipmentReadiness, normalizeEquipmentPageForm } from "./equipment";
 
 describe("normalizeEquipmentPageForm", () => {
   it("trims text fields and maps empties to null", () => {
@@ -32,5 +32,26 @@ describe("normalizeEquipmentPageForm", () => {
     } as Record<string, string>);
     expect(value).not.toHaveProperty("asset_id");
     expect(value).not.toHaveProperty("organization_id");
+  });
+});
+
+describe("equipmentReadiness", () => {
+  it("is ready only when public, published, and an active QR exist", () => {
+    expect(
+      equipmentReadiness({ isPublic: true, isPublished: true, hasActiveQr: true })
+    ).toEqual({ ready: true, issues: [] });
+  });
+
+  it("lists each missing condition", () => {
+    const r = equipmentReadiness({
+      isPublic: false,
+      isPublished: false,
+      hasActiveQr: false,
+    });
+    expect(r.ready).toBe(false);
+    expect(r.issues).toHaveLength(3);
+    expect(r.issues.join(" ")).toMatch(/not public/i);
+    expect(r.issues.join(" ")).toMatch(/not published/i);
+    expect(r.issues.join(" ")).toMatch(/QR/i);
   });
 });

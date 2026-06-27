@@ -16,13 +16,31 @@ export default async function EquipmentPageEditor({
 
   const supabase = await createClient();
 
-  // RLS-scoped: another org's asset isn't returned → 404.
+  // RLS-scoped: another org's asset isn't returned → 404. Public-safe columns only
+  // (the preview never shows internal_notes).
   const { data: asset } = await supabase
     .from("assets")
-    .select("id, asset_code, asset_name")
+    .select(
+      "id, asset_code, asset_name, category, cover_image_url, public_status, support_phone_override, support_email_override"
+    )
     .eq("id", assetId)
     .maybeSingle();
   if (!asset) notFound();
+
+  // Org branding/support for the preview (own org via RLS).
+  const { data: org } = await supabase
+    .from("organizations")
+    .select("name, logo_url, primary_color, support_phone, support_email")
+    .maybeSingle();
+
+  // First QR link for this asset → drives the "Open public page" link + readiness.
+  const { data: qr } = await supabase
+    .from("qr_links")
+    .select("short_code, status")
+    .eq("asset_id", assetId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
 
   const { data: page } = await supabase
     .from("equipment_pages")
@@ -53,6 +71,24 @@ export default async function EquipmentPageEditor({
         action={saveEquipmentPage.bind(null, assetId)}
         page={page ?? undefined}
         cancelHref={`/dashboard/assets/${assetId}`}
+        org={{
+          name: org?.name ?? null,
+          logo_url: org?.logo_url ?? null,
+          primary_color: org?.primary_color ?? null,
+          support_phone: org?.support_phone ?? null,
+          support_email: org?.support_email ?? null,
+        }}
+        asset={{
+          asset_code: asset.asset_code,
+          asset_name: asset.asset_name,
+          category: asset.category,
+          cover_image_url: asset.cover_image_url,
+          public_status: asset.public_status,
+          support_phone_override: asset.support_phone_override,
+          support_email_override: asset.support_email_override,
+        }}
+        shortCode={qr?.short_code ?? null}
+        hasActiveQr={qr?.status === "active"}
       />
     </div>
   );
