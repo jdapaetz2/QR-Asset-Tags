@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
+import { RefreshControls } from "@/components/refresh-controls";
 import { Card, CardTitle } from "@/components/ui/card";
 import { BarChart } from "@/components/ui/bar-chart";
 import { StatBar } from "@/components/ui/stat-bar";
@@ -174,6 +175,7 @@ export default async function AnalyticsPage({
     };
   });
   const sortedRows = sortAssetRows(assetRows, sort);
+  const renderedAt = new Date().toISOString();
 
   // Top assets by scans (visual bars; independent of the table's chosen sort).
   const topByScans = sortAssetRows(assetRows, "scans_desc")
@@ -186,6 +188,7 @@ export default async function AnalyticsPage({
       <PageHeader
         title="Analytics"
         description="Scan and submission activity for your organization."
+        actions={<RefreshControls renderedAt={renderedAt} pollMs={30000} />}
       />
 
       {/* Overview */}

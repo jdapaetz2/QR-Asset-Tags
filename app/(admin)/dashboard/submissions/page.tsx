@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
+import { RefreshControls } from "@/components/refresh-controls";
 import { submissionStatusTone } from "@/lib/ui/status";
 
 function titleCase(value: string): string {
@@ -83,6 +84,14 @@ export default async function SubmissionsPage({
   const { data } = await query;
   const rows = (data ?? []) as unknown as SubmissionRow[];
 
+  // Cheap RLS-scoped cue: how many submissions are still "new" (own org).
+  const { count: newCount } = await supabase
+    .from("form_submissions")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "new");
+
+  const renderedAt = new Date().toISOString();
+
   // Carry the active filters into the CSV export so it matches what's shown.
   const exportParams = new URLSearchParams();
   if (formType) exportParams.set("form_type", formType);
@@ -95,14 +104,19 @@ export default async function SubmissionsPage({
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Submissions"
-        description={`${rows.length} submission${rows.length === 1 ? "" : "s"}`}
+        description={`${rows.length} submission${rows.length === 1 ? "" : "s"} · ${
+          newCount ?? 0
+        } new`}
         actions={
-          <a
-            href={exportHref}
-            className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-          >
-            Export CSV
-          </a>
+          <>
+            <RefreshControls renderedAt={renderedAt} pollMs={30000} />
+            <a
+              href={exportHref}
+              className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+            >
+              Export CSV
+            </a>
+          </>
         }
       />
 
