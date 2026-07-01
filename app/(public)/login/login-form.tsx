@@ -83,6 +83,13 @@ export function LoginForm({
           ? "Use email and password instead"
           : "Use a magic link instead"}
       </button>
+
+      {mode === "magic" ? (
+        <p className="text-xs text-muted-foreground">
+          Magic links depend on email delivery, which isn&apos;t configured yet — if a
+          link doesn&apos;t arrive, sign in with your email and password.
+        </p>
+      ) : null}
     </div>
   );
 }

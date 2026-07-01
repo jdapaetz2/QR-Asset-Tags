@@ -7,13 +7,12 @@
 -- platform owners stays manual via this runbook. See docs/MVP_SCOPE.md and
 -- docs/OPEN_QUESTIONS.md #4.
 --
--- ── Invite email template (required for app invites, Wave 5B) ────────────────
--- Supabase Dashboard → Authentication → Email Templates → "Invite user":
---   <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite">
---     Accept invite
---   </a>
--- This points the invite link at app/auth/confirm/route.ts (verifyOtp, type=invite);
--- invited customer admins/staff land on /dashboard after accepting.
+-- ── App invite links (Wave 5B.1 — NO email template / SMTP / Pro needed) ─────
+-- Invites are generated in the app (auth.admin.generateLink) as copyable links of the
+-- form ${SITE_URL}/auth/action?token_hash=…&type=invite. The inviter sends the link
+-- manually; Supabase's default invite email is NOT used, so there is no "Invite user"
+-- template to edit. The invited user clicks Continue → sets a password → lands on their
+-- dashboard. Just set Site URL + Redirect URLs (see docs/SUPABASE_AUTH_CONFIG.md).
 --
 -- ── Steps ──────────────────────────────────────────────────────────────────
 -- 1. Create the auth users (one of):

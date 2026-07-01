@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { CopyableUrl } from "@/components/copyable-url";
 import { inviteUser, type TeamActionState } from "@/lib/team/actions";
 import { roleLabel, type Role } from "@/lib/auth/roles";
 
@@ -64,13 +65,31 @@ export function InviteUserForm({
       </div>
       <div>
         <Button type="submit" disabled={pending}>
-          {pending ? "Sending…" : "Send invite"}
+          {pending ? "Creating…" : "Create invite link"}
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">
-        The user receives an email invite and sets their own sign-in. No password is
-        created here.
-      </p>
+
+      {state.invite ? (
+        <div className="flex flex-col gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3">
+          <p className="text-sm font-medium">Invite created</p>
+          <p className="text-xs text-muted-foreground">
+            {state.invite.email} · {roleLabel(state.invite.role)} · Invited
+          </p>
+          <CopyableUrl url={state.invite.url} />
+          <p className="text-xs text-muted-foreground">
+            Send this link to the user — they click it, set a password, and get access.
+            It expires per your Supabase auth settings.
+          </p>
+          <p className="text-xs font-medium text-amber-700 dark:text-amber-500">
+            Copy this link now. For security, it may not be shown again.
+          </p>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Creates a copyable invite link (no email is sent). Send it to the person; they
+          set their own password. No password is created here.
+        </p>
+      )}
     </form>
   );
 }

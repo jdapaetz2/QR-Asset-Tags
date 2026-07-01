@@ -18,7 +18,9 @@ export default async function LoginPage({
   const next = sanitizeNextPath(firstString(sp.next)) ?? "";
   const error = firstString(sp.error);
   const sent = firstString(sp.sent) === "1";
-  const mode = firstString(sp.mode) === "password" ? "password" : "magic";
+  // Default to password (reliable). Magic links depend on email delivery, which
+  // isn't configured yet, so they're opt-in via ?mode=magic.
+  const mode = firstString(sp.mode) === "magic" ? "magic" : "password";
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-16">

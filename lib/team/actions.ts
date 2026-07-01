@@ -13,8 +13,10 @@ import {
   duplicateInviteOutcome,
   canManageMember,
 } from "@/lib/auth/invitations";
+import { buildInviteUrl } from "@/lib/auth/invite-link";
 
-export type TeamActionState = { error?: string };
+export type InviteCreated = { url: string; email: string; role: string };
+export type TeamActionState = { error?: string; invite?: InviteCreated };
 
 /** Only allow same-app redirect targets (leading slash, no protocol/host). */
 function safeRedirect(value: FormDataEntryValue | null, fallback: string): string {
@@ -85,20 +87,24 @@ export async function inviteUser(
     };
   }
 
-  // Send the Supabase invite (creates the auth user) and link a profile to it.
-  const { data: invited, error: inviteError } =
-    await admin.auth.admin.inviteUserByEmail(email, {
-      data: { name },
-      redirectTo: `${publicEnv.siteUrl}/auth/confirm`,
+  // Generate the invite token WITHOUT relying on Supabase to send an email
+  // (no custom SMTP / template editing needed). `generateLink` creates the auth
+  // user and returns a hashed token we turn into our own prefetch-safe link.
+  const { data: generated, error: genError } =
+    await admin.auth.admin.generateLink({
+      type: "invite",
+      email,
+      options: { data: { name } },
     });
-  if (inviteError || !invited?.user) {
+  const hashedToken = generated?.properties?.hashed_token;
+  if (genError || !generated?.user || !hashedToken) {
     return {
-      error: "Could not send the invite. The email may already have an account.",
+      error: "Could not create the invite. The email may already have an account.",
     };
   }
 
   const { error: profileError } = await admin.from("profiles").insert({
-    auth_user_id: invited.user.id,
+    auth_user_id: generated.user.id,
     organization_id: organizationId,
     name,
     email,
@@ -107,15 +113,18 @@ export async function inviteUser(
   });
   if (profileError) {
     return {
-      error: "Invite sent, but the profile could not be created. Contact support.",
+      error: "Invite created, but the profile could not be saved. Contact support.",
     };
   }
 
-  redirect(
-    inviter.role === ROLES.PLATFORM_OWNER
-      ? `/owner/organizations/${organizationId}/users`
-      : "/dashboard/settings/users"
-  );
+  // Return the copyable link to the inviter (shown once; never logged).
+  return {
+    invite: {
+      url: buildInviteUrl(publicEnv.siteUrl, hashedToken, "invite"),
+      email,
+      role,
+    },
+  };
 }
 
 /**
