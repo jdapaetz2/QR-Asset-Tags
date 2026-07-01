@@ -132,6 +132,7 @@ export default async function OwnerOrgUsersPage({
                         redirectTo={listHref}
                         canManage={manageable}
                         canChangeRole={manageable}
+                        canRegenerate={manageable && u.status === "invited"}
                       />
                     </td>
                   </tr>

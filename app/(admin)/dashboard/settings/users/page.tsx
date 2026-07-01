@@ -127,6 +127,7 @@ export default async function DashboardUsersPage() {
                         redirectTo={listHref}
                         canManage={manageable}
                         canChangeRole={false}
+                        canRegenerate={manageable && u.status === "invited"}
                       />
                     </td>
                   </tr>

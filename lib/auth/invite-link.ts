@@ -35,9 +35,11 @@ export function buildInviteUrl(
 }
 
 /**
- * Where a user goes after successfully verifying an auth-action token. Invited users
- * must set a password first; a magic-link user goes straight to their role landing.
+ * Where a user goes after successfully verifying an auth-action token. Routed by
+ * profile STATUS, not link type: an `invited` user (new invite OR a regenerated
+ * link) must set a password first; anyone else lands on their role home. This lets a
+ * regenerated link (Supabase token type `magiclink`) still lead to set-password.
  */
-export function authActionDestination(type: string, role: Role): string {
-  return type === "invite" ? "/auth/set-password" : landingPathForRole(role);
+export function authActionDestination(status: string, role: Role): string {
+  return status === "invited" ? "/auth/set-password" : landingPathForRole(role);
 }

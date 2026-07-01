@@ -6,17 +6,46 @@ import { requireProfile, requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { publicEnv } from "@/lib/env";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import {
   invitableRoles,
   resolveInviteOrgId,
   validateInvite,
-  duplicateInviteOutcome,
+  inviteDecision,
   canManageMember,
 } from "@/lib/auth/invitations";
 import { buildInviteUrl } from "@/lib/auth/invite-link";
 
-export type InviteCreated = { url: string; email: string; role: string };
+export type InviteCreated = {
+  url: string;
+  email: string;
+  role: string;
+  regenerated?: boolean;
+};
 export type TeamActionState = { error?: string; invite?: InviteCreated };
+
+/**
+ * Generate a fresh app invite link for an EXISTING (already-registered) auth user.
+ * `generateLink('invite')` only works for new users, so an existing invited user gets
+ * a `magiclink`-type token instead; the /auth/action route still routes them to
+ * set-password because their profile status is `invited`. No email is sent; the token
+ * is never logged. Caller must have already checked permission + invited status.
+ */
+async function regenLink(
+  admin: SupabaseClient,
+  email: string
+): Promise<{ url: string } | { error: string }> {
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+  });
+  const hashedToken = data?.properties?.hashed_token;
+  if (error || !hashedToken) {
+    return { error: "Could not generate a new invite link. Please try again." };
+  }
+  return { url: buildInviteUrl(publicEnv.siteUrl, hashedToken, "magiclink") };
+}
 
 /** Only allow same-app redirect targets (leading slash, no protocol/host). */
 function safeRedirect(value: FormDataEntryValue | null, fallback: string): string {
@@ -67,29 +96,56 @@ export async function inviteUser(
 
   const admin = createAdminClient();
 
-  // Duplicate check (admin read bypasses RLS so cross-org collisions are caught).
+  // Look up any existing profile for this email (admin read bypasses RLS so cross-org
+  // collisions are caught). Decide based on org + lifecycle status.
   const { data: existing } = await admin
     .from("profiles")
-    .select("organization_id")
+    .select("organization_id, status, role")
     .ilike("email", escapeLike(email))
     .maybeSingle();
-  const outcome = duplicateInviteOutcome(
-    existing ? (existing.organization_id as string | null) : undefined,
+  const decision = inviteDecision(
+    existing
+      ? {
+          organization_id: existing.organization_id as string | null,
+          status: existing.status as string,
+        }
+      : null,
     organizationId
   );
-  if (outcome === "same_org") {
-    return { error: "That email is already on this organization's team." };
+
+  if (decision === "active") {
+    return { error: "That user is already active on this team." };
   }
-  if (outcome === "other_org") {
+  if (decision === "disabled") {
+    return {
+      error: "That user is disabled. Re-enable them before generating a new link.",
+    };
+  }
+  if (decision === "other_org") {
     return {
       error:
         "That email already belongs to another organization. Contact AssetTag QR.",
     };
   }
 
-  // Generate the invite token WITHOUT relying on Supabase to send an email
-  // (no custom SMTP / template editing needed). `generateLink` creates the auth
-  // user and returns a hashed token we turn into our own prefetch-safe link.
+  // Same-org invited → regenerate a fresh link (no new auth user, no new profile).
+  if (decision === "regenerate") {
+    const manage = canManageMember({
+      actorRole: inviter.role,
+      actorOrgId: inviter.organization_id,
+      targetRole: existing!.role as string,
+      targetOrgId: existing!.organization_id as string | null,
+    });
+    if (!manage) {
+      return { error: "You are not allowed to manage this user." };
+    }
+    const link = await regenLink(admin, email);
+    if ("error" in link) return { error: link.error };
+    return { invite: { url: link.url, email, role: existing!.role as string, regenerated: true } };
+  }
+
+  // New user → create the auth user + link a profile, WITHOUT relying on Supabase to
+  // send an email (`generateLink` returns a token we turn into our prefetch-safe link).
   const { data: generated, error: genError } =
     await admin.auth.admin.generateLink({
       type: "invite",
@@ -123,6 +179,53 @@ export async function inviteUser(
       url: buildInviteUrl(publicEnv.siteUrl, hashedToken, "invite"),
       email,
       role,
+    },
+  };
+}
+
+/**
+ * Regenerate a fresh invite link for an existing `invited` user (row action). Owner
+ * may regenerate for any non-owner; a customer admin only for `customer_staff` in
+ * their own org. No new auth user / profile is created; no email is sent.
+ */
+export async function regenerateInvite(
+  profileId: string,
+  _prev: TeamActionState,
+  _formData: FormData
+): Promise<TeamActionState> {
+  const actor = await requireProfile();
+
+  const admin = createAdminClient();
+  const { data: target } = await admin
+    .from("profiles")
+    .select("id, email, organization_id, role, status")
+    .eq("id", profileId)
+    .maybeSingle();
+  if (!target) return { error: "User not found." };
+  if (target.status !== "invited") {
+    return { error: "Only invited users can get a new invite link." };
+  }
+  if (!target.email) {
+    return { error: "This user has no email on file." };
+  }
+
+  const manage = canManageMember({
+    actorRole: actor.role,
+    actorOrgId: actor.organization_id,
+    targetRole: target.role as string,
+    targetOrgId: target.organization_id as string | null,
+  });
+  if (!manage) return { error: "You are not allowed to manage this user." };
+
+  const link = await regenLink(admin, target.email as string);
+  if ("error" in link) return { error: link.error };
+
+  return {
+    invite: {
+      url: link.url,
+      email: target.email as string,
+      role: target.role as string,
+      regenerated: true,
     },
   };
 }

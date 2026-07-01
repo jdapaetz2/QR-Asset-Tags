@@ -31,22 +31,18 @@ describe("isAuthActionType", () => {
 });
 
 describe("authActionDestination", () => {
-  it("sends invited users to set a password first", () => {
-    expect(authActionDestination("invite", ROLES.CUSTOMER_ADMIN)).toBe(
+  it("sends invited users to set a password first (regardless of role)", () => {
+    expect(authActionDestination("invited", ROLES.CUSTOMER_ADMIN)).toBe(
       "/auth/set-password"
     );
-    expect(authActionDestination("invite", ROLES.PLATFORM_OWNER)).toBe(
+    expect(authActionDestination("invited", ROLES.PLATFORM_OWNER)).toBe(
       "/auth/set-password"
     );
   });
 
-  it("sends magic-link users to their role landing", () => {
-    expect(authActionDestination("magiclink", ROLES.PLATFORM_OWNER)).toBe("/owner");
-    expect(authActionDestination("magiclink", ROLES.CUSTOMER_ADMIN)).toBe(
-      "/dashboard"
-    );
-    expect(authActionDestination("magiclink", ROLES.CUSTOMER_STAFF)).toBe(
-      "/dashboard"
-    );
+  it("sends active users to their role landing", () => {
+    expect(authActionDestination("active", ROLES.PLATFORM_OWNER)).toBe("/owner");
+    expect(authActionDestination("active", ROLES.CUSTOMER_ADMIN)).toBe("/dashboard");
+    expect(authActionDestination("active", ROLES.CUSTOMER_STAFF)).toBe("/dashboard");
   });
 });

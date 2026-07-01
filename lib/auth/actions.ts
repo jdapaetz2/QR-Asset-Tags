@@ -102,12 +102,15 @@ export async function verifyAuthToken(formData: FormData) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, status")
     .eq("auth_user_id", data.user.id)
     .maybeSingle();
   const role: Role = profile && isRole(profile.role) ? profile.role : "customer_staff";
+  const status = (profile?.status as string) ?? "invited";
 
-  redirect(authActionDestination(typeRaw, role));
+  // Route by profile status: an invited user (new invite OR a regenerated link) sets
+  // a password first; anyone else goes to their role landing.
+  redirect(authActionDestination(status, role));
 }
 
 /**

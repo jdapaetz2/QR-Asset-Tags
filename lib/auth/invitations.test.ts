@@ -4,7 +4,7 @@ import { ROLES } from "@/lib/auth/roles";
 import {
   canInviteRole,
   canManageMember,
-  duplicateInviteOutcome,
+  inviteDecision,
   invitableRoles,
   isProfileStatus,
   profileStatusLabel,
@@ -102,16 +102,32 @@ describe("validateInvite", () => {
   });
 });
 
-describe("duplicateInviteOutcome", () => {
-  it("none when no existing profile", () => {
-    expect(duplicateInviteOutcome(undefined, "org-1")).toBe("none");
+describe("inviteDecision", () => {
+  it("none when the email has no profile", () => {
+    expect(inviteDecision(null, "org-1")).toBe("none");
   });
-  it("same_org when the existing profile is in the target org", () => {
-    expect(duplicateInviteOutcome("org-1", "org-1")).toBe("same_org");
+  it("regenerate for a same-org invited profile", () => {
+    expect(
+      inviteDecision({ organization_id: "org-1", status: "invited" }, "org-1")
+    ).toBe("regenerate");
+  });
+  it("active for a same-org active profile", () => {
+    expect(
+      inviteDecision({ organization_id: "org-1", status: "active" }, "org-1")
+    ).toBe("active");
+  });
+  it("disabled for a same-org disabled profile", () => {
+    expect(
+      inviteDecision({ organization_id: "org-1", status: "disabled" }, "org-1")
+    ).toBe("disabled");
   });
   it("other_org for a different org or a null-org (platform_owner) profile", () => {
-    expect(duplicateInviteOutcome("org-2", "org-1")).toBe("other_org");
-    expect(duplicateInviteOutcome(null, "org-1")).toBe("other_org");
+    expect(
+      inviteDecision({ organization_id: "org-2", status: "invited" }, "org-1")
+    ).toBe("other_org");
+    expect(
+      inviteDecision({ organization_id: null, status: "active" }, "org-1")
+    ).toBe("other_org");
   });
 });
 

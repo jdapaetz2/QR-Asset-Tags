@@ -71,14 +71,19 @@ export function InviteUserForm({
 
       {state.invite ? (
         <div className="flex flex-col gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3">
-          <p className="text-sm font-medium">Invite created</p>
+          <p className="text-sm font-medium">
+            {state.invite.regenerated
+              ? "Invite link regenerated"
+              : "Invite created"}
+          </p>
           <p className="text-xs text-muted-foreground">
             {state.invite.email} · {roleLabel(state.invite.role)} · Invited
           </p>
           <CopyableUrl url={state.invite.url} />
           <p className="text-xs text-muted-foreground">
-            Send this link to the user — they click it, set a password, and get access.
-            It expires per your Supabase auth settings.
+            {state.invite.regenerated
+              ? "Copy and send this fresh link — the previous link is replaced."
+              : "Send this link to the user — they click it, set a password, and get access. It expires per your Supabase auth settings."}
           </p>
           <p className="text-xs font-medium text-amber-700 dark:text-amber-500">
             Copy this link now. For security, it may not be shown again.

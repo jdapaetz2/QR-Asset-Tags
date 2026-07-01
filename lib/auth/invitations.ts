@@ -81,22 +81,33 @@ export function validateInvite(
   return { value: { email, name: nameTrimmed.length ? nameTrimmed : null, role } };
 }
 
-export type DuplicateOutcome = "none" | "same_org" | "other_org";
+export type InviteDecision =
+  | "none"
+  | "regenerate"
+  | "active"
+  | "disabled"
+  | "other_org";
 
 /**
- * Decide how to handle an email that already has a profile. `same_org` → already a
- * member (friendly no-op message); `other_org` → block (never silently move users);
- * `none` → safe to invite.
+ * Decide how to handle an invite for an email that may already have a profile.
+ * `existing` is the looked-up profile (or null when the email is new):
+ * - `null` → `none` (create a fresh invite).
+ * - different org, or a null-org platform_owner → `other_org` (block; never move users).
+ * - same org + `invited` → `regenerate` (issue a fresh link, no new user/profile).
+ * - same org + `disabled` → `disabled` (re-enable first).
+ * - same org + anything else (active) → `active` (already a member).
  */
-export function duplicateInviteOutcome(
-  existingProfileOrgId: string | null | undefined,
+export function inviteDecision(
+  existing: { organization_id: string | null; status: string } | null,
   targetOrgId: string
-): DuplicateOutcome {
-  if (existingProfileOrgId === undefined || existingProfileOrgId === null) {
-    // undefined = no existing profile; null = a platform_owner profile (no org).
-    return existingProfileOrgId === undefined ? "none" : "other_org";
+): InviteDecision {
+  if (!existing) return "none";
+  if (existing.organization_id == null || existing.organization_id !== targetOrgId) {
+    return "other_org";
   }
-  return existingProfileOrgId === targetOrgId ? "same_org" : "other_org";
+  if (existing.status === "invited") return "regenerate";
+  if (existing.status === "disabled") return "disabled";
+  return "active";
 }
 
 /**
