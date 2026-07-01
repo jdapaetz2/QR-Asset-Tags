@@ -11,6 +11,8 @@ import {
 } from "@/components/org-settings-form";
 import { ExportSettingsForm } from "@/components/export-settings-form";
 import { toExportFlags } from "@/lib/export/types";
+import { PlanSettingsForm } from "@/components/plan-settings-form";
+import type { PlanSettings } from "@/lib/plans/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -27,13 +29,25 @@ export default async function OwnerOrgSettingsPage({
   const { data: org } = await supabase
     .from("organizations")
     .select(
-      "name, support_phone, support_email, website_url, primary_color, logo_url, customer_exports_enabled, export_assets_enabled, export_qr_mapping_enabled, export_documents_enabled, export_submissions_enabled"
+      "name, support_phone, support_email, website_url, primary_color, logo_url, customer_exports_enabled, export_assets_enabled, export_qr_mapping_enabled, export_documents_enabled, export_submissions_enabled, plan_key, plan_name, billing_interval, asset_limit, intro_price_cents, renewal_price_cents, tag_credit_cents, storage_limit_mb, video_uploads_enabled, plan_notes"
     )
     .eq("id", organizationId)
     .maybeSingle();
   if (!org) notFound();
 
   const exportFlags = toExportFlags(org);
+  const plan: PlanSettings = {
+    plan_key: org.plan_key ?? null,
+    plan_name: org.plan_name ?? null,
+    billing_interval: org.billing_interval ?? null,
+    asset_limit: org.asset_limit ?? null,
+    intro_price_cents: org.intro_price_cents ?? null,
+    renewal_price_cents: org.renewal_price_cents ?? null,
+    tag_credit_cents: org.tag_credit_cents ?? null,
+    storage_limit_mb: org.storage_limit_mb ?? null,
+    video_uploads_enabled: Boolean(org.video_uploads_enabled),
+    plan_notes: org.plan_notes ?? null,
+  };
 
   const { data: qr } = await supabase
     .from("qr_links")
@@ -67,6 +81,11 @@ export default async function OwnerOrgSettingsPage({
         org={org as OrgSettingsDefaults}
         sampleHref={sampleHref}
       />
+
+      <section className="border-t pt-6">
+        <h2 className="mb-4 text-lg font-semibold tracking-tight">Plan &amp; coverage</h2>
+        <PlanSettingsForm organizationId={organizationId} plan={plan} />
+      </section>
 
       <section className="border-t pt-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">

@@ -8,6 +8,7 @@ import {
   validateTagRequest,
   type RawTagRequestForm,
 } from "@/lib/tags/tag-requests";
+import { getCoveredCount } from "@/lib/plans/coverage-query";
 
 export type TagRequestState = { error?: string };
 
@@ -56,6 +57,32 @@ export async function createTagRequest(
   const assetIds = (assetRows ?? []).map((a) => a.id as string);
   if (assetIds.length === 0) {
     return { error: "None of the selected assets are available for tag requests." };
+  }
+
+  // Covered-asset limit: only assets WITHOUT an existing QR link add new coverage
+  // (replacement tags for already-covered assets don't). Null asset_limit = unlimited.
+  const { data: org } = await supabase
+    .from("organizations")
+    .select("asset_limit")
+    .eq("id", profile.organization_id)
+    .maybeSingle();
+  const limit = (org?.asset_limit as number | null) ?? null;
+  if (limit !== null) {
+    const { data: linkedRows } = await supabase
+      .from("qr_links")
+      .select("asset_id")
+      .in("asset_id", assetIds);
+    const linked = new Set(
+      (linkedRows ?? []).map((r) => r.asset_id as string)
+    );
+    const newlyCovered = assetIds.filter((id) => !linked.has(id)).length;
+    const covered = await getCoveredCount(supabase);
+    if (newlyCovered > 0 && covered + newlyCovered > limit) {
+      return {
+        error:
+          "This request would exceed your covered asset limit. Contact AssetTag QR to add more covered assets.",
+      };
+    }
   }
 
   const { data: request, error: insertError } = await supabase

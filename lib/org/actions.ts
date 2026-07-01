@@ -20,6 +20,7 @@ import {
   validateLogoFile,
 } from "@/lib/org/logo";
 import { parseExportSettingsForm } from "@/lib/export/types";
+import { normalizePlanForm, type RawPlanForm } from "@/lib/plans/settings";
 
 export type OrgSettingsState = { error?: string };
 
@@ -175,6 +176,53 @@ export async function updateOrgExportSettings(
     .maybeSingle();
 
   if (error) return { error: "Could not save export settings." };
+  if (!data) return { error: "Organization not found." };
+
+  redirect(`/owner/organizations/${organizationId}/settings`);
+}
+
+const PLAN_FORM_FIELDS = [
+  "plan_key",
+  "plan_name",
+  "billing_interval",
+  "asset_limit",
+  "intro_price_cents",
+  "renewal_price_cents",
+  "tag_credit_cents",
+  "storage_limit_mb",
+  "video_uploads_enabled",
+  "plan_notes",
+] as const;
+
+/**
+ * Platform-owner-only: set a customer organization's plan / commercial fields. The
+ * 0016 DB trigger independently blocks any non-owner from changing these, so this is
+ * the single sanctioned path. `requireRole` is the route-level gate.
+ */
+export async function updateOrgPlan(
+  organizationId: string,
+  _prev: OrgSettingsState,
+  formData: FormData
+): Promise<OrgSettingsState> {
+  await requireRole(ROLES.PLATFORM_OWNER);
+
+  const raw: RawPlanForm = {};
+  for (const field of PLAN_FORM_FIELDS) {
+    const value = formData.get(field);
+    raw[field] = typeof value === "string" ? value : undefined;
+  }
+  const result = normalizePlanForm(raw);
+  if (!result.value) return { error: result.error };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("organizations")
+    .update(result.value)
+    .eq("id", organizationId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { error: "Could not save plan settings." };
   if (!data) return { error: "Organization not found." };
 
   redirect(`/owner/organizations/${organizationId}/settings`);

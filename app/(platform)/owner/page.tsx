@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
 import { unviewedCountByOrg } from "@/lib/tags/tag-requests";
+import { coveredCountByOrg } from "@/lib/plans/coverage";
+import { formatCents } from "@/lib/plans/presets";
 import { PageHeader } from "@/components/ui/page-header";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +17,7 @@ type OrgRow = {
   status: string;
   plan_name: string | null;
   asset_limit: number | null;
+  tag_credit_cents: number | null;
   created_at: string;
 };
 
@@ -31,10 +34,26 @@ export default async function OwnerPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("organizations")
-    .select("id, name, slug, status, plan_name, asset_limit, created_at")
+    .select(
+      "id, name, slug, status, plan_name, asset_limit, tag_credit_cents, created_at"
+    )
     .order("created_at", { ascending: true });
 
   const orgs = (data ?? []) as OrgRow[];
+
+  // Covered assets per org (owner reads all via RLS bypass): non-archived asset + link.
+  const [{ data: allAssets }, { data: allQr }] = await Promise.all([
+    supabase.from("assets").select("id, organization_id, archived_at"),
+    supabase.from("qr_links").select("asset_id, organization_id"),
+  ]);
+  const coveredByOrg = coveredCountByOrg(
+    (allAssets ?? []) as {
+      id: string;
+      organization_id: string;
+      archived_at: string | null;
+    }[],
+    (allQr ?? []) as { asset_id: string; organization_id: string }[]
+  );
 
   // Unviewed (new) tag requests per org — owner sees all (RLS bypass).
   const { data: unviewed } = await supabase
@@ -79,7 +98,8 @@ export default async function OwnerPage() {
               <th className="px-4 py-2 font-medium">Slug</th>
               <th className="px-4 py-2 font-medium">Status</th>
               <th className="px-4 py-2 font-medium">Plan</th>
-              <th className="px-4 py-2 font-medium">Asset limit</th>
+              <th className="whitespace-nowrap px-4 py-2 font-medium">Covered / limit</th>
+              <th className="whitespace-nowrap px-4 py-2 font-medium">Tag credit</th>
               <th className="px-4 py-2 font-medium">Created</th>
               <th className="px-4 py-2 font-medium sr-only">Actions</th>
             </tr>
@@ -88,7 +108,7 @@ export default async function OwnerPage() {
             {orgs.length === 0 ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   className="px-4 py-6 text-center text-muted-foreground"
                 >
                   No organizations yet.
@@ -97,6 +117,7 @@ export default async function OwnerPage() {
             ) : (
               orgs.map((org) => {
                 const newCount = unviewedByOrg.get(org.id) ?? 0;
+                const covered = coveredByOrg.get(org.id) ?? 0;
                 return (
                 <tr key={org.id} className="border-b last:border-0">
                   <td className="px-4 py-2 font-medium">
@@ -117,8 +138,11 @@ export default async function OwnerPage() {
                   <td className="px-4 py-2 text-muted-foreground">
                     {org.plan_name ?? "—"}
                   </td>
-                  <td className="px-4 py-2 text-muted-foreground">
-                    {org.asset_limit ?? "—"}
+                  <td className="whitespace-nowrap px-4 py-2 tabular-nums text-muted-foreground">
+                    {covered} / {org.asset_limit ?? "∞"}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-2 text-muted-foreground">
+                    {formatCents(org.tag_credit_cents)}
                   </td>
                   <td className="px-4 py-2 text-muted-foreground">
                     {formatDate(org.created_at)}

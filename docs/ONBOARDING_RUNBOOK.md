@@ -320,3 +320,8 @@ Customer admins have no access to these routes.
       `/owner/organizations/[id]/settings` (master + per-type toggles). The platform
       admin can export an org's data anytime at `/owner/organizations/[id]/export` for
       support/offboarding.
+- [ ] **Plan set** at `/owner/organizations/[id]/settings` → Plan & coverage (pick a
+      preset or Custom; set the covered-asset limit). Covered assets = non-archived
+      assets with an assigned QR tag; scans are unlimited; imports/drafts aren't limited,
+      only new QR/tag coverage is. `asset_limit` blank = unlimited. Customers can't change
+      plan fields (DB-guarded). See [COMMERCIAL_MODEL.md](COMMERCIAL_MODEL.md).

@@ -16,6 +16,11 @@ limitations so expectations are honest. Pair with
 > platform admin can always export an org's data (`/owner/organizations/[id]/export`).
 > Physical tags require a durable production/custom domain before production — see
 > [QR_DOMAIN_STRATEGY.md](QR_DOMAIN_STRATEGY.md).
+>
+> **Plans & covered assets:** pricing is per covered asset (non-archived asset with an
+> assigned QR tag; scans unlimited). Plan fields are platform-admin-only and DB-guarded;
+> imports/drafts aren't limited, only new QR/tag coverage is. No billing/Stripe. Storage
+> quotas + yard-worker scanner mode are deferred. See [COMMERCIAL_MODEL.md](COMMERCIAL_MODEL.md).
 
 ## 1. Functional go/no-go checklist
 

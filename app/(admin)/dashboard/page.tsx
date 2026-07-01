@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { safeBrandColor, readableTextOn } from "@/lib/public/brand";
+import { getCoveredCount } from "@/lib/plans/coverage-query";
 
 // Auth-scoped and reflects the org's current data; never cache.
 export const dynamic = "force-dynamic";
@@ -104,10 +105,14 @@ export default async function DashboardPage() {
   const { data: org } = await supabase
     .from("organizations")
     .select(
-      "name, slug, status, support_phone, support_email, logo_url, primary_color, customer_exports_enabled"
+      "name, slug, status, support_phone, support_email, logo_url, primary_color, customer_exports_enabled, asset_limit"
     )
     .eq("id", profile.organization_id)
     .maybeSingle();
+
+  // Covered-asset usage (RLS-scoped). Covered = non-archived asset with a QR link.
+  const coveredCount = await getCoveredCount(supabase);
+  const assetLimit = (org?.asset_limit as number | null) ?? null;
 
   // Light operational counts (RLS-scoped, head-only counts — own org only).
   const toCount = async (
@@ -213,6 +218,24 @@ export default async function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Covered-asset usage (plan) */}
+      <section className="rounded-lg border bg-card p-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-sm font-medium">Covered assets</h2>
+          <span className="text-2xl font-semibold tabular-nums">
+            {coveredCount}
+            <span className="text-base font-normal text-muted-foreground">
+              {" / "}
+              {assetLimit ?? "Custom plan · no limit"}
+            </span>
+          </span>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Covered assets are active, non-archived assets with AssetTag QR coverage
+          assigned. Scans are unlimited.
+        </p>
+      </section>
 
       {/* Operational snapshot */}
       <section>

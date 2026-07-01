@@ -11,8 +11,13 @@ import {
   SHORT_CODE_LENGTH,
 } from "@/lib/qr/short-code";
 import { buildPublicQrUrl } from "@/lib/qr/url";
+import { getCoveredCount } from "@/lib/plans/coverage-query";
+import { isOverCoverage } from "@/lib/plans/coverage";
 
 export type QrActionState = { error?: string };
+
+const OVER_LIMIT_MESSAGE =
+  "Covered asset limit reached. Contact AssetTag QR to add more covered assets.";
 
 const QR_STATUSES = ["active", "disabled"] as const;
 const MAX_ATTEMPTS = 5;
@@ -38,10 +43,35 @@ export async function createQrLink(
   // cross-org asset ids.
   const { data: asset } = await supabase
     .from("assets")
-    .select("id")
+    .select("id, archived_at")
     .eq("id", assetId)
     .maybeSingle();
   if (!asset) return { error: "Asset not found." };
+
+  // Covered-asset limit: creating the FIRST QR link for a non-archived asset consumes
+  // one covered slot. Assets that already have a link (or are archived) don't. Null
+  // asset_limit = unlimited. The DB trigger (0016) is the hard backstop; this gives a
+  // friendly message. Status toggles on an existing link are never affected.
+  const { data: existingLink } = await supabase
+    .from("qr_links")
+    .select("id")
+    .eq("asset_id", assetId)
+    .limit(1)
+    .maybeSingle();
+  if (!existingLink && !asset.archived_at) {
+    const { data: org } = await supabase
+      .from("organizations")
+      .select("asset_limit")
+      .eq("id", profile.organization_id)
+      .maybeSingle();
+    const limit = (org?.asset_limit as number | null) ?? null;
+    if (limit !== null) {
+      const covered = await getCoveredCount(supabase);
+      if (isOverCoverage(covered, limit)) {
+        return { error: OVER_LIMIT_MESSAGE };
+      }
+    }
+  }
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const shortCode = shortCodeFromBytes(randomBytes(SHORT_CODE_LENGTH));
