@@ -79,13 +79,13 @@ export default async function SettingsPage() {
         sampleHref={sampleHref}
       />
 
-      <section className="border-t pt-6">
+      <section className="max-w-2xl border-t pt-6">
         <h2 className="text-lg font-semibold tracking-tight">Plan &amp; usage</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Your subscription and covered-asset usage. Plan changes are handled by
           AssetTag QR.
         </p>
-        <div className="mt-4 max-w-2xl">
+        <div className="mt-4">
           <PlanUsage
             mode="full"
             data={{
@@ -102,7 +102,7 @@ export default async function SettingsPage() {
         </div>
       </section>
 
-      <section className="border-t pt-6">
+      <section className="max-w-2xl border-t pt-6">
         <h2 className="text-lg font-semibold tracking-tight">Notifications</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Email alerts for public submissions and tag request updates.
