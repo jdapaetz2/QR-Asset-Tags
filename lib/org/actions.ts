@@ -21,6 +21,7 @@ import {
 } from "@/lib/org/logo";
 import { parseExportSettingsForm } from "@/lib/export/types";
 import { normalizePlanForm, type RawPlanForm } from "@/lib/plans/settings";
+import { normalizeNewOrg, type RawNewOrgForm } from "@/lib/org/create";
 
 export type OrgSettingsState = { error?: string };
 
@@ -127,6 +128,68 @@ async function saveOrgSettings(
   }
 
   return {};
+}
+
+const NEW_ORG_FIELDS = [
+  "name",
+  "slug",
+  "status",
+  "support_phone",
+  "support_email",
+  "website_url",
+  "primary_color",
+  "logo_url",
+  "powered_by_label",
+  "plan_key",
+  "plan_name",
+  "billing_interval",
+  "asset_limit",
+  "intro_price_cents",
+  "renewal_price_cents",
+  "tag_credit_cents",
+  "storage_limit_mb",
+  "video_uploads_enabled",
+  "plan_notes",
+] as const;
+
+/**
+ * Platform-owner-only: create a new customer organization. Route + this action are
+ * gated by `requireRole`, and RLS (`organizations_insert with check is_platform_owner()`)
+ * is the independent backstop — no service-role. Plan/commercial fields are set on
+ * insert (the 0016 trigger only guards UPDATE); export flags/notifications keep their
+ * DB defaults (off/empty). No assets, users, or demo data are created.
+ */
+export async function createOrganization(
+  _prev: OrgSettingsState,
+  formData: FormData
+): Promise<OrgSettingsState> {
+  await requireRole(ROLES.PLATFORM_OWNER);
+
+  const raw: RawNewOrgForm = {};
+  for (const field of NEW_ORG_FIELDS) {
+    const value = formData.get(field);
+    raw[field] = typeof value === "string" ? value : undefined;
+  }
+  const result = normalizeNewOrg(raw);
+  if (!result.value) return { error: result.error };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("organizations")
+    .insert(result.value)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    // 23505 = unique violation on the slug.
+    if (error.code === "23505") {
+      return { error: "That slug is already taken — choose another." };
+    }
+    return { error: "Could not create the organization. Please try again." };
+  }
+  if (!data) return { error: "Could not create the organization. Please try again." };
+
+  redirect(`/owner/organizations/${data.id}`);
 }
 
 /** Customer admin updates their own organization (org derived from the profile). */

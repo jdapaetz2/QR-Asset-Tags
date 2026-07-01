@@ -89,6 +89,12 @@ export default async function OwnerPage() {
             >
               Analytics
             </Link>
+            <Link
+              href="/owner/organizations/new"
+              className="rounded-md bg-foreground px-3 py-1.5 text-sm font-medium text-background hover:bg-foreground/90"
+            >
+              New organization
+            </Link>
           </>
         }
       />
@@ -125,7 +131,12 @@ export default async function OwnerPage() {
                 <tr key={org.id} className="border-b last:border-0">
                   <td className="px-4 py-2 font-medium">
                     <span className="inline-flex flex-wrap items-center gap-2">
-                      {org.name}
+                      <Link
+                        href={`/owner/organizations/${org.id}`}
+                        className="underline-offset-4 hover:underline"
+                      >
+                        {org.name}
+                      </Link>
                       {newCount > 0 ? (
                         <Link
                           href={`/owner/tag-requests?org=${org.id}&viewed=unviewed`}
