@@ -25,6 +25,16 @@ import {
   type ScanRow,
   type SubmissionRow,
 } from "@/lib/analytics/activity";
+import {
+  assetsNeedingAttention,
+  topAssets,
+  submissionsByCategory,
+  scansByCategory,
+  submissionsHref,
+  assetsCategoryHref,
+  INSIGHT_COPY,
+  type AssetInfo,
+} from "@/lib/analytics/insights";
 
 // Activity counts are live per request; never cache.
 export const dynamic = "force-dynamic";
@@ -36,6 +46,7 @@ type AssetRow = {
   asset_code: string;
   asset_name: string;
   public_status: string;
+  category: string | null;
 };
 
 function firstString(value: string | string[] | undefined): string {
@@ -95,7 +106,7 @@ export default async function AnalyticsPage({
   // All reads are RLS-scoped to the caller's organization.
   const { data: assetData } = await supabase
     .from("assets")
-    .select("id, asset_code, asset_name, public_status")
+    .select("id, asset_code, asset_name, public_status, category")
     .order("asset_code", { ascending: true });
   const assets = (assetData ?? []) as AssetRow[];
 
@@ -183,6 +194,32 @@ export default async function AnalyticsPage({
     .slice(0, 5);
   const topScanMax = Math.max(1, ...topByScans.map((r) => r.totalScans));
 
+  // Operational insights — all derived from the already-fetched rows (no new queries).
+  const assetInfo: AssetInfo[] = assets.map((a) => ({
+    id: a.id,
+    asset_code: a.asset_code,
+    asset_name: a.asset_name,
+    category: a.category,
+  }));
+  const attention = assetsNeedingAttention(assetInfo, submissions, 5);
+  const topBySubmissions = topAssets(assetInfo, submissions, { limit: 5 });
+  const topByDamage = topAssets(assetInfo, submissions, {
+    formType: "damage_report",
+    limit: 5,
+  });
+  const topBySupport = topAssets(assetInfo, submissions, {
+    formType: "support_request",
+    limit: 5,
+  });
+  const subsByCategory = submissionsByCategory(assetInfo, submissions).slice(0, 8);
+  const scanCatMax = Math.max(1, ...subsByCategory.map((c) => c.count));
+  const scansByCat = scansByCategory(assetInfo, scans).slice(0, 8);
+  const scanCatBarMax = Math.max(1, ...scansByCat.map((c) => c.count));
+  const hasProblemAssets =
+    topBySubmissions.length > 0 ||
+    topByDamage.length > 0 ||
+    topBySupport.length > 0;
+
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -213,6 +250,66 @@ export default async function AnalyticsPage({
             href="/dashboard/submissions?status=new"
           />
         </div>
+      </section>
+
+      {/* Needs attention — assets with unresolved submissions or new damage */}
+      <section>
+        <h2 className="mb-1 text-sm font-medium text-muted-foreground">
+          Needs attention
+        </h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          {INSIGHT_COPY.needsAttention}
+        </p>
+        {attention.length === 0 ? (
+          <Card>
+            <p className="text-sm text-muted-foreground">
+              All clear — no assets have unresolved submissions or new damage
+              reports right now.
+            </p>
+          </Card>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {attention.map((a) => (
+              <Card key={a.id}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-medium">{a.code}</div>
+                    <div className="truncate text-xs text-muted-foreground">
+                      {a.name}
+                    </div>
+                  </div>
+                  <span className="shrink-0 rounded-full border border-amber-500/40 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-500">
+                    {a.unresolved > 0 ? `${a.unresolved} open` : "damage"}
+                  </span>
+                </div>
+                <ul className="mt-2 flex flex-wrap gap-1.5">
+                  {a.reasons.map((reason) => (
+                    <li
+                      key={reason}
+                      className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground"
+                    >
+                      {reason}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-3 flex flex-wrap gap-3 text-sm">
+                  <Link
+                    href={submissionsHref({ assetId: a.id })}
+                    className="underline-offset-4 hover:underline"
+                  >
+                    Review submissions →
+                  </Link>
+                  <Link
+                    href={`/dashboard/assets/${a.id}/timeline`}
+                    className="text-muted-foreground underline-offset-4 hover:underline"
+                  >
+                    Timeline
+                  </Link>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Trends (last 30 days) */}
@@ -274,12 +371,146 @@ export default async function AnalyticsPage({
         </Card>
       </section>
 
+      {/* Top problem assets — by submissions, damage, support */}
+      {hasProblemAssets ? (
+        <section>
+          <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+            Top problem assets
+          </h2>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <Card>
+              <CardTitle className="mb-2">Most submissions</CardTitle>
+              {topBySubmissions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No submissions yet.</p>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {topBySubmissions.map((row) => (
+                    <StatBar
+                      key={row.id}
+                      label={`${row.code} · ${row.name}`}
+                      value={row.count}
+                      max={topBySubmissions[0].count}
+                      href={submissionsHref({ assetId: row.id })}
+                    />
+                  ))}
+                </div>
+              )}
+            </Card>
+            <Card>
+              <CardTitle className="mb-2">Most damage reports</CardTitle>
+              {topByDamage.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No damage reports.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {topByDamage.map((row) => (
+                    <StatBar
+                      key={row.id}
+                      label={`${row.code} · ${row.name}`}
+                      value={row.count}
+                      max={topByDamage[0].count}
+                      href={submissionsHref({
+                        assetId: row.id,
+                        formType: "damage_report",
+                      })}
+                    />
+                  ))}
+                </div>
+              )}
+            </Card>
+            <Card>
+              <CardTitle className="mb-2">Most support requests</CardTitle>
+              {topBySupport.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No support requests.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {topBySupport.map((row) => (
+                    <StatBar
+                      key={row.id}
+                      label={`${row.code} · ${row.name}`}
+                      value={row.count}
+                      max={topBySupport[0].count}
+                      href={submissionsHref({
+                        assetId: row.id,
+                        formType: "support_request",
+                      })}
+                    />
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {INSIGHT_COPY.repeatedDamage}
+          </p>
+        </section>
+      ) : null}
+
+      {/* Activity by category */}
+      {subsByCategory.length > 0 || scansByCat.length > 0 ? (
+        <section>
+          <h2 className="mb-1 text-sm font-medium text-muted-foreground">
+            Activity by category
+          </h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            {INSIGHT_COPY.categoryLoad}
+          </p>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardTitle className="mb-2">Submissions by category</CardTitle>
+              {subsByCategory.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No submissions yet.</p>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {subsByCategory.map((c) => (
+                    <StatBar
+                      key={c.category}
+                      label={c.category}
+                      value={c.count}
+                      max={scanCatMax}
+                      href={
+                        c.category === "Uncategorized"
+                          ? undefined
+                          : assetsCategoryHref(c.category)
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+            </Card>
+            <Card>
+              <CardTitle className="mb-2">Scans by category</CardTitle>
+              {scansByCat.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No scans yet.</p>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {scansByCat.map((c) => (
+                    <StatBar
+                      key={c.category}
+                      label={c.category}
+                      value={c.count}
+                      max={scanCatBarMax}
+                    />
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+        </section>
+      ) : null}
+
       {/* Top assets by scan activity */}
       {topByScans.length > 0 ? (
         <section>
-          <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+          <h2 className="mb-1 text-sm font-medium text-muted-foreground">
             Top assets by scans
           </h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            {INSIGHT_COPY.topScanned}
+          </p>
           <Card>
             <div className="flex flex-col gap-1">
               {topByScans.map((row) => (
