@@ -24,7 +24,7 @@ export type PublicDocument = {
   link_status: LinkStatus;
 };
 
-type DocRow = {
+export type DocRow = {
   id: string;
   title: string;
   document_type: string;
@@ -91,6 +91,44 @@ export async function getPublicDocuments(
     }
   }
 
+  return docs;
+}
+
+/**
+ * Map document rows to PublicDocument[] for the editor's INERT preview: same
+ * "qualifies" rule as getPublicDocuments (external http(s) link, or a hosted object),
+ * but with no signing — `href` is a placeholder "#" because preview actions never
+ * navigate. The caller must pass only `visibility='public'` rows; storage paths are
+ * never carried into the returned shape. Pure (no I/O), so it's unit-tested.
+ */
+export function toPreviewDocuments(rows: DocRow[]): PublicDocument[] {
+  const docs: PublicDocument[] = [];
+  for (const row of rows) {
+    const link_status = normalizeLinkStatus(row.link_status);
+    if (row.url) {
+      if (isHttpUrl(row.url)) {
+        docs.push({
+          id: row.id,
+          title: row.title,
+          document_type: row.document_type,
+          href: "#",
+          external: true,
+          link_status,
+        });
+      }
+      continue;
+    }
+    if (row.storage_path) {
+      docs.push({
+        id: row.id,
+        title: row.title,
+        document_type: row.document_type,
+        href: "#",
+        external: false,
+        link_status,
+      });
+    }
+  }
   return docs;
 }
 

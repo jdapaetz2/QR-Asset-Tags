@@ -99,6 +99,36 @@ export function summarizeActivity(
   };
 }
 
+export type DailyCount = { date: string; count: number };
+
+/**
+ * Bucket timestamps into the last `days` UTC days (oldest → newest). Each bucket is
+ * `{ date: "YYYY-MM-DD", count }`; the series always has exactly `days` entries so a
+ * trend chart renders a stable axis. Invalid timestamps are ignored. `now` is
+ * injected for testability.
+ */
+export function dailyCounts(
+  timestamps: string[],
+  days: number,
+  now: Date = new Date()
+): DailyCount[] {
+  const counts = new Map<string, number>();
+  for (const ts of timestamps) {
+    const t = new Date(ts).getTime();
+    if (Number.isNaN(t)) continue;
+    const key = new Date(t).toISOString().slice(0, 10);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  const series: DailyCount[] = [];
+  const nowMs = now.getTime();
+  for (let i = days - 1; i >= 0; i--) {
+    const key = new Date(nowMs - i * DAY_MS).toISOString().slice(0, 10);
+    series.push({ date: key, count: counts.get(key) ?? 0 });
+  }
+  return series;
+}
+
 export type AssetActivity = {
   totalScans: number;
   lastScannedAt: string | null;

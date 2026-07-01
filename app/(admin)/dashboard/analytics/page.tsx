@@ -2,6 +2,13 @@ import Link from "next/link";
 
 import { requireOrgId } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { StatCard } from "@/components/ui/stat-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
+import { RefreshControls } from "@/components/refresh-controls";
+import { Card, CardTitle } from "@/components/ui/card";
+import { BarChart } from "@/components/ui/bar-chart";
+import { StatBar } from "@/components/ui/stat-bar";
 import { assetReadiness } from "@/lib/qr/production";
 import {
   SUBMISSION_STATUSES,
@@ -10,6 +17,7 @@ import {
 import {
   summarizeActivity,
   perAssetActivity,
+  dailyCounts,
   normalizeAssetSort,
   sortAssetRows,
   ANALYTICS_FORM_TYPES,
@@ -44,34 +52,6 @@ function formatDateTime(value: string | null): string {
 
 function titleCase(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-function Stat({
-  label,
-  value,
-  href,
-}: {
-  label: string;
-  value: number;
-  href?: string;
-}) {
-  const body = (
-    <>
-      <div className="text-2xl font-semibold tabular-nums">{value}</div>
-      <div className="mt-1 text-xs text-muted-foreground">{label}</div>
-    </>
-  );
-  if (!href) {
-    return <div className="rounded-lg border bg-card p-4">{body}</div>;
-  }
-  return (
-    <Link
-      href={href}
-      className="rounded-lg border bg-card p-4 transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-    >
-      {body}
-    </Link>
-  );
 }
 
 function SortHeader({
@@ -151,14 +131,23 @@ export default async function AnalyticsPage({
     .select("asset_id, scanned_at");
   const scans = (scanData ?? []) as ScanRow[];
 
-  // Privacy: counts only — no submission contents on this page.
+  // Privacy: counts + timestamps only — no submission contents, no IP/user-agent.
   const { data: subData } = await supabase
     .from("form_submissions")
-    .select("asset_id, form_type, status");
-  const submissions = (subData ?? []) as SubmissionRow[];
+    .select("asset_id, form_type, status, created_at");
+  const submissions = (subData ?? []) as (SubmissionRow & {
+    created_at: string;
+  })[];
 
   const summary = summarizeActivity(scans, submissions);
   const perAsset = perAssetActivity(scans, submissions);
+
+  // 30-day trends (bucketed by UTC day; no new queries — derived from rows above).
+  const scanSeries = dailyCounts(scans.map((s) => s.scanned_at), 30);
+  const submissionSeries = dailyCounts(
+    submissions.map((s) => s.created_at),
+    30
+  );
 
   // Compose per-asset rows, then apply the requested sort (default: most scans).
   const assetRows = assets.map((asset) => {
@@ -186,15 +175,21 @@ export default async function AnalyticsPage({
     };
   });
   const sortedRows = sortAssetRows(assetRows, sort);
+  const renderedAt = new Date().toISOString();
+
+  // Top assets by scans (visual bars; independent of the table's chosen sort).
+  const topByScans = sortAssetRows(assetRows, "scans_desc")
+    .filter((r) => r.totalScans > 0)
+    .slice(0, 5);
+  const topScanMax = Math.max(1, ...topByScans.map((r) => r.totalScans));
 
   return (
     <div className="flex flex-col gap-8">
-      <section>
-        <h1 className="text-2xl font-semibold tracking-tight">Analytics</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Scan and submission activity for your organization.
-        </p>
-      </section>
+      <PageHeader
+        title="Analytics"
+        description="Scan and submission activity for your organization."
+        actions={<RefreshControls renderedAt={renderedAt} pollMs={30000} />}
+      />
 
       {/* Overview */}
       <section>
@@ -202,17 +197,17 @@ export default async function AnalyticsPage({
           Overview
         </h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          <Stat label="Assets" value={assets.length} />
-          <Stat label="Active QR links" value={activeQrLinks} />
-          <Stat label="Total scans" value={summary.totalScans} />
-          <Stat label="Scans (7 days)" value={summary.scans7d} />
-          <Stat label="Scans (30 days)" value={summary.scans30d} />
-          <Stat
+          <StatCard label="Assets" value={assets.length} />
+          <StatCard label="Active QR links" value={activeQrLinks} />
+          <StatCard label="Total scans" value={summary.totalScans} />
+          <StatCard label="Scans (7 days)" value={summary.scans7d} />
+          <StatCard label="Scans (30 days)" value={summary.scans30d} />
+          <StatCard
             label="Total submissions"
             value={summary.totalSubmissions}
             href="/dashboard/submissions"
           />
-          <Stat
+          <StatCard
             label="New submissions"
             value={summary.newSubmissions}
             href="/dashboard/submissions?status=new"
@@ -220,45 +215,106 @@ export default async function AnalyticsPage({
         </div>
       </section>
 
-      {/* Submissions by type */}
+      {/* Trends (last 30 days) */}
       <section>
         <h2 className="mb-3 text-sm font-medium text-muted-foreground">
-          Submissions by type
+          Last 30 days
         </h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {ANALYTICS_FORM_TYPES.map((t) => (
-            <Stat
-              key={t}
-              label={FORM_TYPE_LABELS[t]}
-              value={summary.byType[t]}
-              href={`/dashboard/submissions?form_type=${t}`}
-            />
-          ))}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <div className="mb-3 flex items-baseline justify-between">
+              <CardTitle>Scans per day</CardTitle>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {summary.scans30d} total
+              </span>
+            </div>
+            <BarChart data={scanSeries} />
+          </Card>
+          <Card>
+            <div className="mb-3 flex items-baseline justify-between">
+              <CardTitle>Submissions per day</CardTitle>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {submissionSeries.reduce((n, d) => n + d.count, 0)} total
+              </span>
+            </div>
+            <BarChart data={submissionSeries} />
+          </Card>
         </div>
       </section>
 
-      {/* Submission status summary */}
-      <section>
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
-          Submission status
-        </h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {SUBMISSION_STATUSES.map((s) => (
-            <Stat
-              key={s}
-              label={titleCase(s)}
-              value={summary.byStatus[s]}
-              href={`/dashboard/submissions?status=${s}`}
-            />
-          ))}
-        </div>
+      {/* Submissions by type + status (bars with drill-through) */}
+      <section className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardTitle className="mb-2">Submissions by type</CardTitle>
+          <div className="flex flex-col gap-1">
+            {ANALYTICS_FORM_TYPES.map((t) => (
+              <StatBar
+                key={t}
+                label={FORM_TYPE_LABELS[t]}
+                value={summary.byType[t]}
+                max={summary.totalSubmissions}
+                href={`/dashboard/submissions?form_type=${t}`}
+              />
+            ))}
+          </div>
+        </Card>
+        <Card>
+          <CardTitle className="mb-2">Submission status</CardTitle>
+          <div className="flex flex-col gap-1">
+            {SUBMISSION_STATUSES.map((s) => (
+              <StatBar
+                key={s}
+                label={titleCase(s)}
+                value={summary.byStatus[s]}
+                max={summary.totalSubmissions}
+                href={`/dashboard/submissions?status=${s}`}
+              />
+            ))}
+          </div>
+        </Card>
       </section>
+
+      {/* Top assets by scan activity */}
+      {topByScans.length > 0 ? (
+        <section>
+          <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+            Top assets by scans
+          </h2>
+          <Card>
+            <div className="flex flex-col gap-1">
+              {topByScans.map((row) => (
+                <StatBar
+                  key={row.id}
+                  label={`${row.asset_code} · ${row.asset_name}`}
+                  value={row.totalScans}
+                  max={topScanMax}
+                  href={`/dashboard/assets/${row.id}`}
+                />
+              ))}
+            </div>
+          </Card>
+        </section>
+      ) : null}
 
       {/* Per-asset activity */}
       <section>
         <h2 className="mb-3 text-sm font-medium text-muted-foreground">
           Per-asset activity
         </h2>
+        {sortedRows.length === 0 ? (
+          <EmptyState
+            title="No activity yet"
+            description="Once your assets have QR tags and renters start scanning, per-asset scan and submission counts will appear here."
+            action={
+              <Link
+                href="/dashboard/assets"
+                className="text-sm underline-offset-4 hover:underline"
+              >
+                Go to assets →
+              </Link>
+            }
+          />
+        ) : (
         <div className="overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/50 text-left text-muted-foreground">
@@ -281,17 +337,7 @@ export default async function AnalyticsPage({
               </tr>
             </thead>
             <tbody>
-              {sortedRows.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 py-6 text-center text-muted-foreground"
-                  >
-                    No assets yet.
-                  </td>
-                </tr>
-              ) : (
-                sortedRows.map((row) => (
+              {sortedRows.map((row) => (
                   <tr key={row.id} className="border-b last:border-0">
                     <td className="px-4 py-2 font-medium">{row.asset_code}</td>
                     <td className="px-4 py-2">{row.asset_name}</td>
@@ -322,11 +368,11 @@ export default async function AnalyticsPage({
                       </Link>
                     </td>
                   </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
+        )}
       </section>
     </div>
   );

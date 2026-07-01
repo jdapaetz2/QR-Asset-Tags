@@ -9,6 +9,7 @@ import {
 } from "@/components/org-settings-form";
 import { NotificationSettingsForm } from "@/components/notification-settings-form";
 import type { NotificationSettings } from "@/lib/notifications/settings";
+import { PageHeader } from "@/components/ui/page-header";
 
 // Settings reads/writes are per-request and auth-scoped; never cache.
 export const dynamic = "force-dynamic";
@@ -44,18 +45,20 @@ export default async function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section>
+      <div>
         <Link
           href="/dashboard"
           className="text-sm text-muted-foreground underline-offset-4 hover:underline"
         >
           ← Dashboard
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Organization profile, support contact, and public scanner page branding.
-        </p>
-      </section>
+        <div className="mt-2">
+          <PageHeader
+            title="Settings"
+            description="Organization profile, support contact, and public scanner page branding."
+          />
+        </div>
+      </div>
 
       <OrgSettingsForm
         action={updateOrgSettings}

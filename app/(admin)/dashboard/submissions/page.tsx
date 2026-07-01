@@ -7,6 +7,15 @@ import {
   FORM_TYPE_LABELS,
   formTypeLabel,
 } from "@/lib/submissions/display";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
+import { RefreshControls } from "@/components/refresh-controls";
+import { submissionStatusTone } from "@/lib/ui/status";
+
+function titleCase(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -75,6 +84,14 @@ export default async function SubmissionsPage({
   const { data } = await query;
   const rows = (data ?? []) as unknown as SubmissionRow[];
 
+  // Cheap RLS-scoped cue: how many submissions are still "new" (own org).
+  const { count: newCount } = await supabase
+    .from("form_submissions")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "new");
+
+  const renderedAt = new Date().toISOString();
+
   // Carry the active filters into the CSV export so it matches what's shown.
   const exportParams = new URLSearchParams();
   if (formType) exportParams.set("form_type", formType);
@@ -85,23 +102,29 @@ export default async function SubmissionsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Submissions</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {rows.length} submission{rows.length === 1 ? "" : "s"}
-          </p>
-        </div>
-        <a
-          href={exportHref}
-          className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-        >
-          Export CSV
-        </a>
-      </section>
+      <PageHeader
+        title="Submissions"
+        description={`${rows.length} submission${rows.length === 1 ? "" : "s"} · ${
+          newCount ?? 0
+        } new`}
+        actions={
+          <>
+            <RefreshControls renderedAt={renderedAt} pollMs={30000} />
+            <a
+              href={exportHref}
+              className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+            >
+              Export CSV
+            </a>
+          </>
+        }
+      />
 
       {/* Simple GET-form filters */}
-      <form method="get" className="flex flex-wrap items-end gap-3">
+      <form
+        method="get"
+        className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3"
+      >
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">Type</span>
           <select name="form_type" defaultValue={formType} className={selectClass}>
@@ -164,8 +187,11 @@ export default async function SubmissionsPage({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
-                  No submissions yet.
+                <td colSpan={6} className="px-4 py-6">
+                  <EmptyState
+                    title="No submissions yet"
+                    description="Damage reports, support requests, and return checklists that renters submit from your QR pages land here — with photos and contact details."
+                  />
                 </td>
               </tr>
             ) : (
@@ -175,7 +201,11 @@ export default async function SubmissionsPage({
                     {formatDateTime(row.created_at)}
                   </td>
                   <td className="px-4 py-2">{formTypeLabel(row.form_type)}</td>
-                  <td className="px-4 py-2">{row.status}</td>
+                  <td className="px-4 py-2">
+                    <Badge tone={submissionStatusTone(row.status)}>
+                      {titleCase(row.status)}
+                    </Badge>
+                  </td>
                   <td className="px-4 py-2 text-muted-foreground">
                     {row.asset ? `${row.asset.asset_code}` : "—"}
                   </td>

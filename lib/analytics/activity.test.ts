@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  dailyCounts,
   normalizeAssetSort,
   perAssetActivity,
   sortAssetRows,
@@ -11,6 +12,33 @@ import {
 
 const NOW = new Date("2026-06-19T12:00:00.000Z");
 const DAY = 24 * 60 * 60 * 1000;
+
+describe("dailyCounts", () => {
+  it("returns exactly `days` buckets, oldest → newest, ending today", () => {
+    const series = dailyCounts([], 30, NOW);
+    expect(series).toHaveLength(30);
+    expect(series[29].date).toBe("2026-06-19");
+    expect(series[0].date).toBe("2026-05-21");
+    expect(series.every((b) => b.count === 0)).toBe(true);
+  });
+
+  it("buckets timestamps by UTC day and ignores invalid dates", () => {
+    const series = dailyCounts(
+      [
+        "2026-06-19T01:00:00.000Z",
+        "2026-06-19T23:00:00.000Z",
+        "2026-06-18T10:00:00.000Z",
+        "not-a-date",
+      ],
+      30,
+      NOW
+    );
+    const today = series.find((b) => b.date === "2026-06-19");
+    const yesterday = series.find((b) => b.date === "2026-06-18");
+    expect(today?.count).toBe(2);
+    expect(yesterday?.count).toBe(1);
+  });
+});
 
 function daysAgo(n: number): string {
   return new Date(NOW.getTime() - n * DAY).toISOString();
