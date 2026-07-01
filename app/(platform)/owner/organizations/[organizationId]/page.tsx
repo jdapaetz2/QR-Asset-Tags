@@ -181,6 +181,12 @@ export default async function OwnerOrganizationDetailPage({
             Settings &amp; plan
           </Link>
           <Link
+            href={`/owner/organizations/${org.id}/users`}
+            className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+          >
+            Users
+          </Link>
+          <Link
             href={`/owner/organizations/${org.id}/export`}
             className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
           >

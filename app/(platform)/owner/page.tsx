@@ -90,6 +90,12 @@ export default async function OwnerPage() {
               Analytics
             </Link>
             <Link
+              href="/owner/users"
+              className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+            >
+              Users
+            </Link>
+            <Link
               href="/owner/organizations/new"
               className="rounded-md bg-foreground px-3 py-1.5 text-sm font-medium text-background hover:bg-foreground/90"
             >

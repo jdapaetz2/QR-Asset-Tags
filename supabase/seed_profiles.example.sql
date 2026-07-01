@@ -1,9 +1,19 @@
 -- seed_profiles.example.sql — First-account runbook (TEMPLATE, do not commit real UIDs).
 --
--- Sprint 1 onboarding is manual (no self-signup, no platform-owner "create
--- admin" UI yet). Use this to create the first platform owner and the first
--- customer admin so they can log in. See docs/MVP_SCOPE.md and
+-- Use this ONLY to create the very first platform owner (the super-admin). After
+-- that, the platform owner invites customer admins/staff from the app
+-- (/owner/organizations/[id]/users) and customer admins invite their own staff
+-- (/dashboard/settings/users) — no more SQL needed (Wave 5B). Creating additional
+-- platform owners stays manual via this runbook. See docs/MVP_SCOPE.md and
 -- docs/OPEN_QUESTIONS.md #4.
+--
+-- ── Invite email template (required for app invites, Wave 5B) ────────────────
+-- Supabase Dashboard → Authentication → Email Templates → "Invite user":
+--   <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite">
+--     Accept invite
+--   </a>
+-- This points the invite link at app/auth/confirm/route.ts (verifyOtp, type=invite);
+-- invited customer admins/staff land on /dashboard after accepting.
 --
 -- ── Steps ──────────────────────────────────────────────────────────────────
 -- 1. Create the auth users (one of):

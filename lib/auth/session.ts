@@ -19,11 +19,18 @@ export type Profile = {
   name: string | null;
   email: string | null;
   role: Role;
+  status: string;
 };
 
-const PROFILE_COLUMNS = "id, auth_user_id, organization_id, name, email, role";
+const PROFILE_COLUMNS =
+  "id, auth_user_id, organization_id, name, email, role, status";
 
-/** The signed-in user's profile, or `null` if not signed in / no profile row. */
+/**
+ * The signed-in user's profile, or `null` if not signed in / no profile row / the
+ * profile is **disabled**. Returning null for a disabled profile is the real access
+ * revocation: every gate (`requireProfile`/`requireRole`/`requireOrgId`) funnels
+ * through here, so a disabled user is redirected to /login. See migration 0017.
+ */
 export async function getProfile(): Promise<Profile | null> {
   const supabase = await createClient();
   const {
@@ -37,7 +44,7 @@ export async function getProfile(): Promise<Profile | null> {
     .eq("auth_user_id", user.id)
     .maybeSingle();
 
-  if (!data || !isRole(data.role)) return null;
+  if (!data || !isRole(data.role) || data.status === "disabled") return null;
   return data as Profile;
 }
 

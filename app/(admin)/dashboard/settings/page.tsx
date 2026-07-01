@@ -1,7 +1,8 @@
 import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireOrgId } from "@/lib/auth/session";
+import { requireOrgId, requireProfile } from "@/lib/auth/session";
+import { ROLES } from "@/lib/auth/roles";
 import { updateOrgSettings } from "@/lib/org/actions";
 import {
   OrgSettingsForm,
@@ -18,6 +19,8 @@ export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   await requireOrgId();
+  const profile = await requireProfile();
+  const isAdmin = profile.role === ROLES.CUSTOMER_ADMIN;
   const supabase = await createClient();
 
   // RLS-scoped: the caller only ever sees/edits their own organization. Plan fields
@@ -78,6 +81,23 @@ export default async function SettingsPage() {
         }) as OrgSettingsDefaults}
         sampleHref={sampleHref}
       />
+
+      {isAdmin ? (
+        <section className="max-w-2xl border-t pt-6">
+          <h2 className="text-lg font-semibold tracking-tight">Team</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Invite staff and manage who can access your dashboard.
+          </p>
+          <div className="mt-4">
+            <Link
+              href="/dashboard/settings/users"
+              className="inline-flex rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+            >
+              Manage team
+            </Link>
+          </div>
+        </section>
+      ) : null}
 
       <section className="max-w-2xl border-t pt-6">
         <h2 className="text-lg font-semibold tracking-tight">Plan &amp; usage</h2>
