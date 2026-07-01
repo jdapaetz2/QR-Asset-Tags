@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { safeBrandColor, readableTextOn } from "@/lib/public/brand";
 import { getCoveredCount } from "@/lib/plans/coverage-query";
+import { PlanUsage } from "@/components/plan-usage";
 
 // Auth-scoped and reflects the org's current data; never cache.
 export const dynamic = "force-dynamic";
@@ -105,7 +106,7 @@ export default async function DashboardPage() {
   const { data: org } = await supabase
     .from("organizations")
     .select(
-      "name, slug, status, support_phone, support_email, logo_url, primary_color, customer_exports_enabled, asset_limit"
+      "name, slug, status, support_phone, support_email, logo_url, primary_color, customer_exports_enabled, asset_limit, plan_name"
     )
     .eq("id", profile.organization_id)
     .maybeSingle();
@@ -209,7 +210,17 @@ export default async function DashboardPage() {
             ) : null}
           </div>
         </div>
-        <div className="px-4 pb-4 sm:pb-0 sm:pr-4">
+        <div className="flex items-center gap-2 px-4 pb-4 sm:pb-0 sm:pr-4">
+          <PlanUsage
+            mode="compact"
+            compactLabel="Plan & usage"
+            data={{
+              planName: org?.plan_name ?? "Custom plan",
+              status: org?.status ?? null,
+              covered: coveredCount,
+              limit: assetLimit,
+            }}
+          />
           <Link
             href="/dashboard/settings"
             className="inline-flex w-fit rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
@@ -218,24 +229,6 @@ export default async function DashboardPage() {
           </Link>
         </div>
       </div>
-
-      {/* Covered-asset usage (plan) */}
-      <section className="rounded-lg border bg-card p-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-sm font-medium">Covered assets</h2>
-          <span className="text-2xl font-semibold tabular-nums">
-            {coveredCount}
-            <span className="text-base font-normal text-muted-foreground">
-              {" / "}
-              {assetLimit ?? "Custom plan · no limit"}
-            </span>
-          </span>
-        </div>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Covered assets are active, non-archived assets with AssetTag QR coverage
-          assigned. Scans are unlimited.
-        </p>
-      </section>
 
       {/* Operational snapshot */}
       <section>

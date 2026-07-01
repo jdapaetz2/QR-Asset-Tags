@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { AssetThumb } from "@/components/asset-thumb";
+import { PlanUsage } from "@/components/plan-usage";
+import { getCoveredCount } from "@/lib/plans/coverage-query";
 import { getOrgCategories } from "@/lib/assets/categories";
 import { startRentalSession, closeRentalSession } from "@/lib/rentals/actions";
 import {
@@ -138,6 +140,14 @@ export default async function AssetsPage({
   // Distinct, normalized categories for the filter dropdown (own org only).
   const categories = await getOrgCategories(supabase);
 
+  // Compact covered-asset usage indicator (RLS-scoped, display only — enforcement
+  // stays server-side in createQrLink / createTagRequest + DB trigger).
+  const coveredCount = await getCoveredCount(supabase);
+  const { data: planOrg } = await supabase
+    .from("organizations")
+    .select("plan_name, asset_limit")
+    .maybeSingle();
+
   const rows = allRows
     .map((asset) => {
       const hasQr = qrByAsset.has(asset.id);
@@ -189,6 +199,14 @@ export default async function AssetsPage({
         }`}
         actions={
           <>
+            <PlanUsage
+              mode="compact"
+              data={{
+                planName: planOrg?.plan_name ?? "Custom plan",
+                covered: coveredCount,
+                limit: (planOrg?.asset_limit as number | null) ?? null,
+              }}
+            />
             <Button asChild variant="outline">
               <Link href="/dashboard/assets/import">Import CSV</Link>
             </Button>
