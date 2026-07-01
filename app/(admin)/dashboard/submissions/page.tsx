@@ -11,9 +11,12 @@ import {
   FILTER_FORM_TYPES,
   QUICK_FILTERS,
   activeQuickFilterKey,
+  firstImagePath,
   hasMedia,
+  matchesSearch,
   mediaCount,
   parseSubmissionFilters,
+  resolveStatusFilter,
   submissionFilterQuery,
   submissionReference,
   submissionUrgency,
@@ -25,6 +28,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { RefreshControls } from "@/components/refresh-controls";
 import { SubmissionQuickStatus } from "@/components/submission-quick-status";
 import { submissionStatusTone, type BadgeTone } from "@/lib/ui/status";
+
+const SUBMISSIONS_BUCKET = "submissions";
 
 function titleCase(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
@@ -77,11 +82,6 @@ function relativeTime(value: string): string {
   return `${months}mo ago`;
 }
 
-/** Strip PostgREST or-filter metacharacters so a search term can't break the query. */
-function sanitizeSearch(value: string): string {
-  return value.replace(/[,()*%\\]/g, " ").trim();
-}
-
 const selectClass =
   "rounded-md border bg-background px-2 py-1.5 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring";
 
@@ -110,25 +110,39 @@ export default async function SubmissionsPage({
     )
     .order("created_at", { ascending: false });
 
-  if (filters.formType) query = query.eq("form_type", filters.formType);
-  if (filters.status) query = query.eq("status", filters.status);
-  if (filters.assetId) query = query.eq("asset_id", filters.assetId);
-
-  const cleanQ = sanitizeSearch(filters.q);
-  if (cleanQ) {
-    query = query.or(
-      `submitted_by_name.ilike.%${cleanQ}%,submitted_by_email.ilike.%${cleanQ}%`
-    );
+  // Archived is hidden unless deliberately selected. No status → active statuses only.
+  const statusFilter = resolveStatusFilter(filters.status);
+  if (statusFilter.mode === "single") {
+    query = query.eq("status", statusFilter.status);
+  } else {
+    query = query.in("status", statusFilter.statuses as readonly string[]);
   }
+  if (filters.formType) query = query.eq("form_type", filters.formType);
+  if (filters.assetId) query = query.eq("asset_id", filters.assetId);
 
   const { data } = await query;
   let rows = (data ?? []) as unknown as SubmissionRow[];
 
-  // "Has attachments" filters in memory: jsonb-array length is awkward/fragile in
-  // PostgREST, and the RLS-scoped result set for one org is small.
-  if (filters.hasMedia) {
-    rows = rows.filter((r) => hasMedia(r.media_urls));
-  }
+  // Text search + "has attachments" run in memory over the RLS-scoped, org-bounded
+  // result. Search spans joined asset fields + the computed reference, which a single
+  // SQL filter can't; jsonb-array length (media) is also awkward in PostgREST.
+  if (filters.q) rows = rows.filter((r) => matchesSearch(r, filters.q));
+  if (filters.hasMedia) rows = rows.filter((r) => hasMedia(r.media_urls));
+
+  // Signed image thumbnails for the VISIBLE rows only (post-filter) — never for the
+  // whole org. Private bucket; the storage SELECT policy scopes these to the caller's
+  // organization and the URLs are short-lived (3600s). Admin route only.
+  const thumbs = new Map<string, string>();
+  await Promise.all(
+    rows.map(async (r) => {
+      const path = firstImagePath(r.media_urls);
+      if (!path) return;
+      const { data: signed } = await supabase.storage
+        .from(SUBMISSIONS_BUCKET)
+        .createSignedUrl(path, 3600);
+      if (signed?.signedUrl) thumbs.set(r.id, signed.signedUrl);
+    })
+  );
 
   // Cheap RLS-scoped cue: how many submissions are still "new" (own org).
   const { count: newCount } = await supabase
@@ -203,12 +217,12 @@ export default async function SubmissionsPage({
         className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3"
       >
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted-foreground">Search submitter</span>
+          <span className="text-muted-foreground">Search</span>
           <input
             type="search"
             name="q"
             defaultValue={filters.q}
-            placeholder="Name or email"
+            placeholder="Submitter, asset, or reference"
             className={selectClass}
           />
         </label>
@@ -234,7 +248,7 @@ export default async function SubmissionsPage({
             defaultValue={filters.status}
             className={selectClass}
           >
-            <option value="">All</option>
+            <option value="">All active</option>
             {SUBMISSION_STATUSES.map((s) => (
               <option key={s} value={s}>
                 {titleCase(s)}
@@ -278,7 +292,7 @@ export default async function SubmissionsPage({
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/50 text-left text-muted-foreground">
             <tr>
-              <th className="px-4 py-2 font-medium">Reference</th>
+              <th className="px-3 py-2 font-medium">Media</th>
               <th className="px-4 py-2 font-medium">Type</th>
               <th className="px-4 py-2 font-medium">Asset</th>
               <th className="px-4 py-2 font-medium">Submitter</th>
@@ -309,6 +323,7 @@ export default async function SubmissionsPage({
             ) : (
               rows.map((row) => {
                 const count = mediaCount(row.media_urls);
+                const thumb = thumbs.get(row.id);
                 const urgency = submissionUrgency(
                   row.form_type,
                   row.submission_data_json
@@ -318,6 +333,7 @@ export default async function SubmissionsPage({
                   row.submitted_by_email ??
                   row.submitted_by_phone ??
                   "—";
+                const reference = submissionReference(row.id, row.created_at);
                 const isNew = row.status === "new";
                 return (
                   <tr
@@ -328,10 +344,35 @@ export default async function SubmissionsPage({
                         : "border-b last:border-0"
                     }
                   >
-                    <td className="px-4 py-2">
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {submissionReference(row.id, row.created_at)}
-                      </span>
+                    {/* Media: image thumbnail (first image) or attachment count */}
+                    <td className="px-3 py-2">
+                      {thumb ? (
+                        <div className="relative size-12">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={thumb}
+                            alt={`Attachment for ${reference}`}
+                            className="size-12 rounded-md border object-cover"
+                          />
+                          {count > 1 ? (
+                            <span className="absolute -right-1 -top-1 rounded-full border bg-background px-1 text-[10px] font-medium text-muted-foreground">
+                              +{count - 1}
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : count > 0 ? (
+                        <span
+                          className="inline-flex size-12 items-center justify-center gap-1 rounded-md border text-xs text-muted-foreground"
+                          title={`${count} attachment${count === 1 ? "" : "s"}`}
+                        >
+                          <span aria-hidden>📎</span>
+                          {count}
+                        </span>
+                      ) : (
+                        <span className="inline-flex size-12 items-center justify-center rounded-md border border-dashed text-muted-foreground/50">
+                          —
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex flex-wrap items-center gap-1.5">
@@ -342,15 +383,6 @@ export default async function SubmissionsPage({
                           <Badge tone={urgencyTone(urgency)}>
                             {titleCase(urgency)}
                           </Badge>
-                        ) : null}
-                        {count > 0 ? (
-                          <span
-                            className="inline-flex items-center gap-1 text-xs text-muted-foreground"
-                            title={`${count} attachment${count === 1 ? "" : "s"}`}
-                          >
-                            <span aria-hidden>📎</span>
-                            {count}
-                          </span>
                         ) : null}
                       </div>
                     </td>
@@ -371,6 +403,9 @@ export default async function SubmissionsPage({
                       <div className="leading-tight">
                         <div>{formatDateTime(row.created_at)}</div>
                         <div className="text-xs">{relativeTime(row.created_at)}</div>
+                        <div className="font-mono text-[11px] text-muted-foreground/70">
+                          {reference}
+                        </div>
                       </div>
                     </td>
                     <td className="px-4 py-2">

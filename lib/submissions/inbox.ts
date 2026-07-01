@@ -54,6 +54,28 @@ export function hasMedia(mediaUrls: unknown): boolean {
   return mediaCount(mediaUrls) > 0;
 }
 
+const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp"] as const;
+
+/**
+ * Whether a stored media path points at a displayable image. Upload object names
+ * carry the extension (`<uuid>.jpg|png|webp`; non-images become `.bin`), so the
+ * type is derivable from the path without fetching the object.
+ */
+export function isImagePath(path: unknown): boolean {
+  if (typeof path !== "string") return false;
+  const ext = path.split(".").pop()?.toLowerCase() ?? "";
+  return (IMAGE_EXTENSIONS as readonly string[]).includes(ext);
+}
+
+/** First image path in a `media_urls` array, or null when none is an image. */
+export function firstImagePath(mediaUrls: unknown): string | null {
+  if (!Array.isArray(mediaUrls)) return null;
+  for (const path of mediaUrls) {
+    if (isImagePath(path)) return path as string;
+  }
+  return null;
+}
+
 /**
  * Urgency for a submission. Only damage reports carry an urgency level (stored in
  * `submission_data_json.urgency`); everything else returns null so no badge shows.
@@ -84,6 +106,28 @@ export function urgencyTone(urgency: string): BadgeTone {
   }
 }
 
+/**
+ * Operational (non-archived) statuses. The default inbox shows only these; archived
+ * submissions surface only when Archived is deliberately selected.
+ */
+export const ACTIVE_STATUSES = ["new", "reviewed", "resolved"] as const;
+
+export type StatusFilter =
+  | { mode: "active"; statuses: readonly SubmissionStatus[] }
+  | { mode: "single"; status: SubmissionStatus };
+
+/**
+ * Resolve the status query into a DB filter. No status → "active" (excludes
+ * archived); a specific status → that status only (including "archived"). This is
+ * the single source of truth for "archived hidden by default".
+ */
+export function resolveStatusFilter(status: SubmissionStatus | ""): StatusFilter {
+  if (status === "") {
+    return { mode: "active", statuses: ACTIVE_STATUSES };
+  }
+  return { mode: "single", status };
+}
+
 export type SubmissionFilters = {
   formType: FilterFormType | "";
   status: SubmissionStatus | "";
@@ -91,6 +135,42 @@ export type SubmissionFilters = {
   hasMedia: boolean;
   q: string;
 };
+
+/** Minimal row shape the in-memory search matches against. */
+export type SubmissionSearchable = {
+  id: string;
+  created_at: string;
+  submitted_by_name: string | null;
+  submitted_by_email: string | null;
+  submitted_by_phone: string | null;
+  asset: { asset_code: string; asset_name: string } | null;
+};
+
+/**
+ * Case-insensitive substring search over submitter (name/email/phone), asset
+ * (code/name), and the display reference. Runs in memory over the RLS-scoped rows
+ * (org-bounded), so it can span joined + computed fields a single SQL filter can't.
+ * An empty query matches everything.
+ */
+export function matchesSearch(
+  row: SubmissionSearchable,
+  query: string
+): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const haystack = [
+    row.submitted_by_name,
+    row.submitted_by_email,
+    row.submitted_by_phone,
+    row.asset?.asset_code,
+    row.asset?.asset_name,
+    submissionReference(row.id, row.created_at),
+  ]
+    .filter((v): v is string => typeof v === "string" && v.length > 0)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(q);
+}
 
 function firstString(value: unknown): string {
   if (Array.isArray(value)) return typeof value[0] === "string" ? value[0] : "";
@@ -132,13 +212,17 @@ export function submissionFilterQuery(
 export type QuickFilter = {
   key: string;
   label: string;
-  /** Filter params this chip applies; an empty object clears everything ("All"). */
+  /** Filter params this chip applies; an empty object is the default "All active". */
   params: Partial<SubmissionFilters>;
 };
 
-/** Quick-filter chips for the inbox toolbar. Order matters (left → right). */
+/**
+ * Quick-filter chips for the inbox toolbar. Order matters (left → right). "All
+ * active" (default) and the type/media chips exclude archived; Archived is a
+ * deliberate chip that shows archived rows only.
+ */
 export const QUICK_FILTERS: QuickFilter[] = [
-  { key: "all", label: "All", params: {} },
+  { key: "all", label: "All active", params: {} },
   { key: "new", label: "New", params: { status: "new" } },
   {
     key: "damage",
@@ -156,6 +240,7 @@ export const QUICK_FILTERS: QuickFilter[] = [
     params: { formType: "return_checklist" },
   },
   { key: "media", label: "Has attachments", params: { hasMedia: true } },
+  { key: "archived", label: "Archived", params: { status: "archived" } },
 ];
 
 /** Which quick-filter chip (if any) exactly matches the active filters. */
@@ -168,7 +253,7 @@ export function activeQuickFilterKey(filters: SubmissionFilters): string | null 
       Boolean(p.hasMedia) === filters.hasMedia &&
       (p.assetId ?? "") === filters.assetId &&
       !filters.q;
-    // "All" only matches when nothing is set.
+    // "All active" only matches when nothing is set (no archived, no other filters).
     if (chip.key === "all") {
       if (
         !filters.status &&

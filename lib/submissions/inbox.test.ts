@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   activeQuickFilterKey,
+  firstImagePath,
   hasMedia,
+  isImagePath,
+  matchesSearch,
   mediaCount,
   parseSubmissionFilters,
+  resolveStatusFilter,
   submissionFilterQuery,
   submissionReference,
   submissionUrgency,
@@ -118,12 +122,15 @@ describe("activeQuickFilterKey", () => {
     expect(activeQuickFilterKey(base)).toBe("all");
   });
 
-  it("matches the New and type chips", () => {
+  it("matches the New, type, and Archived chips", () => {
     expect(activeQuickFilterKey({ ...base, status: "new" })).toBe("new");
     expect(
       activeQuickFilterKey({ ...base, formType: "damage_report" })
     ).toBe("damage");
     expect(activeQuickFilterKey({ ...base, hasMedia: true })).toBe("media");
+    expect(activeQuickFilterKey({ ...base, status: "archived" })).toBe(
+      "archived"
+    );
   });
 
   it("returns null for combinations no single chip represents", () => {
@@ -131,5 +138,89 @@ describe("activeQuickFilterKey", () => {
       activeQuickFilterKey({ ...base, status: "new", formType: "damage_report" })
     ).toBeNull();
     expect(activeQuickFilterKey({ ...base, q: "jane" })).toBeNull();
+  });
+});
+
+describe("resolveStatusFilter", () => {
+  it("defaults to active statuses (archived hidden) when no status is set", () => {
+    const f = resolveStatusFilter("");
+    expect(f).toEqual({
+      mode: "active",
+      statuses: ["new", "reviewed", "resolved"],
+    });
+    expect(f.mode === "active" && f.statuses).not.toContain("archived");
+  });
+
+  it("returns archived-only when archived is selected", () => {
+    expect(resolveStatusFilter("archived")).toEqual({
+      mode: "single",
+      status: "archived",
+    });
+  });
+
+  it("returns the single status for other explicit statuses", () => {
+    expect(resolveStatusFilter("new")).toEqual({ mode: "single", status: "new" });
+    expect(resolveStatusFilter("reviewed")).toEqual({
+      mode: "single",
+      status: "reviewed",
+    });
+    expect(resolveStatusFilter("resolved")).toEqual({
+      mode: "single",
+      status: "resolved",
+    });
+  });
+});
+
+describe("isImagePath / firstImagePath", () => {
+  it("detects image extensions and rejects others", () => {
+    expect(isImagePath("org/1/a/b/sub/uuid.jpg")).toBe(true);
+    expect(isImagePath("uuid.PNG")).toBe(true);
+    expect(isImagePath("uuid.webp")).toBe(true);
+    expect(isImagePath("uuid.bin")).toBe(false);
+    expect(isImagePath("uuid.pdf")).toBe(false);
+    expect(isImagePath(null)).toBe(false);
+    expect(isImagePath(123)).toBe(false);
+  });
+
+  it("returns the first image path or null", () => {
+    expect(firstImagePath(["a.bin", "b.png", "c.jpg"])).toBe("b.png");
+    expect(firstImagePath(["a.bin", "b.pdf"])).toBeNull();
+    expect(firstImagePath([])).toBeNull();
+    expect(firstImagePath(null)).toBeNull();
+  });
+});
+
+describe("matchesSearch", () => {
+  const row = {
+    id: "a1b2c3d4-0000-0000-0000-000000000000",
+    created_at: "2026-03-14T10:00:00Z",
+    submitted_by_name: "Jane Operator",
+    submitted_by_email: "jane@example.com",
+    submitted_by_phone: null,
+    asset: { asset_code: "EX-017", asset_name: "Scissor Lift" },
+  };
+
+  it("matches empty query", () => {
+    expect(matchesSearch(row, "")).toBe(true);
+    expect(matchesSearch(row, "   ")).toBe(true);
+  });
+
+  it("matches submitter, asset, and reference (case-insensitive)", () => {
+    expect(matchesSearch(row, "jane")).toBe(true);
+    expect(matchesSearch(row, "EXAMPLE.COM")).toBe(true);
+    expect(matchesSearch(row, "ex-017")).toBe(true);
+    expect(matchesSearch(row, "scissor")).toBe(true);
+    expect(matchesSearch(row, "SUB-2026-A1B2C3")).toBe(true);
+    expect(matchesSearch(row, "a1b2c3")).toBe(true);
+  });
+
+  it("returns false when nothing matches", () => {
+    expect(matchesSearch(row, "forklift")).toBe(false);
+  });
+
+  it("is safe when contact fields are null", () => {
+    const bare = { ...row, submitted_by_name: null, submitted_by_email: null };
+    expect(matchesSearch(bare, "scissor")).toBe(true);
+    expect(matchesSearch(bare, "jane")).toBe(false);
   });
 });

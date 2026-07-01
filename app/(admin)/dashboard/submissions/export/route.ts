@@ -6,6 +6,8 @@ import {
   buildSubmissionsCsv,
   type SubmissionExportRow,
 } from "@/lib/submissions/csv";
+import { resolveStatusFilter } from "@/lib/submissions/inbox";
+import { isSubmissionStatus } from "@/lib/submissions/display";
 
 // Per-request, auth-scoped download — never cache.
 export const dynamic = "force-dynamic";
@@ -16,7 +18,8 @@ export async function GET(request: NextRequest) {
 
   const sp = request.nextUrl.searchParams;
   const formType = sp.get("form_type") ?? "";
-  const status = sp.get("status") ?? "";
+  const statusRaw = sp.get("status") ?? "";
+  const status = isSubmissionStatus(statusRaw) ? statusRaw : "";
   const assetId = sp.get("asset_id") ?? "";
 
   const supabase = await createClient();
@@ -29,8 +32,14 @@ export async function GET(request: NextRequest) {
     )
     .order("created_at", { ascending: false });
 
+  // Mirror the inbox: no status → active statuses only (archived excluded).
+  const statusFilter = resolveStatusFilter(status);
+  if (statusFilter.mode === "single") {
+    query = query.eq("status", statusFilter.status);
+  } else {
+    query = query.in("status", statusFilter.statuses as readonly string[]);
+  }
   if (formType) query = query.eq("form_type", formType);
-  if (status) query = query.eq("status", status);
   if (assetId) query = query.eq("asset_id", assetId);
 
   const { data } = await query;
