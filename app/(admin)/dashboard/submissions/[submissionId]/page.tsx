@@ -12,6 +12,7 @@ import {
 } from "@/lib/submissions/inbox";
 import { Badge } from "@/components/ui/badge";
 import { submissionStatusTone } from "@/lib/ui/status";
+import { submissionStatusLabel } from "@/lib/ui/status-labels";
 import { SubmissionStatusForm } from "@/components/submission-status-form";
 
 const SUBMISSIONS_BUCKET = "submissions";
@@ -105,7 +106,7 @@ export default async function SubmissionDetailPage({
             {formTypeLabel(submission.form_type)}
           </h1>
           <Badge tone={submissionStatusTone(submission.status)}>
-            {titleCase(submission.status)}
+            {submissionStatusLabel(submission.status)}
           </Badge>
           {urgency ? (
             <Badge tone={urgencyTone(urgency)}>{titleCase(urgency)} urgency</Badge>

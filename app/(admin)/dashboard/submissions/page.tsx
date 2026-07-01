@@ -28,6 +28,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { RefreshControls } from "@/components/refresh-controls";
 import { SubmissionQuickStatus } from "@/components/submission-quick-status";
 import { submissionStatusTone, type BadgeTone } from "@/lib/ui/status";
+import { submissionStatusLabel } from "@/lib/ui/status-labels";
 
 const SUBMISSIONS_BUCKET = "submissions";
 
@@ -251,7 +252,7 @@ export default async function SubmissionsPage({
             <option value="">All active</option>
             {SUBMISSION_STATUSES.map((s) => (
               <option key={s} value={s}>
-                {titleCase(s)}
+                {submissionStatusLabel(s)}
               </option>
             ))}
           </select>
@@ -410,7 +411,7 @@ export default async function SubmissionsPage({
                     </td>
                     <td className="px-4 py-2">
                       <Badge tone={submissionStatusTone(row.status)}>
-                        {titleCase(row.status)}
+                        {submissionStatusLabel(row.status)}
                       </Badge>
                     </td>
                     <td className="px-4 py-2">

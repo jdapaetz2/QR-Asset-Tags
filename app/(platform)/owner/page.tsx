@@ -7,6 +7,9 @@ import { unviewedCountByOrg } from "@/lib/tags/tag-requests";
 import { coveredCountByOrg } from "@/lib/plans/coverage";
 import { formatCents } from "@/lib/plans/presets";
 import { PageHeader } from "@/components/ui/page-header";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { orgStatusLabel } from "@/lib/ui/status-labels";
 
 export const dynamic = "force-dynamic";
 
@@ -107,11 +110,11 @@ export default async function OwnerPage() {
           <tbody>
             {orgs.length === 0 ? (
               <tr>
-                <td
-                  colSpan={8}
-                  className="px-4 py-6 text-center text-muted-foreground"
-                >
-                  No organizations yet.
+                <td colSpan={8} className="px-4 py-6">
+                  <EmptyState
+                    title="No organizations yet"
+                    description="Organizations you onboard will appear here with their plan, covered-asset usage, and tag-request activity."
+                  />
                 </td>
               </tr>
             ) : (
@@ -134,7 +137,11 @@ export default async function OwnerPage() {
                     </span>
                   </td>
                   <td className="px-4 py-2 text-muted-foreground">{org.slug}</td>
-                  <td className="px-4 py-2">{org.status}</td>
+                  <td className="px-4 py-2">
+                    <Badge tone={org.status === "active" ? "success" : "neutral"}>
+                      {orgStatusLabel(org.status)}
+                    </Badge>
+                  </td>
                   <td className="px-4 py-2 text-muted-foreground">
                     {org.plan_name ?? "—"}
                   </td>

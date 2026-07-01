@@ -10,6 +10,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { safeBrandColor, readableTextOn } from "@/lib/public/brand";
 import { getCoveredCount } from "@/lib/plans/coverage-query";
 import { PlanUsage } from "@/components/plan-usage";
+import { orgStatusLabel } from "@/lib/ui/status-labels";
 
 // Auth-scoped and reflects the org's current data; never cache.
 export const dynamic = "force-dynamic";
@@ -193,7 +194,7 @@ export default async function DashboardPage() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-medium text-foreground">{orgName}</span>
               <Badge tone={org?.status === "active" ? "success" : "neutral"}>
-                {org?.status ?? "—"}
+                {orgStatusLabel(org?.status)}
               </Badge>
               {brandingConfigured ? (
                 <Badge tone="info">Scanner branding set</Badge>
