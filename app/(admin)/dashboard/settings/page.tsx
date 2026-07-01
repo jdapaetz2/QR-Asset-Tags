@@ -85,7 +85,7 @@ export default async function SettingsPage() {
           Your subscription and covered-asset usage. Plan changes are handled by
           AssetTag QR.
         </p>
-        <div className="mt-4">
+        <div className="mt-4 max-w-2xl">
           <PlanUsage
             mode="full"
             data={{

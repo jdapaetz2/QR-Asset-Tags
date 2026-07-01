@@ -49,21 +49,29 @@ function CoverageMeter({
 
   if (limit === null) {
     return (
-      <div className="text-sm">
-        <span className="text-lg font-semibold tabular-nums">{covered}</span>{" "}
-        <span className="text-muted-foreground">
-          covered · Custom plan · no covered asset limit set
+      <div className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-muted-foreground">
+          Covered assets
         </span>
+        <div className="text-sm">
+          <span className="text-lg font-semibold tabular-nums">{covered}</span>{" "}
+          <span className="text-muted-foreground">
+            · Custom plan · no covered asset limit set
+          </span>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-1.5">
+      <span className="text-xs font-medium text-muted-foreground">
+        Covered assets
+      </span>
       <div className="flex items-baseline justify-between gap-2 text-sm">
         <span>
           <span className="text-lg font-semibold tabular-nums">{covered}</span>
-          <span className="text-muted-foreground"> / {coverageLimitLabel(limit)} covered</span>
+          <span className="text-muted-foreground"> / {coverageLimitLabel(limit)}</span>
         </span>
         <span className={`text-xs tabular-nums ${TEXT_CLASSES[tone]}`}>
           {pct}%
