@@ -4,6 +4,14 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
 import { submissionFields, formTypeLabel } from "@/lib/submissions/display";
+import {
+  mediaCount,
+  submissionReference,
+  submissionUrgency,
+  urgencyTone,
+} from "@/lib/submissions/inbox";
+import { Badge } from "@/components/ui/badge";
+import { submissionStatusTone } from "@/lib/ui/status";
 import { SubmissionStatusForm } from "@/components/submission-status-form";
 
 const SUBMISSIONS_BUCKET = "submissions";
@@ -22,9 +30,15 @@ type SubmissionDetail = {
   asset: { asset_code: string; asset_name: string } | null;
 };
 
+function titleCase(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
 function formatDateTime(value: string): string {
   const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? "—" : d.toISOString().slice(0, 16).replace("T", " ");
+  return Number.isNaN(d.getTime())
+    ? "—"
+    : d.toISOString().slice(0, 16).replace("T", " ");
 }
 
 export default async function SubmissionDetailPage({
@@ -52,6 +66,14 @@ export default async function SubmissionDetailPage({
     submission.form_type,
     submission.submission_data_json
   );
+  const reference = submissionReference(
+    submission.id,
+    submission.created_at
+  );
+  const urgency = submissionUrgency(
+    submission.form_type,
+    submission.submission_data_json
+  );
 
   // Private bucket: generate short-lived signed URLs for this org's media. The
   // storage SELECT policy already restricts these to the caller's organization.
@@ -66,40 +88,80 @@ export default async function SubmissionDetailPage({
       return { path, url: signed?.signedUrl ?? null };
     })
   );
+  const attachmentCount = mediaCount(submission.media_urls);
 
   return (
     <div className="flex flex-col gap-6">
-      <section>
+      {/* Header */}
+      <section className="flex flex-col gap-3 rounded-lg border bg-card p-5">
         <Link
           href="/dashboard/submissions"
           className="text-sm text-muted-foreground underline-offset-4 hover:underline"
         >
           ← Submissions
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          {formTypeLabel(submission.form_type)}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {submission.asset
-            ? `${submission.asset.asset_name} (${submission.asset.asset_code}) · `
-            : ""}
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {formTypeLabel(submission.form_type)}
+          </h1>
+          <Badge tone={submissionStatusTone(submission.status)}>
+            {titleCase(submission.status)}
+          </Badge>
+          {urgency ? (
+            <Badge tone={urgencyTone(urgency)}>{titleCase(urgency)} urgency</Badge>
+          ) : null}
+          {attachmentCount > 0 ? (
+            <Badge tone="neutral">
+              📎 {attachmentCount} attachment{attachmentCount === 1 ? "" : "s"}
+            </Badge>
+          ) : null}
+        </div>
+        <p className="text-sm text-muted-foreground">
+          <span className="font-mono">{reference}</span> ·{" "}
           {formatDateTime(submission.created_at)}
         </p>
-        {submission.asset_id ? (
-          <Link
-            href={`/dashboard/assets/${submission.asset_id}/timeline`}
-            className="mt-2 inline-flex text-sm underline-offset-4 hover:underline"
-          >
-            View asset timeline →
-          </Link>
-        ) : null}
+      </section>
+
+      {/* Asset */}
+      <section className="rounded-lg border bg-card p-4 text-sm">
+        <h2 className="mb-3 font-medium">Asset</h2>
+        {submission.asset ? (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="leading-tight">
+              <div className="font-medium">{submission.asset.asset_name}</div>
+              <div className="font-mono text-xs text-muted-foreground">
+                {submission.asset.asset_code}
+              </div>
+            </div>
+            {submission.asset_id ? (
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href={`/dashboard/assets/${submission.asset_id}`}
+                  className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
+                >
+                  Asset detail →
+                </Link>
+                <Link
+                  href={`/dashboard/assets/${submission.asset_id}/timeline`}
+                  className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
+                >
+                  Asset timeline →
+                </Link>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <p className="text-muted-foreground">No linked asset.</p>
+        )}
       </section>
 
       {/* Status */}
       <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4">
         <div className="text-sm">
           <h2 className="font-medium">Status</h2>
-          <p className="text-muted-foreground">{submission.status}</p>
+          <p className="text-muted-foreground">
+            Set the workflow state as this submission is triaged and resolved.
+          </p>
         </div>
         <SubmissionStatusForm
           submissionId={submission.id}
