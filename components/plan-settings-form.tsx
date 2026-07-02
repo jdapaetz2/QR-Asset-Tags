@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { updateOrgPlan, type OrgSettingsState } from "@/lib/org/actions";
 import { PLAN_PRESETS, getPlanPreset } from "@/lib/plans/presets";
+import { formatCentsAsCadInput } from "@/lib/plans/money";
 import type { PlanSettings } from "@/lib/plans/settings";
 
 const inputClass =
@@ -29,17 +30,21 @@ export function PlanSettingsForm({
   );
 
   const [assetLimit, setAssetLimit] = useState(plan.asset_limit?.toString() ?? "");
-  const [intro, setIntro] = useState(plan.intro_price_cents?.toString() ?? "");
-  const [renewal, setRenewal] = useState(plan.renewal_price_cents?.toString() ?? "");
-  const [tagCredit, setTagCredit] = useState(plan.tag_credit_cents?.toString() ?? "");
+  const [intro, setIntro] = useState(formatCentsAsCadInput(plan.intro_price_cents));
+  const [renewal, setRenewal] = useState(
+    formatCentsAsCadInput(plan.renewal_price_cents)
+  );
+  const [tagCredit, setTagCredit] = useState(
+    formatCentsAsCadInput(plan.tag_credit_cents)
+  );
 
   function onPreset(key: string) {
     const preset = getPlanPreset(key);
     if (!preset || key === "custom") return;
     setAssetLimit(preset.covered_asset_limit?.toString() ?? "");
-    setIntro(preset.intro_price_cents?.toString() ?? "");
-    setRenewal(preset.renewal_price_cents?.toString() ?? "");
-    setTagCredit(preset.tag_credit_cents?.toString() ?? "");
+    setIntro(formatCentsAsCadInput(preset.intro_price_cents));
+    setRenewal(formatCentsAsCadInput(preset.renewal_price_cents));
+    setTagCredit(formatCentsAsCadInput(preset.tag_credit_cents));
   }
 
   return (
@@ -56,8 +61,9 @@ export function PlanSettingsForm({
       <fieldset className="flex flex-col gap-3 rounded-lg border p-4">
         <legend className="px-1 text-sm font-medium">Plan &amp; coverage</legend>
         <p className="text-xs text-muted-foreground">
-          Commercial metadata + covered-asset limit. Owner-only. Prices are CAD cents
-          (e.g. 240000 = C$2,400). Tag credit is metadata, not billing.
+          Commercial metadata + covered-asset limit. Owner-only. Enter prices in CAD
+          dollars. Values are stored internally in cents. Tag credit is metadata, not
+          billing.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -108,32 +114,35 @@ export function PlanSettingsForm({
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Intro / year-one price (cents)</span>
+            <span className="font-medium">Intro / year-one price (CAD)</span>
             <input
               name="intro_price_cents"
-              inputMode="numeric"
+              inputMode="decimal"
               value={intro}
               onChange={(e) => setIntro(e.target.value)}
+              placeholder="$ e.g. 4500"
               className={inputClass}
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Renewal price (cents)</span>
+            <span className="font-medium">Renewal price (CAD)</span>
             <input
               name="renewal_price_cents"
-              inputMode="numeric"
+              inputMode="decimal"
               value={renewal}
               onChange={(e) => setRenewal(e.target.value)}
+              placeholder="$ e.g. 6500"
               className={inputClass}
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Tag credit (cents)</span>
+            <span className="font-medium">Tag credit (CAD)</span>
             <input
               name="tag_credit_cents"
-              inputMode="numeric"
+              inputMode="decimal"
               value={tagCredit}
               onChange={(e) => setTagCredit(e.target.value)}
+              placeholder="$ e.g. 750"
               className={inputClass}
             />
           </label>

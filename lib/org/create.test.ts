@@ -55,7 +55,7 @@ describe("normalizeNewOrg", () => {
       plan_key: "standard",
       plan_name: "Standard Yard",
       asset_limit: "100",
-      tag_credit_cents: "75000",
+      tag_credit_cents: "750",
     });
     expect(r.value?.plan_key).toBe("standard");
     expect(r.value?.asset_limit).toBe(100);

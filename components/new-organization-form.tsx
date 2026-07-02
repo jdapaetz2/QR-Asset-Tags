@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { createOrganization, type OrgSettingsState } from "@/lib/org/actions";
 import { PLAN_PRESETS, getPlanPreset } from "@/lib/plans/presets";
+import { formatCentsAsCadInput } from "@/lib/plans/money";
 import { slugify } from "@/lib/org/slug";
 
 const inputClass =
@@ -45,9 +46,9 @@ export function NewOrganizationForm() {
     }
     setPlanName(preset.label);
     setAssetLimit(preset.covered_asset_limit?.toString() ?? "");
-    setIntro(preset.intro_price_cents?.toString() ?? "");
-    setRenewal(preset.renewal_price_cents?.toString() ?? "");
-    setTagCredit(preset.tag_credit_cents?.toString() ?? "");
+    setIntro(formatCentsAsCadInput(preset.intro_price_cents));
+    setRenewal(formatCentsAsCadInput(preset.renewal_price_cents));
+    setTagCredit(formatCentsAsCadInput(preset.tag_credit_cents));
   }
 
   return (
@@ -107,8 +108,9 @@ export function NewOrganizationForm() {
       <fieldset className="flex flex-col gap-3 rounded-lg border p-4">
         <legend className="px-1 text-sm font-medium">Plan &amp; coverage</legend>
         <p className="text-xs text-muted-foreground">
-          Commercial metadata + covered-asset limit (owner-only). Prices are CAD cents
-          (e.g. 240000 = C$2,400). Choose a preset to prefill, or Custom for manual values.
+          Commercial metadata + covered-asset limit (owner-only). Enter prices in CAD
+          dollars. Values are stored internally in cents. Choose a preset to prefill, or
+          Custom for manual values.
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm">
@@ -155,32 +157,35 @@ export function NewOrganizationForm() {
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Intro / year-one price (cents)</span>
+            <span className="font-medium">Intro / year-one price (CAD)</span>
             <input
               name="intro_price_cents"
-              inputMode="numeric"
+              inputMode="decimal"
               value={intro}
               onChange={(e) => setIntro(e.target.value)}
+              placeholder="$ e.g. 4500"
               className={inputClass}
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Renewal price (cents)</span>
+            <span className="font-medium">Renewal price (CAD)</span>
             <input
               name="renewal_price_cents"
-              inputMode="numeric"
+              inputMode="decimal"
               value={renewal}
               onChange={(e) => setRenewal(e.target.value)}
+              placeholder="$ e.g. 6500"
               className={inputClass}
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Tag credit (cents)</span>
+            <span className="font-medium">Tag credit (CAD)</span>
             <input
               name="tag_credit_cents"
-              inputMode="numeric"
+              inputMode="decimal"
               value={tagCredit}
               onChange={(e) => setTagCredit(e.target.value)}
+              placeholder="$ e.g. 750"
               className={inputClass}
             />
           </label>

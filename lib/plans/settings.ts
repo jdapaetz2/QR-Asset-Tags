@@ -5,6 +5,7 @@
  */
 
 import { isPlanKey } from "@/lib/plans/presets";
+import { parseCadInputToCents } from "@/lib/plans/money";
 
 export type PlanSettings = {
   plan_key: string | null;
@@ -52,18 +53,32 @@ export function normalizePlanForm(raw: RawPlanForm): PlanSettingsResult {
     return { error: "Billing interval must be monthly or annual." };
   }
 
-  const numeric: [keyof PlanSettings, string | undefined][] = [
-    ["asset_limit", raw.asset_limit],
-    ["intro_price_cents", raw.intro_price_cents],
-    ["renewal_price_cents", raw.renewal_price_cents],
-    ["tag_credit_cents", raw.tag_credit_cents],
-    ["storage_limit_mb", raw.storage_limit_mb],
+  // Plain integer counts (not money).
+  const counts: [keyof PlanSettings, string | undefined, string][] = [
+    ["asset_limit", raw.asset_limit, "Covered asset limit"],
+    ["storage_limit_mb", raw.storage_limit_mb, "Storage limit"],
   ];
   const nums: Record<string, number | null> = {};
-  for (const [key, rawValue] of numeric) {
+  for (const [key, rawValue, label] of counts) {
     const parsed = nonNegInt(rawValue);
     if (parsed === undefined) {
-      return { error: `${key} must be a whole number (0 or more), or blank.` };
+      return { error: `${label} must be a whole number (0 or more), or blank.` };
+    }
+    nums[key] = parsed;
+  }
+
+  // Money fields: entered in CAD dollars, stored in cents. Blank → null.
+  const money: [keyof PlanSettings, string | undefined, string][] = [
+    ["intro_price_cents", raw.intro_price_cents, "Intro / year-one price"],
+    ["renewal_price_cents", raw.renewal_price_cents, "Renewal price"],
+    ["tag_credit_cents", raw.tag_credit_cents, "Tag credit"],
+  ];
+  for (const [key, rawValue, label] of money) {
+    const parsed = parseCadInputToCents(rawValue);
+    if (parsed === undefined) {
+      return {
+        error: `${label} must be a valid CAD dollar amount (e.g. 4500), or blank.`,
+      };
     }
     nums[key] = parsed;
   }

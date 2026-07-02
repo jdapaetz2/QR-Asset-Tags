@@ -41,6 +41,10 @@ Owner/admin-only presets (CAD): **Starter Yard** (25 covered), **Standard Yard**
 tag-credit amounts are stored per org. These are internal — there is no public pricing
 page.
 
+Prices are **entered in CAD dollars** in the owner UI (e.g. `4500`) and **stored internally
+in cents** (`450000`) for precision — see `lib/plans/money.ts`. This is commercial metadata,
+not billing/Stripe.
+
 ## Plan fields are platform-admin-only
 
 Plan/commercial fields live on `organizations` (`plan_key`, `plan_name`,
