@@ -150,7 +150,7 @@ function CompactUsage({
       : `Coverage: ${data.covered} / ${coverageLimitLabel(data.limit)}`);
 
   return (
-    <div className="relative inline-block text-left">
+    <div className="flex flex-col items-start text-left">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -170,7 +170,9 @@ function CompactUsage({
       </button>
 
       {open ? (
-        <div className="absolute left-0 z-10 mt-2 w-72 max-w-[85vw] rounded-lg border bg-card p-3 text-sm shadow-md">
+        // Inline (in normal flow) — grows the parent instead of being clipped by a
+        // card's overflow-hidden. Subtle: light border/bg, no dominant shadow.
+        <div className="mt-2 w-full max-w-xs rounded-lg border bg-card p-3 text-sm">
           <div className="mb-2 font-medium">Plan &amp; usage</div>
           <div className="mb-2">
             <span className="text-muted-foreground">Covered assets: </span>

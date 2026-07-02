@@ -160,13 +160,26 @@ export default async function OwnerOrganizationDetailPage({
       <section>
         <h2 className="mb-3 text-sm font-medium text-muted-foreground">At a glance</h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Assets" value={assetCount} />
+          <StatCard
+            label="Assets"
+            value={assetCount}
+            href={`/owner/production?org=${org.id}`}
+          />
           <StatCard
             label="Covered assets"
             value={`${covered} / ${org.asset_limit ?? "∞"}`}
+            href={`/owner/organizations/${org.id}/settings`}
           />
-          <StatCard label="Users" value={userCount} />
-          <StatCard label="Tag requests" value={tagRequestCount} />
+          <StatCard
+            label="Users"
+            value={userCount}
+            href={`/owner/organizations/${org.id}/users`}
+          />
+          <StatCard
+            label="Tag requests"
+            value={tagRequestCount}
+            href={`/owner/tag-requests?org=${org.id}`}
+          />
         </div>
       </section>
 

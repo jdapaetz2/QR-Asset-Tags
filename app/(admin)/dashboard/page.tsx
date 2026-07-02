@@ -211,7 +211,7 @@ export default async function DashboardPage() {
             ) : null}
           </div>
         </div>
-        <div className="flex items-center gap-2 px-4 pb-4 sm:pb-0 sm:pr-4">
+        <div className="flex flex-col items-start gap-2 px-4 pb-4 sm:items-end sm:pb-0 sm:pr-4">
           <PlanUsage
             mode="compact"
             compactLabel="Plan & usage"
