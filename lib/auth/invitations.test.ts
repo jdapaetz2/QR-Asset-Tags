@@ -6,9 +6,11 @@ import {
   canManageMember,
   inviteDecision,
   invitableRoles,
+  isLastActiveAdminRemoval,
   isProfileStatus,
   profileStatusLabel,
   resolveInviteOrgId,
+  sessionAllowedForStatus,
   validateInvite,
 } from "./invitations";
 
@@ -184,5 +186,52 @@ describe("profile status helpers", () => {
     expect(isProfileStatus("bogus")).toBe(false);
     expect(profileStatusLabel("active")).toBe("Active");
     expect(profileStatusLabel("disabled")).toBe("Disabled");
+  });
+});
+
+describe("sessionAllowedForStatus", () => {
+  it("allows active + invited, denies disabled", () => {
+    expect(sessionAllowedForStatus("active")).toBe(true);
+    expect(sessionAllowedForStatus("invited")).toBe(true);
+    expect(sessionAllowedForStatus("disabled")).toBe(false);
+  });
+});
+
+describe("isLastActiveAdminRemoval", () => {
+  it("blocks removing an active admin when none remain", () => {
+    expect(
+      isLastActiveAdminRemoval({
+        targetRole: ROLES.CUSTOMER_ADMIN,
+        targetStatus: "active",
+        remainingActiveAdmins: 0,
+      })
+    ).toBe(true);
+  });
+
+  it("allows when another active admin remains", () => {
+    expect(
+      isLastActiveAdminRemoval({
+        targetRole: ROLES.CUSTOMER_ADMIN,
+        targetStatus: "active",
+        remainingActiveAdmins: 1,
+      })
+    ).toBe(false);
+  });
+
+  it("does not apply to staff or a not-yet-active (invited) admin", () => {
+    expect(
+      isLastActiveAdminRemoval({
+        targetRole: ROLES.CUSTOMER_STAFF,
+        targetStatus: "active",
+        remainingActiveAdmins: 0,
+      })
+    ).toBe(false);
+    expect(
+      isLastActiveAdminRemoval({
+        targetRole: ROLES.CUSTOMER_ADMIN,
+        targetStatus: "invited",
+        remainingActiveAdmins: 0,
+      })
+    ).toBe(false);
   });
 });

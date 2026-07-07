@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { type Role, isRole } from "@/lib/auth/roles";
 import { isAuthorized, landingPathForRole } from "@/lib/auth/policy";
+import { sessionAllowedForStatus } from "@/lib/auth/invitations";
 
 export { isAuthorized, landingPathForRole };
 
@@ -44,7 +45,9 @@ export async function getProfile(): Promise<Profile | null> {
     .eq("auth_user_id", user.id)
     .maybeSingle();
 
-  if (!data || !isRole(data.role) || data.status === "disabled") return null;
+  if (!data || !isRole(data.role) || !sessionAllowedForStatus(data.status)) {
+    return null;
+  }
   return data as Profile;
 }
 

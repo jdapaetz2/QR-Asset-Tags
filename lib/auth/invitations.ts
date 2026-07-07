@@ -133,6 +133,32 @@ export function canManageMember(params: {
   return false;
 }
 
+/**
+ * Whether a profile status may hold an app session. `disabled` is denied everywhere
+ * (getProfile returns null → redirect to /login); `invited` + `active` are allowed.
+ * The RLS helpers (migration 0018) apply the same rule at the database layer.
+ */
+export function sessionAllowedForStatus(status: string): boolean {
+  return status !== "disabled";
+}
+
+/**
+ * Whether disabling/demoting this target would remove an org's last active admin.
+ * True only when the target is an **active `customer_admin`** and there are no other
+ * active admins left in the org. Guards against orphaning an organization.
+ */
+export function isLastActiveAdminRemoval(params: {
+  targetRole: string;
+  targetStatus: string;
+  remainingActiveAdmins: number;
+}): boolean {
+  return (
+    params.targetRole === ROLES.CUSTOMER_ADMIN &&
+    params.targetStatus === "active" &&
+    params.remainingActiveAdmins === 0
+  );
+}
+
 export const PROFILE_STATUSES = ["active", "invited", "disabled"] as const;
 export type ProfileStatus = (typeof PROFILE_STATUSES)[number];
 

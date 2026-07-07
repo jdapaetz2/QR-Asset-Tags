@@ -14,8 +14,32 @@ import {
   validateInvite,
   inviteDecision,
   canManageMember,
+  isLastActiveAdminRemoval,
 } from "@/lib/auth/invitations";
 import { buildInviteUrl } from "@/lib/auth/invite-link";
+
+const LAST_ADMIN_MESSAGE =
+  "This is the organization's last active administrator — promote or invite another admin first.";
+
+/**
+ * Count OTHER active customer_admins in an org (excluding `exceptId`). Used to stop the
+ * last active admin from being disabled or demoted, which would orphan the org.
+ */
+async function countOtherActiveAdmins(
+  admin: SupabaseClient,
+  organizationId: string | null,
+  exceptId: string
+): Promise<number> {
+  if (!organizationId) return 0;
+  const { count } = await admin
+    .from("profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", organizationId)
+    .eq("role", ROLES.CUSTOMER_ADMIN)
+    .eq("status", "active")
+    .neq("id", exceptId);
+  return count ?? 0;
+}
 
 export type InviteCreated = {
   url: string;
@@ -251,7 +275,7 @@ export async function setUserStatus(
   const admin = createAdminClient();
   const { data: target } = await admin
     .from("profiles")
-    .select("id, organization_id, role, auth_user_id")
+    .select("id, organization_id, role, status, auth_user_id")
     .eq("id", profileId)
     .maybeSingle();
   if (!target) return { error: "User not found." };
@@ -266,6 +290,24 @@ export async function setUserStatus(
     targetOrgId: target.organization_id as string | null,
   });
   if (!allowed) return { error: "You are not allowed to manage this user." };
+
+  // Never orphan an org: block disabling its last active administrator.
+  if (status === "disabled" && target.role === ROLES.CUSTOMER_ADMIN) {
+    const remaining = await countOtherActiveAdmins(
+      admin,
+      target.organization_id as string | null,
+      target.id as string
+    );
+    if (
+      isLastActiveAdminRemoval({
+        targetRole: target.role as string,
+        targetStatus: target.status as string,
+        remainingActiveAdmins: remaining,
+      })
+    ) {
+      return { error: LAST_ADMIN_MESSAGE };
+    }
+  }
 
   const { error } = await admin
     .from("profiles")
@@ -295,7 +337,7 @@ export async function setUserRole(
   const admin = createAdminClient();
   const { data: target } = await admin
     .from("profiles")
-    .select("id, organization_id, role, auth_user_id")
+    .select("id, organization_id, role, status, auth_user_id")
     .eq("id", profileId)
     .maybeSingle();
   if (!target) return { error: "User not found." };
@@ -304,6 +346,24 @@ export async function setUserRole(
   }
   if (target.auth_user_id === actor.auth_user_id) {
     return { error: "You cannot change your own role." };
+  }
+
+  // Demoting an admin to staff must not orphan the org (leave it with no active admin).
+  if (role === ROLES.CUSTOMER_STAFF && target.role === ROLES.CUSTOMER_ADMIN) {
+    const remaining = await countOtherActiveAdmins(
+      admin,
+      target.organization_id as string | null,
+      target.id as string
+    );
+    if (
+      isLastActiveAdminRemoval({
+        targetRole: target.role as string,
+        targetStatus: target.status as string,
+        remainingActiveAdmins: remaining,
+      })
+    ) {
+      return { error: LAST_ADMIN_MESSAGE };
+    }
   }
 
   const { error } = await admin.from("profiles").update({ role }).eq("id", profileId);

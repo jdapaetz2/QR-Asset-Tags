@@ -46,12 +46,27 @@ Supabase Dashboard → Authentication → URL Configuration:
 
 No email-template edits are needed for the invite flow.
 
+## User lifecycle & access
+
+Profiles have a `status` (`active` / `invited` / `disabled`, migration 0017). **Disabled users
+are denied at two layers:**
+
+- **App** — `getProfile` returns null for a disabled profile, so `requireProfile` /
+  `requireRole` / `requireOrgId` redirect them to `/login`.
+- **RLS** — the `current_org_id()` / `is_platform_owner()` SECURITY DEFINER helpers exclude
+  `status = 'disabled'` (migration 0018), so a disabled user with a still-valid session gets no
+  org/owner scope on any tenant table.
+
+`invited` and `active` users keep access (invited users go to `/auth/set-password` first).
+**The last active `customer_admin` of an org cannot be disabled or demoted** — the team actions
+block it so an organization is never left without an administrator.
+
 ## Deferred (future wave)
 
 - **Branded email delivery** of the same generated link via Resend / custom SMTP (once
   brand/domain/email are finalized).
-- **Invite-link regeneration** from the UI (today the link is shown once at creation).
 - Full magic-link email support.
+- Last-sign-in display in the users list (needs an `auth.users` admin read).
 
 See also `docs/QR_DOMAIN_STRATEGY.md` (Site URL durability) and
 `supabase/seed_profiles.example.sql` (first-owner bootstrap).

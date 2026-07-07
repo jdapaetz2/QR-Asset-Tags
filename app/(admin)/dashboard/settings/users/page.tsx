@@ -105,7 +105,12 @@ export default async function DashboardUsersPage() {
                     targetOrgId: organizationId,
                   });
                 return (
-                  <tr key={u.id} className="border-b last:border-0">
+                  <tr
+                    key={u.id}
+                    className={`border-b last:border-0 ${
+                      u.status === "disabled" ? "opacity-60" : ""
+                    }`}
+                  >
                     <td className="px-4 py-2 font-medium">
                       {u.name ?? "—"}
                       {isSelf ? (
