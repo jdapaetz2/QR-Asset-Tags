@@ -22,6 +22,7 @@ import {
 import { parseExportSettingsForm } from "@/lib/export/types";
 import { normalizePlanForm, type RawPlanForm } from "@/lib/plans/settings";
 import { normalizeNewOrg, type RawNewOrgForm } from "@/lib/org/create";
+import { validateOrgStatus } from "@/lib/org/status";
 
 export type OrgSettingsState = { error?: string };
 
@@ -242,6 +243,38 @@ export async function updateOrgExportSettings(
   if (!data) return { error: "Organization not found." };
 
   redirect(`/owner/organizations/${organizationId}/settings`);
+}
+
+/**
+ * Platform-owner-only: suspend or reactivate a customer organization (Wave 5E.1). This is
+ * account-level, data-preserving — it flips `organizations.status` only; no assets, users,
+ * or media are touched. RLS (`organizations_update` allows the owner via is_platform_owner())
+ * plus the `protect_commercial_fields` trigger (which coerces `status` for non-owners) make
+ * this the single sanctioned path. `requireRole` is the route-level gate.
+ */
+export async function setOrgStatus(
+  organizationId: string,
+  status: "active" | "suspended",
+  _prev: OrgSettingsState,
+  _formData: FormData
+): Promise<OrgSettingsState> {
+  await requireRole(ROLES.PLATFORM_OWNER);
+
+  const valid = validateOrgStatus(status);
+  if (!valid.value) return { error: valid.error };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("organizations")
+    .update({ status: valid.value })
+    .eq("id", organizationId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { error: "Could not update the organization's status." };
+  if (!data) return { error: "Organization not found." };
+
+  redirect(`/owner/organizations/${organizationId}`);
 }
 
 const PLAN_FORM_FIELDS = [

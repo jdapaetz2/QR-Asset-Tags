@@ -1,9 +1,13 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { type Role, isRole } from "@/lib/auth/roles";
+import { ROLES, type Role, isRole } from "@/lib/auth/roles";
 import { isAuthorized, landingPathForRole } from "@/lib/auth/policy";
 import { sessionAllowedForStatus } from "@/lib/auth/invitations";
+import { isOrgActive } from "@/lib/org/status";
+
+/** Where suspended-org customer users are sent. See migration 0019 + Wave 5E.1. */
+export const SUSPENDED_PATH = "/suspended";
 
 export { isAuthorized, landingPathForRole };
 
@@ -67,9 +71,44 @@ export async function requireRole(...allowed: Role[]): Promise<Profile> {
   return profile;
 }
 
-/** Require an org-scoped user and return their organization id. */
+/**
+ * Whether the caller's own organization is active. Platform owners are never gated by a
+ * customer org's status. For a customer, reads `organizations.status` through the
+ * RLS-scoped client: an active org is readable (its id resolves through `current_org_id()`),
+ * a suspended org is not (the row returns null under migration 0019) — either way this
+ * returns the correct boolean. Used to gate customer routes/handlers behind /suspended.
+ */
+export async function ownOrgActive(profile: Profile): Promise<boolean> {
+  if (profile.role === ROLES.PLATFORM_OWNER) return true;
+  if (!profile.organization_id) return false;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("organizations")
+    .select("status")
+    .eq("id", profile.organization_id)
+    .maybeSingle();
+  return isOrgActive(data?.status);
+}
+
+/**
+ * Require a customer whose organization is active, else redirect to /suspended. This is
+ * the chokepoint for customer route handlers (which bypass the (admin) layout guard).
+ * Platform owners pass through untouched.
+ */
+export async function requireActiveOrg(): Promise<Profile> {
+  const profile = await requireProfile();
+  if (!(await ownOrgActive(profile))) redirect(SUSPENDED_PATH);
+  return profile;
+}
+
+/**
+ * Require an org-scoped user and return their organization id. Also enforces that the
+ * organization is active — a suspended-org customer is redirected to /suspended rather
+ * than continuing to load org data (RLS would return nothing anyway; this is the clean UX).
+ */
 export async function requireOrgId(): Promise<string> {
   const profile = await requireProfile();
   if (!profile.organization_id) redirect(landingPathForRole(profile.role));
+  if (!(await ownOrgActive(profile))) redirect(SUSPENDED_PATH);
   return profile.organization_id;
 }

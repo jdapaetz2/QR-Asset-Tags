@@ -17,9 +17,34 @@ import {
   isLastActiveAdminRemoval,
 } from "@/lib/auth/invitations";
 import { buildInviteUrl } from "@/lib/auth/invite-link";
+import { isOrgActive } from "@/lib/org/status";
 
 const LAST_ADMIN_MESSAGE =
   "This is the organization's last active administrator — promote or invite another admin first.";
+
+const SUSPENDED_ORG_MESSAGE =
+  "Your organization is suspended. Contact AssetTag QR to reactivate it.";
+
+/**
+ * Team actions use the service-role admin client (creating auth users needs it), which
+ * bypasses RLS — so the org-suspension gate that RLS gives every other customer action
+ * has to be applied explicitly here. A CUSTOMER actor whose own org is suspended is
+ * blocked; the platform owner is never gated by a customer org's status. `actor.role`
+ * and `actor.organization_id` come from the already-verified profile.
+ */
+async function actorBlockedBySuspension(
+  admin: SupabaseClient,
+  actor: { role: string; organization_id: string | null }
+): Promise<boolean> {
+  if (actor.role === ROLES.PLATFORM_OWNER) return false;
+  if (!actor.organization_id) return true;
+  const { data } = await admin
+    .from("organizations")
+    .select("status")
+    .eq("id", actor.organization_id)
+    .maybeSingle();
+  return !isOrgActive(data?.status);
+}
 
 /**
  * Count OTHER active customer_admins in an org (excluding `exceptId`). Used to stop the
@@ -119,6 +144,11 @@ export async function inviteUser(
   const { email, name, role } = validation.value;
 
   const admin = createAdminClient();
+
+  // A customer admin cannot invite while their own org is suspended (owner is exempt).
+  if (await actorBlockedBySuspension(admin, inviter)) {
+    return { error: SUSPENDED_ORG_MESSAGE };
+  }
 
   // Look up any existing profile for this email (admin read bypasses RLS so cross-org
   // collisions are caught). Decide based on org + lifecycle status.
@@ -220,6 +250,9 @@ export async function regenerateInvite(
   const actor = await requireProfile();
 
   const admin = createAdminClient();
+  if (await actorBlockedBySuspension(admin, actor)) {
+    return { error: SUSPENDED_ORG_MESSAGE };
+  }
   const { data: target } = await admin
     .from("profiles")
     .select("id, email, organization_id, role, status")
@@ -273,6 +306,9 @@ export async function setUserStatus(
   const redirectTo = safeRedirect(formData.get("redirect_to"), fallback);
 
   const admin = createAdminClient();
+  if (await actorBlockedBySuspension(admin, actor)) {
+    return { error: SUSPENDED_ORG_MESSAGE };
+  }
   const { data: target } = await admin
     .from("profiles")
     .select("id, organization_id, role, status, auth_user_id")

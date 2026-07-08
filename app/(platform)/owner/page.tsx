@@ -155,7 +155,7 @@ export default async function OwnerPage() {
                   </td>
                   <td className="px-4 py-2 text-muted-foreground">{org.slug}</td>
                   <td className="px-4 py-2">
-                    <Badge tone={org.status === "active" ? "success" : "neutral"}>
+                    <Badge tone={org.status === "active" ? "success" : "warning"}>
                       {orgStatusLabel(org.status)}
                     </Badge>
                   </td>

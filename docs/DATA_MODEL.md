@@ -176,11 +176,27 @@ Internal audit trail.
 ## Enum reference (string-typed in MVP)
 
 - **role:** platform_owner, customer_admin, customer_staff
+- **organization status:** active, suspended (account-level; owner-controlled — see below)
+- **profile status:** active, invited, disabled (per-user lifecycle)
 - **document_type:** manual, startup_guide, safety_sheet, video, return_checklist, other
 - **visibility:** public, private
 - **link_status:** unknown, ok, broken, needs_review
 - **form_type:** damage_report, support_request, return_checklist, pre_use_inspection
 - **submission status:** new, reviewed, resolved, archived
+
+## Organization status & RLS helper behavior (Wave 5E.1)
+
+`organizations.status` is `active` | `suspended`. **Suspension is a data-preserving,
+owner-controlled pause** — no rows are deleted. Its effect is enforced through the SECURITY
+DEFINER helper `current_org_id()`, which (migration 0019) returns the caller's org id **only when
+`profiles.status <> 'disabled'` AND `organizations.status = 'active'`**. Because every
+authenticated tenant policy is `organization_id = current_org_id()` (or `is_platform_owner()`), a
+suspended org's customers lose scope on **all** tenant tables at once, even with a live session.
+`is_platform_owner()` is org-independent, so the platform owner still manages a suspended org.
+`organizations.status` is writable **only by the platform owner** — the `protect_commercial_fields`
+trigger coerces it back for any other caller, so customers cannot self-reactivate. This is
+distinct from per-user `profiles.status` (disable), and is **not** the seasonal "pause coverage"
+billing concept.
 
 ## Privacy / data-handling rules
 

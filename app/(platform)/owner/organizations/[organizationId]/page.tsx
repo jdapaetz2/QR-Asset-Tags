@@ -7,7 +7,9 @@ import { ROLES } from "@/lib/auth/roles";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
+import { OrgStatusControl } from "@/components/org-status-control";
 import { orgStatusLabel } from "@/lib/ui/status-labels";
+import { isOrgActive } from "@/lib/org/status";
 import { countCoveredAssets } from "@/lib/plans/coverage";
 import { formatCents } from "@/lib/plans/presets";
 
@@ -93,6 +95,7 @@ export default async function OwnerOrganizationDetailPage({
   const covered = countCoveredAssets(nonArchivedIds, qrAssetIds);
 
   const support = [org.support_phone, org.support_email].filter(Boolean);
+  const active = isOrgActive(org.status);
 
   return (
     <div className="flex flex-col gap-6">
@@ -122,7 +125,7 @@ export default async function OwnerOrganizationDetailPage({
       {/* Identity + plan summary */}
       <section className="flex flex-col gap-3 rounded-lg border bg-card p-4 text-sm">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone={org.status === "active" ? "success" : "neutral"}>
+          <Badge tone={active ? "success" : "warning"}>
             {orgStatusLabel(org.status)}
           </Badge>
           <span className="text-muted-foreground">
@@ -154,6 +157,22 @@ export default async function OwnerOrganizationDetailPage({
             </a>
           </p>
         ) : null}
+      </section>
+
+      {/* Account status — owner-only suspend / reactivate */}
+      <section className="flex flex-col gap-3 rounded-lg border bg-card p-4">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-medium text-muted-foreground">Account status</h2>
+          <Badge tone={active ? "success" : "warning"}>{orgStatusLabel(org.status)}</Badge>
+        </div>
+        {!active ? (
+          <p className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2 text-sm text-amber-700 dark:text-amber-500">
+            This organization is suspended. Customer users cannot access the app and its
+            public scan pages are unavailable. Data is preserved and reactivation is
+            immediate.
+          </p>
+        ) : null}
+        <OrgStatusControl organizationId={org.id} status={org.status} />
       </section>
 
       {/* Counts */}

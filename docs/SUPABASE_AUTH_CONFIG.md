@@ -61,6 +61,24 @@ are denied at two layers:**
 **The last active `customer_admin` of an org cannot be disabled or demoted** — the team actions
 block it so an organization is never left without an administrator.
 
+### Organization suspension vs user disable
+
+These are **separate** mechanisms:
+
+- **User disabled** (`profiles.status = 'disabled'`) — one person loses access; the rest of the
+  org is unaffected.
+- **Organization suspended** (`organizations.status = 'suspended'`, Wave 5E.1) — the whole
+  customer account is paused by the platform owner. **All** its customer users lose access and its
+  public scan pages/forms go unavailable, but **no data is deleted**.
+
+Both are enforced at **two layers**. App: `getProfile` denies disabled users; `requireActiveOrg`
+(the `(admin)` layout) and `requireOrgId` redirect suspended-org customers to **`/suspended`** (a
+generic message page that needs only the auth profile — never tenant data). RLS: `current_org_id()`
+returns an org id only when `profiles.status <> 'disabled'` **and** `organizations.status = 'active'`
+(migration 0019), so a stale session on a suspended org has no tenant scope. Only the platform
+owner can change `organizations.status` (the `protect_commercial_fields` trigger coerces it for
+non-owners) — customers cannot self-reactivate. Suspending an org does **not** disable its users.
+
 ## Deferred (future wave)
 
 - **Branded email delivery** of the same generated link via Resend / custom SMTP (once

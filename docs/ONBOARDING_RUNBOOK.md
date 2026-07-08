@@ -299,6 +299,23 @@ Customer admins have no access to these routes.
 
 ---
 
+## Suspend / reactivate a customer organization
+
+Account-level pause for a whole customer (Wave 5E.1) — **platform owner only, and no data is
+deleted.** Use it to pause a pilot that lapses or an account that must be put on hold.
+
+- **Suspend:** open **`/owner/organizations/[id]`** → **Account status** → **Suspend
+  organization** → confirm. The org's badge flips to **Suspended**. Immediately: its customer
+  users are redirected to **`/suspended`** on any dashboard route, and its public scan pages/forms
+  show the generic "not available" page (the reason is never shown publicly). All data (assets,
+  pages, submissions, media, users) is preserved.
+- **Reactivate:** same page → **Reactivate organization** → confirm. Access and public pages
+  return immediately.
+- **Notes:** the platform owner can still open a suspended org's overview, settings, users, and
+  exports. Suspending an org does **not** disable individual users (that's a separate per-user
+  action). Customers **cannot** reactivate themselves (DB-guarded). This is **not** the seasonal
+  "pause coverage"/billing concept — it's an availability switch.
+
 ## Onboarding checklist (per pilot)
 
 - [ ] Migrations `0001`–`0006` applied; storage buckets present.

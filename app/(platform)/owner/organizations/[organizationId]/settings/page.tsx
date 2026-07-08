@@ -13,6 +13,8 @@ import { ExportSettingsForm } from "@/components/export-settings-form";
 import { toExportFlags } from "@/lib/export/types";
 import { PlanSettingsForm } from "@/components/plan-settings-form";
 import type { PlanSettings } from "@/lib/plans/settings";
+import { Badge } from "@/components/ui/badge";
+import { orgStatusLabel } from "@/lib/ui/status-labels";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +31,7 @@ export default async function OwnerOrgSettingsPage({
   const { data: org } = await supabase
     .from("organizations")
     .select(
-      "name, support_phone, support_email, website_url, primary_color, logo_url, customer_exports_enabled, export_assets_enabled, export_qr_mapping_enabled, export_documents_enabled, export_submissions_enabled, plan_key, plan_name, billing_interval, asset_limit, intro_price_cents, renewal_price_cents, tag_credit_cents, storage_limit_mb, video_uploads_enabled, plan_notes"
+      "name, status, support_phone, support_email, website_url, primary_color, logo_url, customer_exports_enabled, export_assets_enabled, export_qr_mapping_enabled, export_documents_enabled, export_submissions_enabled, plan_key, plan_name, billing_interval, asset_limit, intro_price_cents, renewal_price_cents, tag_credit_cents, storage_limit_mb, video_uploads_enabled, plan_notes"
     )
     .eq("id", organizationId)
     .maybeSingle();
@@ -67,12 +69,24 @@ export default async function OwnerOrgSettingsPage({
         >
           ← Organizations
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          {org.name ?? "Organization"} — settings
-        </h1>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {org.name ?? "Organization"} — settings
+          </h1>
+          <Badge tone={org.status === "active" ? "success" : "warning"}>
+            {orgStatusLabel(org.status)}
+          </Badge>
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">
           Branding and support contact shown on this organization&apos;s public scan
-          pages.
+          pages. Suspend or reactivate this account from the{" "}
+          <Link
+            href={`/owner/organizations/${organizationId}`}
+            className="underline-offset-4 hover:underline"
+          >
+            organization overview
+          </Link>
+          .
         </p>
       </section>
 
