@@ -92,3 +92,5 @@ independent.
   `video_uploads_enabled` are captured as metadata but **not enforced** yet.
 - MCore-specific metal-tag production testing after delivery, final brand/domain
   decision, and a standalone sales/demo flow.
+
+Full roadmap detail for each deferred item is in `docs/ROADMAP_DEFERRED.md`.

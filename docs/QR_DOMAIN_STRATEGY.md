@@ -21,7 +21,8 @@ a stale placeholder host. Exports follow the same rule.
 
 1. **Production tags must use a stable production/custom domain** (e.g.
    `https://tags.yourcompany.com` or the product's production host). Decide the domain
-   **before** producing physical tags.
+   **before** producing physical tags. See `docs/TAG_PRODUCTION_READINESS.md` for the
+   physical-tag context (metal tags, MCore, PNW field/scanability testing).
 2. **`localhost` and Vercel preview URLs are for testing only.** Never produce physical
    tags whose base URL is a preview deployment or `localhost`. Production CSV/SVG export
    refuses obvious non-production base URLs where it can.
