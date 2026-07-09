@@ -6,6 +6,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { RefreshControls } from "@/components/refresh-controls";
+import { RelativeTime } from "@/components/relative-time";
 import { Card, CardTitle } from "@/components/ui/card";
 import { BarChart } from "@/components/ui/bar-chart";
 import { StatBar } from "@/components/ui/stat-bar";
@@ -51,14 +52,6 @@ type AssetRow = {
 
 function firstString(value: string | string[] | undefined): string {
   return (Array.isArray(value) ? value[0] : value) ?? "";
-}
-
-function formatDateTime(value: string | null): string {
-  if (!value) return "—";
-  const d = new Date(value);
-  return Number.isNaN(d.getTime())
-    ? "—"
-    : d.toISOString().slice(0, 16).replace("T", " ");
 }
 
 function titleCase(value: string): string {
@@ -588,7 +581,7 @@ export default async function AnalyticsPage({
                     </td>
                     <td className="px-4 py-2 tabular-nums">{row.totalScans}</td>
                     <td className="px-4 py-2 text-muted-foreground">
-                      {formatDateTime(row.lastScannedAt)}
+                      <RelativeTime value={row.lastScannedAt} />
                     </td>
                     <td className="px-4 py-2 tabular-nums">
                       <Link

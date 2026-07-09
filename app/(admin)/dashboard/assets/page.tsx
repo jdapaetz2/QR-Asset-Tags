@@ -4,11 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
 import { Button } from "@/components/ui/button";
 import { ActionButton } from "@/components/action-button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { AssetThumb } from "@/components/asset-thumb";
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetStatusCell } from "@/components/ui/asset-status-cell";
+import { RelativeTime } from "@/components/relative-time";
+import { deriveAssetStatus } from "@/lib/ui/status-view";
 import { PlanUsage } from "@/components/plan-usage";
 import { getCoveredCount } from "@/lib/plans/coverage-query";
 import { getOrgCategories } from "@/lib/assets/categories";
@@ -42,11 +44,6 @@ type AssetRow = {
   archived_at: string | null;
   cover_image_url: string | null;
 };
-
-function formatDate(value: string): string {
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? "—" : d.toISOString().slice(0, 10);
-}
 
 const selectClass =
   "rounded-md border bg-background px-2 py-1.5 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring";
@@ -371,30 +368,18 @@ export default async function AssetsPage({
                     {asset.category ?? "—"}
                   </td>
                   <td className="px-4 py-2">
-                    <div className="flex flex-wrap gap-1">
-                      <Badge tone={activeSessionId ? "warning" : "neutral"}>
-                        {activeSessionId ? "Rented" : "Available"}
-                      </Badge>
-                      <Badge tone={asset.public_status === "public" ? "success" : "neutral"}>
-                        {asset.public_status === "public" ? "Public" : "Private"}
-                      </Badge>
-                      <Badge tone={hasActiveQr ? "success" : "warning"}>
-                        {hasActiveQr ? "QR ready" : hasQr ? "QR inactive" : "No QR"}
-                      </Badge>
-                      <Badge tone={pageStatus === "published" ? "success" : "warning"}>
-                        {pageStatus === "published"
-                          ? "Page live"
-                          : pageStatus === "draft"
-                            ? "Page draft"
-                            : "No page"}
-                      </Badge>
-                      {asset.archived_at ? (
-                        <Badge tone="warning">Archived</Badge>
-                      ) : null}
-                    </div>
+                    <AssetStatusCell
+                      status={deriveAssetStatus({
+                        rented: Boolean(activeSessionId),
+                        publicStatus: asset.public_status,
+                        qrStatus: hasActiveQr ? "active" : hasQr ? "disabled" : null,
+                        pageStatus,
+                        archivedAt: asset.archived_at,
+                      })}
+                    />
                   </td>
                   <td className="whitespace-nowrap px-4 py-2 text-muted-foreground">
-                    {formatDate(asset.created_at)}
+                    <RelativeTime value={asset.created_at} />
                   </td>
                   <td className="whitespace-nowrap px-4 py-2 text-right">
                     <div className="flex items-center justify-end gap-3">

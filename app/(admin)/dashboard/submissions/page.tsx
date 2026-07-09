@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
+import { RelativeTime } from "@/components/relative-time";
 import {
   SUBMISSION_STATUSES,
   FORM_TYPE_LABELS,
@@ -59,13 +60,6 @@ type SubmissionRow = {
 };
 
 type AssetOption = { id: string; asset_code: string; asset_name: string };
-
-function formatDateTime(value: string): string {
-  const d = new Date(value);
-  return Number.isNaN(d.getTime())
-    ? "—"
-    : d.toISOString().slice(0, 16).replace("T", " ");
-}
 
 /** Compact "3h ago" style relative label for the received column. */
 function relativeTime(value: string): string {
@@ -402,7 +396,7 @@ export default async function SubmissionsPage({
                     <td className="px-4 py-2">{submitter}</td>
                     <td className="px-4 py-2 text-muted-foreground">
                       <div className="leading-tight">
-                        <div>{formatDateTime(row.created_at)}</div>
+                        <div><RelativeTime value={row.created_at} /></div>
                         <div className="text-xs">{relativeTime(row.created_at)}</div>
                         <div className="font-mono text-[11px] text-muted-foreground/70">
                           {reference}

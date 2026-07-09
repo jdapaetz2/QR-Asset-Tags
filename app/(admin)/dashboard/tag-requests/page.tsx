@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { tagRequestStatusLabel } from "@/lib/tags/tag-requests";
 import { tagRequestStatusTone } from "@/lib/ui/status";
+import { RelativeTime } from "@/components/relative-time";
 
 export const dynamic = "force-dynamic";
 
@@ -20,10 +21,6 @@ type RequestRow = {
   tag_request_assets: { count: number }[];
 };
 
-function formatDate(value: string): string {
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? "—" : d.toISOString().slice(0, 10);
-}
 
 export default async function TagRequestsPage() {
   await requireOrgId();
@@ -82,7 +79,7 @@ export default async function TagRequestsPage() {
               requests.map((r) => (
                 <tr key={r.id} className="border-b last:border-0">
                   <td className="whitespace-nowrap px-4 py-2 text-muted-foreground">
-                    {formatDate(r.created_at)}
+                    <RelativeTime value={r.created_at} />
                   </td>
                   <td className="px-4 py-2">
                     <Badge tone={tagRequestStatusTone(r.status)}>

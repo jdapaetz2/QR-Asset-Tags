@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { profileStatusLabel, type ProfileStatus } from "@/lib/auth/invitations";
 import type { BadgeTone } from "@/lib/ui/status";
+import { RelativeTime } from "@/components/relative-time";
 
 export const dynamic = "force-dynamic";
 
@@ -32,10 +33,6 @@ function statusTone(status: string): BadgeTone {
   return STATUS_TONE[status as ProfileStatus] ?? "neutral";
 }
 
-function formatDate(value: string): string {
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? "—" : d.toISOString().slice(0, 10);
-}
 
 export default async function OwnerUsersPage() {
   await requireRole(ROLES.PLATFORM_OWNER);
@@ -111,7 +108,7 @@ export default async function OwnerUsersPage() {
                     </Badge>
                   </td>
                   <td className="px-4 py-2 text-muted-foreground">
-                    {formatDate(u.created_at)}
+                    <RelativeTime value={u.created_at} />
                   </td>
                 </tr>
               ))}

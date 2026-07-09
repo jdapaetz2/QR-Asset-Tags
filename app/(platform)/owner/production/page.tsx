@@ -7,11 +7,13 @@ import { publicEnv } from "@/lib/env";
 import { buildPublicQrUrl } from "@/lib/qr/url";
 import {
   isProductionBaseUrl,
-  assetReadiness,
   TAG_SIZE_OPTIONS,
   MATERIAL_OPTIONS,
   MOUNTING_OPTIONS,
 } from "@/lib/qr/production";
+import { deriveAssetStatus } from "@/lib/ui/status-view";
+import { ReadinessIndicator } from "@/components/ui/asset-status-cell";
+import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import {
   EC_OPTIONS,
   SIZE_OPTIONS,
@@ -222,13 +224,16 @@ export default async function ProductionPage({
   const rows = assets.map((asset) => {
     const qr = qrByAsset.get(asset.id) ?? null;
     const pageStatus = pageStatusFor(asset.id);
-    const readiness = assetReadiness({
-      public_status: asset.public_status,
-      qrStatus: qr?.status ?? null,
+    // Display view-model (A2). Production lists only non-archived assets and doesn't show
+    // rental state, so rented=false/archivedAt=null; readiness matches the canonical rules.
+    const status = deriveAssetStatus({
+      rented: false,
+      publicStatus: asset.public_status,
+      qrStatus: (qr?.status as "active" | "disabled" | null | undefined) ?? null,
       pageStatus,
     });
     const qrUrl = qr ? buildPublicQrUrl(baseUrl, qr.short_code) : null;
-    return { asset, qr, pageStatus, readiness, qrUrl };
+    return { asset, qr, pageStatus, status, qrUrl };
   });
 
   const selected = rows.filter((r) => selectedIds.includes(r.asset.id));
@@ -386,7 +391,7 @@ export default async function ProductionPage({
                   </td>
                 </tr>
               ) : (
-                rows.map(({ asset, qr, pageStatus, readiness, qrUrl }) => (
+                rows.map(({ asset, qr, pageStatus, status, qrUrl }) => (
                   <tr key={asset.id} className="border-b align-top last:border-0">
                     <td className="px-3 py-2">
                       <input
@@ -397,7 +402,9 @@ export default async function ProductionPage({
                         className="size-4"
                       />
                     </td>
-                    <td className="px-3 py-2 font-medium">{asset.asset_code}</td>
+                    <td className="px-3 py-2">
+                      <AssetTagChip code={asset.asset_code} />
+                    </td>
                     <td className="px-3 py-2">
                       {asset.asset_name}
                       {asset.category ? (
@@ -415,15 +422,7 @@ export default async function ProductionPage({
                       {docCount.get(asset.id) ?? 0}
                     </td>
                     <td className="px-3 py-2">
-                      {readiness.ready ? (
-                        <span className="rounded-full border px-2 py-0.5 text-xs">
-                          Ready
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">
-                          {readiness.issues.join(", ")}
-                        </span>
-                      )}
+                      <ReadinessIndicator readiness={status.readiness} />
                     </td>
                     <td className="px-3 py-2">
                       {qrUrl && qr ? (
@@ -470,8 +469,8 @@ export default async function ProductionPage({
           <>
             <ul className="flex flex-col gap-1 text-sm">
               {selected.map(({ asset, qrUrl }) => (
-                <li key={asset.id} className="flex flex-wrap items-baseline gap-2">
-                  <span className="font-medium">{asset.asset_code}</span>
+                <li key={asset.id} className="flex flex-wrap items-center gap-2">
+                  <AssetTagChip code={asset.asset_code} />
                   {qrUrl ? (
                     <code className="font-mono text-xs">{qrUrl}</code>
                   ) : (
