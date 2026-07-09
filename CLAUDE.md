@@ -59,3 +59,20 @@ docs/                planning docs
   premature abstractions, no out-of-scope features (`docs/NON_GOALS.md`).
 - Manual external steps (create Supabase project, set `.env.local`, apply
   `supabase/migrations` + `supabase/seed.sql`, connect Vercel) are owned by the operator.
+
+## Design & brand (pilot-credibility)
+- Brand package (working name **MuleMark**, pending clearance): `docs/brand/BRAND.md` +
+  `docs/brand/*.svg`. Brand strings route through `lib/constants.ts`; artwork renders from
+  `components/brand/brand.tsx` (never re-set the wordmark from live text; never fill the glyph hole).
+- Interface rules: the **`product-design-system`** skill (`.claude/skills/product-design-system/`).
+- Fonts: Barlow + JetBrains Mono load on admin/marketing only (`app/fonts.ts`); **`/t/` scan routes
+  use system fonts with zero webfonts**. Brass is a platform accent only.
+
+## Commercial model (at a glance)
+Full model in `docs/COMMERCIAL_MODEL.md`. Pricing is per **covered asset** = active, non-archived
+asset with QR coverage assigned; archived and draft/no-coverage assets don't count. **Scans are
+unlimited; no per-scan billing.** Plan fields are commercial metadata only (dollars in the UI, cents
+stored); **no Stripe/billing in this pass**. Organization suspension is **account-level** (owner
+pauses a whole org, data preserved) — not a covered-asset/seasonal pause, and there is no customer
+self-service pause or reactivation. Not in this pass: billing/Stripe, offline PWA / service worker /
+SSG scan route, yard-worker scanner mode, storage-quota enforcement.

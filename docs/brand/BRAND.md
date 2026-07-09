@@ -30,12 +30,19 @@ one constant, nothing else.
    where the only platform presence is the small footer mark and the
    post-submission "Delivered by" line (both gated by
    hide_platform_branding).
-4. AssetTagChip is an admin device. On public scan pages, asset codes are
-   plain JetBrains-Mono-styled text without the chip.
+4. AssetTagChip is an admin device. On public scan pages, asset codes
+   render in the SYSTEM monospace stack (ui-monospace, SF Mono, Roboto
+   Mono, Consolas, monospace), without the chip and without loading any
+   webfont. Monospace is a role (data voice), not a typeface commitment;
+   JetBrains Mono is the brand mono on admin and marketing surfaces only.
 5. Mono means data. JetBrains Mono is for asset codes, IDs, and URLs, and
    is never used for the brand name.
 6. Type roles: live Barlow 600 for UI headings, Barlow 400 for body,
-   system font stack only on /t/ scan-page routes (zero webfonts there).
+   JetBrains Mono for codes on admin/marketing; /t/ scan-page routes use
+   system fonts exclusively, zero webfonts, no exceptions. Precedence
+   rule when guidance collides: on /t/ routes the performance guardrail
+   beats typeface fidelity; on admin and marketing surfaces the brand
+   faces load.
 
 ## Geometry (for regeneration or physical production)
 

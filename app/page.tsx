@@ -1,7 +1,10 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import { PRODUCT_NAME, PRODUCT_TAGLINE } from "@/lib/constants";
+import { PRODUCT_TAGLINE } from "@/lib/constants";
+import { BrandLockup } from "@/components/brand/brand";
+import { Eyebrow } from "@/components/ui/eyebrow";
+import { brandFontVars } from "@/app/fonts";
 
 const FEATURES = [
   {
@@ -32,15 +35,15 @@ const FEATURES = [
 
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col">
+    <main className={`${brandFontVars} font-sans flex flex-1 flex-col`}>
       {/* Hero */}
       <section className="border-b">
         <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-6 px-6 py-20 text-center sm:py-28">
           <span className="rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground">
             For equipment rental yards
           </span>
-          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-            {PRODUCT_NAME}
+          <h1 className="flex justify-center">
+            <BrandLockup className="h-11 w-auto sm:h-14" />
           </h1>
           <p className="max-w-2xl text-lg text-muted-foreground">
             {PRODUCT_TAGLINE}
@@ -58,9 +61,9 @@ export default function Home() {
 
       {/* What it is */}
       <section className="mx-auto w-full max-w-4xl px-6 py-16">
-        <h2 className="text-center text-sm font-medium uppercase tracking-wide text-muted-foreground">
+        <Eyebrow as="h2" className="text-center">
           What it does
-        </h2>
+        </Eyebrow>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f) => (
             <div key={f.title} className="rounded-lg border bg-card p-5">

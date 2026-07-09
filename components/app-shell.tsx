@@ -6,6 +6,8 @@ import { navForRole } from "@/lib/auth/nav";
 import { ROLES, roleLabel } from "@/lib/auth/roles";
 import type { Profile } from "@/lib/auth/session";
 import { NavLinks } from "@/components/nav-links";
+import { BrandLockup } from "@/components/brand/brand";
+import { brandFontVars } from "@/app/fonts";
 
 /**
  * Shared authenticated shell: product mark, role-based nav (active-route aware),
@@ -23,21 +25,12 @@ export function AppShell({
   const home = profile.role === ROLES.PLATFORM_OWNER ? "/owner" : "/dashboard";
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className={`${brandFontVars} font-sans flex min-h-full flex-col`}>
       <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
         <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-2.5 sm:px-6">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-            <Link
-              href={home}
-              className="flex items-center gap-2 font-semibold tracking-tight"
-            >
-              <span
-                aria-hidden
-                className="flex size-6 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground"
-              >
-                {PRODUCT_NAME.charAt(0)}
-              </span>
-              {PRODUCT_NAME}
+            <Link href={home} aria-label={`${PRODUCT_NAME} home`} className="flex items-center">
+              <BrandLockup className="h-6 w-auto" />
             </Link>
             <NavLinks items={nav} />
           </div>

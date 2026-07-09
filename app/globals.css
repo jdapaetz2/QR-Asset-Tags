@@ -23,6 +23,31 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
+
+  /* MuleMark platform palette (A1). Hex, per BRAND.md. Brass is a platform
+     accent ONLY — never on tenant scan pages. Foundation tokens: adopt
+     deliberately, do not aggressively recolor. */
+  --iron-950: #1a1917;
+  --iron-600: #57534b;
+  --iron-200: #e4e1db;
+  --bone-50: #faf9f6;
+  --brass-500: #a87b22;
+  --brass-600: #8c6519;
+  --status-success: #3d7a44;
+  --status-warning: #b07b10;
+  --status-danger: #b3372e;
+  --status-info: #2e5ea8;
+
+  /* Tenant namespace reserved (name only). Tenant color is applied inline where
+     already used today (lib/public/brand.ts); A1 does not rewire it. */
+  /* --tenant-primary: <set per tenant where tenant color is used>; */
+
+  /* System font stacks — the default when brand webfonts are not applied, e.g. on
+     /t/ scan pages (BRAND.md rule 6: zero webfonts there). */
+  --font-system-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-system-mono: ui-monospace, "SF Mono", "Roboto Mono", Consolas,
+    "Liberation Mono", monospace;
 }
 
 .dark {
@@ -69,8 +94,25 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  /* MuleMark platform + semantic tokens → generate utilities (bg-brass-500,
+     text-iron-600, border-iron-200, text-success, …). */
+  --color-iron-950: var(--iron-950);
+  --color-iron-600: var(--iron-600);
+  --color-iron-200: var(--iron-200);
+  --color-bone-50: var(--bone-50);
+  --color-brass-500: var(--brass-500);
+  --color-brass-600: var(--brass-600);
+  --color-success: var(--status-success);
+  --color-warning: var(--status-warning);
+  --color-danger: var(--status-danger);
+  --color-info: var(--status-info);
+
+  /* Brand fonts with system fallback. On surfaces that DON'T apply the brand-font
+     variables (root layout, /t/ scan pages), --font-barlow/--font-jetbrains are
+     undefined and these resolve to the system stacks — zero webfonts there. */
+  --font-sans: var(--font-barlow, var(--font-system-sans));
+  --font-mono: var(--font-jetbrains, var(--font-system-mono));
 }
 
 @layer base {

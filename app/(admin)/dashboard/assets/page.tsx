@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { AssetThumb } from "@/components/asset-thumb";
+import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { PlanUsage } from "@/components/plan-usage";
 import { getCoveredCount } from "@/lib/plans/coverage-query";
 import { getOrgCategories } from "@/lib/assets/categories";
@@ -362,7 +363,7 @@ export default async function AssetsPage({
                         src={asset.cover_image_url}
                         alt={`Photo of ${asset.asset_name}`}
                       />
-                      {asset.asset_code}
+                      <AssetTagChip code={asset.asset_code} />
                     </span>
                   </td>
                   <td className="px-4 py-2">{asset.asset_name}</td>
