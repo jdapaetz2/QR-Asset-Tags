@@ -68,7 +68,9 @@ describe("buildAttentionItems", () => {
       { ...base, rented: true, hasOpenDamage: true, unresolvedCount: 2 },
     ]);
     expect(items[0].tone).toBe("danger");
-    expect(items[0].href).toBe("/dashboard/submissions?asset_id=a1");
+    expect(items[0].href).toBe(
+      "/dashboard/submissions?asset_id=a1&status=unresolved"
+    );
   });
 
   it("emits a warning row for unresolved submissions", () => {

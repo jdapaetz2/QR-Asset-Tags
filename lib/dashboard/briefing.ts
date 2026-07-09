@@ -97,7 +97,7 @@ export function buildAttentionItems(
         code: a.code,
         title: "Open damage on a rented asset",
         reason: "Review before the next handoff.",
-        href: `/dashboard/submissions?asset_id=${a.id}`,
+        href: `/dashboard/submissions?asset_id=${a.id}&status=unresolved`,
         tone: "danger",
       });
     } else if (a.unresolvedCount > 0) {
@@ -107,7 +107,7 @@ export function buildAttentionItems(
         code: a.code,
         title: `${a.unresolvedCount} open submission${a.unresolvedCount === 1 ? "" : "s"}`,
         reason: a.name,
-        href: `/dashboard/submissions?asset_id=${a.id}`,
+        href: `/dashboard/submissions?asset_id=${a.id}&status=unresolved`,
         tone: "warning",
       });
     }

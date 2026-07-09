@@ -101,6 +101,12 @@ describe("parseSubmissionFilters", () => {
     );
     expect(parseSubmissionFilters({}).hasMedia).toBe(false);
   });
+
+  it("keeps the synthetic unresolved status", () => {
+    expect(parseSubmissionFilters({ status: "unresolved" }).status).toBe(
+      "unresolved"
+    );
+  });
 });
 
 describe("submissionFilterQuery", () => {
@@ -123,6 +129,12 @@ describe("activeQuickFilterKey", () => {
 
   it("matches All when nothing is set", () => {
     expect(activeQuickFilterKey(base)).toBe("all");
+  });
+
+  it("matches the Unresolved chip", () => {
+    expect(activeQuickFilterKey({ ...base, status: "unresolved" })).toBe(
+      "unresolved"
+    );
   });
 
   it("matches the New, type, and Archived chips", () => {
@@ -151,6 +163,13 @@ describe("resolveStatusFilter", () => {
       mode: "active",
       statuses: ["new", "reviewed", "resolved"],
     });
+    expect(f.mode === "active" && f.statuses).not.toContain("archived");
+  });
+
+  it("returns new + reviewed (resolved + archived excluded) for unresolved", () => {
+    const f = resolveStatusFilter("unresolved");
+    expect(f).toEqual({ mode: "active", statuses: ["new", "reviewed"] });
+    expect(f.mode === "active" && f.statuses).not.toContain("resolved");
     expect(f.mode === "active" && f.statuses).not.toContain("archived");
   });
 

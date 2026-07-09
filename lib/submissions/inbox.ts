@@ -117,20 +117,32 @@ export type StatusFilter =
   | { mode: "single"; status: SubmissionStatus };
 
 /**
- * Resolve the status query into a DB filter. No status → "active" (excludes
- * archived); a specific status → that status only (including "archived"). This is
- * the single source of truth for "archived hidden by default".
+ * Accepted values of the `status` filter. Beyond the real statuses and "" (All
+ * active), "unresolved" is a synthetic filter meaning new + reviewed only — the
+ * work still on the operator's plate. It has no DB status of its own; it maps to
+ * a multi-status "active" filter over UNRESOLVED_STATUSES.
  */
-export function resolveStatusFilter(status: SubmissionStatus | ""): StatusFilter {
+export type StatusFilterValue = SubmissionStatus | "unresolved" | "";
+
+/**
+ * Resolve the status query into a DB filter. No status → "active" (excludes
+ * archived); "unresolved" → new + reviewed (excludes resolved + archived); a
+ * specific status → that status only (including "archived"). This is the single
+ * source of truth for "archived hidden by default".
+ */
+export function resolveStatusFilter(status: StatusFilterValue): StatusFilter {
   if (status === "") {
     return { mode: "active", statuses: ACTIVE_STATUSES };
+  }
+  if (status === "unresolved") {
+    return { mode: "active", statuses: UNRESOLVED_STATUSES };
   }
   return { mode: "single", status };
 }
 
 export type SubmissionFilters = {
   formType: FilterFormType | "";
-  status: SubmissionStatus | "";
+  status: StatusFilterValue;
   assetId: string;
   hasMedia: boolean;
   q: string;
@@ -189,7 +201,11 @@ export function parseSubmissionFilters(
   const media = firstString(raw.media);
   return {
     formType: isFilterFormType(formTypeRaw) ? formTypeRaw : "",
-    status: isSubmissionStatus(statusRaw) ? statusRaw : "",
+    status: isSubmissionStatus(statusRaw)
+      ? statusRaw
+      : statusRaw === "unresolved"
+        ? "unresolved"
+        : "",
     assetId: firstString(raw.asset_id),
     hasMedia: media === "1" || media === "true",
     q: firstString(raw.q).trim(),
@@ -223,6 +239,7 @@ export type QuickFilter = {
  */
 export const QUICK_FILTERS: QuickFilter[] = [
   { key: "all", label: "All active", params: {} },
+  { key: "unresolved", label: "Unresolved", params: { status: "unresolved" } },
   { key: "new", label: "New", params: { status: "new" } },
   {
     key: "damage",

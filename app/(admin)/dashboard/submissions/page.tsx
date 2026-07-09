@@ -232,6 +232,7 @@ export default async function SubmissionsPage({
             className={selectClass}
           >
             <option value="">All active</option>
+            <option value="unresolved">Unresolved (new + reviewed)</option>
             {SUBMISSION_STATUSES.map((s) => (
               <option key={s} value={s}>
                 {submissionStatusLabel(s)}

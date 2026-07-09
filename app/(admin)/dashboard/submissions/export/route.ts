@@ -19,7 +19,11 @@ export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
   const formType = sp.get("form_type") ?? "";
   const statusRaw = sp.get("status") ?? "";
-  const status = isSubmissionStatus(statusRaw) ? statusRaw : "";
+  const status = isSubmissionStatus(statusRaw)
+    ? statusRaw
+    : statusRaw === "unresolved"
+      ? "unresolved"
+      : "";
   const assetId = sp.get("asset_id") ?? "";
 
   const supabase = await createClient();

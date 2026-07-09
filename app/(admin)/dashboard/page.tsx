@@ -357,7 +357,7 @@ export default async function DashboardPage() {
           <StatCard
             label="Unresolved submissions"
             value={unresolvedCount}
-            href="/dashboard/submissions"
+            href="/dashboard/submissions?status=unresolved"
           />
           <StatCard
             label="Open tag requests"
