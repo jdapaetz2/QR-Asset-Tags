@@ -139,5 +139,7 @@ export async function submitPublicForm(
     submissionId,
   });
 
-  redirect(thanks);
+  // Pass the (already-inserted) id to the thanks page for a display-only reference number.
+  // Insertion is unchanged; anon cannot read submissions back, so this exposes nothing.
+  redirect(`${thanks}?ref=${submissionId}`);
 }

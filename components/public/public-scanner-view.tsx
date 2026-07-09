@@ -15,9 +15,12 @@ import { PublicFooter } from "@/components/public/public-footer";
  * and the editor live preview, so the two can never visually diverge.
  *
  * - mode="public": real links — internal <Link> for forms, new-tab <a> for docs.
- * - mode="preview": every action is an inert, identically-styled disabled button. It
- *   cannot navigate or submit; the editor preview wraps this in a phone frame. No scan
- *   logging or ack prompt live here — those stay with the public wrapper.
+ * - mode="preview": every action is an inert, identically-styled disabled button.
+ *
+ * Design (Prompt B): tenant-first. The tenant logo + tenant color carry identity (a slim
+ * tenant top bar is the strongest color moment); the platform is only a quiet footer mark.
+ * System fonts only, no webfonts, no decorative motion. Server component — the accordions are
+ * native <details> (zero JS). Receives PUBLIC-SAFE fields only.
  */
 
 export type ScannerMode = "public" | "preview";
@@ -53,14 +56,14 @@ export type PublicOrg = {
 } | null;
 
 const PRIMARY_CLS =
-  "flex h-12 w-full items-center justify-center rounded-lg px-4 text-sm font-semibold";
+  "flex h-12 w-full items-center justify-center rounded-lg px-4 text-base font-semibold";
 const OUTLINE_CLS =
-  "flex h-12 w-full items-center justify-center rounded-lg border-2 bg-background px-4 text-sm font-medium text-foreground";
+  "flex h-12 w-full items-center justify-center rounded-lg border-2 bg-background px-4 text-base font-medium text-foreground";
 
-/**
- * One action affordance, rendered live (public) or inert (preview). Inert uses a
- * disabled button so it looks real but cannot navigate or submit.
- */
+const EYEBROW_CLS =
+  "text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground";
+
+/** One action affordance, rendered live (public) or inert (preview). */
 function Action({
   mode,
   href,
@@ -86,26 +89,14 @@ function Action({
 
   if (mode === "preview") {
     return (
-      <button
-        type="button"
-        disabled
-        title="Preview only"
-        className={`${cls} cursor-default`}
-        style={style}
-      >
+      <button type="button" disabled title="Preview only" className={`${cls} cursor-default`} style={style}>
         {children}
       </button>
     );
   }
   if (newTab) {
     return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={cls}
-        style={style}
-      >
+      <a href={href} target="_blank" rel="noopener noreferrer" className={cls} style={style}>
         {children}
       </a>
     );
@@ -117,29 +108,39 @@ function Action({
   );
 }
 
-function Section({
-  id,
-  title,
-  body,
-  brand,
-}: {
-  id?: string;
-  title: string;
-  body: string | null;
-  brand: string;
-}) {
+function ChevronDown() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="size-4 shrink-0 text-muted-foreground transition-none group-[[open]]:rotate-180"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+/**
+ * Collapsible content section — native <details>, no JS, no animation (reduced-motion safe by
+ * construction). The whole <summary> row is the ≥44px tap target.
+ */
+function Accordion({ label, body }: { label: string; body: string | null }) {
   if (!body) return null;
   return (
-    <section
-      id={id}
-      className="scroll-mt-4 rounded-lg border border-l-4 bg-card p-4"
-      style={{ borderLeftColor: brand }}
-    >
-      <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        {title}
-      </h2>
-      <p className="whitespace-pre-line text-sm leading-relaxed">{body}</p>
-    </section>
+    <details className="group rounded-lg border bg-card">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+        <span className={EYEBROW_CLS}>{label}</span>
+        <ChevronDown />
+      </summary>
+      <div className="whitespace-pre-line border-t px-4 py-3 text-lg leading-relaxed">
+        {body}
+      </div>
+    </details>
   );
 }
 
@@ -169,35 +170,45 @@ export function PublicScannerView({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Brand accent strip */}
-      <div className="h-1.5 w-full rounded-full" style={{ backgroundColor: brand }} />
+      {/* Slim tenant-color top bar — the strongest color moment. Bleeds to the column edges. */}
+      <div className="-mx-4 -mt-6 h-2" style={{ backgroundColor: brand }} />
 
-      {/* Organization */}
-      <header className="flex items-center gap-3">
-        {org?.logo_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={org.logo_url}
-            alt={orgName}
-            className="size-10 rounded-md object-contain"
-          />
-        ) : (
-          <div
-            className="flex size-10 items-center justify-center rounded-md text-sm font-semibold"
-            style={{ backgroundColor: brand, color: brandText }}
-          >
-            {orgName.charAt(0).toUpperCase()}
-          </div>
-        )}
-        <span className="text-sm font-medium">{orgName}</span>
+      {/* Tenant identity + trust line */}
+      <header className="flex flex-col gap-2">
+        <div className="flex items-center gap-3">
+          {org?.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={org.logo_url}
+              alt={orgName}
+              width={40}
+              height={40}
+              className="size-10 rounded-md object-contain"
+            />
+          ) : (
+            <div
+              className="flex size-10 items-center justify-center rounded-md text-sm font-semibold"
+              style={{ backgroundColor: brand, color: brandText }}
+            >
+              {orgName.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <span className="text-base font-semibold">{orgName}</span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Official equipment page for {orgName}
+        </p>
       </header>
 
-      {/* Hero: cover image, or an intentional branded placeholder */}
+      {/* Hero: cover image, or an intentional branded placeholder. Explicit ratio avoids shift. */}
       {asset.cover_image_url ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={asset.cover_image_url}
           alt={asset.asset_name}
+          width={640}
+          height={360}
+          decoding="async"
           className="aspect-video w-full rounded-lg border object-cover"
         />
       ) : (
@@ -214,104 +225,65 @@ export function PublicScannerView({
         </div>
       )}
 
-      {/* Asset identity */}
+      {/* Asset identity — code in system mono (BRAND.md rule 4: no AssetTagChip on scan pages). */}
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{asset.asset_name}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {asset.asset_code}
+          <span className="font-mono">{asset.asset_code}</span>
           {asset.category ? ` · ${asset.category}` : ""}
           {makeModel ? ` · ${makeModel}` : ""}
         </p>
-        {page.headline ? <p className="mt-3 text-base">{page.headline}</p> : null}
+        {page.headline ? <p className="mt-3 text-lg">{page.headline}</p> : null}
       </div>
 
-      {/* Action buttons — only show what actually works (no disabled placeholders). */}
+      {/* Actions — tenant color as an accent (Report Damage primary; the rest outline). */}
       <nav className="flex flex-col gap-2">
         {startupHref ? (
-          <Action
-            mode={mode}
-            href={startupHref}
-            newTab
-            variant="outline"
-            brand={brand}
-            brandText={brandText}
-          >
-            Start-Up Guide
-          </Action>
-        ) : page.quick_start_text ? (
-          <Action
-            mode={mode}
-            href="#quick-start"
-            variant="outline"
-            brand={brand}
-            brandText={brandText}
-          >
+          <Action mode={mode} href={startupHref} newTab variant="outline" brand={brand} brandText={brandText}>
             Start-Up Guide
           </Action>
         ) : null}
         {manualHref ? (
-          <Action
-            mode={mode}
-            href={manualHref}
-            newTab
-            variant="outline"
-            brand={brand}
-            brandText={brandText}
-          >
+          <Action mode={mode} href={manualHref} newTab variant="outline" brand={brand} brandText={brandText}>
             Manual
           </Action>
         ) : null}
-        <Action
-          mode={mode}
-          href={`/forms/${shortCode}/damage`}
-          variant="primary"
-          brand={brand}
-          brandText={brandText}
-        >
+        <Action mode={mode} href={`/forms/${shortCode}/damage`} variant="primary" brand={brand} brandText={brandText}>
           Report Damage
         </Action>
-        <Action
-          mode={mode}
-          href={`/forms/${shortCode}/return`}
-          variant="primary"
-          brand={brand}
-          brandText={brandText}
-        >
+        <Action mode={mode} href={`/forms/${shortCode}/return`} variant="outline" brand={brand} brandText={brandText}>
           Return Checklist
         </Action>
-        <Action
-          mode={mode}
-          href={`/forms/${shortCode}/support`}
-          variant="primary"
-          brand={brand}
-          brandText={brandText}
-        >
+        <Action mode={mode} href={`/forms/${shortCode}/support`} variant="outline" brand={brand} brandText={brandText}>
           Request Support
         </Action>
       </nav>
 
-      {/* Content sections */}
+      {/* Content — Quick Start first & expanded, then collapsible sections. */}
       <div className="flex flex-col gap-3">
-        <Section id="quick-start" title="Quick start" body={page.quick_start_text} brand={brand} />
-        <Section title="Safety" body={page.safety_notes} brand={brand} />
-        <Section title="Fuel / power" body={page.fuel_power_notes} brand={brand} />
-        <Section title="Return" body={page.return_notes} brand={brand} />
-        <Section title="Troubleshooting" body={page.troubleshooting_notes} brand={brand} />
-        <Section title="Emergency" body={page.emergency_notes} brand={brand} />
+        {page.quick_start_text ? (
+          <section id="quick-start" className="scroll-mt-4 rounded-lg border bg-card p-4">
+            <p className={EYEBROW_CLS}>Quick start</p>
+            <p className="mt-1.5 whitespace-pre-line text-lg leading-relaxed">
+              {page.quick_start_text}
+            </p>
+          </section>
+        ) : null}
+        <Accordion label="Safety" body={page.safety_notes} />
+        <Accordion label="Fuel / power" body={page.fuel_power_notes} />
+        <Accordion label="Troubleshooting" body={page.troubleshooting_notes} />
+        <Accordion label="Return" body={page.return_notes} />
+        <Accordion label="Emergency" body={page.emergency_notes} />
       </div>
 
       {/* Public documents */}
       {documents.length > 0 ? (
-        <section
-          className="rounded-lg border border-l-4 bg-card p-4"
-          style={{ borderLeftColor: brand }}
-        >
-          <h2 className="mb-2 text-sm font-semibold">Documents</h2>
-          <ul className="flex flex-col gap-2 text-sm">
+        <section className="rounded-lg border bg-card p-4">
+          <p className={`mb-2 ${EYEBROW_CLS}`}>Documents</p>
+          <ul className="flex flex-col gap-3 text-base">
             {documents.map((doc) => {
               const label =
-                DOCUMENT_TYPE_LABELS[doc.document_type as DocumentType] ??
-                doc.document_type;
+                DOCUMENT_TYPE_LABELS[doc.document_type as DocumentType] ?? doc.document_type;
               const openable = isDocumentOpenable(doc);
               return (
                 <li key={doc.id} className="flex items-center justify-between gap-3">
@@ -334,8 +306,8 @@ export function PublicScannerView({
                       rel="noopener noreferrer"
                       className={
                         doc.link_status === "needs_review"
-                          ? "shrink-0 text-xs text-muted-foreground underline-offset-4 hover:underline"
-                          : "shrink-0 underline-offset-4 hover:underline"
+                          ? "shrink-0 text-sm text-muted-foreground underline-offset-4 hover:underline"
+                          : "shrink-0 text-sm font-medium underline-offset-4 hover:underline"
                       }
                     >
                       {doc.link_status === "needs_review" ? "Open · being verified" : "Open"}
@@ -349,19 +321,15 @@ export function PublicScannerView({
       ) : null}
 
       {/* Support contact */}
-      <section
-        id="support"
-        className="scroll-mt-4 rounded-lg border border-l-4 bg-card p-4"
-        style={{ borderLeftColor: brand }}
-      >
-        <h2 className="mb-2 text-sm font-semibold">Contact support</h2>
+      <section id="support" className="scroll-mt-4 rounded-lg border bg-card p-4">
+        <p className={`mb-2 ${EYEBROW_CLS}`}>Contact support</p>
         {support.phone || support.email ? (
-          <div className="flex flex-col gap-2 text-sm">
+          <div className="flex flex-col gap-2 text-base">
             {support.phone ? (
               preview ? (
                 <span>Call {support.phone}</span>
               ) : (
-                <a href={`tel:${support.phone}`} className="underline-offset-4 hover:underline">
+                <a href={`tel:${support.phone}`} className="font-medium underline-offset-4 hover:underline">
                   Call {support.phone}
                 </a>
               )
@@ -370,17 +338,14 @@ export function PublicScannerView({
               preview ? (
                 <span>Email {support.email}</span>
               ) : (
-                <a
-                  href={`mailto:${support.email}`}
-                  className="underline-offset-4 hover:underline"
-                >
+                <a href={`mailto:${support.email}`} className="underline-offset-4 hover:underline">
                   Email {support.email}
                 </a>
               )
             ) : null}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             Support contact isn&apos;t listed here — see your rental agreement or the
             rental company.
           </p>
@@ -394,19 +359,22 @@ export function PublicScannerView({
 }
 
 /**
- * Sticky bottom action bar. public → fixed to the viewport (mobile only); preview →
- * absolute, pinned to the phone-frame the caller positions it in. Inert in preview.
+ * Sticky bottom action bar (mobile). public → fixed to the viewport; preview → absolute inside
+ * the phone frame. Report Damage is the primary (tenant color); a Call tel: cell appears when a
+ * support phone exists. ≥48px targets, safe-area padding, no animation.
  */
 export function PublicScannerStickyActions({
   mode,
   shortCode,
   documents,
   org,
+  supportPhone,
 }: {
   mode: ScannerMode;
   shortCode: string;
   documents: PublicDocument[];
   org: PublicOrg;
+  supportPhone: string | null;
 }) {
   const brand = safeBrandColor(org?.primary_color);
   const brandText = readableTextOn(brand);
@@ -422,64 +390,65 @@ export function PublicScannerStickyActions({
     ? "absolute inset-x-0 bottom-0 z-20"
     : "fixed inset-x-0 bottom-0 z-20 sm:hidden";
 
-  const cells: { href: string; variant: "primary" | "outline"; label: string }[] = [
+  type Cell =
+    | { kind: "link"; href: string; newTab?: boolean; variant: "primary" | "outline"; label: string }
+    | { kind: "tel"; href: string; label: string };
+
+  const cells: Cell[] = [
     ...(docHref
-      ? [{ href: docHref, variant: "outline" as const, label: docLabel }]
+      ? [{ kind: "link" as const, href: docHref, newTab: true, variant: "outline" as const, label: docLabel }]
       : []),
-    { href: `/forms/${shortCode}/damage`, variant: "primary", label: "Report Damage" },
-    { href: `/forms/${shortCode}/support`, variant: "primary", label: "Request Support" },
-    { href: `/forms/${shortCode}/return`, variant: "primary", label: "Return" },
+    { kind: "link", href: `/forms/${shortCode}/damage`, variant: "primary", label: "Report Damage" },
+    { kind: "link", href: `/forms/${shortCode}/return`, variant: "outline", label: "Return" },
+    ...(supportPhone
+      ? [{ kind: "tel" as const, href: `tel:${supportPhone}`, label: "Call" }]
+      : [{ kind: "link" as const, href: `/forms/${shortCode}/support`, variant: "outline" as const, label: "Support" }]),
   ];
 
-  const renderCell = (c: (typeof cells)[number]) => {
-    const style =
-      c.variant === "primary"
-        ? { backgroundColor: brand, color: brandText }
-        : { borderColor: brand };
-    const klass =
-      c.variant === "primary"
-        ? cellBase
-        : `${cellBase} border-2 bg-background text-foreground`;
+  const renderCell = (c: Cell) => {
+    const isPrimary = c.kind === "link" && c.variant === "primary";
+    const style = isPrimary ? { backgroundColor: brand, color: brandText } : { borderColor: brand };
+    const klass = isPrimary ? cellBase : `${cellBase} border-2 bg-background text-foreground`;
+
     if (preview) {
       return (
-        <button
-          key={c.label}
-          type="button"
-          disabled
-          title="Preview only"
-          className={`${klass} cursor-default`}
-          style={style}
-        >
+        <button key={c.label} type="button" disabled title="Preview only" className={`${klass} cursor-default`} style={style}>
           {c.label}
         </button>
       );
     }
-    if (c.variant === "outline") {
+    if (c.kind === "tel") {
       return (
-        <a
-          key={c.label}
-          href={c.href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={klass}
-          style={style}
-        >
+        <a key={c.label} href={c.href} className={klass} style={style}>
           {c.label}
         </a>
       );
     }
+    if (c.variant === "primary") {
+      return (
+        <Link key={c.label} href={c.href} className={klass} style={style}>
+          {c.label}
+        </Link>
+      );
+    }
     return (
-      <Link key={c.label} href={c.href} className={klass} style={style}>
+      <a
+        key={c.label}
+        href={c.href}
+        {...(c.newTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+        className={klass}
+        style={style}
+      >
         {c.label}
-      </Link>
+      </a>
     );
   };
 
   return (
-    <div className={`${position} border-t bg-background/95 p-2 backdrop-blur`}>
-      <nav className="mx-auto flex max-w-md items-stretch gap-2">
-        {cells.map(renderCell)}
-      </nav>
+    <div
+      className={`${position} border-t bg-background/95 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur`}
+    >
+      <nav className="mx-auto flex max-w-md items-stretch gap-2">{cells.map(renderCell)}</nav>
     </div>
   );
 }

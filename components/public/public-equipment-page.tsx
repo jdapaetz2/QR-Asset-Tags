@@ -1,4 +1,5 @@
 import { safeBrandColor } from "@/lib/public/brand";
+import { resolveSupportContact } from "@/lib/public/equipment";
 import type { PublicDocument } from "@/lib/public/documents";
 import { AckPrompt } from "@/components/public/ack-prompt";
 import {
@@ -51,6 +52,7 @@ export function PublicEquipmentPage({
         shortCode={shortCode}
         documents={documents}
         org={org}
+        supportPhone={resolveSupportContact(asset, org).phone}
       />
 
       <AckPrompt

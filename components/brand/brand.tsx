@@ -32,15 +32,19 @@ type MarkProps = {
 };
 
 /**
- * Brass tag glyph (or one-color iron when `tone="mono"`). The rivet hole is a transparent
- * evenodd cut — do not add a CSS `fill` that would flatten it.
+ * Tag glyph: brass (default), one-color iron (`tone="mono"`), or `currentColor` so it inherits the
+ * surrounding text color — used for the quiet iron-600 footer mark on tenant scan pages, where brass
+ * is not allowed. The rivet hole is a transparent evenodd cut; only the body fill changes, never the
+ * hole (do not add a CSS `fill` on the element that would flatten it).
  */
 export function BrandGlyph({
   className,
   tone = "brass",
   title = `${PRODUCT_NAME} mark`,
-}: MarkProps & { tone?: "brass" | "mono" }) {
+}: MarkProps & { tone?: "brass" | "mono" | "currentColor" }) {
   const decorative = title === "";
+  const fill =
+    tone === "currentColor" ? "currentColor" : tone === "mono" ? "#1a1917" : "#a87b22";
   return (
     <svg
       viewBox="0 0 92 56"
@@ -50,11 +54,7 @@ export function BrandGlyph({
       aria-label={decorative ? undefined : title}
     >
       {!decorative ? <title>{title}</title> : null}
-      <path
-        fillRule="evenodd"
-        fill={tone === "mono" ? "#1a1917" : "#a87b22"}
-        d={GLYPH_PATH}
-      />
+      <path fillRule="evenodd" fill={fill} d={GLYPH_PATH} />
     </svg>
   );
 }

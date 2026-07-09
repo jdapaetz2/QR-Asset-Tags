@@ -65,6 +65,7 @@ export function EquipmentPagePreview({
         shortCode={shortCode ?? ""}
         documents={documents}
         org={org}
+        supportPhone={null}
       />
     </div>
   );
