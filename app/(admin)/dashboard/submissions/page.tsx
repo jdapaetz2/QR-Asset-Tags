@@ -24,10 +24,10 @@ import {
   urgencyTone,
 } from "@/lib/submissions/inbox";
 import { Badge } from "@/components/ui/badge";
+import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { RefreshControls } from "@/components/refresh-controls";
-import { SubmissionQuickStatus } from "@/components/submission-quick-status";
 import { submissionStatusTone, type BadgeTone } from "@/lib/ui/status";
 import { submissionStatusLabel } from "@/lib/ui/status-labels";
 
@@ -60,22 +60,6 @@ type SubmissionRow = {
 };
 
 type AssetOption = { id: string; asset_code: string; asset_name: string };
-
-/** Compact "3h ago" style relative label for the received column. */
-function relativeTime(value: string): string {
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  const diffMs = Date.now() - d.getTime();
-  const mins = Math.round(diffMs / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.round(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.round(days / 30);
-  return `${months}mo ago`;
-}
 
 const selectClass =
   "rounded-md border bg-background px-2 py-1.5 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring";
@@ -145,6 +129,13 @@ export default async function SubmissionsPage({
     .select("id", { count: "exact", head: true })
     .eq("status", "new");
 
+  // Total submissions for the org (any status) → distinguishes "nothing yet" from
+  // "nothing matches the current filters" for the empty state.
+  const { count: totalCount } = await supabase
+    .from("form_submissions")
+    .select("id", { count: "exact", head: true });
+  const hasAnySubmissions = (totalCount ?? 0) > 0;
+
   const renderedAt = new Date().toISOString();
 
   // Carry the server-side filters into the CSV export. Media and submitter search
@@ -160,9 +151,6 @@ export default async function SubmissionsPage({
   }`;
 
   const activeChip = activeQuickFilterKey(filters);
-  // The current URL, so quick status updates return the operator to this view.
-  const listQuery = submissionFilterQuery(filters);
-  const listHref = `/dashboard/submissions${listQuery ? `?${listQuery}` : ""}`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -293,26 +281,40 @@ export default async function SubmissionsPage({
               <th className="px-4 py-2 font-medium">Submitter</th>
               <th className="px-4 py-2 font-medium">Received</th>
               <th className="px-4 py-2 font-medium">Status</th>
-              <th className="px-4 py-2 font-medium">Quick actions</th>
               <th className="px-4 py-2 font-medium sr-only">Open</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-6">
-                  <EmptyState
-                    title="No submissions match"
-                    description="Damage reports, support requests, and return checklists that renters submit from your QR pages land here — with photos and contact details. Add assets and generate QR tags to start collecting them."
-                    action={
-                      <Link
-                        href="/dashboard/assets"
-                        className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-                      >
-                        Go to assets
-                      </Link>
-                    }
-                  />
+                <td colSpan={7} className="px-4 py-6">
+                  {hasAnySubmissions ? (
+                    <EmptyState
+                      title="No submissions match"
+                      description="No submissions match the current filters. Adjust or clear the filters to see more."
+                      action={
+                        <Link
+                          href="/dashboard/submissions"
+                          className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                        >
+                          Clear filters
+                        </Link>
+                      }
+                    />
+                  ) : (
+                    <EmptyState
+                      title="No submissions yet"
+                      description="No submissions yet. Open a scan page and send a test report — damage, support, and return checklists land here with photos and contact details."
+                      action={
+                        <Link
+                          href="/dashboard/assets"
+                          className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                        >
+                          Go to assets
+                        </Link>
+                      }
+                    />
+                  )}
                 </td>
               </tr>
             ) : (
@@ -335,7 +337,7 @@ export default async function SubmissionsPage({
                     key={row.id}
                     className={
                       isNew
-                        ? "border-b last:border-0 bg-sky-500/[0.04]"
+                        ? "border-b border-l-2 border-l-info bg-info/[0.05] last:border-b-0"
                         : "border-b last:border-0"
                     }
                   >
@@ -383,21 +385,22 @@ export default async function SubmissionsPage({
                     </td>
                     <td className="px-4 py-2">
                       {row.asset ? (
-                        <div className="leading-tight">
-                          <div className="font-medium">{row.asset.asset_code}</div>
-                          <div className="text-xs text-muted-foreground">
+                        <div className="flex flex-col items-start gap-1 leading-tight">
+                          <AssetTagChip code={row.asset.asset_code} />
+                          <span className="text-xs text-muted-foreground">
                             {row.asset.asset_name}
-                          </div>
+                          </span>
                         </div>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-2">{submitter}</td>
+                    <td className={`px-4 py-2 ${isNew ? "font-medium text-foreground" : ""}`}>
+                      {submitter}
+                    </td>
                     <td className="px-4 py-2 text-muted-foreground">
                       <div className="leading-tight">
                         <div><RelativeTime value={row.created_at} /></div>
-                        <div className="text-xs">{relativeTime(row.created_at)}</div>
                         <div className="font-mono text-[11px] text-muted-foreground/70">
                           {reference}
                         </div>
@@ -408,17 +411,10 @@ export default async function SubmissionsPage({
                         {submissionStatusLabel(row.status)}
                       </Badge>
                     </td>
-                    <td className="px-4 py-2">
-                      <SubmissionQuickStatus
-                        submissionId={row.id}
-                        current={row.status}
-                        redirectTo={listHref}
-                      />
-                    </td>
                     <td className="px-4 py-2 text-right">
                       <Link
                         href={`/dashboard/submissions/${row.id}`}
-                        className="text-sm underline-offset-4 hover:underline"
+                        className="text-sm font-medium underline-offset-4 hover:underline"
                       >
                         Open
                       </Link>

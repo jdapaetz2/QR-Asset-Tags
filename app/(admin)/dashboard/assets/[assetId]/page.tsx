@@ -12,6 +12,7 @@ import {
 } from "@/lib/assets/actions";
 import { deleteEligibility } from "@/lib/assets/list";
 import { getOrgCategories } from "@/lib/assets/categories";
+import { UNRESOLVED_STATUSES } from "@/lib/submissions/inbox";
 import { AssetForm } from "@/components/asset-form";
 import { Button } from "@/components/ui/button";
 import { ActionButton } from "@/components/action-button";
@@ -77,6 +78,13 @@ export default async function EditAssetPage({
     .eq("asset_id", assetId)
     .eq("status", "active")
     .maybeSingle<ActiveRentalSession>();
+
+  // Unresolved (new/reviewed) submissions on this asset — gates the pre-rent warning.
+  const { count: unresolvedCount } = await supabase
+    .from("form_submissions")
+    .select("id", { count: "exact", head: true })
+    .eq("asset_id", assetId)
+    .in("status", UNRESOLVED_STATUSES as readonly string[]);
 
   const links = (qrData ?? []) as QrLinkRow[];
   const isPublic = asset.public_status === "public";
@@ -186,7 +194,11 @@ export default async function EditAssetPage({
       </section>
 
       {/* Rental status */}
-      <RentalStatusForm assetId={assetId} session={rentalSession ?? null} />
+      <RentalStatusForm
+        assetId={assetId}
+        session={rentalSession ?? null}
+        unresolvedCount={unresolvedCount ?? 0}
+      />
 
       {/* Equipment page */}
       <section className="flex items-center justify-between rounded-lg border bg-card p-4">

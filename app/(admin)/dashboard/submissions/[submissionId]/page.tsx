@@ -5,12 +5,15 @@ import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
 import { submissionFields, formTypeLabel } from "@/lib/submissions/display";
 import {
+  UNRESOLVED_STATUSES,
   mediaCount,
   submissionReference,
   submissionUrgency,
   urgencyTone,
 } from "@/lib/submissions/inbox";
 import { Badge } from "@/components/ui/badge";
+import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { RelativeTime } from "@/components/relative-time";
 import { submissionStatusTone } from "@/lib/ui/status";
 import { submissionStatusLabel } from "@/lib/ui/status-labels";
 import { SubmissionStatusForm } from "@/components/submission-status-form";
@@ -33,13 +36,6 @@ type SubmissionDetail = {
 
 function titleCase(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-function formatDateTime(value: string): string {
-  const d = new Date(value);
-  return Number.isNaN(d.getTime())
-    ? "—"
-    : d.toISOString().slice(0, 16).replace("T", " ");
 }
 
 export default async function SubmissionDetailPage({
@@ -91,6 +87,18 @@ export default async function SubmissionDetailPage({
   );
   const attachmentCount = mediaCount(submission.media_urls);
 
+  // Unresolved (new/reviewed) submissions on this asset — includes this one if still open.
+  // RLS-scoped; a small count query for the asset-context block.
+  let assetUnresolved = 0;
+  if (submission.asset_id) {
+    const { count } = await supabase
+      .from("form_submissions")
+      .select("id", { count: "exact", head: true })
+      .eq("asset_id", submission.asset_id)
+      .in("status", UNRESOLVED_STATUSES as readonly string[]);
+    assetUnresolved = count ?? 0;
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
@@ -119,7 +127,7 @@ export default async function SubmissionDetailPage({
         </div>
         <p className="text-sm text-muted-foreground">
           <span className="font-mono">{reference}</span> ·{" "}
-          {formatDateTime(submission.created_at)}
+          <RelativeTime value={submission.created_at} />
         </p>
       </section>
 
@@ -127,15 +135,25 @@ export default async function SubmissionDetailPage({
       <section className="rounded-lg border bg-card p-4 text-sm">
         <h2 className="mb-3 font-medium">Asset</h2>
         {submission.asset ? (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="leading-tight">
-              <div className="font-medium">{submission.asset.asset_name}</div>
-              <div className="font-mono text-xs text-muted-foreground">
-                {submission.asset.asset_code}
-              </div>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-col items-start gap-1.5">
+              <AssetTagChip code={submission.asset.asset_code} />
+              <span className="font-medium">{submission.asset.asset_name}</span>
+              {submission.asset_id ? (
+                <span className="text-xs text-muted-foreground">
+                  {assetUnresolved} unresolved submission
+                  {assetUnresolved === 1 ? "" : "s"} on this asset
+                </span>
+              ) : null}
             </div>
             {submission.asset_id ? (
               <div className="flex flex-wrap gap-2">
+                <Link
+                  href={`/dashboard/submissions?asset_id=${submission.asset_id}`}
+                  className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
+                >
+                  This asset&apos;s submissions →
+                </Link>
                 <Link
                   href={`/dashboard/assets/${submission.asset_id}`}
                   className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"

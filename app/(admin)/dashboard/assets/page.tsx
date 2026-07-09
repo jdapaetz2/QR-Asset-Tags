@@ -14,7 +14,12 @@ import { deriveAssetStatus } from "@/lib/ui/status-view";
 import { PlanUsage } from "@/components/plan-usage";
 import { getCoveredCount } from "@/lib/plans/coverage-query";
 import { getOrgCategories } from "@/lib/assets/categories";
-import { startRentalSession, closeRentalSession } from "@/lib/rentals/actions";
+import { closeRentalSession } from "@/lib/rentals/actions";
+import { MarkRentedButton } from "@/components/mark-rented-button";
+import {
+  UNRESOLVED_STATUSES,
+  countUnresolvedByAsset,
+} from "@/lib/submissions/inbox";
 import {
   parseAssetListParams,
   sanitizeSearch,
@@ -134,6 +139,16 @@ export default async function AssetsPage({
   for (const r of (rentalData ?? []) as { asset_id: string; id: string }[]) {
     activeSessionByAsset.set(r.asset_id, r.id);
   }
+
+  // Unresolved (new/reviewed) submissions per asset — drives the pre-rent warning. One
+  // RLS-scoped query; counted in memory. Display/gate only, not enforcement.
+  const { data: openSubs } = await supabase
+    .from("form_submissions")
+    .select("asset_id, status")
+    .in("status", UNRESOLVED_STATUSES as readonly string[]);
+  const unresolvedByAsset = countUnresolvedByAsset(
+    (openSubs ?? []) as { asset_id: string | null; status: string }[]
+  );
 
   // Distinct, normalized categories for the filter dropdown (own org only).
   const categories = await getOrgCategories(supabase);
@@ -398,12 +413,11 @@ export default async function AssetsPage({
                           Mark returned
                         </ActionButton>
                       ) : (
-                        <ActionButton
-                          action={startRentalSession.bind(null, asset.id, listHref)}
-                          variant="outline"
-                        >
-                          Mark rented
-                        </ActionButton>
+                        <MarkRentedButton
+                          assetId={asset.id}
+                          unresolvedCount={unresolvedByAsset.get(asset.id) ?? 0}
+                          redirectTo={listHref}
+                        />
                       )}
                       <Link
                         href={`/dashboard/assets/${asset.id}`}

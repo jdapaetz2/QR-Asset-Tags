@@ -2,13 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import {
   activeQuickFilterKey,
+  countUnresolvedByAsset,
   firstImagePath,
   hasMedia,
   isImagePath,
+  isUnresolvedStatus,
   matchesSearch,
   mediaCount,
   parseSubmissionFilters,
   resolveStatusFilter,
+  shouldWarnBeforeRent,
   submissionFilterQuery,
   submissionReference,
   submissionUrgency,
@@ -187,6 +190,36 @@ describe("isImagePath / firstImagePath", () => {
     expect(firstImagePath(["a.bin", "b.pdf"])).toBeNull();
     expect(firstImagePath([])).toBeNull();
     expect(firstImagePath(null)).toBeNull();
+  });
+});
+
+describe("unresolved helpers", () => {
+  it("isUnresolvedStatus is true only for new/reviewed", () => {
+    expect(isUnresolvedStatus("new")).toBe(true);
+    expect(isUnresolvedStatus("reviewed")).toBe(true);
+    expect(isUnresolvedStatus("resolved")).toBe(false);
+    expect(isUnresolvedStatus("archived")).toBe(false);
+    expect(isUnresolvedStatus(null)).toBe(false);
+  });
+
+  it("shouldWarnBeforeRent warns only for a positive count", () => {
+    expect(shouldWarnBeforeRent(0)).toBe(false);
+    expect(shouldWarnBeforeRent(1)).toBe(true);
+    expect(shouldWarnBeforeRent(5)).toBe(true);
+  });
+
+  it("countUnresolvedByAsset groups unresolved rows and skips resolved/archived/null-asset", () => {
+    const counts = countUnresolvedByAsset([
+      { asset_id: "a", status: "new" },
+      { asset_id: "a", status: "reviewed" },
+      { asset_id: "a", status: "resolved" }, // ignored
+      { asset_id: "b", status: "new" },
+      { asset_id: "b", status: "archived" }, // ignored
+      { asset_id: null, status: "new" }, // ignored
+    ]);
+    expect(counts.get("a")).toBe(2);
+    expect(counts.get("b")).toBe(1);
+    expect(counts.size).toBe(2);
   });
 });
 

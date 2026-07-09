@@ -271,5 +271,39 @@ export function activeQuickFilterKey(filters: SubmissionFilters): string | null 
   return null;
 }
 
+/**
+ * "Unresolved" = still needs attention: new or reviewed (NOT resolved, NOT archived). Drives
+ * the pre-rent warning and the per-asset unresolved count on the submission detail page.
+ */
+export const UNRESOLVED_STATUSES = ["new", "reviewed"] as const;
+
+export function isUnresolvedStatus(status: unknown): boolean {
+  return (
+    typeof status === "string" &&
+    (UNRESOLVED_STATUSES as readonly string[]).includes(status)
+  );
+}
+
+/** Pre-rent warning condition: warn only when the asset has ≥1 unresolved submission. */
+export function shouldWarnBeforeRent(unresolvedCount: number): boolean {
+  return unresolvedCount > 0;
+}
+
+/**
+ * Count unresolved submissions per asset from `{ asset_id, status }` rows (e.g. the org's open
+ * submissions). Only unresolved statuses count; rows with a null asset are skipped. Returns a
+ * Map keyed by asset id — used to badge/gate Mark-rented on the asset list.
+ */
+export function countUnresolvedByAsset(
+  rows: { asset_id: string | null; status: string }[]
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    if (!row.asset_id || !isUnresolvedStatus(row.status)) continue;
+    counts.set(row.asset_id, (counts.get(row.asset_id) ?? 0) + 1);
+  }
+  return counts;
+}
+
 // Re-export for convenience so the page imports statuses from one module.
 export { SUBMISSION_STATUSES };
