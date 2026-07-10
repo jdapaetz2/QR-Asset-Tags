@@ -27,8 +27,11 @@ talking points see [`PILOT_CUSTOMER_DEMO.md`](PILOT_CUSTOMER_DEMO.md), and for a
 
 **Pre-check these screens (open tabs, confirm they load):**
 - `/t/demo-ex017` on the **phone** you'll scan with — confirm it renders with Northridge branding.
-- `/dashboard` and `/dashboard/submissions` (customer admin) — inbox shows the seeded submissions,
-  including a **resolved** damage thread on Excavator 017.
+- `/dashboard` (customer admin) — the **operations briefing**: nameplate band, the "N things need your
+  attention" headline, the four BandStats, and the needs-attention queue. The **New submissions**
+  BandStat and the nav **Submissions** badge should reflect the seeded new reports.
+- `/dashboard/submissions` — inbox shows the seeded submissions, including a **resolved** damage thread
+  on Excavator 017.
 - `/dashboard/assets/{excavatorId}/timeline` — the Excavator's history has entries.
 - `/dashboard/analytics` — ~60 days of scan activity is populated.
 - `/owner/production` and `/owner/analytics` (platform admin) — load and show the demo assets.
@@ -40,7 +43,7 @@ what they see."*
 
 ---
 
-## The walkthrough (10 beats)
+## The walkthrough (11 beats)
 
 Each beat: **what to do → what to say → what the prospect should notice → [pause?]**
 
@@ -64,29 +67,46 @@ Each beat: **what to do → what to say → what the prospect should notice → 
 - **Notice:** Photo capture works on a phone; the asset is fixed; a reference number comes back.
 - **⏸ Pause** — "That report is now on your side. Let me switch hats to the office."
 
-### 4. The submission inbox (`/dashboard/submissions`)
-- **Do:** Log in as the customer admin, open the inbox. Point out the report you just filed sitting
-  at the top alongside the seeded ones.
+### 4. The dashboard briefing (`/dashboard`)
+- **Do:** Log in as the customer admin. You land on the **operations briefing** — an iron nameplate
+  band reading **"Northridge Rentals · Operations briefing"** with today's date, then the headline
+  **"Good morning, [name]. N things need your attention."** (on a clean day it reads **"All clear,
+  [name]."** with a green dot).
+- **Say:** "This is the morning view. It tells you what needs you today, before you go looking for it."
+- **Notice:**
+  - the four **at-a-glance stats** in the band — **New submissions** (amber when there are any),
+    **Scans · 7d** with a small sparkline, **Rented**, and **Assets ready** — each one clicks through to
+    the matching filtered list;
+  - the **needs-attention queue** below, with the top item already expanded: the machine's tag chip, an
+    amber reason ("N open submissions" / "Open damage on a rented asset"), the quoted report with its
+    photo, and quick actions.
+- **Do:** From the expanded card, click **Open in submissions** (the single full-detail path) to jump
+  straight to that machine's reports — or hit **Mark reviewed** first to clear it off the list.
+- **⏸ Pause** — "Notice I never went looking for that damage report. The dashboard surfaced it."
+
+### 5. The submission inbox (`/dashboard/submissions`)
+- **Do:** From the briefing, land in the inbox. Point out the report you just filed sitting at the top
+  alongside the seeded ones.
 - **Say:** "This is your queue. New reports land here with the photo and contact info."
 - **Notice:** Real-looking volume across machines; statuses (new / reviewed / resolved); filters.
 
-### 5. Triage the report (`/dashboard/submissions/{id}`)
+### 6. Triage the report (`/dashboard/submissions/{id}`)
 - **Do:** Open the report, view the photo, move status **new → reviewed → resolved**.
 - **Say:** "Two clicks to work a report. Export to CSV any time." (Mention Unresolved filter.)
 - **Notice:** It's a real workflow, not a black hole; the resolved seeded thread shows a closed loop.
 
-### 6. Asset history / timeline (`/dashboard/assets/{excavatorId}/timeline`)
+### 7. Asset history / timeline (`/dashboard/assets/{excavatorId}/timeline`)
 - **Do:** Open Excavator 017's timeline — scans, submissions, and its resolved damage history.
 - **Say:** "Every machine builds a history: what happened, when, and how it was resolved."
 - **Notice:** This unit has a **track record** — the deferred-maintenance conversation writes itself.
 - **⏸ Pause** — this is the "condition history" value; let it land.
 
-### 7. Analytics (`/dashboard/analytics`)
+### 8. Analytics (`/dashboard/analytics`)
 - **Do:** Show ~60 days of scan and submission counts.
 - **Say:** "Scans are unlimited — you're never billed per scan. This just shows you engagement."
 - **Notice:** Weekday-weighted, believable activity; not vanity round numbers.
 
-### 8. Tag request / production (`/owner/production`, and the tag request queue)
+### 9. Tag request / production (`/owner/production`, and the tag request queue)
 - **Do:** Switch to the platform admin. Show a tag request in production and the production outputs:
   per-asset **QR SVG**, the **SVG sheet**, the **CSV** (`asset_code, asset_name, short_url,
   organization_name`), and the printable **production sheet** (size, material, mounting, code, URL).
@@ -94,13 +114,13 @@ Each beat: **what to do → what to say → what the prospect should notice → 
   ship them ready to mount."
 - **Notice:** The tag pipeline is real and owned by us — low effort for them.
 
-### 9. Plan / covered-asset model (if asked)
+### 10. Plan / covered-asset model (if asked)
 - **Say:** "Pricing is per **covered asset** — an active machine with a tag assigned. Scans are
   unlimited, archived machines don't count, and disabling a tag doesn't dodge the count. No per-scan
-  billing, no surprises." (Show `PlanUsage` on the dashboard if useful.)
+  billing, no surprises." (Plan & covered-usage detail lives on **Settings** — `/dashboard/settings`.)
 - **Notice:** Simple, predictable, aligned to their fleet size — not usage-metered.
 
-### 10. Exports & domain trust (if asked)
+### 11. Exports & domain trust (if asked)
 - **Say:** "Your data is yours — assets, QR mapping, documents, and submissions all export to CSV
   when we enable it for you. And the tags encode a permanent domain we control for durability, so the
   same physical tag keeps working even as the content behind it changes."
@@ -140,8 +160,8 @@ If the venue's mobile signal is weak during the live scan:
 3. **Show a cached / screenshot backup** — keep the `/t/demo-ex017` tab **already loaded** before the
    call, or have a screenshot/screen-recording of the renter page ready; switch to it and keep the
    story moving.
-4. **Continue to the admin flow** — the inbox, triage, timeline, and analytics all run on your laptop;
-   pivot there and finish the loop without depending on the room's cell coverage.
+4. **Continue to the admin flow** — the dashboard briefing, inbox, triage, timeline, and analytics all
+   run on your laptop; pivot there and finish the loop without depending on the room's cell coverage.
 
 > Offline operation is a deliberate deferral (`ROADMAP_DEFERRED.md` #1). Before pitching any
 > "works anywhere" story, confirm the prospect's yards/delivery radius actually have coverage
