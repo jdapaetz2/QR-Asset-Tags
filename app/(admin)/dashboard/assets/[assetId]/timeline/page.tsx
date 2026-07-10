@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
 import { buildAssetTimeline, type TimelineEvent } from "@/lib/timeline/timeline";
+import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 
 // Read-only, auth-scoped per request; never cache.
 export const dynamic = "force-dynamic";
@@ -122,10 +123,12 @@ export default async function AssetTimelinePage({
           ← {asset.asset_name}
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Timeline</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {asset.asset_name} ({asset.asset_code}) · {events.length} event
-          {events.length === 1 ? "" : "s"}
-        </p>
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <AssetTagChip code={asset.asset_code} />
+          <span>
+            {asset.asset_name} · {events.length} event{events.length === 1 ? "" : "s"}
+          </span>
+        </div>
       </section>
 
       {events.length === 0 ? (

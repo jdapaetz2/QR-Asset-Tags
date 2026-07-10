@@ -5,6 +5,7 @@ import { signOut } from "@/lib/auth/actions";
 import { navForRole } from "@/lib/auth/nav";
 import { ROLES, roleLabel } from "@/lib/auth/roles";
 import type { Profile } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
 import { NavLinks } from "@/components/nav-links";
 import { BrandLockup } from "@/components/brand/brand";
 import { brandFontVars } from "@/app/fonts";
@@ -12,9 +13,10 @@ import { brandFontVars } from "@/app/fonts";
 /**
  * Shared authenticated shell: product mark, role-based nav (active-route aware),
  * signed-in identity, and sign-out. Generic and data-driven — no customer branding is
- * hard-coded. Nav content + role boundary come from navForRole (unchanged).
+ * hard-coded. Nav content + role boundary come from navForRole (unchanged). The
+ * Submissions link carries a live "new" badge for customer roles.
  */
-export function AppShell({
+export async function AppShell({
   profile,
   children,
 }: {
@@ -24,6 +26,17 @@ export function AppShell({
   const nav = navForRole(profile.role);
   const home = profile.role === ROLES.PLATFORM_OWNER ? "/owner" : "/dashboard";
 
+  // Live "new submissions" count for the nav badge (customer roles only; RLS-scoped).
+  let submissionsNew = 0;
+  if (profile.role !== ROLES.PLATFORM_OWNER && profile.organization_id) {
+    const supabase = await createClient();
+    const { count } = await supabase
+      .from("form_submissions")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "new");
+    submissionsNew = count ?? 0;
+  }
+
   return (
     <div className={`${brandFontVars} font-sans flex min-h-full flex-col`}>
       <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
@@ -32,7 +45,7 @@ export function AppShell({
             <Link href={home} aria-label={`${PRODUCT_NAME} home`} className="flex items-center">
               <BrandLockup className="h-6 w-auto" />
             </Link>
-            <NavLinks items={nav} />
+            <NavLinks items={nav} badgeCounts={{ submissions_new: submissionsNew }} />
           </div>
           <div className="flex items-center gap-3 text-sm">
             <span className="hidden text-right leading-tight sm:block">

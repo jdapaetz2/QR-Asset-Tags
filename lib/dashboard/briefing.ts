@@ -166,3 +166,119 @@ export function mergeRecentActivity(
   };
   return [...events].sort((a, b) => ms(b.at) - ms(a.at)).slice(0, limit);
 }
+
+// ---------------------------------------------------------------------------
+// Nameplate band — greeting, ranked BandStats, and dashboard invariants
+// (docs/brand/dashboard-reference.html + ui-language.md). All derived, never stored.
+// ---------------------------------------------------------------------------
+
+/** Time-of-day greeting for the nameplate headline. */
+export function timeGreeting(hour: number): string {
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+export type BandStatSpec = {
+  key: string;
+  label: string;
+  value: number;
+  total?: number;
+  href: string;
+  /** Attention numbers render amber; only when the count is non-zero. */
+  attention?: boolean;
+  /** The scans stat carries the 7-day sparkline. */
+  sparkline?: boolean;
+};
+
+/**
+ * The four ranked BandStats. Every stat links to an existing filtered view — a
+ * stat that links nowhere does not belong in the band (ui-language.md), which the
+ * test suite enforces. `attention` is on only when the new-submissions count > 0,
+ * so the all-clear state stays neutral.
+ */
+export function buildBandStats(input: {
+  newCount: number;
+  scans7d: number;
+  rented: number;
+  ready: number;
+  totalAssets: number;
+}): BandStatSpec[] {
+  return [
+    {
+      key: "new",
+      label: "new submissions",
+      value: input.newCount,
+      href: "/dashboard/submissions?status=new",
+      attention: input.newCount > 0,
+    },
+    {
+      key: "scans",
+      label: "scans · 7d",
+      value: input.scans7d,
+      href: "/dashboard/analytics",
+      sparkline: true,
+    },
+    {
+      key: "rented",
+      label: "rented",
+      value: input.rented,
+      total: input.totalAssets,
+      href: "/dashboard/assets?rental=rented",
+    },
+    {
+      key: "ready",
+      label: "assets ready",
+      value: input.ready,
+      total: input.totalAssets,
+      href: "/dashboard/assets?page=published",
+    },
+  ];
+}
+
+/**
+ * Setup detail visibility: shown only when there is at least one asset and not
+ * every asset is ready. Hidden at 100% (and at zero assets); reappears the moment
+ * readiness drops. The ready/total BandStat stays visible regardless.
+ */
+export function shouldShowSetupDetail(progress: SetupProgress): boolean {
+  return progress.total > 0 && !progress.complete;
+}
+
+/**
+ * Daily scan counts over the last `days`, oldest-first with the current day last
+ * (the sparkline's brass bar). Buckets by UTC day — a viz approximation, not a
+ * reporting figure. Invalid/missing timestamps are ignored.
+ */
+export function scanTrend(
+  events: { scanned_at: string | null }[],
+  days = 7,
+  now = Date.now()
+): number[] {
+  const buckets = new Array<number>(days).fill(0);
+  const dayMs = 86_400_000;
+  const todayStart = now - (now % dayMs);
+  for (const e of events) {
+    if (!e.scanned_at) continue;
+    const t = new Date(e.scanned_at).getTime();
+    if (Number.isNaN(t)) continue;
+    const eventDayStart = t - (t % dayMs);
+    const daysAgo = Math.round((todayStart - eventDayStart) / dayMs);
+    if (daysAgo >= 0 && daysAgo < days) {
+      buckets[days - 1 - daysAgo] += 1;
+    }
+  }
+  return buckets;
+}
+
+/**
+ * Single-open accordion transition: clicking the open item closes it, clicking a
+ * closed item opens it (and, by returning a single id, collapses any other). The
+ * dashboard queue pre-expands the top item when the attention count > 0.
+ */
+export function nextOpenAccordionId(
+  current: string | null,
+  clicked: string
+): string | null {
+  return current === clicked ? null : clicked;
+}

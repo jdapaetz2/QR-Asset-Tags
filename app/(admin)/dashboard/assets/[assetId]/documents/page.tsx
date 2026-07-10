@@ -9,6 +9,7 @@ import { DocumentForm } from "@/components/document-form";
 import { ActionButton } from "@/components/action-button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { documentLinkTone } from "@/lib/ui/status";
 
 const DOCUMENTS_BUCKET = "documents";
@@ -84,10 +85,12 @@ export default async function DocumentsPage({
           ← {asset.asset_name}
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Documents</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {asset.asset_code} · {documents.length} document
-          {documents.length === 1 ? "" : "s"}
-        </p>
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <AssetTagChip code={asset.asset_code} />
+          <span>
+            {documents.length} document{documents.length === 1 ? "" : "s"}
+          </span>
+        </div>
       </section>
 
       <div className="overflow-x-auto rounded-lg border">

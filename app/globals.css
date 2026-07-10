@@ -38,6 +38,21 @@
   --status-danger: #b3372e;
   --status-info: #2e5ea8;
 
+  /* Finalized design-language tokens (docs/brand/ui-language.md +
+     dashboard-reference.html). Nameplate band, BandStat, Sparkline, attention
+     semantics. --chrome-clear is the all-clear-only green and is deliberately
+     distinct from --status-success (the semantic success used app-wide). */
+  --brass-label: #d9a94f;
+  --attention: #f0b24a;
+  --amber-chip-bg: #faeeda;
+  --amber-chip-text: #854f0b;
+  --chrome-clear: #5b9a63;
+  --iron-hover: #242220;
+  --spark-iron: #3a3733;
+  --spark-bone: #d8d3c8;
+  --band-label: #b8b4ac;
+  --mono-meta: #8f8b82;
+
   /* Tenant namespace reserved (name only). Tenant color is applied inline where
      already used today (lib/public/brand.ts); A1 does not rewire it. */
   /* --tenant-primary: <set per tenant where tenant color is used>; */
@@ -107,6 +122,18 @@
   --color-warning: var(--status-warning);
   --color-danger: var(--status-danger);
   --color-info: var(--status-info);
+
+  /* Finalized design-language utilities (nameplate band + attention semantics). */
+  --color-brass-label: var(--brass-label);
+  --color-attention: var(--attention);
+  --color-amber-chip-bg: var(--amber-chip-bg);
+  --color-amber-chip-text: var(--amber-chip-text);
+  --color-chrome-clear: var(--chrome-clear);
+  --color-iron-hover: var(--iron-hover);
+  --color-spark-iron: var(--spark-iron);
+  --color-spark-bone: var(--spark-bone);
+  --color-band-label: var(--band-label);
+  --color-mono-meta: var(--mono-meta);
 
   /* Brand fonts with system fallback. On surfaces that DON'T apply the brand-font
      variables (root layout, /t/ scan pages), --font-barlow/--font-jetbrains are

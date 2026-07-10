@@ -1,3 +1,4 @@
+import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import type { TagRequestAsset } from "@/lib/tags/request-detail";
 
 /** Read-only table of a tag request's assets with per-asset readiness. */
@@ -22,13 +23,15 @@ export function TagRequestAssets({ assets }: { assets: TagRequestAsset[] }) {
           ) : (
             assets.map((a) => (
               <tr key={a.id} className="border-b align-top last:border-0">
-                <td className="whitespace-nowrap px-4 py-2 font-medium">
-                  {a.asset_code}
-                  {a.archived ? (
-                    <span className="ml-2 rounded-full border border-amber-500/40 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-500">
-                      Archived
-                    </span>
-                  ) : null}
+                <td className="whitespace-nowrap px-4 py-2">
+                  <span className="inline-flex items-center gap-2">
+                    <AssetTagChip code={a.asset_code} />
+                    {a.archived ? (
+                      <span className="rounded-full border border-amber-500/40 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-500">
+                        Archived
+                      </span>
+                    ) : null}
+                  </span>
                 </td>
                 <td className="px-4 py-2">{a.asset_name}</td>
                 <td className="px-4 py-2">

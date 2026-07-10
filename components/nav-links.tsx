@@ -7,10 +7,18 @@ import { cn } from "@/lib/utils";
 import type { NavItem } from "@/lib/auth/nav";
 
 /**
- * Primary nav with active-route highlighting. Presentation only — the items (and the
- * customer/owner boundary) come from navForRole; this never changes which links show.
+ * Primary nav with a brass active-route underline (docs/brand/dashboard-reference.html).
+ * Presentation only — the items (and the customer/owner boundary) come from navForRole;
+ * this never changes which links show. `badgeCounts` supplies live counts for items that
+ * declare a `badge` (e.g. the Submissions "new" count); a zero count renders no badge.
  */
-export function NavLinks({ items }: { items: NavItem[] }) {
+export function NavLinks({
+  items,
+  badgeCounts = {},
+}: {
+  items: NavItem[];
+  badgeCounts?: Record<string, number>;
+}) {
   const pathname = usePathname();
 
   // Longest matching href wins, so /dashboard/assets highlights "Assets" rather than
@@ -20,22 +28,28 @@ export function NavLinks({ items }: { items: NavItem[] }) {
   const bestLen = Math.max(...items.map((i) => matchLen(i.href)), -1);
 
   return (
-    <nav className="flex flex-wrap items-center gap-1 text-sm">
+    <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
       {items.map((item) => {
         const active = matchLen(item.href) === bestLen && bestLen >= 0;
+        const count = item.badge ? badgeCounts[item.badge] ?? 0 : 0;
         return (
           <Link
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "rounded-md px-2.5 py-1.5 transition-colors",
+              "inline-flex items-center gap-1.5 border-b-2 px-0.5 py-1 transition-colors",
               active
-                ? "bg-accent font-medium text-accent-foreground"
-                : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                ? "border-brass-500 font-medium text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
             {item.label}
+            {item.badge && count > 0 ? (
+              <span className="rounded-md bg-brass-500 px-1.5 py-px text-[10.5px] font-medium tabular-nums text-bone-50">
+                {count}
+              </span>
+            ) : null}
           </Link>
         );
       })}

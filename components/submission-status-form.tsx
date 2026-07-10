@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/primary-button";
 import {
   setSubmissionStatus,
   type SubmissionActionState,
@@ -38,9 +38,9 @@ export function SubmissionStatusForm({
           ))}
         </select>
       </label>
-      <Button type="submit" disabled={pending} variant="outline">
+      <PrimaryButton type="submit" disabled={pending}>
         {pending ? "Saving…" : "Update"}
-      </Button>
+      </PrimaryButton>
       {state.error ? (
         <span role="alert" className="text-xs text-destructive">
           {state.error}

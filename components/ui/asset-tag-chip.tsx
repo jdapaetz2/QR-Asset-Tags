@@ -22,14 +22,16 @@ export function AssetTagChip({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2 rounded-md border border-iron-200 bg-card px-2.5 py-1 leading-none",
+        // Reference `.chip` (docs/brand/dashboard-reference.html): bone surface,
+        // 7px radius, 1px iron-200 border, 7px gap, asymmetric 8/10 padding.
+        "inline-flex items-center gap-[7px] rounded-[7px] border border-iron-200 bg-bone-50 py-[3px] pl-2 pr-2.5 leading-none",
         className
       )}
     >
-      {/* Rivet hole: a ring with a transparent center — do not fill. */}
+      {/* Rivet hole: a 7px ring with a transparent center — do not fill. */}
       <span
         aria-hidden
-        className="size-2 shrink-0 rounded-full border-[1.5px] border-iron-600"
+        className="size-[7px] shrink-0 rounded-full border-[1.5px] border-iron-600"
       />
       <span className="font-mono text-xs tracking-tight text-foreground">{code}</span>
       {readiness !== "none" ? (

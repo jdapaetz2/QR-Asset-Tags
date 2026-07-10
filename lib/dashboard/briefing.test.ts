@@ -3,8 +3,13 @@ import { describe, expect, it } from "vitest";
 import { deriveAssetStatus } from "@/lib/ui/status-view";
 import {
   buildAttentionItems,
+  buildBandStats,
   mergeRecentActivity,
+  nextOpenAccordionId,
+  scanTrend,
   setupProgress,
+  shouldShowSetupDetail,
+  timeGreeting,
   type ActivityEvent,
   type AttentionAsset,
 } from "./briefing";
@@ -124,5 +129,92 @@ describe("mergeRecentActivity", () => {
       2
     );
     expect(out.map((e) => e.label)).toEqual(["new", "mid"]);
+  });
+});
+
+describe("buildBandStats", () => {
+  const stats = buildBandStats({
+    newCount: 3,
+    scans7d: 186,
+    rented: 4,
+    ready: 11,
+    totalAssets: 12,
+  });
+
+  it("returns the four ranked stats in order", () => {
+    expect(stats.map((s) => s.key)).toEqual(["new", "scans", "rented", "ready"]);
+  });
+
+  it("every stat links to a filtered/analytics view (never inert)", () => {
+    for (const s of stats) {
+      expect(s.href).toBeTruthy();
+      expect(s.href.startsWith("/dashboard/")).toBe(true);
+    }
+    expect(stats[0].href).toBe("/dashboard/submissions?status=new");
+    expect(stats[1].href).toBe("/dashboard/analytics");
+    expect(stats[2].href).toBe("/dashboard/assets?rental=rented");
+    expect(stats[3].href).toBe("/dashboard/assets?page=published");
+  });
+
+  it("flags new-submissions as attention only when non-zero", () => {
+    expect(stats[0].attention).toBe(true);
+    const clear = buildBandStats({
+      newCount: 0,
+      scans7d: 142,
+      rented: 6,
+      ready: 12,
+      totalAssets: 12,
+    });
+    expect(clear[0].attention).toBe(false);
+  });
+});
+
+describe("shouldShowSetupDetail", () => {
+  it("shows below 100% ready, hides at 100% and at zero assets", () => {
+    expect(shouldShowSetupDetail({ ready: 11, total: 12, complete: false })).toBe(true);
+    expect(shouldShowSetupDetail({ ready: 12, total: 12, complete: true })).toBe(false);
+    expect(shouldShowSetupDetail({ ready: 0, total: 0, complete: false })).toBe(false);
+  });
+});
+
+describe("scanTrend", () => {
+  const now = Date.parse("2026-07-09T12:00:00Z");
+  const day = 86_400_000;
+
+  it("buckets by day, oldest-first with the current day last", () => {
+    const events = [
+      { scanned_at: new Date(now).toISOString() }, // today
+      { scanned_at: new Date(now).toISOString() }, // today
+      { scanned_at: new Date(now - day).toISOString() }, // yesterday
+      { scanned_at: new Date(now - 6 * day).toISOString() }, // 6 days ago (oldest in window)
+      { scanned_at: new Date(now - 9 * day).toISOString() }, // outside 7d
+      { scanned_at: null },
+      { scanned_at: "not-a-date" },
+    ];
+    const trend = scanTrend(events, 7, now);
+    expect(trend).toHaveLength(7);
+    expect(trend[6]).toBe(2); // today
+    expect(trend[5]).toBe(1); // yesterday
+    expect(trend[0]).toBe(1); // 6 days ago
+    expect(trend.reduce((a, b) => a + b, 0)).toBe(4); // out-of-window + invalids dropped
+  });
+});
+
+describe("nextOpenAccordionId", () => {
+  it("opens a closed item and collapses others (single-open)", () => {
+    expect(nextOpenAccordionId(null, "a")).toBe("a");
+    expect(nextOpenAccordionId("a", "b")).toBe("b");
+  });
+
+  it("toggles the open item closed", () => {
+    expect(nextOpenAccordionId("a", "a")).toBeNull();
+  });
+});
+
+describe("timeGreeting", () => {
+  it("maps the hour to a greeting", () => {
+    expect(timeGreeting(8)).toBe("Good morning");
+    expect(timeGreeting(14)).toBe("Good afternoon");
+    expect(timeGreeting(20)).toBe("Good evening");
   });
 });

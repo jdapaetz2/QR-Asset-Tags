@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard reference — canonical design source</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+ body{margin:0;padding:32px 16px;background:#EDEBE4;font-family:Barlow,-apple-system,sans-serif;color:#1A1917;}
+ .frame{max-width:920px;margin:0 auto 14px;border:1px solid #D9D6CF;border-radius:12px;overflow:hidden;background:#FAF9F6;}
+ .caption{max-width:920px;margin:0 auto 30px;font-size:13.5px;line-height:1.55;color:#57534B;}
+ .mono{font-family:'JetBrains Mono',monospace;}
+ .nav{display:flex;align-items:center;gap:20px;padding:11px 22px;background:#fff;border-bottom:1px solid #E4E1DB;}
+ .navlinks{display:flex;gap:16px;font-size:13.5px;color:#57534B;}
+ .navlinks .active{color:#1A1917;font-weight:600;border-bottom:2px solid #A87B22;padding-bottom:9px;margin-bottom:-12px;}
+ .badge{background:#A87B22;color:#FAF9F6;border-radius:8px;font-size:10.5px;padding:1px 6px;}
+ .band{background:#1A1917;color:#FAF9F6;padding:14px 24px 0;}
+ .platerow{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+ .platering{width:8px;height:8px;border:1.5px solid #A87B22;border-radius:50%;}
+ .platelabel{font-size:10.5px;letter-spacing:0.14em;color:#D9A94F;text-transform:uppercase;}
+ .headline{font-size:21px;font-weight:600;}
+ .bstats{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+ .bstat{display:inline-flex;align-items:center;padding:8px 12px;border-radius:8px;cursor:pointer;}
+ .blabel{font-size:11px;color:#B8B4AC;border-bottom:1px dotted #57534B;padding-bottom:1px;}
+ .bandrule{height:2px;background:#A87B22;margin-top:14px;}
+ .qcard{border:1px solid #E4E1DB;border-radius:10px;background:#fff;overflow:hidden;margin-bottom:14px;}
+ .qrow{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid #EFEDE7;}
+ .qrow:last-child{border-bottom:none;}
+ .qexp{padding:14px 16px;border-bottom:1px solid #EFEDE7;background:#FDFBF6;}
+ .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+ .chip{display:inline-flex;align-items:center;gap:7px;padding:3px 10px 3px 8px;background:#FAF9F6;border:1px solid #E4E1DB;border-radius:7px;}
+ .ring{width:7px;height:7px;border:1.5px solid #57534B;border-radius:50%;}
+ .amberchip{font-size:12px;background:#FAEEDA;color:#854F0B;border-radius:6px;padding:2px 8px;}
+ .ph{background:#EFEDE7;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#57534B;font-size:10px;flex-shrink:0;}
+ .btn-primary{height:30px;display:inline-flex;align-items:center;padding:0 14px;background:#A87B22;color:#FAF9F6;font-size:13px;font-weight:600;clip-path:polygon(7px 0,100% 0,100% 100%,0 100%,0 7px);border-radius:0 7px 7px 7px;cursor:pointer;}
+ .btn-secondary{height:30px;display:inline-flex;align-items:center;padding:0 13px;border:1px solid #E4E1DB;border-radius:7px;font-size:13px;cursor:pointer;}
+ .eyebrow{font-size:11px;letter-spacing:0.08em;color:#57534B;text-transform:uppercase;margin-bottom:7px;}
+ .content{padding:18px 24px;}
+ h1{max-width:920px;margin:0 auto 6px;font-size:22px;}
+ .sub{max-width:920px;margin:0 auto 26px;font-size:14px;color:#57534B;line-height:1.6;}
+ .compact{max-width:400px;}
+</style></head><body>
+
+<h1>Dashboard reference</h1>
+<p class="sub">Canonical design source for the customer dashboard. Build to match with real data; see ui-language.md for component specs and interaction rules. Wordmark and glyph are inlined outline artwork from brand/.</p>
+
+<div class="frame">
+<div class="nav">
+  <span style="display:inline-flex;align-items:center;gap:8px;"><svg width="27" height="16" viewBox="0 0 92 56" aria-hidden="true"><path fill-rule="evenodd" fill="#A87B22" d="M12 8H80A9 9 0 0 1 89 17V39A9 9 0 0 1 80 48H12A9 9 0 0 1 3 39V17A9 9 0 0 1 12 8ZM25.5 28A5.5 5.5 0 1 1 14.5 28A5.5 5.5 0 1 1 25.5 28Z"/></svg><svg viewBox="-24 -24 5342 748" style="height:10px;" aria-hidden="true"><g transform="matrix(1 0 0 -1 0 700)"><path d="M504 700H660Q667 700 671.0 696.0Q675 692 675 685V15Q675 8 671.0 4.0Q667 0 660 0H502Q495 0 491.0 4.0Q487 8 487 15V378Q487 382 485.0 382.5Q483 383 481 380L413 269Q407 259 395 259H319Q307 259 301 269L233 380Q231 383 229.0 382.5Q227 382 227 378V15Q227 8 223.0 4.0Q219 0 212 0H54Q47 0 43.0 4.0Q39 8 39 15V685Q39 692 43.0 696.0Q47 700 54 700H210Q222 700 228 690L354 487Q357 481 360 487L486 690Q492 700 504 700ZM769 243V685Q769 692 773.0 696.0Q777 700 784 700H942Q949 700 953.0 696.0Q957 692 957 685V243Q957 202 980.5 177.5Q1004 153 1043 153Q1081 153 1104.5 178.0Q1128 203 1128 243V685Q1128 692 1132.0 696.0Q1136 700 1143 700H1301Q1308 700 1312.0 696.0Q1316 692 1316 685V243Q1316 168 1282.0 111.0Q1248 54 1186.0 23.0Q1124 -8 1043 -8Q962 -8 899.5 23.0Q837 54 803.0 111.0Q769 168 769 243ZM1410 15V685Q1410 692 1414.0 696.0Q1418 700 1425 700H1583Q1590 700 1594.0 696.0Q1598 692 1598 685V166Q1598 161 1603 161H1912Q1919 161 1923.0 157.0Q1927 153 1927 146V15Q1927 8 1923.0 4.0Q1919 0 1912 0H1425Q1418 0 1414.0 4.0Q1410 8 1410 15ZM2496 539H2197Q2192 539 2192 534V440Q2192 435 2197 435H2382Q2389 435 2393.0 431.0Q2397 427 2397 420V290Q2397 283 2393.0 279.0Q2389 275 2382 275H2197Q2192 275 2192 270V166Q2192 161 2197 161H2496Q2503 161 2507.0 157.0Q2511 153 2511 146V15Q2511 8 2507.0 4.0Q2503 0 2496 0H2019Q2012 0 2008.0 4.0Q2004 8 2004 15V685Q2004 692 2008.0 696.0Q2012 700 2019 700H2496Q2503 700 2507.0 696.0Q2511 692 2511 685V554Q2511 547 2507.0 543.0Q2503 539 2496 539ZM3059 700H3215Q3222 700 3226.0 696.0Q3230 692 3230 685V15Q3230 8 3226.0 4.0Q3222 0 3215 0H3057Q3050 0 3046.0 4.0Q3042 8 3042 15V378Q3042 382 3040.0 382.5Q3038 383 3036 380L2968 269Q2962 259 2950 259H2874Q2862 259 2856 269L2788 380Q2786 383 2784.0 382.5Q2782 382 2782 378V15Q2782 8 2778.0 4.0Q2774 0 2767 0H2609Q2602 0 2598.0 4.0Q2594 8 2594 15V685Q2594 692 2598.0 696.0Q2602 700 2609 700H2765Q2777 700 2783 690L2909 487Q2912 481 2915 487L3041 690Q3047 700 3059 700ZM3779 13 3757 91Q3755 95 3752 95H3540Q3537 95 3535 91L3513 13Q3510 0 3496 0H3325Q3307 0 3312 17L3523 688Q3527 700 3540 700H3752Q3765 700 3769 688L3980 17Q3981 15 3981 11Q3981 0 3967 0H3796Q3782 0 3779 13ZM3583 239H3708Q3714 239 3712 245L3648 469Q3647 472 3645.0 472.0Q3643 472 3642 469L3579 245Q3578 239 3583 239ZM4413.0 11.0Q4417.0 0.0 4430.0 0.0H4598.0Q4604.0 0.0 4608.0 3.0Q4612.0 6.0 4612.0 11.0Q4612.0 12.0 4610.0 18.0L4483.0 282.0Q4481.0 287.0 4486.0 289.0Q4543.0 312.0 4575.5 361.5Q4608.0 411.0 4608.0 477.0Q4608.0 543.0 4579.5 593.5Q4551.0 644.0 4499.5 672.0Q4448.0 700.0 4380.0 700.0H4272.0L4062.0 490.0V15.0Q4062.0 8.0 4066.0 4.0Q4070.0 0.0 4077.0 0.0H4235.0Q4242.0 0.0 4246.0 4.0Q4250.0 8.0 4250.0 15.0V264.0Q4250.0 269.0 4255.0 269.0H4297.0Q4301.0 269.0 4303.0 265.0ZM4250.0 534.0Q4250.0 539.0 4255.0 539.0H4349.0Q4381.0 539.0 4401.0 521.5Q4421.0 504.0 4421.0 475.0Q4421.0 447.0 4401.0 429.5Q4381.0 412.0 4349.0 412.0H4255.0Q4250.0 412.0 4250.0 417.0ZM4697 15V685Q4697 692 4701.0 696.0Q4705 700 4712 700H4870Q4877 700 4881.0 696.0Q4885 692 4885 685V446Q4885 443 4887.0 442.0Q4889 441 4891 444L5065 691Q5071 700 5084 700H5263Q5275 700 5275 691Q5275 687 5272 682L5064 393Q5062 390 5064 386L5279 18Q5282 14 5282 9Q5282 0 5269 0H5092Q5079 0 5074 10L4936 256Q4935 259 4933.0 259.0Q4931 259 4929 256L4887 192Q4885 188 4885 186V15Q4885 8 4881.0 4.0Q4877 0 4870 0H4712Q4705 0 4701.0 4.0Q4697 8 4697 15Z" fill="#1A1917"/></g></svg></span>
+  <div class="navlinks">
+    <span class="active">Dashboard</span><span>Assets</span>
+    <span>Submissions <span class="badge">3</span></span>
+    <span>Analytics</span><span>Tags</span><span>Settings</span>
+  </div>
+  <span style="margin-left:auto;font-size:12.5px;color:#57534B;">JH</span>
+</div>
+<div class="band">
+  <div class="platerow">
+    <span style="display:inline-flex;align-items:center;gap:8px;">
+      <span class="platering"></span>
+      <span class="platelabel">Northridge Rentals · Operations briefing</span>
+    </span>
+    <span class="mono" style="font-size:11px;color:#8F8B82;">THU · JUL 9 · 2026</span>
+  </div>
+  <div class="headline">Good morning, Josh — 3 things need your attention</div>
+  <div class="bstats">
+    <span class="bstat" style="background:#242220;"><span style="display:inline-flex;flex-direction:column;gap:2px;"><span class="mono" style="font-size:18px;color:#F0B24A;">3</span><span class="blabel">new submissions</span></span></span>
+    <span class="bstat"><span style="display:inline-flex;flex-direction:column;gap:2px;"><span class="mono" style="font-size:18px;color:#FAF9F6;">186</span><span class="blabel">scans · 7d</span></span><span style="display:flex;align-items:flex-end;gap:2px;height:24px;margin-left:10px;"><span style="width:5px;height:32%;background:#3A3733;border-radius:1.5px;"></span><span style="width:5px;height:55%;background:#3A3733;border-radius:1.5px;"></span><span style="width:5px;height:42%;background:#3A3733;border-radius:1.5px;"></span><span style="width:5px;height:82%;background:#A87B22;border-radius:1.5px;"></span><span style="width:5px;height:58%;background:#3A3733;border-radius:1.5px;"></span><span style="width:5px;height:46%;background:#3A3733;border-radius:1.5px;"></span><span style="width:5px;height:66%;background:#3A3733;border-radius:1.5px;"></span></span></span>
+    <span class="bstat"><span style="display:inline-flex;flex-direction:column;gap:2px;"><span class="mono" style="font-size:18px;color:#FAF9F6;">4<span style="color:#8F8B82;">/12</span></span><span class="blabel">rented</span></span></span>
+    <span class="bstat"><span style="display:inline-flex;flex-direction:column;gap:2px;"><span class="mono" style="font-size:18px;color:#FAF9F6;">11<span style="color:#8F8B82;">/12</span></span><span class="blabel">assets ready</span></span></span>
+  </div>
+  <div class="bandrule"></div>
+</div>
+<div class="content">
+  <div class="qcard">
+    <div class="qexp">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;">
+    <span class="chip"><span class="ring"></span><span class="mono" style="font-size:12px;">EXCAVATOR-017</span></span>
+    <span class="amberchip">Rented + open reports</span>
+    <span style="margin-left:auto;color:#57534B;">⌃</span>
+  </div>
+  <div style="display:flex;gap:12px;">
+    <div class="ph" style="width:56px;height:44px;">photo</div>
+    <div style="font-size:13.5px;line-height:1.5;">2 unresolved damage reports, oldest 4 days. Out on rent since July 3.</div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:11px;">
+    <span class="btn-primary">Review reports</span>
+    <span class="btn-secondary">Asset history</span>
+  </div>
+</div>
+    <div class="qrow"><span class="dot" style="background:#B07B10;"></span><span class="chip"><span class="ring"></span><span class="mono" style="font-size:12px;">TRAILER-2041</span></span><span style="font-size:13.5px;color:#57534B;flex:1;">New damage report with photos · 2 hours ago</span><span style="color:#57534B;">⌄</span></div>
+    <div class="qrow"><span class="dot" style="background:#57534B;"></span><span class="chip"><span class="ring"></span><span class="mono" style="font-size:12px;">METER-204</span></span><span style="font-size:13.5px;color:#57534B;flex:1;">Missing QR link, page in draft</span><span style="color:#57534B;">⌄</span></div>
+  </div>
+  <div class="eyebrow">Activity</div>
+<div style="font-size:13px;line-height:2.05;">
+  <div>Damage report received · <span class="mono" style="font-size:12px;">EXCAVATOR-017</span> <span style="color:#57534B;">· 2 hours ago</span></div>
+  <div>Marked returned · <span class="mono" style="font-size:12px;">TRAILER-014</span> <span style="color:#57534B;">· 5 hours ago</span></div>
+  <div>Return checklist submitted · <span class="mono" style="font-size:12px;">EXCAVATOR-3015</span> <span style="color:#57534B;">· yesterday</span></div>
+</div>
+</div>
+</div>
+<p class="caption"><b>1 · Default state.</b> Nameplate band: PlateLabel + rivet ring, mono date, greeting headline carrying the attention count, BandStats in ranked order (submissions amber, sparkline brass-today), brass BandRule. Queue: top item pre-expanded, AssetTagChip on every row, chamfered PrimaryButton on the primary action only. First BandStat shows the hover surface (#242220).</p>
+
+<div class="frame">
+<div class="nav">
+  <span style="display:inline-flex;align-items:center;gap:8px;"><svg width="27" height="16" viewBox="0 0 92 56" aria-hidden="true"><path fill-rule="evenodd" fill="#A87B22" d="M12 8H80A9 9 0 0 1 89 17V39A9 9 0 0 1 80 48H12A9 9 0 0 1 3 39V17A9 9 0 0 1 12 8ZM25.5 28A5.5 5.5 0 1 1 14.5 28A5.5 5.5 0 1 1 25.5 28Z"/></svg><svg viewBox="-24 -24 5342 748" style="height:10px;" aria-hidden="true"><g transform="matrix(1 0 0 -1 0 700)"><path d="M504 700H660Q667 700 671.0 696.0Q675 692 675 685V15Q675 8 671.0 4.0Q667 0 660 0H502Q495 0 491.0 4.0Q487 8 487 15V378Q487 382 485.0 382.5Q483 383 481 380L413 269Q407 259 395 259H319Q307 259 301 269L233 380Q231 383 229.0 382.5Q227 382 227 378V15Q227 8 223.0 4.0Q219 0 212 0H54Q47 0 43.0 4.0Q39 8 39 15V685Q39 692 43.0 696.0Q47 700 54 700H210Q222 700 228 690L354 487Q357 481 360 487L486 690Q492 700 504 700ZM769 243V685Q769 692 773.0 696.0Q777 700 784 700H942Q949 700 953.0 696.0Q957 692 957 685V243Q957 202 980.5 177.5Q1004 153 1043 153Q1081 153 1104.5 178.0Q1128 203 1128 243V685Q1128 692 1132.0 696.0Q1136 700 1143 700H1301Q1308 700 1312.0 696.0Q1316 692 1316 685V243Q1316 168 1282.0 111.0Q1248 54 1186.0 23.0Q1124 -8 1043 -8Q962 -8 899.5 23.0Q837 54 803.0 111.0Q769 168 769 243ZM1410 15V685Q1410 692 1414.0 696.0Q1418 700 1425 700H1583Q1590 700 1594.0 696.0Q1598 692 1598 685V166Q1598 161 1603 161H1912Q1919 161 1923.0 157.0Q1927 153 1927 146V15Q1927 8 1923.0 4.0Q1919 0 1912 0H1425Q1418 0 1414.0 4.0Q1410 8 1410 15ZM2496 539H2197Q2192 539 2192 534V440Q2192 435 2197 435H2382Q2389 435 2393.0 431.0Q2397 427 2397 420V290Q2397 283 2393.0 279.0Q2389 275 2382 275H2197Q2192 275 2192 270V166Q2192 161 2197 161H2496Q2503 161 2507.0 157.0Q2511 153 2511 146V15Q2511 8 2507.0 4.0Q2503 0 2496 0H2019Q2012 0 2008.0 4.0Q2004 8 2004 15V685Q2004 692 2008.0 696.0Q2012 700 2019 700H2496Q2503 700 2507.0 696.0Q2511 692 2511 685V554Q2511 547 2507.0 543.0Q2503 539 2496 539ZM3059 700H3215Q3222 700 3226.0 696.0Q3230 692 3230 685V15Q3230 8 3226.0 4.0Q3222 0 3215 0H3057Q3050 0 3046.0 4.0Q3042 8 3042 15V378Q3042 382 3040.0 382.5Q3038 383 3036 380L2968 269Q2962 259 2950 259H2874Q2862 259 2856 269L2788 380Q2786 383 2784.0 382.5Q2782 382 2782 378V15Q2782 8 2778.0 4.0Q2774 0 2767 0H2609Q2602 0 2598.0 4.0Q2594 8 2594 15V685Q2594 692 2598.0 696.0Q2602 700 2609 700H2765Q2777 700 2783 690L2909 487Q2912 481 2915 487L3041 690Q3047 700 3059 700ZM3779 13 3757 91Q3755 95 3752 95H3540Q3537 95 3535 91L3513 13Q3510 0 3496 0H3325Q3307 0 3312 17L3523 688Q3527 700 3540 700H3752Q3765 700 3769 688L3980 17Q3981 15 3981 11Q3981 0 3967 0H3796Q3782 0 3779 13ZM3583 239H3708Q3714 239 3712 245L3648 469Q3647 472 3645.0 472.0Q3643 472 3642 469L3579 245Q3578 239 3583 239ZM4413.0 11.0Q4417.0 0.0 4430.0 0.0H4598.0Q4604.0 0.0 4608.0 3.0Q4612.0 6.0 4612.0 11.0Q4612.0 12.0 4610.0 18.0L4483.0 282.0Q4481.0 287.0 4486.0 289.0Q4543.0 312.0 4575.5 361.5Q4608.0 411.0 4608.0 477.0Q4608.0 543.0 4579.5 593.5Q4551.0 644.0 4499.5 672.0Q4448.0 700.0 4380.0 700.0H4272.0L4062.0 490.0V15.0Q4062.0 8.0 4066.0 4.0Q4070.0 0.0 4077.0 0.0H4235.0Q4242.0 0.0 4246.0 4.0Q4250.0 8.0 4250.0 15.0V264.0Q4250.0 269.0 4255.0 269.0H4297.0Q4301.0 269.0 4303.0 265.0ZM4250.0 534.0Q4250.0 539.0 4255.0 539.0H4349.0Q4381.0 539.0 4401.0 521.5Q4421.0 504.0 4421.0 475.0Q4421.0 447.0 4401.0 429.5Q4381.0 412.0 4349.0 412.0H4255.0Q4250.0 412.0 4250.0 417.0ZM4697 15V685Q4697 692 4701.0 696.0Q4705 700 4712 700H4870Q4877 700 4881.0 696.0Q4885 692 4885 685V446Q4885 443 4887.0 442.0Q4889 441 4891 444L5065 691Q5071 700 5084 700H5263Q5275 700 5275 691Q5275 687 5272 682L5064 393Q5062 390 5064 386L5279 18Q5282 14 5282 9Q5282 0 5269 0H5092Q5079 0 5074 10L4936 256Q4935 259 4933.0 259.0Q4931 259 4929 256L4887 192Q4885 188 4885 186V15Q4885 8 4881.0 4.0Q4877 0 4870 0H4712Q4705 0 4701.0 4.0Q4697 8 4697 15Z" fill="#1A1917"/></g></svg></span>
+  <div class="navlinks">
+    <span class="active">Dashboard</span><span>Assets</span>
+    <span>Submissions <span class="badge">3</span></span>
+    <span>Analytics</span><span>Tags</span><span>Settings</span>
+  </div>
+  <span style="margin-left:auto;font-size:12.5px;color:#57534B;">JH</span>
+</div>
+<div class="band">
+  <div class="platerow">
+    <span style="display:inline-flex;align-items:center;gap:8px;">
+      <span class="platering"></span>
+      <span class="platelabel">Northridge Rentals · Operations briefing</span>
+    </span>
+    <span class="mono" style="font-size:11px;color:#8F8B82;">THU · JUL 9 · 2026</span>
+  </div>
+  <div class="headline">Good morning, Josh — 3 things need your attention</div>
+  <div class="bstats">
+    <span class="bstat" style="background:#242220;"><span style="display:inline-flex;flex-direction:column;gap:2px;"><span class="mono" style="font-size:18px;color:#F0B24A;">3</span><span class="blabel">new submissions</span></span></span>
+    <span class="bstat"><span style="display:inline-flex;flex-direction:column;gap:2px;"><span class="mono" style="font-size:18px;color:#FAF9F6;">186</span><span class="blabel">scans · 7d</span></span><span style="display:flex;align-items:flex-end;gap:2px;height:24px;margin-left:10px;"><span style="width:5px;height:32%;background:#3A3733;border-radius:1.5px;"></span><span style="width:5px;height:55%;background:#3A3733;border-radius:1.5px;"></span><span style="width:5px;height:42%;background:#3A3733;border-radius:1.5px;"></span><span style="width:5px;height:82%;background:#A87B22;border-radius:1.5px;"></span><span style="width:5px;height:58%;background:#3A3733;border-radius:1.5px;"></span><span style="width:5px;height:46%;background:#3A3733;border-radius:1.5px;"></span><span style="width:5px;height:66%;background:#3A3733;border-radius:1.5px;"></span></span></span>
+    <span class="bstat"><span style="display:inline-flex;flex-direction:column;gap:2px;"><span class="mono" style="font-size:18px;color:#FAF9F6;">4<span style="color:#8F8B82;">/12</span></span><span class="blabel">rented</span></span></span>
+    <span class="bstat"><span style="display:inline-flex;flex-direction:column;gap:2px;"><span class="mono" style="font-size:18px;color:#FAF9F6;">11<span style="color:#8F8B82;">/12</span></span><span class="blabel">assets ready</span></span></span>
+  </div>
+  <div class="bandrule"></div>
+</div>
+<div class="content">
+  <div class="qcard">
+    <div class="qrow"><span class="dot" style="background:#B07B10;"></span><span class="chip"><span class="ring"></span><span class="mono" style="font-size:12px;">EXCAVATOR-017</span></span><span style="font-size:13.5px;color:#57534B;flex:1;">2 unresolved damage reports, currently rented</span><span style="color:#57534B;">⌄</span></div>
+    <div class="qexp">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+    <span class="chip"><span class="ring"></span><span class="mono" style="font-size:12px;">TRAILER-2041</span></span><span class="amberchip">New damage report</span>
+    <span style="margin-left:auto;color:#57534B;">⌃</span>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:10px;">
+    <div class="ph" style="width:74px;height:56px;">photo 1</div>
+    <div class="ph" style="width:74px;height:56px;">photo 2</div>
+    <div class="ph" style="width:74px;height:56px;">photo 3</div>
+  </div>
+  <div style="font-size:13.5px;line-height:1.55;margin-bottom:4px;">"Left fender bent on the gate coming out of the yard. Lights still work."</div>
+  <div style="font-size:12.5px;color:#57534B;margin-bottom:11px;">Dale Kowalski · 604-555-0187 · 2 hours ago · <span class="mono" style="font-size:11.5px;">SUB-2026-3320E7</span></div>
+  <div style="display:flex;gap:8px;">
+    <span class="btn-primary">Open in submissions</span>
+    <span class="btn-secondary">Mark reviewed</span>
+    <span class="btn-secondary">Asset history</span>
+  </div>
+</div>
+    <div class="qrow"><span class="dot" style="background:#57534B;"></span><span class="chip"><span class="ring"></span><span class="mono" style="font-size:12px;">METER-204</span></span><span style="font-size:13.5px;color:#57534B;flex:1;">Missing QR link, page in draft</span><span style="color:#57534B;">⌄</span></div>
+  </div>
+</div>
+</div>
+<p class="caption"><b>2 · Interaction state.</b> Single-open accordion: opening TRAILER-2041 collapsed the top item. Expanded card: photos, quoted description, submitter + reference in mono, quick actions for the common case, "Open in submissions" as the one full-detail path. Expansion animates 250ms ease-out; reduced-motion renders instantly.</p>
+
+<div class="frame">
+<div class="nav">
+  <span style="display:inline-flex;align-items:center;gap:8px;"><svg width="27" height="16" viewBox="0 0 92 56" aria-hidden="true"><path fill-rule="evenodd" fill="#A87B22" d="M12 8H80A9 9 0 0 1 89 17V39A9 9 0 0 1 80 48H12A9 9 0 0 1 3 39V17A9 9 0 0 1 12 8ZM25.5 28A5.5 5.5 0 1 1 14.5 28A5.5 5.5 0 1 1 25.5 28Z"/></svg><svg viewBox="-24 -24 5342 748" style="height:10px;" aria-hidden="true"><g transform="matrix(1 0 0 -1 0 700)"><path d="M504 700H660Q667 700 671.0 696.0Q675 692 675 685V15Q675 8 671.0 4.0Q667 0 660 0H502Q495 0 491.0 4.0Q487 8 487 15V378Q487 382 485.0 382.5Q483 383 481 380L413 269Q407 259 395 259H319Q307 259 301 269L233 380Q231 383 229.0 382.5Q227 382 227 378V15Q227 8 223.0 4.0Q219 0 212 0H54Q47 0 43.0 4.0Q39 8 39 15V685Q39 692 43.0 696.0Q47 700 54 700H210Q222 700 228 690L354 487Q357 481 360 487L486 690Q492 700 504 700ZM769 243V685Q769 692 773.0 696.0Q777 700 784 700H942Q949 700 953.0 696.0Q957 692 957 685V243Q957 202 980.5 177.5Q1004 153 1043 153Q1081 153 1104.5 178.0Q1128 203 1128 243V685Q1128 692 1132.0 696.0Q1136 700 1143 700H1301Q1308 700 1312.0 696.0Q1316 692 1316 685V243Q1316 168 1282.0 111.0Q1248 54 1186.0 23.0Q1124 -8 1043 -8Q962 -8 899.5 23.0Q837 54 803.0 111.0Q769 168 769 243ZM1410 15V685Q1410 692 1414.0 696.0Q1418 700 1425 700H1583Q1590 700 1594.0 696.0Q1598 692 1598 685V166Q1598 161 1603 161H1912Q1919 161 1923.0 157.0Q1927 153 1927 146V15Q1927 8 1923.0 4.0Q1919 0 1912 0H1425Q1418 0 1414.0 4.0Q1410 8 1410 15ZM2496 539H2197Q2192 539 2192 534V440Q2192 435 2197 435H2382Q2389 435 2393.0 431.0Q2397 427 2397 420V290Q2397 283 2393.0 279.0Q2389 275 2382 275H2197Q2192 275 2192 270V166Q2192 161 2197 161H2496Q2503 161 2507.0 157.0Q2511 153 2511 146V15Q2511 8 2507.0 4.0Q2503 0 2496 0H2019Q2012 0 2008.0 4.0Q2004 8 2004 15V685Q2004 692 2008.0 696.0Q2012 700 2019 700H2496Q2503 700 2507.0 696.0Q2511 692 2511 685V554Q2511 547 2507.0 543.0Q2503 539 2496 539ZM3059 700H3215Q3222 700 3226.0 696.0Q3230 692 3230 685V15Q3230 8 3226.0 4.0Q3222 0 3215 0H3057Q3050 0 3046.0 4.0Q3042 8 3042 15V378Q3042 382 3040.0 382.5Q3038 383 3036 380L2968 269Q2962 259 2950 259H2874Q2862 259 2856 269L2788 380Q2786 383 2784.0 382.5Q2782 382 2782 378V15Q2782 8 2778.0 4.0Q2774 0 2767 0H2609Q2602 0 2598.0 4.0Q2594 8 2594 15V685Q2594 692 2598.0 696.0Q2602 700 2609 700H2765Q2777 700 2783 690L2909 487Q2912 481 2915 487L3041 690Q3047 700 3059 700ZM3779 13 3757 91Q3755 95 3752 95H3540Q3537 95 3535 91L3513 13Q3510 0 3496 0H3325Q3307 0 3312 17L3523 688Q3527 700 3540 700H3752Q3765 700 3769 688L3980 17Q3981 15 3981 11Q3981 0 3967 0H3796Q3782 0 3779 13ZM3583 239H3708Q3714 239 3712 245L3648 469Q3647 472 3645.0 472.0Q3643 472 3642 469L3579 245Q3578 239 3583 239ZM4413.0 11.0Q4417.0 0.0 4430.0 0.0H4598.0Q4604.0 0.0 4608.0 3.0Q4612.0 6.0 4612.0 11.0Q4612.0 12.0 4610.0 18.0L4483.0 282.0Q4481.0 287.0 4486.0 289.0Q4543.0 312.0 4575.5 361.5Q4608.0 411.0 4608.0 477.0Q4608.0 543.0 4579.5 593.5Q4551.0 644.0 4499.5 672.0Q4448.0 700.0 4380.0 700.0H4272.0L4062.0 490.0V15.0Q4062.0 8.0 4066.0 4.0Q4070.0 0.0 4077.0 0.0H4235.0Q4242.0 0.0 4246.0 4.0Q4250.0 8.0 4250.0 15.0V264.0Q4250.0 269.0 4255.0 269.0H4297.0Q4301.0 269.0 4303.0 265.0ZM4250.0 534.0Q4250.0 539.0 4255.0 539.0H4349.0Q4381.0 539.0 4401.0 521.5Q4421.0 504.0 4421.0 475.0Q4421.0 447.0 4401.0 429.5Q4381.0 412.0 4349.0 412.0H4255.0Q4250.0 412.0 4250.0 417.0ZM4697 15V685Q4697 692 4701.0 696.0Q4705 700 4712 700H4870Q4877 700 4881.0 696.0Q4885 692 4885 685V446Q4885 443 4887.0 442.0Q4889 441 4891 444L5065 691Q5071 700 5084 700H5263Q5275 700 5275 691Q5275 687 5272 682L5064 393Q5062 390 5064 386L5279 18Q5282 14 5282 9Q5282 0 5269 0H5092Q5079 0 5074 10L4936 256Q4935 259 4933.0 259.0Q4931 259 4929 256L4887 192Q4885 188 4885 186V15Q4885 8 4881.0 4.0Q4877 0 4870 0H4712Q4705 0 4701.0 4.0Q4697 8 4697 15Z" fill="#1A1917"/></g></svg></span>
+  <div class="navlinks">
+    <span class="active">Dashboard</span><span>Assets</span>
+    <span>Submissions <span class="badge">3</span></span>
+    <span>Analytics</span><span>Tags</span><span>Settings</span>
+  </div>
+  <span style="margin-left:auto;font-size:12.5px;color:#57534B;">JH</span>
+</div>
+<div class="band">
+  <div class="platerow">
+    <span style="display:inline-flex;align-items:center;gap:8px;"><span class="platering"></span>
+    <span class="platelabel">Northridge Rentals · Operations briefing</span></span>
+    <span class="mono" style="font-size:11px;color:#8F8B82;">FRI · JUL 10 · 2026</span>
+  </div>
+  <div class="headline" style="display:flex;align-items:center;gap:10px;"><span style="width:9px;height:9px;border-radius:50%;background:#5B9A63;"></span>All clear this morning, Josh</div>
+  <div class="bstats"><span class="bstat"><span style="display:inline-flex;flex-direction:column;gap:2px;"><span class="mono" style="font-size:18px;color:#FAF9F6;">0</span><span class="blabel">new submissions</span></span></span><span class="bstat"><span style="display:inline-flex;flex-direction:column;gap:2px;"><span class="mono" style="font-size:18px;color:#FAF9F6;">142</span><span class="blabel">scans · 7d</span></span></span><span class="bstat"><span style="display:inline-flex;flex-direction:column;gap:2px;"><span class="mono" style="font-size:18px;color:#FAF9F6;">6<span style="color:#8F8B82;">/12</span></span><span class="blabel">rented</span></span></span><span class="bstat"><span style="display:inline-flex;flex-direction:column;gap:2px;"><span class="mono" style="font-size:18px;color:#FAF9F6;">12<span style="color:#8F8B82;">/12</span></span><span class="blabel">assets ready</span></span></span>
+  </div>
+  <div class="bandrule"></div>
+</div>
+<div class="content">
+  <div class="eyebrow">Activity</div>
+<div style="font-size:13px;line-height:2.05;">
+  <div>Damage report received · <span class="mono" style="font-size:12px;">EXCAVATOR-017</span> <span style="color:#57534B;">· 2 hours ago</span></div>
+  <div>Marked returned · <span class="mono" style="font-size:12px;">TRAILER-014</span> <span style="color:#57534B;">· 5 hours ago</span></div>
+  <div>Return checklist submitted · <span class="mono" style="font-size:12px;">EXCAVATOR-3015</span> <span style="color:#57534B;">· yesterday</span></div>
+</div>
+  <div style="font-size:12.5px;color:#57534B;margin-top:12px;">Setup detail section hidden at 12 of 12 ready; it returns automatically when readiness drops. Band stat always shows.</div>
+</div>
+</div>
+<p class="caption"><b>3 · All-clear state.</b> Green dot in the headline (the only chrome green, only when literally true), zero-count stats stay neutral, activity leads.</p>
+
+<div class="frame compact">
+<div class="nav">
+  <span style="display:inline-flex;align-items:center;gap:8px;"><svg width="27" height="16" viewBox="0 0 92 56" aria-hidden="true"><path fill-rule="evenodd" fill="#A87B22" d="M12 8H80A9 9 0 0 1 89 17V39A9 9 0 0 1 80 48H12A9 9 0 0 1 3 39V17A9 9 0 0 1 12 8ZM25.5 28A5.5 5.5 0 1 1 14.5 28A5.5 5.5 0 1 1 25.5 28Z"/></svg><svg viewBox="-24 -24 5342 748" style="height:10px;" aria-hidden="true"><g transform="matrix(1 0 0 -1 0 700)"><path d="M504 700H660Q667 700 671.0 696.0Q675 692 675 685V15Q675 8 671.0 4.0Q667 0 660 0H502Q495 0 491.0 4.0Q487 8 487 15V378Q487 382 485.0 382.5Q483 383 481 380L413 269Q407 259 395 259H319Q307 259 301 269L233 380Q231 383 229.0 382.5Q227 382 227 378V15Q227 8 223.0 4.0Q219 0 212 0H54Q47 0 43.0 4.0Q39 8 39 15V685Q39 692 43.0 696.0Q47 700 54 700H210Q222 700 228 690L354 487Q357 481 360 487L486 690Q492 700 504 700ZM769 243V685Q769 692 773.0 696.0Q777 700 784 700H942Q949 700 953.0 696.0Q957 692 957 685V243Q957 202 980.5 177.5Q1004 153 1043 153Q1081 153 1104.5 178.0Q1128 203 1128 243V685Q1128 692 1132.0 696.0Q1136 700 1143 700H1301Q1308 700 1312.0 696.0Q1316 692 1316 685V243Q1316 168 1282.0 111.0Q1248 54 1186.0 23.0Q1124 -8 1043 -8Q962 -8 899.5 23.0Q837 54 803.0 111.0Q769 168 769 243ZM1410 15V685Q1410 692 1414.0 696.0Q1418 700 1425 700H1583Q1590 700 1594.0 696.0Q1598 692 1598 685V166Q1598 161 1603 161H1912Q1919 161 1923.0 157.0Q1927 153 1927 146V15Q1927 8 1923.0 4.0Q1919 0 1912 0H1425Q1418 0 1414.0 4.0Q1410 8 1410 15ZM2496 539H2197Q2192 539 2192 534V440Q2192 435 2197 435H2382Q2389 435 2393.0 431.0Q2397 427 2397 420V290Q2397 283 2393.0 279.0Q2389 275 2382 275H2197Q2192 275 2192 270V166Q2192 161 2197 161H2496Q2503 161 2507.0 157.0Q2511 153 2511 146V15Q2511 8 2507.0 4.0Q2503 0 2496 0H2019Q2012 0 2008.0 4.0Q2004 8 2004 15V685Q2004 692 2008.0 696.0Q2012 700 2019 700H2496Q2503 700 2507.0 696.0Q2511 692 2511 685V554Q2511 547 2507.0 543.0Q2503 539 2496 539ZM3059 700H3215Q3222 700 3226.0 696.0Q3230 692 3230 685V15Q3230 8 3226.0 4.0Q3222 0 3215 0H3057Q3050 0 3046.0 4.0Q3042 8 3042 15V378Q3042 382 3040.0 382.5Q3038 383 3036 380L2968 269Q2962 259 2950 259H2874Q2862 259 2856 269L2788 380Q2786 383 2784.0 382.5Q2782 382 2782 378V15Q2782 8 2778.0 4.0Q2774 0 2767 0H2609Q2602 0 2598.0 4.0Q2594 8 2594 15V685Q2594 692 2598.0 696.0Q2602 700 2609 700H2765Q2777 700 2783 690L2909 487Q2912 481 2915 487L3041 690Q3047 700 3059 700ZM3779 13 3757 91Q3755 95 3752 95H3540Q3537 95 3535 91L3513 13Q3510 0 3496 0H3325Q3307 0 3312 17L3523 688Q3527 700 3540 700H3752Q3765 700 3769 688L3980 17Q3981 15 3981 11Q3981 0 3967 0H3796Q3782 0 3779 13ZM3583 239H3708Q3714 239 3712 245L3648 469Q3647 472 3645.0 472.0Q3643 472 3642 469L3579 245Q3578 239 3583 239ZM4413.0 11.0Q4417.0 0.0 4430.0 0.0H4598.0Q4604.0 0.0 4608.0 3.0Q4612.0 6.0 4612.0 11.0Q4612.0 12.0 4610.0 18.0L4483.0 282.0Q4481.0 287.0 4486.0 289.0Q4543.0 312.0 4575.5 361.5Q4608.0 411.0 4608.0 477.0Q4608.0 543.0 4579.5 593.5Q4551.0 644.0 4499.5 672.0Q4448.0 700.0 4380.0 700.0H4272.0L4062.0 490.0V15.0Q4062.0 8.0 4066.0 4.0Q4070.0 0.0 4077.0 0.0H4235.0Q4242.0 0.0 4246.0 4.0Q4250.0 8.0 4250.0 15.0V264.0Q4250.0 269.0 4255.0 269.0H4297.0Q4301.0 269.0 4303.0 265.0ZM4250.0 534.0Q4250.0 539.0 4255.0 539.0H4349.0Q4381.0 539.0 4401.0 521.5Q4421.0 504.0 4421.0 475.0Q4421.0 447.0 4401.0 429.5Q4381.0 412.0 4349.0 412.0H4255.0Q4250.0 412.0 4250.0 417.0ZM4697 15V685Q4697 692 4701.0 696.0Q4705 700 4712 700H4870Q4877 700 4881.0 696.0Q4885 692 4885 685V446Q4885 443 4887.0 442.0Q4889 441 4891 444L5065 691Q5071 700 5084 700H5263Q5275 700 5275 691Q5275 687 5272 682L5064 393Q5062 390 5064 386L5279 18Q5282 14 5282 9Q5282 0 5269 0H5092Q5079 0 5074 10L4936 256Q4935 259 4933.0 259.0Q4931 259 4929 256L4887 192Q4885 188 4885 186V15Q4885 8 4881.0 4.0Q4877 0 4870 0H4712Q4705 0 4701.0 4.0Q4697 8 4697 15Z" fill="#1A1917"/></g></svg></span>
+  <div class="navlinks">
+    <span class="active">Dashboard</span>
+    <span>Submissions <span class="badge">3</span></span>
+    <span></span>
+  </div>
+  <span style="margin-left:auto;font-size:12.5px;color:#57534B;">JH</span>
+</div>
+<div class="band">
+  <div class="platerow">
+    <span style="display:inline-flex;align-items:center;gap:8px;">
+      <span class="platering"></span>
+      <span class="platelabel">Northridge Rentals · Operations briefing</span>
+    </span>
+    <span class="mono" style="font-size:11px;color:#8F8B82;">THU · JUL 9 · 2026</span>
+  </div>
+  <div class="headline">Good morning, Josh — 3 things need your attention</div>
+  <div class="bstats">
+    <span class="bstat" style="background:#242220;"><span style="display:inline-flex;flex-direction:column;gap:2px;"><span class="mono" style="font-size:18px;color:#F0B24A;">3</span><span class="blabel">new submissions</span></span></span>
+    <span class="bstat"><span style="display:inline-flex;flex-direction:column;gap:2px;"><span class="mono" style="font-size:18px;color:#FAF9F6;">186</span><span class="blabel">scans · 7d</span></span><span style="display:flex;align-items:flex-end;gap:2px;height:24px;margin-left:10px;"><span style="width:5px;height:32%;background:#3A3733;border-radius:1.5px;"></span><span style="width:5px;height:55%;background:#3A3733;border-radius:1.5px;"></span><span style="width:5px;height:42%;background:#3A3733;border-radius:1.5px;"></span><span style="width:5px;height:82%;background:#A87B22;border-radius:1.5px;"></span><span style="width:5px;height:58%;background:#3A3733;border-radius:1.5px;"></span><span style="width:5px;height:46%;background:#3A3733;border-radius:1.5px;"></span><span style="width:5px;height:66%;background:#3A3733;border-radius:1.5px;"></span></span></span>
+    <span class="bstat"><span style="display:inline-flex;flex-direction:column;gap:2px;"><span class="mono" style="font-size:18px;color:#FAF9F6;">4<span style="color:#8F8B82;">/12</span></span><span class="blabel">rented</span></span></span>
+    <span class="bstat"><span style="display:inline-flex;flex-direction:column;gap:2px;"><span class="mono" style="font-size:18px;color:#FAF9F6;">11<span style="color:#8F8B82;">/12</span></span><span class="blabel">assets ready</span></span></span>
+  </div>
+  <div class="bandrule"></div>
+</div>
+<div class="content" style="padding:14px 16px;">
+  <div class="qcard">
+    <div class="qrow"><span class="dot" style="background:#B07B10;"></span><span class="chip"><span class="ring"></span><span class="mono" style="font-size:12px;">EXCAVATOR-017</span></span><span style="font-size:13.5px;color:#57534B;flex:1;">2 unresolved reports · rented</span><span style="color:#57534B;">⌄</span></div>
+    <div class="qrow"><span class="dot" style="background:#B07B10;"></span><span class="chip"><span class="ring"></span><span class="mono" style="font-size:12px;">TRAILER-2041</span></span><span style="font-size:13.5px;color:#57534B;flex:1;">New damage report · 2h</span><span style="color:#57534B;">⌄</span></div>
+  </div>
+</div>
+</div>
+<p class="caption"><b>4 · Compact width (~400px).</b> Band intact, BandStats wrap to two per row, queue rows keep chip + one-line reason, nav collapses to essentials. Nothing is redesigned at narrow width, only stacked.</p>
+
+</body></html>

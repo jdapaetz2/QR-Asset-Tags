@@ -13,17 +13,28 @@ describe("navForRole", () => {
     ]);
   });
 
-  it("gives org users the customer routes", () => {
-    const expected = [
+  it("gives the customer admin the full customer routes", () => {
+    expect(navForRole(ROLES.CUSTOMER_ADMIN)).toEqual([
       { label: "Dashboard", href: "/dashboard" },
       { label: "Assets", href: "/dashboard/assets" },
-      { label: "Submissions", href: "/dashboard/submissions" },
+      { label: "Submissions", href: "/dashboard/submissions", badge: "submissions_new" },
       { label: "Analytics", href: "/dashboard/analytics" },
       { label: "Tag requests", href: "/dashboard/tag-requests" },
       { label: "Settings", href: "/dashboard/settings" },
-    ];
-    expect(navForRole(ROLES.CUSTOMER_ADMIN)).toEqual(expected);
-    expect(navForRole(ROLES.CUSTOMER_STAFF)).toEqual(expected);
+    ]);
+  });
+
+  it("gives staff a reduced nav (no Settings or Tag requests)", () => {
+    const staff = navForRole(ROLES.CUSTOMER_STAFF);
+    expect(staff).toEqual([
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Assets", href: "/dashboard/assets" },
+      { label: "Submissions", href: "/dashboard/submissions", badge: "submissions_new" },
+      { label: "Analytics", href: "/dashboard/analytics" },
+    ]);
+    const labels = staff.map((i) => i.label);
+    expect(labels).not.toContain("Settings");
+    expect(labels).not.toContain("Tag requests");
   });
 
   it("never exposes an /owner link to org users (role boundary)", () => {

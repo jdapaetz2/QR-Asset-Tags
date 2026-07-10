@@ -14,6 +14,7 @@ import { deleteEligibility } from "@/lib/assets/list";
 import { getOrgCategories } from "@/lib/assets/categories";
 import { UNRESOLVED_STATUSES } from "@/lib/submissions/inbox";
 import { AssetForm } from "@/components/asset-form";
+import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { Button } from "@/components/ui/button";
 import { ActionButton } from "@/components/action-button";
 import { QrLinkSection, type QrLinkRow } from "@/components/qr-link-section";
@@ -133,9 +134,10 @@ export default async function EditAssetPage({
             </span>
           ) : null}
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {asset.asset_code} · {asset.public_status}
-        </p>
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <AssetTagChip code={asset.asset_code} />
+          <span>{asset.public_status}</span>
+        </div>
       </section>
 
       {/* Activity timeline */}

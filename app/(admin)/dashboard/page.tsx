@@ -3,27 +3,28 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile, landingPathForRole } from "@/lib/auth/session";
-import { roleLabel } from "@/lib/auth/roles";
-import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/ui/page-header";
-import { StatCard } from "@/components/ui/stat-card";
+import { firstNameFrom } from "@/lib/auth/name";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { RelativeTime } from "@/components/relative-time";
-import { PlanUsage } from "@/components/plan-usage";
-import { safeBrandColor, readableTextOn } from "@/lib/public/brand";
-import { orgStatusLabel } from "@/lib/ui/status-labels";
+import { NameplateBand } from "@/components/dashboard/nameplate-band";
+import { AttentionQueue, type QueueItem } from "@/components/dashboard/attention-queue";
 import { countCoveredAssets } from "@/lib/plans/coverage";
 import { deriveAssetStatus } from "@/lib/ui/status-view";
 import { assetPageStatus } from "@/lib/assets/list";
 import { formTypeLabel } from "@/lib/submissions/display";
+import { firstImagePath, submissionReference } from "@/lib/submissions/inbox";
 import {
   buildAttentionItems,
+  buildBandStats,
   mergeRecentActivity,
+  scanTrend,
   setupProgress,
+  shouldShowSetupDetail,
+  timeGreeting,
   type ActivityEvent,
   type AttentionAsset,
-  type AttentionItem,
 } from "@/lib/dashboard/briefing";
 
 // Auth-scoped and reflects the org's current data; never cache.
@@ -31,6 +32,8 @@ export const dynamic = "force-dynamic";
 
 const UNRESOLVED = ["new", "reviewed"] as const;
 const OPEN_TAG_STATUSES = ["requested", "in_review", "in_production", "ready"] as const;
+const SUBMISSIONS_BUCKET = "submissions";
+const SEVEN_DAYS_MS = 7 * 86_400_000;
 
 type AssetRow = {
   id: string;
@@ -41,6 +44,26 @@ type AssetRow = {
   active_rental_session_id: string | null;
 };
 
+type SubRow = {
+  id: string;
+  asset_id: string | null;
+  form_type: string;
+  status: string;
+  created_at: string;
+  submission_data_json: Record<string, unknown> | null;
+  media_urls: unknown;
+  submitted_by_name: string | null;
+  submitted_by_email: string | null;
+  submitted_by_phone: string | null;
+};
+
+/** The quoted line for an expanded card: damage/support use `description`, returns use `condition_notes`. */
+function submissionSummary(data: Record<string, unknown> | null): string | null {
+  if (!data) return null;
+  const value = data.description ?? data.condition_notes;
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
 export default async function DashboardPage() {
   const profile = await requireProfile();
 
@@ -50,6 +73,8 @@ export default async function DashboardPage() {
   }
 
   const supabase = await createClient();
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - SEVEN_DAYS_MS).toISOString();
 
   // One parallel batch of RLS-scoped, head/limited reads — the whole briefing derives from these.
   const [
@@ -59,15 +84,14 @@ export default async function DashboardPage() {
     { data: pageData },
     { data: subData },
     { count: openTagRequests },
+    { data: scan7dData },
     { data: scanData },
     { data: recentSubData },
     { data: recentTagData },
   ] = await Promise.all([
     supabase
       .from("organizations")
-      .select(
-        "name, slug, status, support_phone, support_email, logo_url, primary_color, customer_exports_enabled, asset_limit, plan_name"
-      )
+      .select("name, customer_exports_enabled")
       .eq("id", profile.organization_id)
       .maybeSingle(),
     supabase
@@ -77,12 +101,19 @@ export default async function DashboardPage() {
     supabase.from("equipment_pages").select("asset_id, is_published"),
     supabase
       .from("form_submissions")
-      .select("asset_id, form_type, status")
-      .in("status", UNRESOLVED as readonly string[]),
+      .select(
+        "id, asset_id, form_type, status, created_at, submission_data_json, media_urls, submitted_by_name, submitted_by_email, submitted_by_phone"
+      )
+      .in("status", UNRESOLVED as readonly string[])
+      .order("created_at", { ascending: false }),
     supabase
       .from("tag_requests")
       .select("id", { count: "exact", head: true })
       .in("status", OPEN_TAG_STATUSES as readonly string[]),
+    supabase
+      .from("scan_events")
+      .select("scanned_at")
+      .gte("scanned_at", sevenDaysAgo),
     supabase
       .from("scan_events")
       .select("asset_id, scanned_at")
@@ -103,7 +134,7 @@ export default async function DashboardPage() {
   const assets = (assetData ?? []) as AssetRow[];
   const qrRows = (qrData ?? []) as { asset_id: string; status: string }[];
   const pageRows = (pageData ?? []) as { asset_id: string; is_published: boolean }[];
-  const subRows = (subData ?? []) as { asset_id: string | null; form_type: string; status: string }[];
+  const subRows = (subData ?? []) as SubRow[];
 
   // Per-asset lookups.
   const qrByAsset = new Map<string, boolean>(); // asset_id → hasActive
@@ -115,7 +146,9 @@ export default async function DashboardPage() {
   const pageByAsset = new Map<string, boolean>();
   for (const p of pageRows) pageByAsset.set(p.asset_id, p.is_published);
 
+  // subRows are already newest-first, so the first per asset is the latest.
   const unresolvedByAsset = new Map<string, { count: number; hasOpenDamage: boolean }>();
+  const latestSubByAsset = new Map<string, SubRow>();
   for (const s of subRows) {
     if (!s.asset_id) continue;
     const prev = unresolvedByAsset.get(s.asset_id) ?? { count: 0, hasOpenDamage: false };
@@ -123,6 +156,7 @@ export default async function DashboardPage() {
       count: prev.count + 1,
       hasOpenDamage: prev.hasOpenDamage || s.form_type === "damage_report",
     });
+    if (!latestSubByAsset.has(s.asset_id)) latestSubByAsset.set(s.asset_id, s);
   }
 
   const codeById = new Map<string, string>();
@@ -159,14 +193,69 @@ export default async function DashboardPage() {
   const progress = setupProgress(attentionAssets.map((a) => ({ ready: a.readiness.ready })));
   const attention = buildAttentionItems(attentionAssets, { cap: 10 });
 
-  // Stats derived in-memory from the fetched rows.
+  // Sign the latest photo per submission-based attention item (post-filter, ≤10).
+  const thumbByAsset = new Map<string, string>();
+  await Promise.all(
+    attention
+      .filter((i) => !i.key.endsWith(":setup"))
+      .map(async (i) => {
+        const sub = latestSubByAsset.get(i.assetId);
+        const path = sub ? firstImagePath(sub.media_urls) : null;
+        if (!path) return;
+        const { data: signed } = await supabase.storage
+          .from(SUBMISSIONS_BUCKET)
+          .createSignedUrl(path, 3600);
+        if (signed?.signedUrl) thumbByAsset.set(i.assetId, signed.signedUrl);
+      })
+  );
+
+  const queueItems: QueueItem[] = attention.map((item) => {
+    const isSetup = item.key.endsWith(":setup");
+    const sub = isSetup ? undefined : latestSubByAsset.get(item.assetId);
+    return {
+      key: item.key,
+      assetId: item.assetId,
+      code: item.code,
+      title: item.title,
+      reason: item.reason,
+      href: item.href,
+      historyHref: `/dashboard/assets/${item.assetId}/timeline`,
+      isSetup,
+      detail: sub
+        ? {
+            description: submissionSummary(sub.submission_data_json),
+            submitter:
+              [sub.submitted_by_name, sub.submitted_by_phone ?? sub.submitted_by_email]
+                .filter(Boolean)
+                .join(" · ") || null,
+            reference: submissionReference(sub.id, sub.created_at),
+            createdAt: sub.created_at,
+            thumbUrl: thumbByAsset.get(item.assetId) ?? null,
+          }
+        : null,
+    };
+  });
+
+  // Band stats derived in-memory from the fetched rows.
+  const rentedCount = active.filter((a) => a.active_rental_session_id !== null).length;
+  const newCount = subRows.filter((s) => s.status === "new").length;
+  const sparkValues = scanTrend(
+    (scan7dData ?? []) as { scanned_at: string | null }[],
+    7,
+    now.getTime()
+  );
+  const scans7d = sparkValues.reduce((a, b) => a + b, 0);
   const covered = countCoveredAssets(
     active.map((a) => a.id),
     qrRows.map((q) => q.asset_id)
   );
-  const rentedCount = assets.filter((a) => a.active_rental_session_id !== null).length;
-  const unresolvedCount = subRows.length;
-  const newCount = subRows.filter((s) => s.status === "new").length;
+  const stats = buildBandStats({
+    newCount,
+    scans7d,
+    rented: rentedCount,
+    ready: progress.ready,
+    totalAssets: progress.total,
+  });
 
   // Recent activity feed.
   const scanEvents: ActivityEvent[] = (
@@ -202,114 +291,46 @@ export default async function DashboardPage() {
     10
   );
 
-  const assetLimit = (org?.asset_limit as number | null) ?? null;
   const orgName = org?.name ?? "Your organization";
-  const brand = safeBrandColor(org?.primary_color);
-  const brandText = readableTextOn(brand);
-  const brandingConfigured = Boolean(org?.primary_color || org?.logo_url);
-  const support = [org?.support_phone, org?.support_email].filter(Boolean);
+  const firstName = firstNameFrom(profile.name, profile.email);
+  const greeting = timeGreeting(now.getHours());
+  const dateLabel = formatBandDate(now);
 
   return (
-    <div className="flex flex-col gap-8">
-      <PageHeader
-        title={orgName}
-        description={`Signed in as ${
-          profile.name ?? profile.email ?? "user"
-        } · ${roleLabel(profile.role)}`}
+    <div className="flex flex-col gap-6">
+      <NameplateBand
+        orgName={orgName}
+        dateLabel={dateLabel}
+        greeting={greeting}
+        firstName={firstName}
+        attentionCount={attention.length}
+        stats={stats}
+        sparkValues={sparkValues}
       />
 
-      {/* Organization summary — the one place tenant branding leads. */}
-      <div
-        className="flex flex-col gap-4 overflow-hidden rounded-lg border bg-card sm:flex-row sm:items-center sm:justify-between"
-        style={{ borderLeftWidth: 4, borderLeftColor: brand }}
-      >
-        <div className="flex items-center gap-4 p-4">
-          {org?.logo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={org.logo_url}
-              alt={orgName}
-              className="size-12 rounded-md border bg-background object-contain"
-            />
-          ) : (
-            <div
-              className="flex size-12 items-center justify-center rounded-md text-lg font-semibold"
-              style={{ backgroundColor: brand, color: brandText }}
-              aria-hidden
-            >
-              {orgName.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <div className="text-sm">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium text-foreground">{orgName}</span>
-              <Badge tone={org?.status === "active" ? "success" : "neutral"}>
-                {orgStatusLabel(org?.status)}
-              </Badge>
-              {brandingConfigured ? <Badge tone="info">Scanner branding set</Badge> : null}
-            </div>
-            <p className="mt-1 text-muted-foreground">
-              {org?.slug ? `${org.slug} · ` : ""}
-              {roleLabel(profile.role)}
-            </p>
-            {support.length > 0 ? (
-              <p className="mt-1 text-muted-foreground">Support: {support.join(" · ")}</p>
-            ) : null}
-          </div>
-        </div>
-        <div className="flex flex-col items-start gap-2 px-4 pb-4 sm:items-end sm:pb-0 sm:pr-4">
-          <PlanUsage
-            mode="compact"
-            compactLabel="Plan & usage"
-            data={{
-              planName: org?.plan_name ?? "Custom plan",
-              status: org?.status ?? null,
-              covered,
-              limit: assetLimit,
-            }}
-          />
-          <Link
-            href="/dashboard/settings"
-            className="inline-flex w-fit rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-          >
-            Edit settings
-          </Link>
-        </div>
-      </div>
-
-      {/* Needs attention — the top of the briefing. */}
-      <section>
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">Needs attention</h2>
-        {attention.length === 0 ? (
-          <EmptyState
-            title="Everything looks ready"
-            description="No open submissions or setup gaps right now. New reports and readiness issues will show up here."
-          />
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {attention.map((item) => (
-              <AttentionRow key={item.key} item={item} />
-            ))}
-          </ul>
-        )}
-      </section>
+      {/* Needs-attention queue — single-open accordion, top pre-expanded. */}
+      {queueItems.length > 0 ? (
+        <AttentionQueue items={queueItems} />
+      ) : null}
 
       {/* Setup progress — derived, hidden once every asset is ready. */}
-      {progress.total > 0 && !progress.complete ? (
+      {shouldShowSetupDetail(progress) ? (
         <section>
-          <h2 className="mb-3 text-sm font-medium text-muted-foreground">Setup progress</h2>
+          <Eyebrow as="h2" className="mb-2.5">
+            Setup progress
+          </Eyebrow>
           <div className="flex flex-col gap-3 rounded-lg border bg-card p-4">
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium">
                 {progress.ready} of {progress.total} assets ready
               </span>
-              <span className="text-xs text-muted-foreground tabular-nums">
+              <span className="font-mono text-xs tabular-nums text-iron-600">
                 {Math.round((progress.ready / progress.total) * 100)}%
               </span>
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
               <div
-                className="h-full rounded-full bg-success"
+                className="h-full rounded-full bg-brass-500"
                 style={{ width: `${(progress.ready / progress.total) * 100}%` }}
               />
             </div>
@@ -324,7 +345,7 @@ export default async function DashboardPage() {
                       className="flex flex-wrap items-center gap-2 text-sm underline-offset-4 hover:underline"
                     >
                       <AssetTagChip code={i.code} />
-                      <span className="text-muted-foreground">{i.title}</span>
+                      <span className="text-iron-600">{i.title}</span>
                     </Link>
                   </li>
                 ))}
@@ -333,43 +354,11 @@ export default async function DashboardPage() {
         </section>
       ) : null}
 
-      {/* At a glance — every number links to a filtered view. */}
+      {/* Recent activity — quiet single-line feed; leads the page in the all-clear state. */}
       <section>
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">At a glance</h2>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Assets" value={assets.length} href="/dashboard/assets" />
-          <StatCard label="Covered assets" value={covered} href="/dashboard/settings" />
-          <StatCard
-            label="Assets ready"
-            value={progress.ready}
-            href="/dashboard/assets?page=published"
-          />
-          <StatCard
-            label="Rented"
-            value={rentedCount}
-            href="/dashboard/assets?rental=rented"
-          />
-          <StatCard
-            label="New submissions"
-            value={newCount}
-            href="/dashboard/submissions?status=new"
-          />
-          <StatCard
-            label="Unresolved submissions"
-            value={unresolvedCount}
-            href="/dashboard/submissions?status=unresolved"
-          />
-          <StatCard
-            label="Open tag requests"
-            value={openTagRequests ?? 0}
-            href="/dashboard/tag-requests"
-          />
-        </div>
-      </section>
-
-      {/* Recent activity — quiet single-line feed. */}
-      <section>
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">Recent activity</h2>
+        <Eyebrow as="h2" className="mb-2.5">
+          Activity
+        </Eyebrow>
         {activity.length === 0 ? (
           <EmptyState
             title="No recent activity yet"
@@ -387,7 +376,7 @@ export default async function DashboardPage() {
                 ) : (
                   <span className="font-medium">{e.label}</span>
                 )}
-                <span className="ml-auto text-xs text-muted-foreground">
+                <span className="ml-auto text-xs text-iron-600">
                   <RelativeTime value={e.at} />
                 </span>
               </li>
@@ -396,44 +385,33 @@ export default async function DashboardPage() {
         )}
       </section>
 
-      {/* More — nav-absent destinations, kept reachable without duplicating the header nav. */}
-      <section>
-        <h2 className="mb-2 text-sm font-medium text-muted-foreground">More</h2>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-          <Link href="/dashboard/templates" className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-            Page templates
+      {/* More — routes not in the header nav, kept reachable (see plan deviation #6). */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-iron-600">
+        <Link
+          href="/dashboard/templates"
+          className="underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Page templates
+        </Link>
+        {org?.customer_exports_enabled ? (
+          <Link
+            href="/dashboard/export"
+            className="underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Export data
           </Link>
-          {org?.customer_exports_enabled ? (
-            <Link href="/dashboard/export" className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-              Export data
-            </Link>
-          ) : null}
-        </div>
-      </section>
+        ) : null}
+        <span className="text-mono-meta">
+          {covered} covered · {openTagRequests ?? 0} open tag requests
+        </span>
+      </div>
     </div>
   );
 }
 
-const ATTENTION_STYLE: Record<AttentionItem["tone"], string> = {
-  danger: "border-l-danger",
-  warning: "border-l-warning",
-};
-
-/** One needs-attention row — chip + title + reason + a link to the fix page. */
-function AttentionRow({ item }: { item: AttentionItem }) {
-  return (
-    <li>
-      <Link
-        href={item.href}
-        className={`flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-l-4 bg-card p-3 hover:bg-accent/40 ${ATTENTION_STYLE[item.tone]}`}
-      >
-        <AssetTagChip code={item.code} />
-        <span className="font-medium">{item.title}</span>
-        <span className="text-sm text-muted-foreground">{item.reason}</span>
-        <span aria-hidden className="ml-auto text-muted-foreground">
-          →
-        </span>
-      </Link>
-    </li>
-  );
+/** "THU · JUL 9 · 2026" — the mono date stamp for the nameplate. */
+function formatBandDate(d: Date): string {
+  const wd = d.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
+  const mo = d.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+  return `${wd} · ${mo} ${d.getDate()} · ${d.getFullYear()}`;
 }

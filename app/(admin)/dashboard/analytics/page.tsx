@@ -10,6 +10,7 @@ import { RelativeTime } from "@/components/relative-time";
 import { Card, CardTitle } from "@/components/ui/card";
 import { BarChart } from "@/components/ui/bar-chart";
 import { StatBar } from "@/components/ui/stat-bar";
+import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { assetReadiness } from "@/lib/qr/production";
 import {
   SUBMISSION_STATUSES,
@@ -563,7 +564,9 @@ export default async function AnalyticsPage({
             <tbody>
               {sortedRows.map((row) => (
                   <tr key={row.id} className="border-b last:border-0">
-                    <td className="px-4 py-2 font-medium">{row.asset_code}</td>
+                    <td className="px-4 py-2">
+                      <AssetTagChip code={row.asset_code} />
+                    </td>
                     <td className="px-4 py-2">{row.asset_name}</td>
                     <td className="px-4 py-2 font-mono text-xs text-muted-foreground">
                       {row.shortCode ?? "—"}

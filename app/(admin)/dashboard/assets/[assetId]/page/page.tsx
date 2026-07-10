@@ -6,6 +6,7 @@ import { requireOrgId } from "@/lib/auth/session";
 import { saveEquipmentPage } from "@/lib/assets/equipment-actions";
 import { toPreviewDocuments, type DocRow } from "@/lib/public/documents";
 import { EquipmentPageForm } from "@/components/equipment-page-form";
+import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 
 export default async function EquipmentPageEditor({
   params,
@@ -75,9 +76,10 @@ export default async function EquipmentPageEditor({
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">
           Equipment page
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {asset.asset_code} · {page ? (page.is_published ? "Published" : "Draft") : "Not created yet"}
-        </p>
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <AssetTagChip code={asset.asset_code} />
+          <span>{page ? (page.is_published ? "Published" : "Draft") : "Not created yet"}</span>
+        </div>
       </section>
 
       <EquipmentPageForm
