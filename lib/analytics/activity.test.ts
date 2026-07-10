@@ -38,6 +38,34 @@ describe("dailyCounts", () => {
     expect(today?.count).toBe(2);
     expect(yesterday?.count).toBe(1);
   });
+
+  it("returns exactly `days` complete buckets for 7 / 30 / 90", () => {
+    expect(dailyCounts([], 7, NOW)).toHaveLength(7);
+    expect(dailyCounts([], 30, NOW)).toHaveLength(30);
+    expect(dailyCounts([], 90, NOW)).toHaveLength(90);
+  });
+
+  it("fills missing days with 0 around a high-count day; sum matches", () => {
+    const ts = Array.from({ length: 40 }, () => "2026-06-19T09:00:00.000Z");
+    const series = dailyCounts(ts, 7, NOW);
+    expect(series).toHaveLength(7);
+    expect(series[6].count).toBe(40); // today
+    expect(series.slice(0, 6).every((b) => b.count === 0)).toBe(true);
+    expect(series.reduce((n, b) => n + b.count, 0)).toBe(40);
+  });
+
+  it("an all-zero range yields every bucket at 0", () => {
+    const series = dailyCounts([], 90, NOW);
+    expect(series.every((b) => b.count === 0)).toBe(true);
+    expect(series.reduce((n, b) => n + b.count, 0)).toBe(0);
+  });
+
+  it("counts a row at the oldest bucket's UTC-day start (inclusive boundary)", () => {
+    // 7-day window ending 2026-06-19 → oldest bucket is 2026-06-13.
+    const series = dailyCounts(["2026-06-13T00:00:00.000Z"], 7, NOW);
+    expect(series[0].date).toBe("2026-06-13");
+    expect(series[0].count).toBe(1);
+  });
 });
 
 function daysAgo(n: number): string {

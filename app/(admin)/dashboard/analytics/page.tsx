@@ -37,9 +37,9 @@ import {
   rangePeriodWord,
   rangeLabel,
   rangeStamp,
-  withinRange,
 } from "@/lib/analytics/range";
 import { buildProblemAssets } from "@/lib/analytics/problem-assets";
+import { fetchAllInRange } from "@/lib/supabase/paginate";
 
 // Activity counts are live per request; never cache.
 export const dynamic = "force-dynamic";
@@ -135,26 +135,36 @@ export default async function AnalyticsPage({
     pageByAsset.set(p.asset_id, p.is_published);
   }
 
-  // Privacy: only asset_id + scanned_at — never ip_hash / user_agent / referrer.
-  const { data: scanData } = await supabase
-    .from("scan_events")
-    .select("asset_id, scanned_at");
-  const scans = (scanData ?? []) as ScanRow[];
-
-  // Privacy: counts + timestamps only — no submission contents, no IP/user-agent.
-  const { data: subData } = await supabase
-    .from("form_submissions")
-    .select("asset_id, form_type, status, created_at");
-  const submissions = (subData ?? []) as (SubmissionRow & { created_at: string })[];
-
   const now = new Date();
-  const cutoff = rangeCutoffMs(now.getTime(), range);
+  const cutoffIso = new Date(rangeCutoffMs(now.getTime(), range)).toISOString();
 
-  // Range-scoped rows (everything except last-scanned responds to the RangeControl).
-  const rangeScans = withinRange(scans, (s) => s.scanned_at, cutoff);
-  const rangeSubs = withinRange(submissions, (s) => s.created_at, cutoff);
+  // Scans + submissions are read WINDOWED to the selected range and paginated past
+  // PostgREST's 1000-row cap, so totals and daily buckets reflect the whole range —
+  // not an arbitrary first-1000-row slice. Privacy: scans carry only asset_id +
+  // scanned_at (never ip_hash / user_agent / referrer); submissions carry counts +
+  // timestamps only — no contents.
+  const { rows: scans } = await fetchAllInRange<ScanRow>((from, to) =>
+    supabase
+      .from("scan_events")
+      .select("asset_id, scanned_at")
+      .gte("scanned_at", cutoffIso)
+      .order("scanned_at", { ascending: true })
+      .range(from, to)
+  );
+  const { rows: submissions } = await fetchAllInRange<
+    SubmissionRow & { created_at: string }
+  >((from, to) =>
+    supabase
+      .from("form_submissions")
+      .select("asset_id, form_type, status, created_at")
+      .gte("created_at", cutoffIso)
+      .order("created_at", { ascending: true })
+      .range(from, to)
+  );
 
-  // Daily charts. Totals come from the series so the headers/headline always agree.
+  // Everything below is range-scoped (the fetched rows ARE the selected window).
+  // Daily series totals are the bucket sums, so the chart headers, band headline, and
+  // visible bars always agree.
   const scanSeries = dailyCounts(scans.map((s) => s.scanned_at), range, now);
   const newSubSeries = dailyCounts(
     submissions.filter((s) => s.status === "new").map((s) => s.created_at),
@@ -164,9 +174,8 @@ export default async function AnalyticsPage({
   const scansTotal = scanSeries.reduce((n, d) => n + d.count, 0);
   const newTotal = newSubSeries.reduce((n, d) => n + d.count, 0);
 
-  // Range-scoped composition + per-asset counts.
-  const summary = summarizeActivity(rangeScans, rangeSubs, now);
-  const perAssetRange = perAssetActivity(rangeScans, rangeSubs);
+  const summary = summarizeActivity(scans, submissions, now);
+  const perAsset = perAssetActivity(scans, submissions);
 
   const assetInfo: AssetInfo[] = assets.map((a) => ({
     id: a.id,
@@ -176,40 +185,32 @@ export default async function AnalyticsPage({
   }));
   const nameById = new Map(assets.map((a) => [a.id, a.asset_name]));
 
-  // Last-scanned is all-time (the genuine most-recent scan), not range-scoped.
-  const lastScanByAsset = new Map<string, string>();
-  for (const s of scans) {
-    const prev = lastScanByAsset.get(s.asset_id);
-    if (!prev || new Date(s.scanned_at).getTime() > new Date(prev).getTime()) {
-      lastScanByAsset.set(s.asset_id, s.scanned_at);
-    }
-  }
-
   // Open (unresolved) submissions per asset, within range.
   const openByAsset = new Map<string, number>();
-  for (const sub of rangeSubs) {
+  for (const sub of submissions) {
     if ((UNRESOLVED_STATUSES as readonly string[]).includes(sub.status)) {
       openByAsset.set(sub.asset_id, (openByAsset.get(sub.asset_id) ?? 0) + 1);
     }
   }
 
   const scanCountByAsset = new Map<string, number>();
-  for (const [id, act] of perAssetRange) scanCountByAsset.set(id, act.totalScans);
+  for (const [id, act] of perAsset) scanCountByAsset.set(id, act.totalScans);
 
-  const problems = buildProblemAssets(assetInfo, rangeSubs, scanCountByAsset, 6);
-  const catRows = scansByCategory(assetInfo, rangeScans);
+  const problems = buildProblemAssets(assetInfo, submissions, scanCountByAsset, 6);
+  const catRows = scansByCategory(assetInfo, scans);
 
   // Top asset by scans in range → the band subline.
   let topAssetName: string | null = null;
   let topScans = 0;
-  for (const [id, act] of perAssetRange) {
+  for (const [id, act] of perAsset) {
     if (act.totalScans > topScans) {
       topScans = act.totalScans;
       topAssetName = nameById.get(id) ?? null;
     }
   }
 
-  // Per-asset table rows (scans/submissions range-scoped; last-scanned all-time).
+  // Per-asset table rows — scans / submissions / last-scanned are all range-scoped
+  // (an asset not scanned in the range shows "—").
   const assetRows = assets.map((a) => {
     const qrStatus = qrByAsset.get(a.id)
       ? ("active" as const)
@@ -226,14 +227,14 @@ export default async function AnalyticsPage({
       qrStatus,
       pageStatus,
     }).readiness;
-    const act = perAssetRange.get(a.id);
+    const act = perAsset.get(a.id);
     return {
       id: a.id,
       asset_code: a.asset_code,
       readiness,
       totalScans: act?.totalScans ?? 0,
       submissionCount: act?.submissionCount ?? 0,
-      lastScannedAt: lastScanByAsset.get(a.id) ?? null,
+      lastScannedAt: act?.lastScannedAt ?? null,
       open: openByAsset.get(a.id) ?? 0,
     };
   });
