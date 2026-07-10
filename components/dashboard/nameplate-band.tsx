@@ -29,12 +29,14 @@ export function NameplateBand({
 }) {
   const allClear = attentionCount === 0;
   const thing = attentionCount === 1 ? "thing needs" : "things need";
+  const hasScans = sparkValues.some((v) => v > 0);
 
   return (
     <div className="overflow-hidden rounded-xl bg-iron-950 text-bone-50">
       <div className="px-6 pt-4">
         <PlateLabel label={`${orgName} · Operations briefing`} meta={dateLabel} />
 
+        {/* Dashboard copy uses a period, never an em dash. */}
         <h1 className="mt-2.5 flex items-center gap-2.5 text-[21px] font-semibold">
           {allClear ? (
             <>
@@ -42,11 +44,11 @@ export function NameplateBand({
                 aria-hidden
                 className="size-[9px] shrink-0 rounded-full bg-chrome-clear"
               />
-              All clear, {firstName}
+              All clear, {firstName}.
             </>
           ) : (
             <>
-              {greeting}, {firstName} — {attentionCount} {thing} your attention
+              {greeting}, {firstName}. {attentionCount} {thing} your attention.
             </>
           )}
         </h1>
@@ -61,7 +63,7 @@ export function NameplateBand({
               href={s.href}
               attention={s.attention}
             >
-              {s.sparkline ? (
+              {s.sparkline && hasScans ? (
                 <Sparkline
                   values={sparkValues}
                   variant="iron"

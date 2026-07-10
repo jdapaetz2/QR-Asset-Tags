@@ -6,6 +6,7 @@ import {
   buildBandStats,
   mergeRecentActivity,
   nextOpenAccordionId,
+  rollupScanEvents,
   scanTrend,
   setupProgress,
   shouldShowSetupDetail,
@@ -216,5 +217,29 @@ describe("timeGreeting", () => {
     expect(timeGreeting(8)).toBe("Good morning");
     expect(timeGreeting(14)).toBe("Good afternoon");
     expect(timeGreeting(20)).toBe("Good evening");
+  });
+});
+
+describe("rollupScanEvents", () => {
+  const day = 86_400_000;
+  const t0 = Date.parse("2026-07-09T15:00:00Z");
+
+  it("groups scans by asset per day and keeps the latest time + count", () => {
+    const rollups = rollupScanEvents([
+      { asset_id: "a", scanned_at: new Date(t0).toISOString() },
+      { asset_id: "a", scanned_at: new Date(t0 - 3 * 3_600_000).toISOString() }, // same day
+      { asset_id: "a", scanned_at: new Date(t0 - day).toISOString() }, // prior day
+      { asset_id: "b", scanned_at: new Date(t0).toISOString() },
+      { asset_id: null, scanned_at: new Date(t0).toISOString() }, // dropped
+      { asset_id: "a", scanned_at: "not-a-date" }, // dropped
+    ]);
+    // a-today (2), b-today (1), a-yesterday (1)
+    expect(rollups).toHaveLength(3);
+    const aToday = rollups.find((r) => r.assetId === "a" && r.at === new Date(t0).toISOString());
+    expect(aToday?.count).toBe(2);
+    // newest-first
+    expect(new Date(rollups[0].at).getTime()).toBeGreaterThanOrEqual(
+      new Date(rollups[rollups.length - 1].at).getTime()
+    );
   });
 });

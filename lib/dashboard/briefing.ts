@@ -143,7 +143,12 @@ function assetById(assets: AttentionAsset[], id: string): AttentionAsset | undef
 // Recent activity — a quiet chronological feed merged from a few sources.
 // ---------------------------------------------------------------------------
 
-export type ActivityKind = "scan" | "submission" | "return" | "tag_request";
+export type ActivityKind =
+  | "scan"
+  | "submission"
+  | "return"
+  | "rental"
+  | "tag_request";
 
 export type ActivityEvent = {
   kind: ActivityKind;
@@ -281,4 +286,36 @@ export function nextOpenAccordionId(
   clicked: string
 ): string | null {
   return current === clicked ? null : clicked;
+}
+
+export type ScanRollup = { assetId: string; count: number; at: string };
+
+/**
+ * Roll raw scan events up to one row per asset per (UTC) day so the activity feed
+ * shows "Scanned N times" instead of scan spam. Each rollup keeps the most-recent
+ * scan time for ordering + relative display. Invalid/missing timestamps are dropped.
+ * Newest-first.
+ */
+export function rollupScanEvents(
+  scans: { asset_id: string | null; scanned_at: string | null }[]
+): ScanRollup[] {
+  const dayMs = 86_400_000;
+  const groups = new Map<string, ScanRollup>();
+  for (const s of scans) {
+    if (!s.asset_id || !s.scanned_at) continue;
+    const t = new Date(s.scanned_at).getTime();
+    if (Number.isNaN(t)) continue;
+    const dayStart = t - (t % dayMs);
+    const key = `${s.asset_id}:${dayStart}`;
+    const prev = groups.get(key);
+    if (prev) {
+      prev.count += 1;
+      if (t > new Date(prev.at).getTime()) prev.at = s.scanned_at;
+    } else {
+      groups.set(key, { assetId: s.asset_id, count: 1, at: s.scanned_at });
+    }
+  }
+  return [...groups.values()].sort(
+    (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()
+  );
 }

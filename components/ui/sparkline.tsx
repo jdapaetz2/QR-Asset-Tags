@@ -27,8 +27,9 @@ export function Sparkline({
     >
       {values.map((v, i) => {
         const isCurrent = i === values.length - 1;
-        // Floor so a zero-scan day still shows a sliver.
-        const pct = Math.max(8, Math.round((v / max) * 100));
+        // Floor high enough that every muted bar stays visible against the iron band
+        // (a lone brass bar over near-invisible history reads as a stray dash).
+        const pct = Math.max(28, Math.round((v / max) * 100));
         return (
           <span
             key={i}

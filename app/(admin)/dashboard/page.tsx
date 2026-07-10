@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile, landingPathForRole } from "@/lib/auth/session";
-import { firstNameFrom } from "@/lib/auth/name";
+import { firstNameToken } from "@/lib/auth/name";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
@@ -19,6 +19,7 @@ import {
   buildAttentionItems,
   buildBandStats,
   mergeRecentActivity,
+  rollupScanEvents,
   scanTrend,
   setupProgress,
   shouldShowSetupDetail,
@@ -88,6 +89,7 @@ export default async function DashboardPage() {
     { data: scanData },
     { data: recentSubData },
     { data: recentTagData },
+    { data: rentalData },
   ] = await Promise.all([
     supabase
       .from("organizations")
@@ -128,6 +130,11 @@ export default async function DashboardPage() {
       .from("tag_requests")
       .select("status, created_at")
       .order("created_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("asset_rental_sessions")
+      .select("asset_id, started_at, returned_at")
+      .order("started_at", { ascending: false })
       .limit(10),
   ]);
 
@@ -223,6 +230,8 @@ export default async function DashboardPage() {
       isSetup,
       detail: sub
         ? {
+            submissionId: sub.id,
+            canReview: sub.status === "new",
             description: submissionSummary(sub.submission_data_json),
             submitter:
               [sub.submitted_by_name, sub.submitted_by_phone ?? sub.submitted_by_email]
@@ -257,16 +266,17 @@ export default async function DashboardPage() {
     totalAssets: progress.total,
   });
 
-  // Recent activity feed.
-  const scanEvents: ActivityEvent[] = (
-    (scanData ?? []) as { asset_id: string; scanned_at: string }[]
-  ).map((s) => ({
+  // Recent activity feed — meaningful events individually, raw scans rolled up to one
+  // "Scanned N times" row per asset per day so the feed isn't scan spam.
+  const scanEvents: ActivityEvent[] = rollupScanEvents(
+    (scanData ?? []) as { asset_id: string | null; scanned_at: string | null }[]
+  ).map((r) => ({
     kind: "scan",
-    at: s.scanned_at,
-    label: "Scanned",
-    code: codeById.get(s.asset_id) ?? null,
-    assetId: s.asset_id,
-    href: `/dashboard/assets/${s.asset_id}`,
+    at: r.at,
+    label: `Scanned ${r.count} time${r.count === 1 ? "" : "s"}`,
+    code: codeById.get(r.assetId) ?? null,
+    assetId: r.assetId,
+    href: `/dashboard/assets/${r.assetId}`,
   }));
   const submissionEvents: ActivityEvent[] = (
     (recentSubData ?? []) as { asset_id: string | null; form_type: string; created_at: string }[]
@@ -278,6 +288,34 @@ export default async function DashboardPage() {
     assetId: s.asset_id,
     href: s.asset_id ? `/dashboard/submissions?asset_id=${s.asset_id}` : "/dashboard/submissions",
   }));
+  // Rental lifecycle: one event when a session starts, one when it's returned.
+  const rentalEvents: ActivityEvent[] = [];
+  for (const s of (rentalData ?? []) as {
+    asset_id: string;
+    started_at: string;
+    returned_at: string | null;
+  }[]) {
+    const code = codeById.get(s.asset_id) ?? null;
+    const href = `/dashboard/assets/${s.asset_id}`;
+    rentalEvents.push({
+      kind: "rental",
+      at: s.started_at,
+      label: "Marked rented",
+      code,
+      assetId: s.asset_id,
+      href,
+    });
+    if (s.returned_at) {
+      rentalEvents.push({
+        kind: "rental",
+        at: s.returned_at,
+        label: "Marked returned",
+        code,
+        assetId: s.asset_id,
+        href,
+      });
+    }
+  }
   const tagEvents: ActivityEvent[] = (
     (recentTagData ?? []) as { status: string; created_at: string }[]
   ).map((t) => ({
@@ -287,12 +325,13 @@ export default async function DashboardPage() {
     href: "/dashboard/tag-requests",
   }));
   const activity = mergeRecentActivity(
-    [...scanEvents, ...submissionEvents, ...tagEvents],
-    10
+    [...scanEvents, ...submissionEvents, ...rentalEvents, ...tagEvents],
+    8
   );
 
   const orgName = org?.name ?? "Your organization";
-  const firstName = firstNameFrom(profile.name, profile.email);
+  // No first_name column exists — use the first token of the profile name, else the org name.
+  const firstName = firstNameToken(profile.name) ?? orgName;
   const greeting = timeGreeting(now.getHours());
   const dateLabel = formatBandDate(now);
 

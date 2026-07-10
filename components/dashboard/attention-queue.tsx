@@ -1,13 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useActionState, useState } from "react";
 
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { RelativeTime } from "@/components/relative-time";
 import { cn } from "@/lib/utils";
 import { nextOpenAccordionId } from "@/lib/dashboard/briefing";
+import {
+  setSubmissionStatus,
+  type SubmissionActionState,
+} from "@/lib/submissions/actions";
 
 export type QueueItem = {
   key: string;
@@ -22,6 +26,9 @@ export type QueueItem = {
   /** Setup gaps get an iron dot + "Finish setup"; submission items get an amber dot. */
   isSetup: boolean;
   detail: {
+    submissionId: string;
+    /** The latest unresolved submission is still `new` → "Mark reviewed" is offered. */
+    canReview: boolean;
     description: string | null;
     submitter: string | null;
     reference: string | null;
@@ -29,6 +36,37 @@ export type QueueItem = {
     thumbUrl: string | null;
   } | null;
 };
+
+/**
+ * Secondary "Mark reviewed" quick action. Reuses the existing setSubmissionStatus
+ * server action (no new infrastructure, no toast/optimistic): submit sets the latest
+ * submission to `reviewed` and revalidates by redirecting back to /dashboard.
+ */
+function MarkReviewedButton({ submissionId }: { submissionId: string }) {
+  const action = setSubmissionStatus.bind(null, submissionId);
+  const [state, formAction, pending] = useActionState<
+    SubmissionActionState,
+    FormData
+  >(action, {});
+  return (
+    <form action={formAction}>
+      <input type="hidden" name="status" value="reviewed" />
+      <input type="hidden" name="redirect_to" value="/dashboard" />
+      <button
+        type="submit"
+        disabled={pending}
+        className="inline-flex h-[30px] items-center rounded-[7px] border border-iron-200 px-3 text-[13px] transition-colors hover:bg-accent disabled:opacity-50"
+      >
+        {pending ? "Saving…" : "Mark reviewed"}
+      </button>
+      {state.error ? (
+        <span role="alert" className="ml-2 text-xs text-destructive">
+          {state.error}
+        </span>
+      ) : null}
+    </form>
+  );
+}
 
 function Chevron({ open }: { open: boolean }) {
   return (
@@ -71,16 +109,28 @@ export function AttentionQueue({ items }: { items: QueueItem[] }) {
               onClick={() => setOpenId((cur) => nextOpenAccordionId(cur, item.key))}
               className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition-colors hover:bg-accent/40"
             >
-              <span
-                aria-hidden
-                className={cn(
-                  "size-2 shrink-0 rounded-full",
-                  item.isSetup ? "bg-iron-600" : "bg-warning"
-                )}
-              />
+              {!open ? (
+                <span
+                  aria-hidden
+                  className={cn(
+                    "size-2 shrink-0 rounded-full",
+                    item.isSetup ? "bg-iron-600" : "bg-warning"
+                  )}
+                />
+              ) : null}
               <AssetTagChip code={item.code} />
-              <span className="flex-1 text-[13.5px] text-iron-600">{item.title}</span>
-              <Chevron open={open} />
+              {/* Open row shows the reason as the amber chip (matches reference state 2);
+                  collapsed row shows it as plain text. Never both — no duplicate reason line. */}
+              {open ? (
+                <span className="inline-flex rounded-md bg-amber-chip-bg px-2 py-0.5 text-xs text-amber-chip-text">
+                  {item.title}
+                </span>
+              ) : (
+                <span className="text-[13.5px] text-iron-600">{item.title}</span>
+              )}
+              <span className="ml-auto flex items-center">
+                <Chevron open={open} />
+              </span>
             </button>
 
             {/* Grid-rows height animation — CSS only, so reduced-motion is instant. */}
@@ -92,12 +142,8 @@ export function AttentionQueue({ items }: { items: QueueItem[] }) {
             >
               <div className="overflow-hidden">
                 <div className="border-t border-iron-200 bg-bone-50 px-4 py-3.5">
-                  <span className="inline-flex rounded-md bg-amber-chip-bg px-2 py-0.5 text-xs text-amber-chip-text">
-                    {item.title}
-                  </span>
-
                   {item.detail ? (
-                    <div className="mt-2.5 flex flex-col gap-2">
+                    <div className="flex flex-col gap-2">
                       <div className="flex gap-3">
                         {item.detail.thumbUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -132,11 +178,14 @@ export function AttentionQueue({ items }: { items: QueueItem[] }) {
                       ) : null}
                     </div>
                   ) : (
-                    <p className="mt-2.5 text-[13.5px] text-iron-600">{item.reason}</p>
+                    <p className="text-[13.5px] text-iron-600">{item.reason}</p>
                   )}
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <PrimaryButton href={item.href}>{primaryLabel}</PrimaryButton>
+                    {item.detail?.canReview ? (
+                      <MarkReviewedButton submissionId={item.detail.submissionId} />
+                    ) : null}
                     <Link
                       href={item.historyHref}
                       className="inline-flex h-[30px] items-center rounded-[7px] border border-iron-200 px-3 text-[13px] transition-colors hover:bg-accent"

@@ -118,6 +118,8 @@ These build the dashboard briefing band; use them, don't re-roll bespoke variant
 
 ### Voice
 - Sentence case. Verb-first buttons. Errors state the fact plus the fix.
+- **Dashboard copy uses periods, not em dashes** — the greeting reads "Good morning, Josh. N things
+  need your attention." (period after the name, period at the end).
 - **Toast is deferred** — there is no toast/optimistic-update infrastructure yet. Server actions
   give inline feedback (a `role="alert"` message + a pending button label) and full revalidation.
   Do not add a toast library or hand-rolled toast/optimistic system without an explicit decision.
