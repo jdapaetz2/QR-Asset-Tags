@@ -61,3 +61,34 @@ Per view: one iron band maximum, one BandRule, one chamfered
 PrimaryButton per region, brass otherwise confined to the nav badge,
 active-nav underline, sparkline current bar, and progress fills. If a
 screen feels brassy, it is; remove until it doesn't.
+
+
+## Chart grammar (analytics and all future data viz)
+
+Daily/period bars: history bars #D8D3C8 on bone, ONE brass-500 bar per
+chart marking the current period, zero-value periods render as a 2px
+#E4E1DB stub (never an empty gap), 1px iron-200 baseline, no gridlines,
+no shadows, bar radius 3px top corners. Hover reveals a mono value chip
+(iron-950 bg, bone text, 10.5px). Axis ticks: JetBrains Mono 10px
+#8F8B82, sparse (first / notable / TODAY). Category bars: track
+#EFEDE7, fill iron-600, brass reserved for the leader only, value in
+mono right-aligned, collapse past four rows behind "Show all".
+Stacked status bar: New #B07B10, Reviewed #57534B, Resolved #3D7A44,
+Archived #D8D3C8; the amber segment count must equal the nav badge.
+Chart headers carry the period total in mono; lifetime-total stat
+cards are banned.
+
+**RangeControl** - segmented 7/30/90 day selector: 1px iron-200
+border, radius 8px, white ground; active segment iron-950 bg, bone
+text, 600 weight; 13px labels; drives every module on the page.
+
+## Analytics page rules
+
+The band's mono stamp is the active date range; the headline is a
+derived insight sentence (period scan total, submission total, top
+asset), never the word "Analytics". Needs-attention triage never
+appears on analytics; the dashboard owns it. Problem assets is one
+consolidated ranked module (open count, then submissions), not
+per-metric lists. "Updated" is always relative via the shared
+timestamp utility; raw UTC timestamps are a defect anywhere in the
+product.

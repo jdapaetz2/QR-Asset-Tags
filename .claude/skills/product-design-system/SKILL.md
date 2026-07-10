@@ -94,6 +94,22 @@ These build the dashboard briefing band; use them, don't re-roll bespoke variant
   Brass otherwise confined to the nav badge, the active-nav underline, the sparkline current bar,
   and progress fills. If a screen feels brassy, it is — remove until it doesn't.
 
+### Analytics (`docs/brand/analytics-reference.html` is canonical)
+- **Chart grammar:** daily bars — history `#D8D3C8` on bone, exactly **one** brass current-period bar
+  per chart (the last), zero-value days as **2px `#E4E1DB` stubs** (never empty gaps), 1px iron-200
+  baseline, 3px top radius, no gridlines/shadows; sparse mono ticks (first / mid / TODAY); mono value
+  chip on hover. Category bars: track `#EFEDE7`, iron-600 fill, **brass for the leader only**, mono
+  values right-aligned, collapse past four behind "Show all". Stacked status bar: New `#B07B10` /
+  Reviewed `#57534B` / Resolved `#3D7A44` / Archived `#D8D3C8`. Chart headers carry the period total in
+  mono — **lifetime-total stat cards are banned.**
+- **RangeControl** (7/30/90) drives every module via `?range=`; the band's mono stamp is the active range.
+- The headline is a derived insight sentence (period scan + submission totals, top asset) — **never the
+  word "Analytics".**
+- **Needs-attention triage belongs to the dashboard, not analytics.** Problem assets is one consolidated
+  ranked module (open count, then submissions), not per-metric "most X" lists.
+- **Raw UTC timestamps are a defect anywhere in the product** — "Updated"/last-scanned are relative via
+  the shared timestamp utility, absolute local time on hover.
+
 ### Scan-page guard (`/t/[shortCode]`)
 - No AssetTagChip, no chamfered PrimaryButton, no brass emphasis (tenant color + neutrals only),
   no admin webfonts (system stack, zero webfonts), no new client JS. Design polish never outranks

@@ -2,41 +2,44 @@ import Link from "next/link";
 
 import { requireOrgId } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
-import { RefreshControls } from "@/components/refresh-controls";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import { RelativeTime } from "@/components/relative-time";
-import { Card, CardTitle } from "@/components/ui/card";
-import { BarChart } from "@/components/ui/bar-chart";
-import { StatBar } from "@/components/ui/stat-bar";
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
-import { assetReadiness } from "@/lib/qr/production";
-import {
-  SUBMISSION_STATUSES,
-  FORM_TYPE_LABELS,
-} from "@/lib/submissions/display";
+import { DailyBars } from "@/components/ui/daily-bars";
+import { AnalyticsBand } from "@/components/analytics/analytics-band";
+import { RangeControl } from "@/components/analytics/range-control";
+import { RefreshButton } from "@/components/analytics/refresh-button";
+import { CategoryBarList } from "@/components/analytics/category-bar-list";
+import { SubmissionsCard } from "@/components/analytics/submissions-card";
+import { ProblemAssets } from "@/components/analytics/problem-assets";
+import { assetPageStatus } from "@/lib/assets/list";
+import { deriveAssetStatus, readinessReasonLabel } from "@/lib/ui/status-view";
 import {
   summarizeActivity,
   perAssetActivity,
   dailyCounts,
   normalizeAssetSort,
   sortAssetRows,
-  ANALYTICS_FORM_TYPES,
   type AssetSort,
   type ScanRow,
   type SubmissionRow,
 } from "@/lib/analytics/activity";
 import {
-  assetsNeedingAttention,
-  topAssets,
-  submissionsByCategory,
   scansByCategory,
   submissionsHref,
-  assetsCategoryHref,
-  INSIGHT_COPY,
+  UNRESOLVED_STATUSES,
   type AssetInfo,
 } from "@/lib/analytics/insights";
+import {
+  parseRange,
+  rangeCutoffMs,
+  rangePeriodWord,
+  rangeLabel,
+  rangeStamp,
+  withinRange,
+} from "@/lib/analytics/range";
+import { buildProblemAssets } from "@/lib/analytics/problem-assets";
 
 // Activity counts are live per request; never cache.
 export const dynamic = "force-dynamic";
@@ -55,31 +58,35 @@ function firstString(value: string | string[] | undefined): string {
   return (Array.isArray(value) ? value[0] : value) ?? "";
 }
 
-function titleCase(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1);
+function plural(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? "" : "s"}`;
 }
 
 function SortHeader({
   label,
   sortKey,
   current,
+  range,
+  align = "left",
 }: {
   label: string;
   sortKey: AssetSort;
   current: AssetSort;
+  range: number;
+  align?: "left" | "right";
 }) {
   const active = current === sortKey;
   return (
-    <th className="px-4 py-2 font-medium">
+    <th
+      className={`px-3 py-2.5 text-[11px] font-medium uppercase tracking-[0.07em] text-iron-600 ${align === "right" ? "text-right" : "text-left"}`}
+    >
       <Link
-        href={`/dashboard/analytics?sort=${sortKey}`}
-        className={`inline-flex items-center gap-1 underline-offset-4 hover:underline ${
-          active ? "font-semibold text-foreground" : ""
-        }`}
+        href={`/dashboard/analytics?range=${range}&sort=${sortKey}`}
+        className={`inline-flex items-center gap-1 underline-offset-4 hover:underline ${active ? "text-foreground" : ""}`}
         aria-current={active ? "true" : undefined}
       >
         {label}
-        {active ? <span aria-hidden>▼</span> : null}
+        {active ? <span aria-hidden>▾</span> : null}
       </Link>
     </th>
   );
@@ -90,14 +97,20 @@ export default async function AnalyticsPage({
 }: {
   searchParams: SearchParams;
 }) {
-  // Login + org required (platform owners are redirected to their own landing).
-  await requireOrgId();
+  const orgId = await requireOrgId();
   const sp = await searchParams;
+  const range = parseRange(firstString(sp.range));
   const sort = normalizeAssetSort(firstString(sp.sort));
 
   const supabase = await createClient();
 
   // All reads are RLS-scoped to the caller's organization.
+  const { data: orgData } = await supabase
+    .from("organizations")
+    .select("name")
+    .eq("id", orgId)
+    .maybeSingle();
+
   const { data: assetData } = await supabase
     .from("assets")
     .select("id, asset_code, asset_name, public_status, category")
@@ -106,27 +119,19 @@ export default async function AnalyticsPage({
 
   const { data: qrData } = await supabase
     .from("qr_links")
-    .select("asset_id, short_code, status");
-  const qrByAsset = new Map<string, { short_code: string; status: string }>();
-  for (const q of (qrData ?? []) as {
-    asset_id: string;
-    short_code: string;
-    status: string;
-  }[]) {
-    if (!qrByAsset.has(q.asset_id)) qrByAsset.set(q.asset_id, q);
+    .select("asset_id, status");
+  const qrByAsset = new Map<string, boolean>(); // asset_id → has active
+  const qrExists = new Set<string>();
+  for (const q of (qrData ?? []) as { asset_id: string; status: string }[]) {
+    qrExists.add(q.asset_id);
+    if (q.status === "active") qrByAsset.set(q.asset_id, true);
   }
-  const activeQrLinks = (qrData ?? []).filter(
-    (q) => (q as { status: string }).status === "active"
-  ).length;
 
   const { data: pageData } = await supabase
     .from("equipment_pages")
     .select("asset_id, is_published");
   const pageByAsset = new Map<string, boolean>();
-  for (const p of (pageData ?? []) as {
-    asset_id: string;
-    is_published: boolean;
-  }[]) {
+  for (const p of (pageData ?? []) as { asset_id: string; is_published: boolean }[]) {
     pageByAsset.set(p.asset_id, p.is_published);
   }
 
@@ -140,392 +145,169 @@ export default async function AnalyticsPage({
   const { data: subData } = await supabase
     .from("form_submissions")
     .select("asset_id, form_type, status, created_at");
-  const submissions = (subData ?? []) as (SubmissionRow & {
-    created_at: string;
-  })[];
+  const submissions = (subData ?? []) as (SubmissionRow & { created_at: string })[];
 
-  const summary = summarizeActivity(scans, submissions);
-  const perAsset = perAssetActivity(scans, submissions);
+  const now = new Date();
+  const cutoff = rangeCutoffMs(now.getTime(), range);
 
-  // 30-day trends (bucketed by UTC day; no new queries — derived from rows above).
-  const scanSeries = dailyCounts(scans.map((s) => s.scanned_at), 30);
-  const submissionSeries = dailyCounts(
-    submissions.map((s) => s.created_at),
-    30
+  // Range-scoped rows (everything except last-scanned responds to the RangeControl).
+  const rangeScans = withinRange(scans, (s) => s.scanned_at, cutoff);
+  const rangeSubs = withinRange(submissions, (s) => s.created_at, cutoff);
+
+  // Daily charts. Totals come from the series so the headers/headline always agree.
+  const scanSeries = dailyCounts(scans.map((s) => s.scanned_at), range, now);
+  const newSubSeries = dailyCounts(
+    submissions.filter((s) => s.status === "new").map((s) => s.created_at),
+    range,
+    now
   );
+  const scansTotal = scanSeries.reduce((n, d) => n + d.count, 0);
+  const newTotal = newSubSeries.reduce((n, d) => n + d.count, 0);
 
-  // Compose per-asset rows, then apply the requested sort (default: most scans).
-  const assetRows = assets.map((asset) => {
-    const qr = qrByAsset.get(asset.id) ?? null;
-    const pageStatus = !pageByAsset.has(asset.id)
-      ? "missing"
-      : pageByAsset.get(asset.id)
-        ? "published"
-        : "draft";
-    const readiness = assetReadiness({
-      public_status: asset.public_status,
-      qrStatus: qr?.status ?? null,
-      pageStatus,
-    });
-    const activity = perAsset.get(asset.id);
-    return {
-      id: asset.id,
-      asset_code: asset.asset_code,
-      asset_name: asset.asset_name,
-      shortCode: qr?.short_code ?? null,
-      readiness,
-      totalScans: activity?.totalScans ?? 0,
-      lastScannedAt: activity?.lastScannedAt ?? null,
-      submissionCount: activity?.submissionCount ?? 0,
-    };
-  });
-  const sortedRows = sortAssetRows(assetRows, sort);
-  const renderedAt = new Date().toISOString();
+  // Range-scoped composition + per-asset counts.
+  const summary = summarizeActivity(rangeScans, rangeSubs, now);
+  const perAssetRange = perAssetActivity(rangeScans, rangeSubs);
 
-  // Top assets by scans (visual bars; independent of the table's chosen sort).
-  const topByScans = sortAssetRows(assetRows, "scans_desc")
-    .filter((r) => r.totalScans > 0)
-    .slice(0, 5);
-  const topScanMax = Math.max(1, ...topByScans.map((r) => r.totalScans));
-
-  // Operational insights — all derived from the already-fetched rows (no new queries).
   const assetInfo: AssetInfo[] = assets.map((a) => ({
     id: a.id,
     asset_code: a.asset_code,
     asset_name: a.asset_name,
     category: a.category,
   }));
-  const attention = assetsNeedingAttention(assetInfo, submissions, 5);
-  const topBySubmissions = topAssets(assetInfo, submissions, { limit: 5 });
-  const topByDamage = topAssets(assetInfo, submissions, {
-    formType: "damage_report",
-    limit: 5,
+  const nameById = new Map(assets.map((a) => [a.id, a.asset_name]));
+
+  // Last-scanned is all-time (the genuine most-recent scan), not range-scoped.
+  const lastScanByAsset = new Map<string, string>();
+  for (const s of scans) {
+    const prev = lastScanByAsset.get(s.asset_id);
+    if (!prev || new Date(s.scanned_at).getTime() > new Date(prev).getTime()) {
+      lastScanByAsset.set(s.asset_id, s.scanned_at);
+    }
+  }
+
+  // Open (unresolved) submissions per asset, within range.
+  const openByAsset = new Map<string, number>();
+  for (const sub of rangeSubs) {
+    if ((UNRESOLVED_STATUSES as readonly string[]).includes(sub.status)) {
+      openByAsset.set(sub.asset_id, (openByAsset.get(sub.asset_id) ?? 0) + 1);
+    }
+  }
+
+  const scanCountByAsset = new Map<string, number>();
+  for (const [id, act] of perAssetRange) scanCountByAsset.set(id, act.totalScans);
+
+  const problems = buildProblemAssets(assetInfo, rangeSubs, scanCountByAsset, 6);
+  const catRows = scansByCategory(assetInfo, rangeScans);
+
+  // Top asset by scans in range → the band subline.
+  let topAssetName: string | null = null;
+  let topScans = 0;
+  for (const [id, act] of perAssetRange) {
+    if (act.totalScans > topScans) {
+      topScans = act.totalScans;
+      topAssetName = nameById.get(id) ?? null;
+    }
+  }
+
+  // Per-asset table rows (scans/submissions range-scoped; last-scanned all-time).
+  const assetRows = assets.map((a) => {
+    const qrStatus = qrByAsset.get(a.id)
+      ? ("active" as const)
+      : qrExists.has(a.id)
+        ? ("disabled" as const)
+        : null;
+    const pageStatus = assetPageStatus(
+      pageByAsset.has(a.id),
+      pageByAsset.get(a.id) ?? false
+    );
+    const readiness = deriveAssetStatus({
+      rented: false,
+      publicStatus: a.public_status,
+      qrStatus,
+      pageStatus,
+    }).readiness;
+    const act = perAssetRange.get(a.id);
+    return {
+      id: a.id,
+      asset_code: a.asset_code,
+      readiness,
+      totalScans: act?.totalScans ?? 0,
+      submissionCount: act?.submissionCount ?? 0,
+      lastScannedAt: lastScanByAsset.get(a.id) ?? null,
+      open: openByAsset.get(a.id) ?? 0,
+    };
   });
-  const topBySupport = topAssets(assetInfo, submissions, {
-    formType: "support_request",
-    limit: 5,
-  });
-  const subsByCategory = submissionsByCategory(assetInfo, submissions).slice(0, 8);
-  const scanCatMax = Math.max(1, ...subsByCategory.map((c) => c.count));
-  const scansByCat = scansByCategory(assetInfo, scans).slice(0, 8);
-  const scanCatBarMax = Math.max(1, ...scansByCat.map((c) => c.count));
-  const hasProblemAssets =
-    topBySubmissions.length > 0 ||
-    topByDamage.length > 0 ||
-    topBySupport.length > 0;
+  const sortedRows = sortAssetRows(assetRows, sort);
+
+  const label = rangeLabel(range);
+  const headline = `${plural(scansTotal, "scan")} and ${plural(newTotal, "new submission")} ${rangePeriodWord(range)}.`;
 
   return (
-    <div className="flex flex-col gap-8">
-      <PageHeader
-        title="Analytics"
-        description="Scan and submission activity for your organization."
-        actions={<RefreshControls renderedAt={renderedAt} pollMs={30000} />}
+    <div className="flex flex-col gap-6">
+      <AnalyticsBand
+        orgName={orgData?.name ?? "Your organization"}
+        stamp={rangeStamp(now, range)}
+        headline={headline}
+        topAssetName={topScans > 0 ? topAssetName : null}
+        updatedAt={now.toISOString()}
       />
 
-      {/* Overview */}
-      <section>
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
-          Overview
-        </h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          <StatCard label="Assets" value={assets.length} />
-          <StatCard label="Active QR links" value={activeQrLinks} />
-          <StatCard label="Total scans" value={summary.totalScans} />
-          <StatCard label="Scans (7 days)" value={summary.scans7d} />
-          <StatCard label="Scans (30 days)" value={summary.scans30d} />
-          <StatCard
-            label="Total submissions"
-            value={summary.totalSubmissions}
-            href="/dashboard/submissions"
-          />
-          <StatCard
-            label="New submissions"
-            value={summary.newSubmissions}
-            href="/dashboard/submissions?status=new"
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <RangeControl range={range} sort={sort} />
+        <RefreshButton />
+      </div>
+
+      {/* Trend charts — one brass current-period bar each; totals in the header. */}
+      <div className="grid gap-3.5 lg:grid-cols-[1.4fr_1fr]">
+        <div className="rounded-lg border border-iron-200 bg-card p-4">
+          <div className="mb-3 flex items-baseline justify-between">
+            <Eyebrow>Scans per day</Eyebrow>
+            <span className="font-mono text-[13px] tabular-nums">{scansTotal}</span>
+          </div>
+          <DailyBars
+            data={scanSeries}
+            summary={`${scansTotal} scans over the last ${range} days`}
           />
         </div>
-      </section>
-
-      {/* Needs attention — assets with unresolved submissions or new damage */}
-      <section>
-        <h2 className="mb-1 text-sm font-medium text-muted-foreground">
-          Needs attention
-        </h2>
-        <p className="mb-3 text-xs text-muted-foreground">
-          {INSIGHT_COPY.needsAttention}
-        </p>
-        {attention.length === 0 ? (
-          <Card>
-            <p className="text-sm text-muted-foreground">
-              All clear — no assets have unresolved submissions or new damage
-              reports right now.
-            </p>
-          </Card>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {attention.map((a) => (
-              <Card key={a.id}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="font-medium">{a.code}</div>
-                    <div className="truncate text-xs text-muted-foreground">
-                      {a.name}
-                    </div>
-                  </div>
-                  <span className="shrink-0 rounded-full border border-amber-500/40 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-500">
-                    {a.unresolved > 0 ? `${a.unresolved} open` : "damage"}
-                  </span>
-                </div>
-                <ul className="mt-2 flex flex-wrap gap-1.5">
-                  {a.reasons.map((reason) => (
-                    <li
-                      key={reason}
-                      className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground"
-                    >
-                      {reason}
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-3 flex flex-wrap gap-3 text-sm">
-                  <Link
-                    href={submissionsHref({ assetId: a.id })}
-                    className="underline-offset-4 hover:underline"
-                  >
-                    Review submissions →
-                  </Link>
-                  <Link
-                    href={`/dashboard/assets/${a.id}/timeline`}
-                    className="text-muted-foreground underline-offset-4 hover:underline"
-                  >
-                    Timeline
-                  </Link>
-                </div>
-              </Card>
-            ))}
+        <div className="rounded-lg border border-iron-200 bg-card p-4">
+          <div className="mb-3 flex items-baseline justify-between">
+            <Eyebrow>New submissions per day</Eyebrow>
+            <span className="font-mono text-[13px] tabular-nums">{newTotal}</span>
           </div>
-        )}
-      </section>
-
-      {/* Trends (last 30 days) */}
-      <section>
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
-          Last 30 days
-        </h2>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card>
-            <div className="mb-3 flex items-baseline justify-between">
-              <CardTitle>Scans per day</CardTitle>
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {summary.scans30d} total
-              </span>
-            </div>
-            <BarChart data={scanSeries} />
-          </Card>
-          <Card>
-            <div className="mb-3 flex items-baseline justify-between">
-              <CardTitle>Submissions per day</CardTitle>
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {submissionSeries.reduce((n, d) => n + d.count, 0)} total
-              </span>
-            </div>
-            <BarChart data={submissionSeries} />
-          </Card>
+          <DailyBars
+            data={newSubSeries}
+            summary={`${newTotal} new submissions over the last ${range} days`}
+          />
         </div>
-      </section>
+      </div>
 
-      {/* Submissions by type + status (bars with drill-through) */}
-      <section className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardTitle className="mb-2">Submissions by type</CardTitle>
-          <div className="flex flex-col gap-1">
-            {ANALYTICS_FORM_TYPES.map((t) => (
-              <StatBar
-                key={t}
-                label={FORM_TYPE_LABELS[t]}
-                value={summary.byType[t]}
-                max={summary.totalSubmissions}
-                href={`/dashboard/submissions?form_type=${t}`}
-              />
-            ))}
-          </div>
-        </Card>
-        <Card>
-          <CardTitle className="mb-2">Submission status</CardTitle>
-          <div className="flex flex-col gap-1">
-            {SUBMISSION_STATUSES.map((s) => (
-              <StatBar
-                key={s}
-                label={titleCase(s)}
-                value={summary.byStatus[s]}
-                max={summary.totalSubmissions}
-                href={`/dashboard/submissions?status=${s}`}
-              />
-            ))}
-          </div>
-        </Card>
-      </section>
+      {/* Composition */}
+      <div className="grid gap-3.5 lg:grid-cols-2">
+        <div className="rounded-lg border border-iron-200 bg-card p-4">
+          <Eyebrow className="mb-3">Scans by category · {label}</Eyebrow>
+          <CategoryBarList rows={catRows} emptyLabel="No scans in this range yet." />
+        </div>
+        <div className="rounded-lg border border-iron-200 bg-card p-4">
+          <Eyebrow className="mb-3">Submissions · {label}</Eyebrow>
+          <SubmissionsCard byStatus={summary.byStatus} byType={summary.byType} />
+        </div>
+      </div>
 
-      {/* Top problem assets — by submissions, damage, support */}
-      {hasProblemAssets ? (
+      {/* Problem assets — one consolidated ranked module (open count, then submissions). */}
+      {problems.length > 0 ? (
         <section>
-          <h2 className="mb-3 text-sm font-medium text-muted-foreground">
-            Top problem assets
-          </h2>
-          <div className="grid gap-4 lg:grid-cols-3">
-            <Card>
-              <CardTitle className="mb-2">Most submissions</CardTitle>
-              {topBySubmissions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No submissions yet.</p>
-              ) : (
-                <div className="flex flex-col gap-1">
-                  {topBySubmissions.map((row) => (
-                    <StatBar
-                      key={row.id}
-                      label={`${row.code} · ${row.name}`}
-                      value={row.count}
-                      max={topBySubmissions[0].count}
-                      href={submissionsHref({ assetId: row.id })}
-                    />
-                  ))}
-                </div>
-              )}
-            </Card>
-            <Card>
-              <CardTitle className="mb-2">Most damage reports</CardTitle>
-              {topByDamage.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No damage reports.
-                </p>
-              ) : (
-                <div className="flex flex-col gap-1">
-                  {topByDamage.map((row) => (
-                    <StatBar
-                      key={row.id}
-                      label={`${row.code} · ${row.name}`}
-                      value={row.count}
-                      max={topByDamage[0].count}
-                      href={submissionsHref({
-                        assetId: row.id,
-                        formType: "damage_report",
-                      })}
-                    />
-                  ))}
-                </div>
-              )}
-            </Card>
-            <Card>
-              <CardTitle className="mb-2">Most support requests</CardTitle>
-              {topBySupport.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No support requests.
-                </p>
-              ) : (
-                <div className="flex flex-col gap-1">
-                  {topBySupport.map((row) => (
-                    <StatBar
-                      key={row.id}
-                      label={`${row.code} · ${row.name}`}
-                      value={row.count}
-                      max={topBySupport[0].count}
-                      href={submissionsHref({
-                        assetId: row.id,
-                        formType: "support_request",
-                      })}
-                    />
-                  ))}
-                </div>
-              )}
-            </Card>
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {INSIGHT_COPY.repeatedDamage}
-          </p>
-        </section>
-      ) : null}
-
-      {/* Activity by category */}
-      {subsByCategory.length > 0 || scansByCat.length > 0 ? (
-        <section>
-          <h2 className="mb-1 text-sm font-medium text-muted-foreground">
-            Activity by category
-          </h2>
-          <p className="mb-3 text-xs text-muted-foreground">
-            {INSIGHT_COPY.categoryLoad}
-          </p>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardTitle className="mb-2">Submissions by category</CardTitle>
-              {subsByCategory.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No submissions yet.</p>
-              ) : (
-                <div className="flex flex-col gap-1">
-                  {subsByCategory.map((c) => (
-                    <StatBar
-                      key={c.category}
-                      label={c.category}
-                      value={c.count}
-                      max={scanCatMax}
-                      href={
-                        c.category === "Uncategorized"
-                          ? undefined
-                          : assetsCategoryHref(c.category)
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-            </Card>
-            <Card>
-              <CardTitle className="mb-2">Scans by category</CardTitle>
-              {scansByCat.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No scans yet.</p>
-              ) : (
-                <div className="flex flex-col gap-1">
-                  {scansByCat.map((c) => (
-                    <StatBar
-                      key={c.category}
-                      label={c.category}
-                      value={c.count}
-                      max={scanCatBarMax}
-                    />
-                  ))}
-                </div>
-              )}
-            </Card>
-          </div>
-        </section>
-      ) : null}
-
-      {/* Top assets by scan activity */}
-      {topByScans.length > 0 ? (
-        <section>
-          <h2 className="mb-1 text-sm font-medium text-muted-foreground">
-            Top assets by scans
-          </h2>
-          <p className="mb-3 text-xs text-muted-foreground">
-            {INSIGHT_COPY.topScanned}
-          </p>
-          <Card>
-            <div className="flex flex-col gap-1">
-              {topByScans.map((row) => (
-                <StatBar
-                  key={row.id}
-                  label={`${row.asset_code} · ${row.asset_name}`}
-                  value={row.totalScans}
-                  max={topScanMax}
-                  href={`/dashboard/assets/${row.id}`}
-                />
-              ))}
-            </div>
-          </Card>
+          <Eyebrow as="h2" className="mb-2.5">
+            Problem assets · {label}
+          </Eyebrow>
+          <ProblemAssets rows={problems} />
         </section>
       ) : null}
 
       {/* Per-asset activity */}
       <section>
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
-          Per-asset activity
-        </h2>
+        <Eyebrow as="h2" className="mb-2.5">
+          Per-asset activity · sorted by {sort === "submissions_desc" ? "submissions" : sort === "last_scanned_desc" ? "last scanned" : "scans"}
+        </Eyebrow>
         {sortedRows.length === 0 ? (
           <EmptyState
             title="No activity yet"
@@ -540,65 +322,71 @@ export default async function AnalyticsPage({
             }
           />
         ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm">
-            <thead className="border-b bg-muted/50 text-left text-muted-foreground">
-              <tr>
-                <th className="px-4 py-2 font-medium">Code</th>
-                <th className="px-4 py-2 font-medium">Name</th>
-                <th className="px-4 py-2 font-medium">Short code</th>
-                <th className="px-4 py-2 font-medium">Readiness</th>
-                <SortHeader label="Scans" sortKey="scans_desc" current={sort} />
-                <SortHeader
-                  label="Last scanned"
-                  sortKey="last_scanned_desc"
-                  current={sort}
-                />
-                <SortHeader
-                  label="Submissions"
-                  sortKey="submissions_desc"
-                  current={sort}
-                />
-              </tr>
-            </thead>
-            <tbody>
-              {sortedRows.map((row) => (
-                  <tr key={row.id} className="border-b last:border-0">
-                    <td className="px-4 py-2">
+          <div className="overflow-x-auto rounded-lg border border-iron-200 bg-card">
+            <table className="w-full text-[13px]">
+              <thead className="border-b border-iron-200">
+                <tr>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-[0.07em] text-iron-600">
+                    Asset
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-[0.07em] text-iron-600">
+                    Readiness
+                  </th>
+                  <SortHeader label="Scans" sortKey="scans_desc" current={sort} range={range} align="right" />
+                  <SortHeader label="Last scanned" sortKey="last_scanned_desc" current={sort} range={range} />
+                  <SortHeader label="Submissions" sortKey="submissions_desc" current={sort} range={range} align="right" />
+                </tr>
+              </thead>
+              <tbody>
+                {sortedRows.map((row) => (
+                  <tr
+                    key={row.id}
+                    className={`border-b border-[#EFEDE7] last:border-b-0 ${row.open > 0 ? "bg-[#FDF9F0]" : ""}`}
+                  >
+                    <td className="px-3 py-2.5">
                       <AssetTagChip code={row.asset_code} />
                     </td>
-                    <td className="px-4 py-2">{row.asset_name}</td>
-                    <td className="px-4 py-2 font-mono text-xs text-muted-foreground">
-                      {row.shortCode ?? "—"}
-                    </td>
-                    <td className="px-4 py-2">
+                    <td className="px-3 py-2.5">
                       {row.readiness.ready ? (
-                        <span className="rounded-full border px-2 py-0.5 text-xs">
-                          Ready
-                        </span>
+                        <span
+                          className="inline-block size-2 rounded-full bg-success"
+                          title="Ready"
+                          aria-label="Ready"
+                        />
                       ) : (
-                        <span className="text-xs text-muted-foreground">
-                          {row.readiness.issues.join(", ")}
+                        <span className="rounded-md bg-amber-chip-bg px-2 py-0.5 text-xs text-amber-chip-text">
+                          {row.readiness.reason ? readinessReasonLabel(row.readiness.reason) : "Not ready"}
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-2 tabular-nums">{row.totalScans}</td>
-                    <td className="px-4 py-2 text-muted-foreground">
+                    <td className="px-3 py-2.5 text-right font-mono tabular-nums">
+                      {row.totalScans}
+                    </td>
+                    <td className="px-3 py-2.5 text-iron-600">
                       <RelativeTime value={row.lastScannedAt} />
                     </td>
-                    <td className="px-4 py-2 tabular-nums">
-                      <Link
-                        href={`/dashboard/submissions?asset_id=${row.id}`}
-                        className="underline-offset-4 hover:underline"
-                      >
-                        {row.submissionCount}
-                      </Link>
+                    <td className="px-3 py-2.5 text-right">
+                      {row.open > 0 ? (
+                        <Link
+                          href={submissionsHref({ assetId: row.id, status: "unresolved" })}
+                          className="rounded-md bg-amber-chip-bg px-2 py-0.5 text-xs text-amber-chip-text"
+                        >
+                          {row.submissionCount} · {row.open} open
+                        </Link>
+                      ) : (
+                        <Link
+                          href={submissionsHref({ assetId: row.id })}
+                          className="font-mono tabular-nums text-iron-600 underline-offset-4 hover:underline"
+                        >
+                          {row.submissionCount}
+                        </Link>
+                      )}
                     </td>
                   </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </div>
