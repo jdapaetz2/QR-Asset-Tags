@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Air Compressor 012">
+  <rect width="640" height="360" fill="#eef2f7"/>
+  <rect x="0" y="300" width="640" height="60" fill="#e2e8f0"/>
+  <!-- towable body -->
+  <rect x="200" y="180" width="240" height="100" rx="12" fill="#1d4ed8"/>
+  <rect x="220" y="200" width="90" height="46" rx="6" fill="#dbeafe"/>
+  <!-- vents -->
+  <rect x="330" y="200" width="90" height="8" rx="4" fill="#1e40af"/>
+  <rect x="330" y="216" width="90" height="8" rx="4" fill="#1e40af"/>
+  <rect x="330" y="232" width="90" height="8" rx="4" fill="#1e40af"/>
+  <!-- wheels -->
+  <circle cx="250" cy="286" r="18" fill="#334155"/>
+  <circle cx="250" cy="286" r="7" fill="#94a3b8"/>
+  <circle cx="390" cy="286" r="18" fill="#334155"/>
+  <circle cx="390" cy="286" r="7" fill="#94a3b8"/>
+  <!-- tow bar -->
+  <path d="M200 220 L120 250" stroke="#475569" stroke-width="10" stroke-linecap="round"/>
+  <text x="40" y="64" font-family="system-ui, sans-serif" font-size="30" font-weight="700" fill="#0f172a">Air Compressor 012</text>
+  <text x="40" y="98" font-family="system-ui, sans-serif" font-size="20" fill="#64748b">Towable Air Compressor</text>
+</svg>

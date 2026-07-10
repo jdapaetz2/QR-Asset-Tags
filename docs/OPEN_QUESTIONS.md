@@ -46,3 +46,31 @@ Decisions that aren't fully settled by `docs/PROJECT_CONTEXT.md` / `CLAUDE.md`. 
 
 17. **Public-form rate limiting** — public submission/upload endpoints have a honeypot but no rate limit (a shared store is needed, so it is not a small change). *Default:* defer to a post-pilot fast-follow (edge/middleware rate limit keyed on IP-hash + asset). Tracked in `docs/MVP_PILOT_READINESS.md` (Sprint 7A audit).
 18. **Permissive anon insert on the `submissions` storage bucket** — the `submissions public insert` policy (`0002_storage.sql`) allows anon PUT under any `org/<id>/…` path without checking the org exists. Anon cannot read objects back, and MIME/size caps apply, so this is a storage-spam/cost vector, not a data leak. *Default:* defer; post-pilot, validate the org segment or route uploads through a server action that checks a resolved public asset. Tracked in `docs/MVP_PILOT_READINESS.md`.
+
+---
+
+## Pilot discovery / demand validation (per prospect)
+
+These are **not build decisions** — they are questions to answer *with a prospect* before and
+during a pilot conversation. The core loop only pays off if a real person on the customer's side
+receives, resolves, and maintains it. Capture the answers per prospect (the demo script points
+here); a "no" to several of these is a signal to reshape the pitch, not to build more.
+
+1. **Who receives and resolves submissions?** Is there a named person/role (dispatch, shop
+   foreman, branch manager) who will see a damage/support report and act on it — or would it land
+   in an unread inbox?
+2. **Who checks returns?** Who inspects equipment on return today, and would a return checklist
+   submission fit their existing routine?
+3. **Would yard staff scan on outbound/return?** Is there appetite for staff to scan a tag when
+   equipment leaves and comes back — the trigger for the deferred yard-scanner mode
+   (`ROADMAP_DEFERRED.md`)? If not, the renter-facing loop stands on its own.
+4. **Will renters actually submit forms?** Do their customers skew contractor/repeat (likely to
+   scan and report) or one-off consumer (less likely)? What share of issues are reported today vs
+   discovered on return?
+5. **Who maintains the asset pages?** Will counter/office staff keep equipment content and manual
+   links current, or does that need to be a one-time setup we do for them?
+6. **Check delivery-radius / coverage before pitching the offline story.** Confirm the prospect's
+   yards and delivery radius have reliable mobile coverage **before** leaning on any "works
+   anywhere" or offline narrative. Offline is deferred (`ROADMAP_DEFERRED.md` #1); today the public
+   page requires connectivity, so a poor-coverage prospect is a reason to talk printed
+   scan-at-pickup guidance, not to over-promise.

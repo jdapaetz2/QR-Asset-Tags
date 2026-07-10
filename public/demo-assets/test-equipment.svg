@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Insulation Tester 004">
+  <rect width="640" height="360" fill="#eef2f7"/>
+  <rect x="0" y="300" width="640" height="60" fill="#e2e8f0"/>
+  <!-- meter body -->
+  <rect x="250" y="120" width="150" height="170" rx="16" fill="#1d4ed8"/>
+  <!-- screen -->
+  <rect x="272" y="142" width="106" height="52" rx="6" fill="#dbeafe"/>
+  <text x="286" y="178" font-family="system-ui, monospace" font-size="26" font-weight="700" fill="#0f172a">MΩ</text>
+  <!-- dial -->
+  <circle cx="325" cy="238" r="34" fill="#1e40af"/>
+  <circle cx="325" cy="238" r="30" fill="#eef2f7"/>
+  <rect x="322" y="212" width="6" height="20" rx="3" fill="#334155"/>
+  <!-- leads -->
+  <path d="M270 290 q-40 30 -70 6" stroke="#dc2626" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <path d="M380 290 q40 30 70 6" stroke="#0f172a" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <text x="40" y="64" font-family="system-ui, sans-serif" font-size="30" font-weight="700" fill="#0f172a">Insulation Tester 004</text>
+  <text x="40" y="98" font-family="system-ui, sans-serif" font-size="20" fill="#64748b">Electrical Test Equipment</text>
+</svg>

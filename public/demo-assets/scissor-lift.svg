@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Scissor Lift 021">
+  <rect width="640" height="360" fill="#eef2f7"/>
+  <rect x="0" y="300" width="640" height="60" fill="#e2e8f0"/>
+  <!-- base + wheels -->
+  <rect x="360" y="270" width="180" height="26" rx="6" fill="#334155"/>
+  <circle cx="390" cy="300" r="14" fill="#94a3b8"/>
+  <circle cx="510" cy="300" r="14" fill="#94a3b8"/>
+  <!-- scissor mechanism -->
+  <path d="M380 270 L520 180 M520 270 L380 180 M380 220 L520 130 M520 220 L380 130" stroke="#475569" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <!-- platform + rail -->
+  <rect x="360" y="112" width="180" height="20" rx="4" fill="#1d4ed8"/>
+  <rect x="360" y="70" width="10" height="46" fill="#334155"/>
+  <rect x="530" y="70" width="10" height="46" fill="#334155"/>
+  <rect x="360" y="70" width="180" height="8" rx="3" fill="#334155"/>
+  <text x="40" y="64" font-family="system-ui, sans-serif" font-size="30" font-weight="700" fill="#0f172a">Scissor Lift 021</text>
+  <text x="40" y="98" font-family="system-ui, sans-serif" font-size="20" fill="#64748b">Scissor Lift</text>
+</svg>
