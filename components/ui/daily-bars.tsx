@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { DailyCount } from "@/lib/analytics/activity";
-import { barSpec } from "@/lib/analytics/chart";
+import { barSpec, chartMax } from "@/lib/analytics/chart";
 
 const MONTHS = [
   "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
@@ -30,7 +30,7 @@ export function DailyBars({
   summary: string;
   className?: string;
 }) {
-  const max = Math.max(1, ...data.map((d) => d.count));
+  const max = chartMax(data);
   const midIndex = Math.floor((data.length - 1) / 2);
 
   return (
@@ -43,7 +43,9 @@ export function DailyBars({
             <div
               key={d.date}
               aria-hidden
-              className="group relative flex flex-1 items-end justify-center"
+              // h-full gives each column a definite height (the row is h-24 = 96px), so the
+              // bar's percentage height resolves instead of collapsing to a stub.
+              className="group relative flex h-full flex-1 items-end justify-center"
             >
               <span className="pointer-events-none absolute -top-6 z-10 hidden whitespace-nowrap rounded-[5px] bg-iron-950 px-1.5 py-0.5 font-mono text-[10.5px] text-bone-50 group-hover:block group-focus-within:block">
                 {d.count} · {tickLabel(d.date)}

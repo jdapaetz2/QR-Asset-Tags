@@ -17,6 +17,15 @@ export type BarSpec = { kind: BarKind; heightPct: number };
 /** Minimum height (%) for a non-zero bar so small values stay visible. */
 export const MIN_BAR_PCT = 6;
 
+/**
+ * Chart normalization max — the tallest daily bucket, never the period total, so bars
+ * are sized relative to the busiest day. Floored at 1 so an all-zero range never divides
+ * by zero (every bar is then a stub).
+ */
+export function chartMax(series: { count: number }[]): number {
+  return Math.max(1, ...series.map((d) => d.count));
+}
+
 export function barSpec(
   count: number,
   max: number,

@@ -1,6 +1,49 @@
 import { describe, expect, it } from "vitest";
 
-import { buildBreakdown, type BreakdownRow } from "./rpc";
+import {
+  buildBreakdown,
+  toDailySeries,
+  type BreakdownRow,
+  type DailyActivityRow,
+} from "./rpc";
+
+describe("toDailySeries", () => {
+  const rows: DailyActivityRow[] = [
+    { day: "2026-07-07", scan_count: 95, new_submission_count: 1 },
+    { day: "2026-07-08", scan_count: 3, new_submission_count: 0 },
+    { day: "2026-07-09", scan_count: 112, new_submission_count: 2 },
+    { day: "2026-07-10", scan_count: 172, new_submission_count: 4 },
+  ];
+
+  it("splits daily rows into scan + new-submission series, preserving order", () => {
+    const { scans, newSubmissions } = toDailySeries(rows);
+    expect(scans).toEqual([
+      { date: "2026-07-07", count: 95 },
+      { date: "2026-07-08", count: 3 },
+      { date: "2026-07-09", count: 112 },
+      { date: "2026-07-10", count: 172 },
+    ]);
+    expect(newSubmissions.map((d) => d.count)).toEqual([1, 0, 2, 4]);
+    // Bucket sums equal the chart-header totals.
+    expect(scans.reduce((n, d) => n + d.count, 0)).toBe(382);
+  });
+
+  it("coerces bigint-as-string counts to numbers", () => {
+    const series = toDailySeries([
+      {
+        day: "2026-07-10",
+        scan_count: "172" as unknown as number,
+        new_submission_count: "4" as unknown as number,
+      },
+    ]);
+    expect(series.scans[0].count).toBe(172);
+    expect(series.newSubmissions[0].count).toBe(4);
+  });
+
+  it("returns empty series for no rows", () => {
+    expect(toDailySeries([])).toEqual({ scans: [], newSubmissions: [] });
+  });
+});
 
 describe("buildBreakdown", () => {
   it("folds status + form_type rows into fully-keyed maps", () => {

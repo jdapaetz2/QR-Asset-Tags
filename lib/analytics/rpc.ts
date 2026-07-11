@@ -12,6 +12,7 @@ import {
 import {
   ANALYTICS_FORM_TYPES,
   type AnalyticsFormType,
+  type DailyCount,
 } from "@/lib/analytics/activity";
 
 /** analytics_daily_activity(p_days) → one row per yard-local day, zero-filled. */
@@ -20,6 +21,25 @@ export type DailyActivityRow = {
   scan_count: number;
   new_submission_count: number;
 };
+
+/**
+ * Split the daily-activity rows into the two `DailyCount[]` series the DailyBars chart
+ * needs — scans and new submissions. Order is preserved (the RPC returns ascending,
+ * zero-filled days), so bucket sums equal the chart-header totals. bigint counts may
+ * arrive as strings; coerced with Number.
+ */
+export function toDailySeries(rows: DailyActivityRow[]): {
+  scans: DailyCount[];
+  newSubmissions: DailyCount[];
+} {
+  const scans: DailyCount[] = [];
+  const newSubmissions: DailyCount[] = [];
+  for (const r of rows) {
+    scans.push({ date: r.day, count: Number(r.scan_count) || 0 });
+    newSubmissions.push({ date: r.day, count: Number(r.new_submission_count) || 0 });
+  }
+  return { scans, newSubmissions };
+}
 
 /** analytics_scans_by_category(p_days). */
 export type CategoryRow = { category: string; scan_count: number };

@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { barSpec, MIN_BAR_PCT } from "./chart";
+import { barSpec, chartMax, MIN_BAR_PCT } from "./chart";
+
+describe("chartMax", () => {
+  it("uses the tallest daily bucket, never the period total", () => {
+    const series = [95, 3, 112, 172].map((count) => ({ count }));
+    expect(chartMax(series)).toBe(172); // not 382 (the sum)
+  });
+
+  it("floors at 1 so an all-zero range never divides by zero", () => {
+    expect(chartMax([{ count: 0 }, { count: 0 }])).toBe(1);
+    expect(chartMax([])).toBe(1);
+  });
+});
 
 describe("barSpec", () => {
   it("colors non-zero bars — brass for the current period, bone otherwise", () => {

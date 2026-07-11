@@ -19,13 +19,13 @@ import {
   normalizeAssetSort,
   sortAssetRows,
   type AssetSort,
-  type DailyCount,
 } from "@/lib/analytics/activity";
 import { submissionsHref } from "@/lib/analytics/insights";
 import { parseRange, rangePeriodWord, rangeLabel } from "@/lib/analytics/range";
 import { rankProblemAssets } from "@/lib/analytics/problem-assets";
 import {
   buildBreakdown,
+  toDailySeries,
   type AssetActivityRow,
   type BreakdownRow,
   type CategoryRow,
@@ -155,14 +155,7 @@ export default async function AnalyticsPage({
   const now = new Date();
 
   // Charts + headline totals derive from the SAME DB daily buckets, so they always agree.
-  const scanSeries: DailyCount[] = daily.map((d) => ({
-    date: d.day,
-    count: Number(d.scan_count),
-  }));
-  const newSubSeries: DailyCount[] = daily.map((d) => ({
-    date: d.day,
-    count: Number(d.new_submission_count),
-  }));
+  const { scans: scanSeries, newSubmissions: newSubSeries } = toDailySeries(daily);
   const scansTotal = scanSeries.reduce((n, d) => n + d.count, 0);
   const newTotal = newSubSeries.reduce((n, d) => n + d.count, 0);
 

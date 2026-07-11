@@ -232,10 +232,17 @@ those tables and cannot read anything. Tenant isolation is explicit: `organizati
 current_org_id()` (NULL for a platform owner / suspended org / disabled profile → no rows), with RLS
 as the defense-in-depth backstop. `search_path` is locked to `public` and every object is
 schema-qualified. **No `ip_hash` / `user_agent` / `referrer` is ever selected or returned.** Execute
-is **revoked from `public` and granted only to `authenticated`**, so anon/public cannot run them. No
-service-role is used anywhere in the analytics path. Supporting indexes:
-`scan_events (organization_id, scanned_at)` and `form_submissions (organization_id, created_at)`.
-`seed.sql` is unchanged.
+is **revoked from `public` and from `anon`, and granted only to `authenticated`** (migration 0021 —
+Supabase's default privileges grant EXECUTE directly to `anon`, which a `revoke … from public` alone
+does not remove, so `anon` is revoked explicitly), so anon/public cannot run them. No service-role is
+used anywhere in the analytics path. Supporting indexes: `scan_events (organization_id, scanned_at)`
+and `form_submissions (organization_id, created_at)`. `seed.sql` is unchanged.
+
+**Author note (plpgsql):** because these are `RETURNS TABLE(...)` functions, the output column names
+(`asset_id`, `scan_count`, …) are OUT variables. Inside aggregate subqueries, always **table-qualify**
+column references (`se.asset_id`, `fs.created_at`) — a bare identifier that matches an OUT column name
+raises `column reference … is ambiguous` at run time under plpgsql's default `variable_conflict = error`
+(this was the 0021 fix for `analytics_asset_activity`).
 
 ## Privacy / data-handling rules
 
