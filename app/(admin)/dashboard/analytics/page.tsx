@@ -16,43 +16,31 @@ import { ProblemAssets } from "@/components/analytics/problem-assets";
 import { assetPageStatus } from "@/lib/assets/list";
 import { deriveAssetStatus, readinessReasonLabel } from "@/lib/ui/status-view";
 import {
-  summarizeActivity,
-  perAssetActivity,
-  dailyCounts,
   normalizeAssetSort,
   sortAssetRows,
   type AssetSort,
-  type ScanRow,
-  type SubmissionRow,
+  type DailyCount,
 } from "@/lib/analytics/activity";
+import { submissionsHref } from "@/lib/analytics/insights";
+import { parseRange, rangePeriodWord, rangeLabel } from "@/lib/analytics/range";
+import { rankProblemAssets } from "@/lib/analytics/problem-assets";
 import {
-  scansByCategory,
-  submissionsHref,
-  UNRESOLVED_STATUSES,
-  type AssetInfo,
-} from "@/lib/analytics/insights";
-import {
-  parseRange,
-  rangeCutoffMs,
-  rangePeriodWord,
-  rangeLabel,
-  rangeStamp,
-} from "@/lib/analytics/range";
-import { buildProblemAssets } from "@/lib/analytics/problem-assets";
-import { fetchAllInRange } from "@/lib/supabase/paginate";
+  buildBreakdown,
+  type AssetActivityRow,
+  type BreakdownRow,
+  type CategoryRow,
+  type DailyActivityRow,
+} from "@/lib/analytics/rpc";
 
 // Activity counts are live per request; never cache.
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
-type AssetRow = {
-  id: string;
-  asset_code: string;
-  asset_name: string;
-  public_status: string;
-  category: string | null;
-};
+const MONTHS = [
+  "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+  "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
+];
 
 function firstString(value: string | string[] | undefined): string {
   return (Array.isArray(value) ? value[0] : value) ?? "";
@@ -60,6 +48,20 @@ function firstString(value: string | string[] | undefined): string {
 
 function plural(n: number, word: string): string {
   return `${n} ${word}${n === 1 ? "" : "s"}`;
+}
+
+/** "2026-07-04" → "JUL 4" (no Date parsing → no timezone shift). */
+function monthDay(iso: string): string {
+  const [, m, d] = iso.split("-").map(Number);
+  return `${MONTHS[(m ?? 1) - 1]} ${d ?? ""}`;
+}
+
+/** Band stamp built from the RPC's yard-local days, e.g. "JUL 4 – JUL 10 · 2026". */
+function rangeStampFromDays(days: DailyActivityRow[]): string {
+  if (days.length === 0) return "";
+  const first = days[0].day;
+  const last = days[days.length - 1].day;
+  return `${monthDay(first)} – ${monthDay(last)} · ${last.slice(0, 4)}`;
 }
 
 function SortHeader({
@@ -104,138 +106,105 @@ export default async function AnalyticsPage({
 
   const supabase = await createClient();
 
-  // All reads are RLS-scoped to the caller's organization.
-  const { data: orgData } = await supabase
-    .from("organizations")
-    .select("name")
-    .eq("id", orgId)
-    .maybeSingle();
+  // Small metadata reads (bounded by asset count, for app-derived readiness + org name)
+  // plus four compact yard-local aggregation RPCs. No raw scan_events / form_submissions
+  // rows are pulled for analytics — the DB does the grouping, RLS-scoped, invoker rights.
+  const [
+    { data: orgData },
+    { data: assetMeta },
+    { data: qrData },
+    { data: pageData },
+    { data: dailyData },
+    { data: catData },
+    { data: breakdownData },
+    { data: assetActData },
+  ] = await Promise.all([
+    supabase.from("organizations").select("name").eq("id", orgId).maybeSingle(),
+    supabase.from("assets").select("id, public_status"),
+    supabase.from("qr_links").select("asset_id, status"),
+    supabase.from("equipment_pages").select("asset_id, is_published"),
+    supabase.rpc("analytics_daily_activity", { p_days: range }),
+    supabase.rpc("analytics_scans_by_category", { p_days: range }),
+    supabase.rpc("analytics_submission_breakdown", { p_days: range }),
+    supabase.rpc("analytics_asset_activity", { p_days: range }),
+  ]);
 
-  const { data: assetData } = await supabase
-    .from("assets")
-    .select("id, asset_code, asset_name, public_status, category")
-    .order("asset_code", { ascending: true });
-  const assets = (assetData ?? []) as AssetRow[];
-
-  const { data: qrData } = await supabase
-    .from("qr_links")
-    .select("asset_id, status");
+  const publicStatusById = new Map<string, string>();
+  for (const a of (assetMeta ?? []) as { id: string; public_status: string }[]) {
+    publicStatusById.set(a.id, a.public_status);
+  }
   const qrByAsset = new Map<string, boolean>(); // asset_id → has active
   const qrExists = new Set<string>();
   for (const q of (qrData ?? []) as { asset_id: string; status: string }[]) {
     qrExists.add(q.asset_id);
     if (q.status === "active") qrByAsset.set(q.asset_id, true);
   }
-
-  const { data: pageData } = await supabase
-    .from("equipment_pages")
-    .select("asset_id, is_published");
   const pageByAsset = new Map<string, boolean>();
   for (const p of (pageData ?? []) as { asset_id: string; is_published: boolean }[]) {
     pageByAsset.set(p.asset_id, p.is_published);
   }
 
+  const daily = (dailyData ?? []) as DailyActivityRow[];
+  const catRows = ((catData ?? []) as CategoryRow[]).map((c) => ({
+    category: c.category,
+    count: Number(c.scan_count),
+  }));
+  const breakdown = buildBreakdown((breakdownData ?? []) as BreakdownRow[]);
+  const assetAct = (assetActData ?? []) as AssetActivityRow[];
+
   const now = new Date();
-  const cutoffIso = new Date(rangeCutoffMs(now.getTime(), range)).toISOString();
 
-  // Scans + submissions are read WINDOWED to the selected range and paginated past
-  // PostgREST's 1000-row cap, so totals and daily buckets reflect the whole range —
-  // not an arbitrary first-1000-row slice. Privacy: scans carry only asset_id +
-  // scanned_at (never ip_hash / user_agent / referrer); submissions carry counts +
-  // timestamps only — no contents.
-  const { rows: scans } = await fetchAllInRange<ScanRow>((from, to) =>
-    supabase
-      .from("scan_events")
-      .select("asset_id, scanned_at")
-      .gte("scanned_at", cutoffIso)
-      .order("scanned_at", { ascending: true })
-      .range(from, to)
-  );
-  const { rows: submissions } = await fetchAllInRange<
-    SubmissionRow & { created_at: string }
-  >((from, to) =>
-    supabase
-      .from("form_submissions")
-      .select("asset_id, form_type, status, created_at")
-      .gte("created_at", cutoffIso)
-      .order("created_at", { ascending: true })
-      .range(from, to)
-  );
-
-  // Everything below is range-scoped (the fetched rows ARE the selected window).
-  // Daily series totals are the bucket sums, so the chart headers, band headline, and
-  // visible bars always agree.
-  const scanSeries = dailyCounts(scans.map((s) => s.scanned_at), range, now);
-  const newSubSeries = dailyCounts(
-    submissions.filter((s) => s.status === "new").map((s) => s.created_at),
-    range,
-    now
-  );
+  // Charts + headline totals derive from the SAME DB daily buckets, so they always agree.
+  const scanSeries: DailyCount[] = daily.map((d) => ({
+    date: d.day,
+    count: Number(d.scan_count),
+  }));
+  const newSubSeries: DailyCount[] = daily.map((d) => ({
+    date: d.day,
+    count: Number(d.new_submission_count),
+  }));
   const scansTotal = scanSeries.reduce((n, d) => n + d.count, 0);
   const newTotal = newSubSeries.reduce((n, d) => n + d.count, 0);
 
-  const summary = summarizeActivity(scans, submissions, now);
-  const perAsset = perAssetActivity(scans, submissions);
-
-  const assetInfo: AssetInfo[] = assets.map((a) => ({
-    id: a.id,
-    asset_code: a.asset_code,
-    asset_name: a.asset_name,
-    category: a.category,
-  }));
-  const nameById = new Map(assets.map((a) => [a.id, a.asset_name]));
-
-  // Open (unresolved) submissions per asset, within range.
-  const openByAsset = new Map<string, number>();
-  for (const sub of submissions) {
-    if ((UNRESOLVED_STATUSES as readonly string[]).includes(sub.status)) {
-      openByAsset.set(sub.asset_id, (openByAsset.get(sub.asset_id) ?? 0) + 1);
-    }
-  }
-
-  const scanCountByAsset = new Map<string, number>();
-  for (const [id, act] of perAsset) scanCountByAsset.set(id, act.totalScans);
-
-  const problems = buildProblemAssets(assetInfo, submissions, scanCountByAsset, 6);
-  const catRows = scansByCategory(assetInfo, scans);
+  const problems = rankProblemAssets(assetAct, 6);
 
   // Top asset by scans in range → the band subline.
   let topAssetName: string | null = null;
   let topScans = 0;
-  for (const [id, act] of perAsset) {
-    if (act.totalScans > topScans) {
-      topScans = act.totalScans;
-      topAssetName = nameById.get(id) ?? null;
+  for (const r of assetAct) {
+    const c = Number(r.scan_count);
+    if (c > topScans) {
+      topScans = c;
+      topAssetName = r.asset_name;
     }
   }
 
-  // Per-asset table rows — scans / submissions / last-scanned are all range-scoped
-  // (an asset not scanned in the range shows "—").
-  const assetRows = assets.map((a) => {
-    const qrStatus = qrByAsset.get(a.id)
+  // Per-asset table — the RPC returns one row per non-archived asset (scan/submission
+  // counts range-scoped, last_scanned_at + open all-time). Readiness stays app-derived.
+  const assetRows = assetAct.map((r) => {
+    const qrStatus = qrByAsset.get(r.asset_id)
       ? ("active" as const)
-      : qrExists.has(a.id)
+      : qrExists.has(r.asset_id)
         ? ("disabled" as const)
         : null;
     const pageStatus = assetPageStatus(
-      pageByAsset.has(a.id),
-      pageByAsset.get(a.id) ?? false
+      pageByAsset.has(r.asset_id),
+      pageByAsset.get(r.asset_id) ?? false
     );
     const readiness = deriveAssetStatus({
       rented: false,
-      publicStatus: a.public_status,
+      publicStatus: publicStatusById.get(r.asset_id) ?? "private",
       qrStatus,
       pageStatus,
     }).readiness;
-    const act = perAsset.get(a.id);
     return {
-      id: a.id,
-      asset_code: a.asset_code,
+      id: r.asset_id,
+      asset_code: r.asset_code,
       readiness,
-      totalScans: act?.totalScans ?? 0,
-      submissionCount: act?.submissionCount ?? 0,
-      lastScannedAt: act?.lastScannedAt ?? null,
-      open: openByAsset.get(a.id) ?? 0,
+      totalScans: Number(r.scan_count),
+      submissionCount: Number(r.submission_count),
+      lastScannedAt: r.last_scanned_at,
+      open: Number(r.open_submission_count),
     };
   });
   const sortedRows = sortAssetRows(assetRows, sort);
@@ -247,7 +216,7 @@ export default async function AnalyticsPage({
     <div className="flex flex-col gap-6">
       <AnalyticsBand
         orgName={orgData?.name ?? "Your organization"}
-        stamp={rangeStamp(now, range)}
+        stamp={rangeStampFromDays(daily)}
         headline={headline}
         topAssetName={topScans > 0 ? topAssetName : null}
         updatedAt={now.toISOString()}
@@ -290,11 +259,11 @@ export default async function AnalyticsPage({
         </div>
         <div className="rounded-lg border border-iron-200 bg-card p-4">
           <Eyebrow className="mb-3">Submissions · {label}</Eyebrow>
-          <SubmissionsCard byStatus={summary.byStatus} byType={summary.byType} />
+          <SubmissionsCard byStatus={breakdown.byStatus} byType={breakdown.byType} />
         </div>
       </div>
 
-      {/* Problem assets — one consolidated ranked module (open count, then submissions). */}
+      {/* Problem assets — one consolidated ranked module (open backlog, then submissions). */}
       {problems.length > 0 ? (
         <section>
           <Eyebrow as="h2" className="mb-2.5">

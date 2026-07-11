@@ -198,6 +198,45 @@ trigger coerces it back for any other caller, so customers cannot self-reactivat
 distinct from per-user `profiles.status` (disable), and is **not** the seasonal "pause coverage"
 billing concept.
 
+## Analytics aggregation RPCs (Wave G.2, migration 0020)
+
+The customer analytics page (`/dashboard/analytics`) does **not** fetch raw `scan_events` /
+`form_submissions` rows and bucket them in JavaScript. It calls four read-only Postgres functions
+that aggregate server-side and return compact results. This fixed two bugs: (a) PostgREST's 1000-row
+cap silently truncated busy orgs' history, and (b) JS bucketed by **UTC day** while the yard's real
+"today" is **America/Vancouver**, so a scan at Vancouver-evening (= next UTC day) fell outside the
+window and vanished from the charts.
+
+**Yard-local day buckets.** Every function derives its window from `America/Vancouver`, written as
+`coalesce(<future org tz>, 'America/Vancouver')`. There is **no `organizations.timezone` column yet**
+— it is deferred; when added, it slots into that `coalesce` without touching callers. There is no
+timezone settings UI in this pass. `p_days` is clamped to `{7, 30, 90}`.
+
+| Function (all take `p_days integer`) | Returns | Window |
+|---|---|---|
+| `analytics_daily_activity` | `(day date, scan_count bigint, new_submission_count bigint)` — exactly `p_days` local-day rows, zero-filled, ascending; `new_submission_count` = submissions created that local day with `status='new'` | range |
+| `analytics_scans_by_category` | `(category text, scan_count bigint)` — `coalesce(nullif(btrim(category),''),'Uncategorized')`, desc | range |
+| `analytics_submission_breakdown` | `(breakdown_type text, key text, count bigint)` — `status` rows + `form_type` rows, unioned | range |
+| `analytics_asset_activity` | one row per **non-archived** asset: `scan_count` / `submission_count` / `damage_count` / `support_count` / `return_count` (range) + `last_scanned_at` and `open_submission_count` (unresolved = `new`+`reviewed`) — **all-time** | mixed |
+
+**Count semantics (honest labels):** charts, category, breakdown, and per-asset scan/submission
+counts are **range-scoped**. `last_scanned_at` is the genuine most-recent scan and
+`open_submission_count` is the current operational backlog — both **all-time**, labeled as such in the
+UI (the amber "N open" chip). The analytics "New" headline is range-scoped and is intentionally
+distinct from the all-time nav badge. Readiness stays app-derived (it needs `qr_links` /
+`equipment_pages` joins), so it is not returned by the RPC.
+
+**Security.** All four are `SECURITY INVOKER` (not `DEFINER`), so RLS on `scan_events` /
+`form_submissions` stays in force and the caller's identity is intact — anon has **no SELECT** on
+those tables and cannot read anything. Tenant isolation is explicit: `organization_id =
+current_org_id()` (NULL for a platform owner / suspended org / disabled profile → no rows), with RLS
+as the defense-in-depth backstop. `search_path` is locked to `public` and every object is
+schema-qualified. **No `ip_hash` / `user_agent` / `referrer` is ever selected or returned.** Execute
+is **revoked from `public` and granted only to `authenticated`**, so anon/public cannot run them. No
+service-role is used anywhere in the analytics path. Supporting indexes:
+`scan_events (organization_id, scanned_at)` and `form_submissions (organization_id, created_at)`.
+`seed.sql` is unchanged.
+
 ## Privacy / data-handling rules
 
 `internal_notes`, private documents, billing fields, and all submissions are never exposed on public pages. `scan_events.ip_hash` must store a hashed or truncated value, never a raw IP. Uploaded media lives in organization-scoped storage paths and is not publicly listable. See `docs/SECURITY_MODEL.md` for the RLS policies that enforce all of this.

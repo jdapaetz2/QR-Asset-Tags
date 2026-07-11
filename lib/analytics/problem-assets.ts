@@ -1,18 +1,17 @@
 /**
  * Problem-assets ranking for the analytics page — one consolidated module that
  * replaces the old "Most submissions / Most damage / Most support" lists. Pure +
- * tested; the page passes range-windowed submission rows and per-asset scan counts.
- * Ranked by open (unresolved) count, then total submissions, then scans, then code.
+ * tested; the page passes rows from the `analytics_asset_activity` RPC. Ranked by
+ * open (unresolved) count, then range submissions, then range scans, then code.
  */
 
-import type { SubmissionRow } from "@/lib/analytics/activity";
-import { UNRESOLVED_STATUSES, type AssetInfo } from "@/lib/analytics/insights";
+import type { AssetActivityRow } from "@/lib/analytics/rpc";
 
 export type ProblemAsset = {
   id: string;
   code: string;
   name: string;
-  open: number; // unresolved (new + reviewed)
+  open: number; // current unresolved (new + reviewed) — all-time backlog
   total: number; // submissions in range
   damage: number;
   support: number;
@@ -20,10 +19,6 @@ export type ProblemAsset = {
   scans: number; // scans in range
   reason: string;
 };
-
-function isUnresolved(status: string): boolean {
-  return (UNRESOLVED_STATUSES as readonly string[]).includes(status);
-}
 
 /**
  * Short reason summary, e.g. "9 submissions · 7 damage · repeated reports",
@@ -47,49 +42,46 @@ export function reasonSummary(r: {
   return parts.join(" · ");
 }
 
-export function buildProblemAssets(
-  assets: AssetInfo[],
-  submissions: SubmissionRow[],
-  scanCountByAsset: Map<string, number>,
+/**
+ * Rank the per-asset activity rows into the Problem-assets module. An asset appears
+ * when it has current open submissions OR any submissions in the range. Ordered by
+ * open (current backlog) desc → range submissions desc → range scans desc → code.
+ * When the range has no submissions but the asset has open backlog, the reason names
+ * the backlog instead of "0 submissions".
+ */
+export function rankProblemAssets(
+  rows: AssetActivityRow[],
   limit = 6
 ): ProblemAsset[] {
-  const known = new Map(assets.map((a) => [a.id, a]));
-  const byId = new Map<string, ProblemAsset>();
+  const items: ProblemAsset[] = rows
+    .filter((r) => r.open_submission_count > 0 || r.submission_count > 0)
+    .map((r) => ({
+      id: r.asset_id,
+      code: r.asset_code,
+      name: r.asset_name,
+      open: r.open_submission_count,
+      total: r.submission_count,
+      damage: r.damage_count,
+      support: r.support_count,
+      returns: r.return_count,
+      scans: r.scan_count,
+      reason:
+        r.submission_count > 0
+          ? reasonSummary({
+              total: r.submission_count,
+              damage: r.damage_count,
+              support: r.support_count,
+              returns: r.return_count,
+            })
+          : `${r.open_submission_count} unresolved from earlier`,
+    }));
 
-  for (const sub of submissions) {
-    const a = known.get(sub.asset_id);
-    if (!a) continue; // ignore orphan/archived-asset submissions
-    let e = byId.get(a.id);
-    if (!e) {
-      e = {
-        id: a.id,
-        code: a.asset_code,
-        name: a.asset_name,
-        open: 0,
-        total: 0,
-        damage: 0,
-        support: 0,
-        returns: 0,
-        scans: scanCountByAsset.get(a.id) ?? 0,
-        reason: "",
-      };
-      byId.set(a.id, e);
-    }
-    e.total += 1;
-    if (isUnresolved(sub.status)) e.open += 1;
-    if (sub.form_type === "damage_report") e.damage += 1;
-    else if (sub.form_type === "support_request") e.support += 1;
-    else if (sub.form_type === "return_checklist") e.returns += 1;
-  }
-
-  const rows = [...byId.values()];
-  for (const r of rows) r.reason = reasonSummary(r);
-  rows.sort(
+  items.sort(
     (a, b) =>
       b.open - a.open ||
       b.total - a.total ||
       b.scans - a.scans ||
       a.code.localeCompare(b.code)
   );
-  return rows.slice(0, limit);
+  return items.slice(0, limit);
 }
