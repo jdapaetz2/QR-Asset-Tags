@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { DailyCount } from "@/lib/analytics/activity";
-import { barSpec, chartMax } from "@/lib/analytics/chart";
+import { barSpec, chartMax, chartDensity, dataStartNote } from "@/lib/analytics/chart";
 
 const MONTHS = [
   "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
@@ -32,10 +32,17 @@ export function DailyBars({
 }) {
   const max = chartMax(data);
   const midIndex = Math.floor((data.length - 1) / 2);
+  const startNote = dataStartNote(data);
 
   return (
     <div role="img" aria-label={summary} className={className}>
-      <div className="flex h-24 items-end gap-1.5 border-b border-iron-200">
+      <div
+        className={cn(
+          "flex h-24 items-end border-b border-iron-200",
+          // Gap tightens as the bucket count grows so 90 daily bars stay readable.
+          chartDensity(data.length)
+        )}
+      >
         {data.map((d, i) => {
           const spec = barSpec(d.count, max, i === data.length - 1);
           const isStub = spec.kind === "brass-stub" || spec.kind === "iron-stub";
@@ -77,6 +84,11 @@ export function DailyBars({
           {data.length > 2 ? <span>{tickLabel(data[midIndex].date)}</span> : null}
           <span>TODAY</span>
         </div>
+      ) : null}
+      {startNote ? (
+        // Quiet note when the range starts before any activity (e.g. the 90-day view of a
+        // young account). Not a warning — the data isn't missing, it just doesn't exist yet.
+        <p className="mt-1.5 text-[11px] text-mono-meta">{startNote}</p>
       ) : null}
     </div>
   );

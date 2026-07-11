@@ -26,6 +26,39 @@ export function chartMax(series: { count: number }[]): number {
   return Math.max(1, ...series.map((d) => d.count));
 }
 
+/**
+ * Inter-bar gap class, tightened as the bucket count grows so 90 daily bars stay readable
+ * (a fixed 6px gap × 89 gaps would swallow the row and crush the bars to invisible slivers).
+ * Daily buckets are always kept — this only changes spacing, never rolls up. Literal Tailwind
+ * classes so the v4 scanner keeps them.
+ */
+export function chartDensity(bars: number): string {
+  if (bars <= 7) return "gap-1.5"; // wide (7-day)
+  if (bars <= 30) return "gap-1"; // moderate (30-day)
+  return "gap-px"; // compact (90-day)
+}
+
+const MONTHS_TITLE = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+/**
+ * Quiet note for when the selected range starts before any real activity (leading zero-days),
+ * e.g. "Activity begins Jul 7." Returns null when activity spans the whole range (first bucket
+ * is already non-zero) or when the range has no activity at all — so it never implies the data
+ * is missing or broken. Dates are parsed from the "YYYY-MM-DD" local-day string (no Date, no tz
+ * shift). Sentence case + trailing period per the product voice.
+ */
+export function dataStartNote(
+  series: { date: string; count: number }[]
+): string | null {
+  const idx = series.findIndex((d) => d.count > 0);
+  if (idx <= 0) return null; // all-zero (-1) or active from the range start (0)
+  const [, m, d] = series[idx].date.split("-").map(Number);
+  return `Activity begins ${MONTHS_TITLE[(m ?? 1) - 1]} ${d ?? ""}.`;
+}
+
 export function barSpec(
   count: number,
   max: number,
