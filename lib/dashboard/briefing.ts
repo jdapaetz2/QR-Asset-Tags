@@ -43,6 +43,9 @@ export type AttentionItem = {
   returnSubmissionId: string | null;
   /** Sort rank; lower = more urgent. */
   priority: number;
+  /** Oldest/newest unresolved submission (epoch ms) — the age tie-breakers within a priority. */
+  oldestUnresolvedMs: number | null;
+  newestUnresolvedMs: number | null;
 };
 
 export type AttentionAsset = {
@@ -56,8 +59,9 @@ export type AttentionAsset = {
   hasUnresolvedReturn: boolean;
   returnSubmissionId: string | null;
   returnFlagsIssue: boolean;
-  /** created_at (epoch ms) of the oldest unresolved submission on this asset, or null. */
+  /** created_at (epoch ms) of the oldest / newest unresolved submission on this asset, or null. */
   oldestUnresolvedMs: number | null;
+  newestUnresolvedMs: number | null;
 };
 
 const DAY_MS = 86_400_000;
@@ -74,13 +78,15 @@ const DAY_MS = 86_400_000;
  *   6. unresolved older than ~24h (warning),
  *   7. any unresolved (warning, fallback).
  * `returnSubmissionId` rides along whenever the asset has an unresolved return, so the row can
- * offer "Mark returned & resolve". Capped to `cap` (default 10).
+ * offer "Mark returned & resolve". **Uncapped by default** — the queue is the primary work list
+ * and must surface every qualifying asset; pass `cap` only to limit (e.g. in tests). Within a
+ * priority, older unresolved work sorts first, then newer as the final tie-break.
  */
 export function buildAttentionItems(
   assets: AttentionAsset[],
   opts: { cap?: number; now?: number } = {}
 ): AttentionItem[] {
-  const cap = opts.cap ?? 10;
+  const cap = opts.cap ?? Number.POSITIVE_INFINITY;
   const now = opts.now ?? Date.now();
   const items: AttentionItem[] = [];
 
@@ -92,6 +98,8 @@ export function buildAttentionItems(
       code: a.code,
       href: `/dashboard/submissions?asset_id=${a.id}&status=unresolved`,
       returnSubmissionId: null as string | null,
+      oldestUnresolvedMs: a.oldestUnresolvedMs,
+      newestUnresolvedMs: a.newestUnresolvedMs,
     };
     const plural = a.unresolvedCount === 1 ? "" : "s";
     let item: AttentionItem | null = null;
@@ -172,9 +180,18 @@ export function buildAttentionItems(
     if (item) items.push(item);
   }
 
-  // Stable sort by priority; within a priority the input order (the page's asset order) holds.
-  items.sort((x, y) => x.priority - y.priority);
-  return items.slice(0, cap);
+  // Severity first, then oldest unresolved work (age) first, then newest as the final tie-break.
+  const olderFirst = (a: number | null, b: number | null) =>
+    (a ?? Number.POSITIVE_INFINITY) - (b ?? Number.POSITIVE_INFINITY);
+  const newerFirst = (a: number | null, b: number | null) =>
+    (b ?? Number.NEGATIVE_INFINITY) - (a ?? Number.NEGATIVE_INFINITY);
+  items.sort(
+    (x, y) =>
+      x.priority - y.priority ||
+      olderFirst(x.oldestUnresolvedMs, y.oldestUnresolvedMs) ||
+      newerFirst(x.newestUnresolvedMs, y.newestUnresolvedMs)
+  );
+  return cap === Number.POSITIVE_INFINITY ? items : items.slice(0, cap);
 }
 
 // ---------------------------------------------------------------------------
@@ -190,6 +207,7 @@ export type UnresolvedSignals = {
   returnSubmissionId: string | null;
   returnFlagsIssue: boolean;
   oldestUnresolvedMs: number | null;
+  newestUnresolvedMs: number | null;
 };
 
 export type AttentionSubmission = {
@@ -223,6 +241,7 @@ export function summarizeUnresolvedByAsset(
         returnSubmissionId: null,
         returnFlagsIssue: false,
         oldestUnresolvedMs: null,
+        newestUnresolvedMs: null,
       };
 
     cur.unresolvedCount += 1;
@@ -246,6 +265,8 @@ export function summarizeUnresolvedByAsset(
     if (!Number.isNaN(t)) {
       cur.oldestUnresolvedMs =
         cur.oldestUnresolvedMs === null ? t : Math.min(cur.oldestUnresolvedMs, t);
+      cur.newestUnresolvedMs =
+        cur.newestUnresolvedMs === null ? t : Math.max(cur.newestUnresolvedMs, t);
     }
 
     map.set(s.asset_id, cur);
@@ -374,19 +395,20 @@ export type BandStatSpec = {
 };
 
 /**
- * The operational-pulse BandStats (Part C): rented, unresolved, scans·7d, covered/limit —
- * exactly the four live numbers that describe the day. Every stat links to an existing
- * filtered view — a stat that links nowhere does not belong in the band (ui-language.md),
- * which the test suite enforces. `attention` is on only when unresolved > 0, so the
- * all-clear state stays neutral. Ready/total moves to the Setup section header. `limit` null
- * (no per-asset plan cap) renders covered as a bare count. No ROI, no IP/user-agent.
+ * The operational-pulse BandStats: rented, unresolved, scans·7d, assets ready — exactly the four
+ * live numbers that describe the operating day. Every stat links to an existing filtered view — a
+ * stat that links nowhere does not belong in the band (ui-language.md), which the test suite
+ * enforces. `attention` is on only when unresolved > 0, so the all-clear state stays neutral.
+ * **Assets ready** uses the same `setupProgress` value the Setup section uses (one readiness
+ * source). Covered-asset usage is a commercial number, not an operations one, so it lives on the
+ * Assets page / owner surfaces / the dashboard footer — never as a permanent band stat here.
+ * No ROI, no IP/user-agent.
  */
 export function buildBandStats(input: {
   rented: number;
   unresolved: number;
   scans7d: number;
-  covered: number;
-  limit: number | null;
+  ready: number;
   totalAssets: number;
 }): BandStatSpec[] {
   return [
@@ -412,13 +434,41 @@ export function buildBandStats(input: {
       sparkline: true,
     },
     {
-      key: "covered",
-      label: "covered",
-      value: input.covered,
-      total: input.limit ?? undefined,
-      href: "/dashboard/assets?qr=has",
+      key: "ready",
+      label: "assets ready",
+      value: input.ready,
+      total: input.totalAssets,
+      href: "/dashboard/assets",
     },
   ];
+}
+
+/**
+ * Dashboard section order below the briefing band. Captured-so-far (proof of value) comes right
+ * after the attention queue; Setup progress is the lowest-priority section. Exported so the page
+ * render order is anchored by a test rather than only living in JSX.
+ */
+export const DASHBOARD_SECTION_ORDER = [
+  "attention",
+  "captured",
+  "activity",
+  "setup",
+] as const;
+
+/**
+ * Optional commercial coverage warning — shown OUTSIDE the four operational band stats, only when a
+ * plan cap exists and usage is high (≥80% → "warn", ≥100% → "over"). Returns null when there is no
+ * `limit` (unlimited/custom plans) or usage is comfortably under the cap, so the dashboard stays an
+ * operations surface by default. Percentage is rounded for display.
+ */
+export function coverageStatus(
+  covered: number,
+  limit: number | null
+): { pct: number; level: "warn" | "over" } | null {
+  if (limit === null || limit <= 0) return null;
+  const ratio = covered / limit;
+  if (ratio < 0.8) return null;
+  return { pct: Math.round(ratio * 100), level: ratio >= 1 ? "over" : "warn" };
 }
 
 /**

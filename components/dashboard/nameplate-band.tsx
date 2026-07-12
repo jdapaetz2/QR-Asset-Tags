@@ -28,7 +28,8 @@ export function NameplateBand({
   sparkValues: number[];
 }) {
   const allClear = attentionCount === 0;
-  const thing = attentionCount === 1 ? "thing needs" : "things need";
+  // The queue is one row per asset, so the headline unit is assets (not vague "things").
+  const unit = attentionCount === 1 ? "asset needs" : "assets need";
   const hasScans = sparkValues.some((v) => v > 0);
 
   return (
@@ -48,7 +49,7 @@ export function NameplateBand({
             </>
           ) : (
             <>
-              {greeting}, {firstName}. {attentionCount} {thing} your attention.
+              {greeting}, {firstName}. {attentionCount} {unit} your attention.
             </>
           )}
         </h1>

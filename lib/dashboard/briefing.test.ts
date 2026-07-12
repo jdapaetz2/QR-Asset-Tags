@@ -4,6 +4,8 @@ import {
   buildAttentionItems,
   buildBandStats,
   buildSetupGaps,
+  coverageStatus,
+  DASHBOARD_SECTION_ORDER,
   mergeRecentActivity,
   nextOpenAccordionId,
   rollupScanEvents,
@@ -53,6 +55,7 @@ describe("buildAttentionItems", () => {
     returnSubmissionId: null,
     returnFlagsIssue: false,
     oldestUnresolvedMs: null,
+    newestUnresolvedMs: null,
   };
 
   it("emits a danger row for a rented asset with open damage", () => {
@@ -133,13 +136,28 @@ describe("buildAttentionItems", () => {
     ]);
   });
 
-  it("caps the number of items", () => {
+  it("does NOT cap by default — every qualifying asset is surfaced", () => {
     const many: AttentionAsset[] = Array.from({ length: 20 }, (_, i) => ({
       ...base,
       id: `x${i}`,
       unresolvedCount: 1,
     }));
+    expect(buildAttentionItems(many)).toHaveLength(20);
+    // A caller may still opt into a cap (e.g. a compact widget).
     expect(buildAttentionItems(many, { cap: 5 })).toHaveLength(5);
+  });
+
+  it("within a priority, older unresolved work sorts first", () => {
+    const now = 10 * DAY;
+    const items = buildAttentionItems(
+      [
+        { ...base, id: "newer", unresolvedCount: 1, oldestUnresolvedMs: now - 1 * DAY },
+        { ...base, id: "older", unresolvedCount: 1, oldestUnresolvedMs: now - 5 * DAY },
+      ],
+      { now }
+    );
+    // Both are priority-6 "stale"; the older asset leads.
+    expect(items.map((i) => i.assetId)).toEqual(["older", "newer"]);
   });
 
   it("shows nothing for a clean asset (no unresolved work)", () => {
@@ -189,6 +207,7 @@ describe("summarizeUnresolvedByAsset", () => {
     expect(a?.returnSubmissionId).toBe("r1");
     expect(a?.returnFlagsIssue).toBe(true);
     expect(a?.oldestUnresolvedMs).toBe(Date.parse("2026-07-01T00:00:00Z"));
+    expect(a?.newestUnresolvedMs).toBe(Date.parse("2026-07-02T00:00:00Z"));
   });
 
   it("does not flag a clean return checklist as an issue", () => {
@@ -253,18 +272,39 @@ describe("buildBandStats", () => {
     rented: 4,
     unresolved: 3,
     scans7d: 186,
-    covered: 9,
-    limit: 12,
+    ready: 11,
     totalAssets: 12,
   });
 
-  it("returns the operational pulse in order: rented, unresolved, scans, covered", () => {
+  it("returns the operational pulse in order: rented, unresolved, scans, assets ready", () => {
     expect(stats.map((s) => s.key)).toEqual([
       "rented",
       "unresolved",
       "scans",
-      "covered",
+      "ready",
     ]);
+    // The commercial "covered" number is not an operational band stat.
+    expect(stats.some((s) => s.key === "covered")).toBe(false);
+  });
+
+  it("shows assets ready / total, sourced from the same readiness value as Setup", () => {
+    const progress = setupProgress([
+      { ready: true },
+      { ready: true },
+      { ready: false },
+    ]);
+    const s = buildBandStats({
+      rented: 1,
+      unresolved: 0,
+      scans7d: 0,
+      ready: progress.ready,
+      totalAssets: progress.total,
+    });
+    const readyStat = s.find((x) => x.key === "ready");
+    expect(readyStat?.label).toBe("assets ready");
+    expect(readyStat?.value).toBe(2);
+    expect(readyStat?.total).toBe(3);
+    expect(readyStat?.href).toBe("/dashboard/assets");
   });
 
   it("every stat links to a filtered/analytics view (never inert)", () => {
@@ -275,20 +315,7 @@ describe("buildBandStats", () => {
     expect(stats[0].href).toBe("/dashboard/assets?rental=rented");
     expect(stats[1].href).toBe("/dashboard/submissions");
     expect(stats[2].href).toBe("/dashboard/analytics");
-    expect(stats[3].href).toBe("/dashboard/assets?qr=has");
-  });
-
-  it("shows covered/limit and drops the total when there is no plan cap", () => {
-    expect(stats[3].total).toBe(12);
-    const noCap = buildBandStats({
-      rented: 4,
-      unresolved: 0,
-      scans7d: 1,
-      covered: 9,
-      limit: null,
-      totalAssets: 12,
-    });
-    expect(noCap[3].total).toBeUndefined();
+    expect(stats[3].href).toBe("/dashboard/assets");
   });
 
   it("flags unresolved as attention only when non-zero", () => {
@@ -297,11 +324,36 @@ describe("buildBandStats", () => {
       rented: 6,
       unresolved: 0,
       scans7d: 142,
-      covered: 12,
-      limit: 12,
+      ready: 12,
       totalAssets: 12,
     });
     expect(clear[1].attention).toBe(false);
+  });
+});
+
+describe("coverageStatus", () => {
+  it("is null when there is no plan cap or usage is comfortably under it", () => {
+    expect(coverageStatus(9, null)).toBeNull();
+    expect(coverageStatus(0, 0)).toBeNull();
+    expect(coverageStatus(5, 12)).toBeNull(); // 42%
+    expect(coverageStatus(9, 12)).toBeNull(); // 75%
+  });
+
+  it("warns at ≥80% and flags over at ≥100%", () => {
+    expect(coverageStatus(10, 12)).toEqual({ pct: 83, level: "warn" });
+    expect(coverageStatus(12, 12)).toEqual({ pct: 100, level: "over" });
+    expect(coverageStatus(15, 12)).toEqual({ pct: 125, level: "over" });
+  });
+});
+
+describe("DASHBOARD_SECTION_ORDER", () => {
+  it("places Captured (proof of value) right after the attention queue, Setup last", () => {
+    expect(DASHBOARD_SECTION_ORDER).toEqual([
+      "attention",
+      "captured",
+      "activity",
+      "setup",
+    ]);
   });
 });
 

@@ -17,10 +17,12 @@ import { deriveAssetStatus } from "@/lib/ui/status-view";
 import { assetPageStatus } from "@/lib/assets/list";
 import { formTypeLabel } from "@/lib/submissions/display";
 import { firstImagePath, submissionReference } from "@/lib/submissions/inbox";
+import { canQuickResolveReturn } from "@/lib/submissions/returns";
 import {
   buildAttentionItems,
   buildBandStats,
   buildSetupGaps,
+  coverageStatus,
   mergeRecentActivity,
   rollupScanEvents,
   scanTrend,
@@ -242,17 +244,25 @@ export default async function DashboardPage({
       returnSubmissionId: sig?.returnSubmissionId ?? null,
       returnFlagsIssue: sig?.returnFlagsIssue ?? false,
       oldestUnresolvedMs: sig?.oldestUnresolvedMs ?? null,
+      newestUnresolvedMs: sig?.newestUnresolvedMs ?? null,
     };
   });
 
   const progress = setupProgress(readinessAssets.map((a) => ({ ready: a.ready })));
   const setupGaps = buildSetupGaps(readinessAssets, 3);
-  const attention = buildAttentionItems(attentionAssets, {
-    cap: 10,
-    now: now.getTime(),
-  });
+  // Uncapped — the queue is the primary work list and must surface every qualifying asset.
+  const attention = buildAttentionItems(attentionAssets, { now: now.getTime() });
 
-  // Sign the latest photo per attention item (all are submission-based now; ≤10).
+  // Every unresolved submission grouped by asset (subRows are already newest-first).
+  const subsByAsset = new Map<string, SubRow[]>();
+  for (const s of subRows) {
+    if (!s.asset_id) continue;
+    const list = subsByAsset.get(s.asset_id);
+    if (list) list.push(s);
+    else subsByAsset.set(s.asset_id, [s]);
+  }
+
+  // Sign one representative photo per attention asset (the latest submission's first image).
   const thumbByAsset = new Map<string, string>();
   await Promise.all(
     attention.map(async (i) => {
@@ -267,7 +277,7 @@ export default async function DashboardPage({
   );
 
   const queueItems: QueueItem[] = attention.map((item) => {
-    const sub = latestSubByAsset.get(item.assetId);
+    const subs = subsByAsset.get(item.assetId) ?? [];
     return {
       key: item.key,
       assetId: item.assetId,
@@ -276,21 +286,26 @@ export default async function DashboardPage({
       reason: item.reason,
       href: item.href,
       historyHref: `/dashboard/assets/${item.assetId}/timeline`,
-      returnSubmissionId: item.returnSubmissionId,
-      detail: sub
-        ? {
-            submissionId: sub.id,
-            canReview: sub.status === "new",
-            description: submissionSummary(sub.submission_data_json),
-            submitter:
-              [sub.submitted_by_name, sub.submitted_by_phone ?? sub.submitted_by_email]
-                .filter(Boolean)
-                .join(" · ") || null,
-            reference: submissionReference(sub.id, sub.created_at),
-            createdAt: sub.created_at,
-            thumbUrl: thumbByAsset.get(item.assetId) ?? null,
-          }
-        : null,
+      thumbUrl: thumbByAsset.get(item.assetId) ?? null,
+      count: subs.length,
+      // Enumerate EVERY unresolved submission for the asset — none discarded.
+      submissions: subs.map((sub) => ({
+        submissionId: sub.id,
+        formTypeLabel: formTypeLabel(sub.form_type),
+        status: sub.status,
+        canReview: sub.status === "new",
+        canReturn: canQuickResolveReturn({
+          formType: sub.form_type,
+          status: sub.status,
+        }),
+        description: submissionSummary(sub.submission_data_json),
+        submitter:
+          [sub.submitted_by_name, sub.submitted_by_phone ?? sub.submitted_by_email]
+            .filter(Boolean)
+            .join(" · ") || null,
+        reference: submissionReference(sub.id, sub.created_at),
+        createdAt: sub.created_at,
+      })),
     };
   });
 
@@ -302,19 +317,22 @@ export default async function DashboardPage({
     now.getTime()
   );
   const scans7d = sparkValues.reduce((a, b) => a + b, 0);
+  const stats = buildBandStats({
+    rented: rentedCount,
+    unresolved: subRows.length,
+    scans7d,
+    ready: progress.ready,
+    totalAssets: progress.total,
+  });
+
+  // Covered-asset usage stays a commercial number (not a band stat): shown in the footer, plus an
+  // optional compact warning only when close to / over the plan limit.
   const covered = countCoveredAssets(
     active.map((a) => a.id),
     qrRows.map((q) => q.asset_id)
   );
   const orgLimit = org?.asset_limit ?? null;
-  const stats = buildBandStats({
-    rented: rentedCount,
-    unresolved: subRows.length,
-    scans7d,
-    covered,
-    limit: orgLimit,
-    totalAssets: progress.total,
-  });
+  const coverage = coverageStatus(covered, orgLimit);
 
   // Recent activity feed — meaningful events individually, raw scans rolled up to one
   // "Scanned N times" row per asset per day so the feed isn't scan spam.
@@ -403,7 +421,73 @@ export default async function DashboardPage({
         <AttentionQueue items={queueItems} />
       ) : null}
 
-      {/* Setup progress — derived, hidden once every asset is ready. */}
+      {/* Captured so far — proof-of-value directly after the work queue (DASHBOARD_SECTION_ORDER).
+          Head counts only; every tile links to a filtered view. No ROI, no "calls avoided" claims. */}
+      <section>
+        <Eyebrow as="h2" className="mb-2.5">
+          Captured so far
+        </Eyebrow>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard
+            label="scans · 30d"
+            value={scans30d ?? 0}
+            href="/dashboard/analytics?range=30"
+          />
+          <StatCard
+            label="submissions captured"
+            value={submissionsCaptured ?? 0}
+            href="/dashboard/submissions?status=all_active"
+          />
+          <StatCard
+            label="issues resolved"
+            value={issuesResolved ?? 0}
+            href="/dashboard/submissions?status=resolved"
+          />
+          <StatCard
+            label="returns completed"
+            value={returnsCompleted ?? 0}
+            href="/dashboard/submissions?form_type=return_checklist&status=resolved"
+          />
+        </div>
+        {(photoBacked ?? 0) > 0 ? (
+          <p className="mt-2 text-xs text-iron-600">
+            {photoBacked} of these came with photos.
+          </p>
+        ) : null}
+      </section>
+
+      {/* Recent activity — quiet single-line feed. */}
+      <section>
+        <Eyebrow as="h2" className="mb-2.5">
+          Activity
+        </Eyebrow>
+        {activity.length === 0 ? (
+          <EmptyState
+            title="No recent activity yet"
+            description="Scans, submissions, and tag requests will appear here as they happen."
+          />
+        ) : (
+          <ul className="divide-y rounded-lg border bg-card">
+            {activity.map((e, i) => (
+              <li key={i} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm">
+                {e.code ? <AssetTagChip code={e.code} /> : null}
+                {e.href ? (
+                  <Link href={e.href} className="font-medium underline-offset-4 hover:underline">
+                    {e.label}
+                  </Link>
+                ) : (
+                  <span className="font-medium">{e.label}</span>
+                )}
+                <span className="ml-auto text-xs text-iron-600">
+                  <RelativeTime value={e.at} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Setup progress — lowest-priority section, below Activity. Hidden once every asset is ready. */}
       {shouldShowSetupDetail(progress) ? (
         <section>
           <Eyebrow as="h2" className="mb-2.5">
@@ -449,71 +533,19 @@ export default async function DashboardPage({
         </section>
       ) : null}
 
-      {/* Recent activity — quiet single-line feed; leads the page in the all-clear state. */}
-      <section>
-        <Eyebrow as="h2" className="mb-2.5">
-          Activity
-        </Eyebrow>
-        {activity.length === 0 ? (
-          <EmptyState
-            title="No recent activity yet"
-            description="Scans, submissions, and tag requests will appear here as they happen."
-          />
-        ) : (
-          <ul className="divide-y rounded-lg border bg-card">
-            {activity.map((e, i) => (
-              <li key={i} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm">
-                {e.code ? <AssetTagChip code={e.code} /> : null}
-                {e.href ? (
-                  <Link href={e.href} className="font-medium underline-offset-4 hover:underline">
-                    {e.label}
-                  </Link>
-                ) : (
-                  <span className="font-medium">{e.label}</span>
-                )}
-                <span className="ml-auto text-xs text-iron-600">
-                  <RelativeTime value={e.at} />
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {/* Captured so far (Part D) — quiet proof-of-value from existing data. Head counts
-          only; every tile links to a filtered view. No ROI, no "calls avoided" claims. */}
-      <section>
-        <Eyebrow as="h2" className="mb-2.5">
-          Captured so far
-        </Eyebrow>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard
-            label="scans · 30d"
-            value={scans30d ?? 0}
-            href="/dashboard/analytics?range=30"
-          />
-          <StatCard
-            label="submissions captured"
-            value={submissionsCaptured ?? 0}
-            href="/dashboard/submissions?status=all_active"
-          />
-          <StatCard
-            label="issues resolved"
-            value={issuesResolved ?? 0}
-            href="/dashboard/submissions?status=resolved"
-          />
-          <StatCard
-            label="returns completed"
-            value={returnsCompleted ?? 0}
-            href="/dashboard/submissions?form_type=return_checklist&status=resolved"
-          />
-        </div>
-        {(photoBacked ?? 0) > 0 ? (
-          <p className="mt-2 text-xs text-iron-600">
-            {photoBacked} of these came with photos.
-          </p>
-        ) : null}
-      </section>
+      {/* Optional commercial coverage warning — only near/over the plan limit; never a band stat. */}
+      {coverage ? (
+        <Link
+          href="/dashboard/assets?qr=has"
+          className={`rounded-lg border px-4 py-2.5 text-sm underline-offset-4 hover:underline ${
+            coverage.level === "over"
+              ? "border-danger/30 bg-danger/10 text-danger"
+              : "border-warning/30 bg-warning/10 text-warning"
+          }`}
+        >
+          Coverage: {covered} of {orgLimit} covered assets ({coverage.pct}%).
+        </Link>
+      ) : null}
 
       {/* More — routes not in the header nav, kept reachable (see plan deviation #6). */}
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-iron-600">
