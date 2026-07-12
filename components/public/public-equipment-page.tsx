@@ -42,6 +42,8 @@ export function PublicEquipmentPage({
         mode="public"
         shortCode={shortCode}
         asset={asset}
+        assetId={assetId}
+        activeRentalSessionId={activeRentalSessionId}
         page={page}
         org={org}
         documents={documents}

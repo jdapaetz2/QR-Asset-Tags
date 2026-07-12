@@ -32,6 +32,8 @@ export type SubmissionEmailInput = {
   formTypeLabel: string;
   asset: { code: string | null; name: string | null; category: string | null };
   submittedBy: SubmittedBy;
+  /** Canonical display reference (SUB-YYYY-XXXXXX) — same as the inbox + renter. */
+  reference?: string | null;
   summary: string;
   adminUrl: string;
 };
@@ -45,6 +47,7 @@ export function buildSubmissionEmail(input: SubmissionEmailInput): EmailContent 
   const lines = [
     `${input.orgName} received a new ${input.formTypeLabel.toLowerCase()}.`,
     "",
+    input.reference ? `Reference: ${input.reference}` : null,
     `Asset: ${assetLabel}`,
     input.asset.category ? `Category: ${input.asset.category}` : null,
     `Submitted by: ${submitterLine(input.submittedBy)}`,

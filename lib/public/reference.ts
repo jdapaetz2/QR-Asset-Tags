@@ -1,16 +1,19 @@
 /**
- * Public submission reference formatting (Prompt B). A submission's raw id (a UUID) is threaded
- * to the thanks page only for display — anon can never read submissions back (RLS), so this
- * exposes nothing. We show a short, human-quotable reference derived from that id.
+ * Public submission reference (Prompt B / G.7). The submit action now computes the ONE
+ * canonical reference — `submissionReference(id, created_at)` = `SUB-YYYY-XXXXXX`
+ * (lib/submissions/inbox.ts) — and passes it to the thanks page as `?ref=`. This helper
+ * only VALIDATES that already-canonical value from the URL so the renter sees exactly the
+ * same string the rental company sees in the admin list, detail, CSV, and email.
  *
- * `SUB-XXXXXX` = the last 6 hex characters of the id, uppercased. Deterministic and pure; a
- * missing/invalid id returns null so the thanks page simply omits the reference.
+ * It is display-only and reveals nothing (anon can never read submissions back); a
+ * missing or non-canonical value returns null so the thanks page simply omits it, which
+ * also guards against arbitrary hand-edited `?ref=` input.
  */
-export function formatSubmissionReference(
-  rawId: string | null | undefined
+const CANONICAL_REFERENCE = /^SUB-\d{4}-[0-9A-F]{6}$/;
+
+export function readSubmissionReference(
+  raw: string | null | undefined
 ): string | null {
-  if (typeof rawId !== "string") return null;
-  const hex = rawId.replace(/[^0-9a-fA-F]/g, "");
-  if (hex.length < 6) return null;
-  return `SUB-${hex.slice(-6).toUpperCase()}`;
+  if (typeof raw !== "string") return null;
+  return CANONICAL_REFERENCE.test(raw) ? raw : null;
 }

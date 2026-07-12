@@ -5,6 +5,8 @@ import {
   isCloseStatus,
   isRentalStatus,
   normalizeRentalStart,
+  quickStartStorageKey,
+  shouldAutoExpandQuickStart,
   shouldShowAckPrompt,
 } from "./rentals";
 
@@ -41,5 +43,36 @@ describe("ackPromptStorageKey", () => {
   it("includes both asset and session so a new session re-prompts", () => {
     expect(ackPromptStorageKey("a1", "s1")).toBe("ackPrompt:a1:s1");
     expect(ackPromptStorageKey("a1", "s2")).not.toBe(ackPromptStorageKey("a1", "s1"));
+  });
+});
+
+describe("quickStartStorageKey", () => {
+  it("uses a distinct namespace from the ack key and keys on asset + session", () => {
+    expect(quickStartStorageKey("a1", "s1")).toBe(
+      "mulemark:quick-start-seen:a1:s1"
+    );
+    // Must not collide with the ack prompt key (different prefix).
+    expect(quickStartStorageKey("a1", "s1")).not.toBe(ackPromptStorageKey("a1", "s1"));
+    // A new session yields a new key → Quick Start can auto-expand again.
+    expect(quickStartStorageKey("a1", "s2")).not.toBe(
+      quickStartStorageKey("a1", "s1")
+    );
+  });
+});
+
+describe("shouldAutoExpandQuickStart", () => {
+  it("expands only on the first scan of an active session", () => {
+    // No active session → collapsed.
+    expect(
+      shouldAutoExpandQuickStart({ hasActiveSession: false, alreadySeen: false })
+    ).toBe(false);
+    // First view of an active session → expand.
+    expect(
+      shouldAutoExpandQuickStart({ hasActiveSession: true, alreadySeen: false })
+    ).toBe(true);
+    // Already seen this session → collapsed (still manually expandable).
+    expect(
+      shouldAutoExpandQuickStart({ hasActiveSession: true, alreadySeen: true })
+    ).toBe(false);
   });
 });

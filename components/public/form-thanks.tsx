@@ -17,7 +17,6 @@ export function FormThanks({
   reference,
   detail,
   support,
-  poweredByLabel,
 }: {
   shortCode: string;
   orgName: string | null;
@@ -25,7 +24,6 @@ export function FormThanks({
   reference?: string | null;
   detail: string | null;
   support: SupportContact;
-  poweredByLabel?: string | null;
 }) {
   const tenant = orgName ?? "the rental company";
   return (
@@ -84,7 +82,7 @@ export function FormThanks({
         </Link>
       </div>
 
-      <PublicFooter poweredByLabel={poweredByLabel} />
+      <PublicFooter />
     </main>
   );
 }

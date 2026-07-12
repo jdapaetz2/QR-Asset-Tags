@@ -44,6 +44,8 @@ export async function notifySubmission(input: {
   assetId: string;
   submittedBy: SubmittedBy;
   submissionId: string;
+  /** Canonical display reference (SUB-YYYY-XXXXXX) — matches the inbox + renter. */
+  reference?: string;
   summary?: string;
 }): Promise<void> {
   try {
@@ -76,6 +78,7 @@ export async function notifySubmission(input: {
         category: asset?.category ?? null,
       },
       submittedBy: input.submittedBy,
+      reference: input.reference ?? null,
       summary: input.summary ?? "",
       adminUrl: `${publicEnv.siteUrl}/dashboard/submissions/${input.submissionId}`,
     });

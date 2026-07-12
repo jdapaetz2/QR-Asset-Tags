@@ -25,7 +25,6 @@ export default async function DamageReportPage({
       orgName={resolved.org.name ?? "Rental Equipment"}
       assetName={resolved.asset.asset_name}
       assetCode={resolved.asset.asset_code}
-      poweredByLabel={resolved.org.powered_by_label}
     >
       <DamageForm shortCode={shortCode} />
     </PublicFormLayout>

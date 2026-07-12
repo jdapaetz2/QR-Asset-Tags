@@ -25,7 +25,7 @@ insert into public.organizations (
   '+1-555-0100',
   'support@northridge-rentals.example',
   'https://northridge-rentals.example',
-  'Powered by AssetTag QR',
+  'Powered by MuleMark',
   'active',
   'pilot',
   0,

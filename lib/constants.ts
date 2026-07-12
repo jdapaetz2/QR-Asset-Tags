@@ -9,6 +9,14 @@ export const PRODUCT_TAGLINE =
   "Permanent QR tags for rental equipment — scan to get the right info, every time.";
 
 /**
+ * Platform brand shown on public scan/form pages (the MuleMark mark + "Powered by
+ * MuleMark" footer). Distinct from PRODUCT_NAME (the internal/admin product name):
+ * the public-facing platform presence is the brand, MuleMark. The footer renders the
+ * fixed MuleMark artwork, so this is never a tenant-overridable string.
+ */
+export const PLATFORM_NAME = "MuleMark";
+
+/**
  * Standard public-page disclaimer. Points users to the rental company and the
  * authoritative sources; it does NOT provide safety instructions and does not
  * imply that AssetTag QR validates safe operation.

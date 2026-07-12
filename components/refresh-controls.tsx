@@ -3,15 +3,18 @@
 import { useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { RelativeTime } from "@/components/relative-time";
+
 /**
- * Lightweight demo refresh control: a manual Refresh button + an "Updated HH:MM:SS UTC"
+ * Lightweight demo refresh control: a manual Refresh button + an "Updated <relative>"
  * stamp, with optional low-frequency polling. Polling (when `pollMs` is set) pauses
  * while the tab is hidden and is cleared on unmount — no tight loops, no Realtime.
  *
  * `renderedAt` is the server render time (ISO); `router.refresh()` re-runs the page's
  * existing RLS-scoped server reads, so a new render delivers fresh data + a new stamp.
- * The "Refreshing…" state uses a transition (no setState-in-effect, no hydration risk);
- * the stamp is derived as a deterministic UTC time so server and client agree.
+ * The "Refreshing…" state uses a transition. The stamp is shown via RelativeTime
+ * ("Updated just now", absolute LOCAL time on hover) — never raw UTC on a customer
+ * screen (lib/ui/time.ts); RelativeTime is hydration-safe (suppressHydrationWarning).
  */
 export function RefreshControls({
   renderedAt,
@@ -22,9 +25,6 @@ export function RefreshControls({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-
-  // Deterministic "HH:MM:SS" from the ISO string (UTC) — identical on server + client.
-  const shown = renderedAt.slice(11, 19);
 
   useEffect(() => {
     if (!pollMs) return;
@@ -52,7 +52,9 @@ export function RefreshControls({
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-muted-foreground">Updated {shown} UTC</span>
+      <span className="text-xs text-muted-foreground">
+        Updated <RelativeTime value={renderedAt} />
+      </span>
       <button
         type="button"
         onClick={() => startTransition(() => router.refresh())}

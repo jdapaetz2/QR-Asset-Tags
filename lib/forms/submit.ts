@@ -10,6 +10,7 @@ import {
   validateUploadFiles,
 } from "@/lib/forms/media";
 import { notifySubmission } from "@/lib/notifications/notify";
+import { submissionReference } from "@/lib/submissions/inbox";
 
 /**
  * Shared server-side core for all public form submissions (damage / support /
@@ -109,11 +110,16 @@ export async function submitPublicForm(
     mediaPaths.push(path);
   }
 
-  // Use the id we already generated as the row id so we can build a stable admin
-  // link for the notification without selecting the row back (anon can't read
-  // submissions).
+  // Use the id + created_at we set here as the row's own values so we can build the
+  // ONE canonical reference (SUB-YYYY-XXXXXX) without selecting the row back (anon
+  // can't read submissions). Because the admin reads this exact stored created_at, the
+  // renter's reference is byte-identical to the one shown in the inbox / detail / CSV /
+  // email. Setting created_at is allowed: the anon insert grant is table-level and the
+  // insert policy only checks the asset/org linkage.
+  const createdAt = new Date().toISOString();
   const { error: insertError } = await supabase.from("form_submissions").insert({
     id: submissionId,
+    created_at: createdAt,
     organization_id: resolved.organizationId,
     asset_id: resolved.assetId,
     form_type: config.formType,
@@ -129,6 +135,8 @@ export async function submitPublicForm(
     return { error: "Could not submit the form. Please try again." };
   }
 
+  const reference = submissionReference(submissionId, createdAt);
+
   // Best-effort email alert. notifySubmission swallows its own errors, so a
   // notification failure can never block the submission.
   await notifySubmission({
@@ -137,9 +145,11 @@ export async function submitPublicForm(
     assetId: resolved.assetId,
     submittedBy: config.submittedBy,
     submissionId,
+    reference,
   });
 
-  // Pass the (already-inserted) id to the thanks page for a display-only reference number.
-  // Insertion is unchanged; anon cannot read submissions back, so this exposes nothing.
-  redirect(`${thanks}?ref=${submissionId}`);
+  // Pass the canonical reference to the thanks page for a display-only confirmation
+  // number — the same string the rental company sees in the admin inbox. Anon cannot
+  // read submissions back, so this exposes nothing (and is less revealing than the id).
+  redirect(`${thanks}?ref=${reference}`);
 }

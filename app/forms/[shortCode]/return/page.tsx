@@ -24,7 +24,6 @@ export default async function ReturnChecklistPage({
       orgName={resolved.org.name ?? "Rental Equipment"}
       assetName={resolved.asset.asset_name}
       assetCode={resolved.asset.asset_code}
-      poweredByLabel={resolved.org.powered_by_label}
     >
       <ReturnForm shortCode={shortCode} />
     </PublicFormLayout>

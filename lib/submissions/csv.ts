@@ -3,6 +3,8 @@
  * guarded against spreadsheet formula injection. Used by the export route handler.
  */
 
+import { submissionReference } from "@/lib/submissions/inbox";
+
 export type SubmissionExportRow = {
   id: string;
   created_at: string;
@@ -17,6 +19,7 @@ export type SubmissionExportRow = {
 };
 
 export const SUBMISSION_CSV_HEADERS = [
+  "reference",
   "created_at",
   "form_type",
   "status",
@@ -75,6 +78,7 @@ export function buildSubmissionsCsv(rows: SubmissionExportRow[]): string {
       pick(data, "description") || pick(data, "condition_notes") || "";
 
     const cols = [
+      submissionReference(row.id, row.created_at),
       row.created_at,
       row.form_type,
       row.status,

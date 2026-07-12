@@ -9,7 +9,6 @@ export function PublicFormLayout({
   orgName,
   assetName,
   assetCode,
-  poweredByLabel,
   children,
 }: {
   shortCode: string;
@@ -17,7 +16,6 @@ export function PublicFormLayout({
   orgName: string;
   assetName: string;
   assetCode: string;
-  poweredByLabel?: string | null;
   children: React.ReactNode;
 }) {
   return (
@@ -48,7 +46,7 @@ export function PublicFormLayout({
 
       {children}
 
-      <PublicFooter poweredByLabel={poweredByLabel} />
+      <PublicFooter />
     </main>
   );
 }

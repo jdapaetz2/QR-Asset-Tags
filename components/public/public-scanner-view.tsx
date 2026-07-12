@@ -9,6 +9,7 @@ import {
 import { DOCUMENT_TYPE_LABELS, type DocumentType } from "@/lib/documents/validate";
 import { safeBrandColor, readableTextOn } from "@/lib/public/brand";
 import { PublicFooter } from "@/components/public/public-footer";
+import { QuickStart } from "@/components/public/quick-start";
 
 /**
  * Shared presentational scanner page used by BOTH the public route (/t/[shortCode])
@@ -20,7 +21,8 @@ import { PublicFooter } from "@/components/public/public-footer";
  * Design (Prompt B): tenant-first. The tenant logo + tenant color carry identity (a slim
  * tenant top bar is the strongest color moment); the platform is only a quiet footer mark.
  * System fonts only, no webfonts, no decorative motion. Server component — the accordions are
- * native <details> (zero JS). Receives PUBLIC-SAFE fields only.
+ * native <details> (zero JS); Quick Start is a tiny client island that auto-expands on the
+ * first scan of a new rental session. Receives PUBLIC-SAFE fields only.
  */
 
 export type ScannerMode = "public" | "preview";
@@ -148,6 +150,8 @@ export function PublicScannerView({
   mode,
   shortCode,
   asset,
+  assetId,
+  activeRentalSessionId,
   page,
   org,
   documents,
@@ -155,6 +159,10 @@ export function PublicScannerView({
   mode: ScannerMode;
   shortCode: string;
   asset: PublicAsset;
+  /** Public asset uuid + active rental session — drive Quick Start's first-scan expand.
+   *  Omitted in preview mode, so Quick Start renders collapsed and never uses localStorage. */
+  assetId?: string;
+  activeRentalSessionId?: string | null;
   page: PublicPage;
   org: PublicOrg;
   documents: PublicDocument[];
@@ -259,15 +267,16 @@ export function PublicScannerView({
         </Action>
       </nav>
 
-      {/* Content — Quick Start first & expanded, then collapsible sections. */}
+      {/* Content — Quick Start first (auto-expands on the first scan of a new rental
+          session; collapsed otherwise), then the always-collapsible sections. */}
       <div className="flex flex-col gap-3">
         {page.quick_start_text ? (
-          <section id="quick-start" className="scroll-mt-4 rounded-lg border bg-card p-4">
-            <p className={EYEBROW_CLS}>Quick start</p>
-            <p className="mt-1.5 whitespace-pre-line text-lg leading-relaxed">
-              {page.quick_start_text}
-            </p>
-          </section>
+          <QuickStart
+            body={page.quick_start_text}
+            assetId={assetId}
+            sessionId={activeRentalSessionId}
+            interactive={mode === "public"}
+          />
         ) : null}
         <Accordion label="Safety" body={page.safety_notes} />
         <Accordion label="Fuel / power" body={page.fuel_power_notes} />
@@ -353,7 +362,7 @@ export function PublicScannerView({
       </section>
 
       {/* Footer */}
-      <PublicFooter poweredByLabel={org?.powered_by_label} />
+      <PublicFooter />
     </div>
   );
 }

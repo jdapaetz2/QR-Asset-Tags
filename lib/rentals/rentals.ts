@@ -58,3 +58,25 @@ export function shouldShowAckPrompt(input: {
 export function ackPromptStorageKey(assetId: string, sessionId: string): string {
   return `ackPrompt:${assetId}:${sessionId}`;
 }
+
+/**
+ * localStorage key that records the FIRST Quick Start view for one asset + rental
+ * session on this device. Distinct namespace from the ack key (never touch that one);
+ * a new session id yields a new key, so Quick Start can auto-expand again for the next
+ * rental.
+ */
+export function quickStartStorageKey(assetId: string, sessionId: string): string {
+  return `mulemark:quick-start-seen:${assetId}:${sessionId}`;
+}
+
+/**
+ * Whether Quick Start should auto-expand: only on the first scan of an active rental
+ * session on this device (active session AND not yet seen). No active session, or an
+ * already-seen session, stays collapsed (still manually expandable).
+ */
+export function shouldAutoExpandQuickStart(input: {
+  hasActiveSession: boolean;
+  alreadySeen: boolean;
+}): boolean {
+  return input.hasActiveSession && !input.alreadySeen;
+}

@@ -65,9 +65,18 @@ describe("buildSubmissionsCsv", () => {
     },
   ];
 
-  it("starts with the header row", () => {
+  it("starts with the header row (reference first)", () => {
     const csv = buildSubmissionsCsv(rows);
     expect(csv.split("\r\n")[0]).toBe(SUBMISSION_CSV_HEADERS.join(","));
+    expect(SUBMISSION_CSV_HEADERS[0]).toBe("reference");
+  });
+
+  it("leads with the canonical SUB-YYYY-XXXXXX reference and keeps the raw id", () => {
+    const csv = buildSubmissionsCsv(rows);
+    const line1 = csv.split("\r\n")[1];
+    // id "s1" → 1 hex char → SUB-<year>-100000
+    expect(line1.startsWith("SUB-2026-100000,")).toBe(true);
+    expect(line1.endsWith(",2,s1")).toBe(true); // media_count, then raw submission_id
   });
 
   it("includes media_count and quotes a comma value", () => {
