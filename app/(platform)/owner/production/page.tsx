@@ -6,6 +6,10 @@ import { ROLES } from "@/lib/auth/roles";
 import { publicEnv } from "@/lib/env";
 import { buildPublicQrUrl } from "@/lib/qr/url";
 import {
+  selectProductionLink,
+  type ProductionLinkRow,
+} from "@/lib/qr/production-data";
+import {
   isProductionBaseUrl,
   TAG_SIZE_OPTIONS,
   MATERIAL_OPTIONS,
@@ -190,11 +194,24 @@ export default async function ProductionPage({
 
   const { data: qrData } = await supabase
     .from("qr_links")
-    .select("asset_id, short_code, status")
+    .select("asset_id, short_code, status, is_production_primary")
     .eq("organization_id", orgId);
+  // Group all links per asset, then pick the production link deterministically (primary → active).
+  const qrLinksByAsset = new Map<string, ProductionLinkRow[]>();
+  for (const q of (qrData ?? []) as (ProductionLinkRow & { asset_id: string })[]) {
+    const list = qrLinksByAsset.get(q.asset_id);
+    if (list) list.push(q);
+    else qrLinksByAsset.set(q.asset_id, [q]);
+  }
   const qrByAsset = new Map<string, { short_code: string; status: string }>();
-  for (const q of (qrData ?? []) as { asset_id: string; short_code: string; status: string }[]) {
-    if (!qrByAsset.has(q.asset_id)) qrByAsset.set(q.asset_id, q);
+  for (const [assetId, links] of qrLinksByAsset) {
+    const chosen = selectProductionLink(links);
+    if (chosen) {
+      qrByAsset.set(assetId, {
+        short_code: chosen.short_code,
+        status: chosen.status,
+      });
+    }
   }
 
   const { data: pageData } = await supabase

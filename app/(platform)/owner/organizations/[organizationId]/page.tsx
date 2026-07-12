@@ -225,6 +225,12 @@ export default async function OwnerOrganizationDetailPage({
             Data export
           </Link>
           <Link
+            href={`/owner/organizations/${org.id}/qr`}
+            className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+          >
+            QR codes
+          </Link>
+          <Link
             href={`/owner/production?org=${org.id}`}
             className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
           >

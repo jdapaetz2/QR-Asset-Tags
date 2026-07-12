@@ -11,6 +11,28 @@ import { publicEnv } from "@/lib/env";
 import { buildPublicQrUrl } from "@/lib/qr/url";
 import type { ProductionAssetRow } from "@/lib/qr/production-csv";
 
+export type ProductionLinkRow = {
+  short_code: string;
+  status: string;
+  is_production_primary: boolean;
+};
+
+/**
+ * Deterministically choose the qr_link production should encode for an asset: the
+ * production-primary link, else the first active link, else null. Migration 0023 guarantees at
+ * most one primary per asset (partial unique index) and that it is active, so this is stable —
+ * unlike the old "arbitrary first row" selection. Pure; used by every production surface.
+ */
+export function selectProductionLink<T extends ProductionLinkRow>(
+  links: T[]
+): T | null {
+  const primary = links.find(
+    (l) => l.is_production_primary && l.status === "active"
+  );
+  if (primary) return primary;
+  return links.find((l) => l.status === "active") ?? null;
+}
+
 export async function getProductionAssets(
   supabase: SupabaseClient,
   orgId: string,
@@ -43,15 +65,14 @@ export async function getProductionAssets(
 
   const { data: qrData } = await supabase
     .from("qr_links")
-    .select("asset_id, short_code, status")
+    .select("asset_id, short_code, status, is_production_primary")
     .eq("organization_id", orgId);
-  const qrByAsset = new Map<string, { short_code: string; status: string }>();
-  for (const q of (qrData ?? []) as {
-    asset_id: string;
-    short_code: string;
-    status: string;
-  }[]) {
-    if (!qrByAsset.has(q.asset_id)) qrByAsset.set(q.asset_id, q);
+  // Group ALL links per asset, then pick the production link deterministically (primary → active).
+  const linksByAsset = new Map<string, ProductionLinkRow[]>();
+  for (const q of (qrData ?? []) as (ProductionLinkRow & { asset_id: string })[]) {
+    const list = linksByAsset.get(q.asset_id);
+    if (list) list.push(q);
+    else linksByAsset.set(q.asset_id, [q]);
   }
 
   const { data: pageData } = await supabase
@@ -82,7 +103,7 @@ export async function getProductionAssets(
   }
 
   const rows: ProductionAssetRow[] = assets.map((asset) => {
-    const qr = qrByAsset.get(asset.id) ?? null;
+    const qr = selectProductionLink(linksByAsset.get(asset.id) ?? []);
     return {
       organization_name: orgName,
       asset_code: asset.asset_code,

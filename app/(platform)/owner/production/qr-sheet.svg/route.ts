@@ -6,6 +6,10 @@ import { ROLES } from "@/lib/auth/roles";
 import { publicEnv } from "@/lib/env";
 import { buildPublicQrUrl } from "@/lib/qr/url";
 import { buildQrSheetSvg, type QrSheetItem } from "@/lib/qr/svg";
+import {
+  selectProductionLink,
+  type ProductionLinkRow,
+} from "@/lib/qr/production-data";
 
 export const dynamic = "force-dynamic";
 
@@ -35,11 +39,19 @@ export async function GET(request: NextRequest) {
 
   const { data: qrData } = await supabase
     .from("qr_links")
-    .select("asset_id, short_code")
+    .select("asset_id, short_code, status, is_production_primary")
     .eq("organization_id", orgId);
+  // Group all links per asset, then encode the deterministic production link (primary → active).
+  const linksByAsset = new Map<string, ProductionLinkRow[]>();
+  for (const q of (qrData ?? []) as (ProductionLinkRow & { asset_id: string })[]) {
+    const list = linksByAsset.get(q.asset_id);
+    if (list) list.push(q);
+    else linksByAsset.set(q.asset_id, [q]);
+  }
   const shortByAsset = new Map<string, string>();
-  for (const q of (qrData ?? []) as { asset_id: string; short_code: string }[]) {
-    if (!shortByAsset.has(q.asset_id)) shortByAsset.set(q.asset_id, q.short_code);
+  for (const [assetId, links] of linksByAsset) {
+    const chosen = selectProductionLink(links);
+    if (chosen) shortByAsset.set(assetId, chosen.short_code);
   }
 
   // Keep the page's order; only include assets that actually have a QR link.
