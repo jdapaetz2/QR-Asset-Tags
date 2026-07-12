@@ -5,6 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
 import { getTagRequestDetail } from "@/lib/tags/request-detail";
 import { tagRequestStatusLabel } from "@/lib/tags/tag-requests";
+import { tagRequestStatusTone } from "@/lib/ui/status";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
+import { SectionCard } from "@/components/ui/section-card";
 import { TagRequestAssets } from "@/components/tag-request-assets";
 
 export const dynamic = "force-dynamic";
@@ -30,29 +34,38 @@ export default async function CustomerTagRequestPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <section>
+      <div>
         <Link
           href="/dashboard/tag-requests"
           className="text-sm text-muted-foreground underline-offset-4 hover:underline"
         >
           ← Tag requests
         </Link>
-        <h1 className="mt-2 flex flex-wrap items-center gap-2 text-2xl font-semibold tracking-tight">
-          Tag request
-          <span className="rounded-full border px-2 py-0.5 text-xs font-medium">
-            {tagRequestStatusLabel(request.status)}
-          </span>
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Requested {formatDate(request.created_at)}
-          {request.delivered_at
-            ? ` · delivered ${formatDate(request.delivered_at)}`
-            : ""}
-        </p>
-      </section>
+        <div className="mt-2">
+          <PageHeader
+            title="Tag request"
+            description={
+              <>
+                Requested {formatDate(request.created_at)}
+                {request.delivered_at
+                  ? ` · delivered ${formatDate(request.delivered_at)}`
+                  : ""}
+              </>
+            }
+            actions={
+              <Badge tone={tagRequestStatusTone(request.status)}>
+                {tagRequestStatusLabel(request.status)}
+              </Badge>
+            }
+          />
+        </div>
+      </div>
 
-      <section className="rounded-lg border bg-card p-4 text-sm">
-        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-muted-foreground">
+      <SectionCard
+        title="Tag specification"
+        description="AssetTag QR produces the tags to these specs."
+      >
+        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm text-muted-foreground">
           <dt>Material</dt>
           <dd className="text-foreground">{request.material ?? "—"}</dd>
           <dt>Mounting</dt>
@@ -62,10 +75,10 @@ export default async function CustomerTagRequestPage({
           <dt>Quantity / notes</dt>
           <dd className="text-foreground">{request.quantity_notes ?? "—"}</dd>
         </dl>
-      </section>
+      </SectionCard>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium text-muted-foreground">
+      <section className="flex flex-col gap-2.5">
+        <h2 className="text-[11px] font-medium uppercase tracking-[0.06em] text-iron-600">
           Assets ({assets.length})
         </h2>
         <TagRequestAssets assets={assets} />

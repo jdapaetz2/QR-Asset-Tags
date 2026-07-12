@@ -69,7 +69,7 @@ export function OrgSettingsForm({
   const colorPickerValue = isHexColor(color) ? color : "#1d4ed8";
 
   return (
-    <form action={formAction} className="flex max-w-2xl flex-col gap-6">
+    <form action={formAction} className="flex w-full flex-col gap-6">
       {state.error ? (
         <p
           role="alert"
@@ -224,7 +224,12 @@ export function OrgSettingsForm({
 
       {/* Preview */}
       <section className="flex flex-col gap-3 rounded-lg border bg-card p-4">
-        <h2 className="text-sm font-medium">Preview</h2>
+        <div className="space-y-1">
+          <h2 className="text-sm font-medium">Scanner branding preview</h2>
+          <p className="text-xs text-muted-foreground">
+            This is how your scanner page branding appears to renters.
+          </p>
+        </div>
         <div className="h-1.5 w-full rounded-full" style={{ backgroundColor: swatch }} />
         <div className="flex items-center gap-3">
           {logoPreview ? (

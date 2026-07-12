@@ -40,6 +40,43 @@ export function tagRequestStatusLabel(status: string): string {
   return isTagRequestStatus(status) ? STATUS_LABELS[status] : status;
 }
 
+/** Statuses that mean the request is still moving through production. */
+const OPEN_STATUSES: readonly string[] = ["requested", "in_review", "in_production"];
+/** Statuses that mean the physical tags are done. */
+const FULFILLED_STATUSES: readonly string[] = ["ready", "delivered"];
+
+export type TagRequestSummaryRow = {
+  status: string;
+  tag_request_assets?: { count: number }[] | null;
+};
+
+export type TagRequestSummary = {
+  total: number;
+  open: number;
+  fulfilled: number;
+  assetsRequested: number;
+};
+
+/**
+ * Fold the tag-request rows already fetched for the list into headline counts for the
+ * summary tiles — no extra query. `open` = requested/in_review/in_production; `fulfilled`
+ * = ready/delivered (cancelled counts in `total` only); `assetsRequested` sums the
+ * per-request asset counts.
+ */
+export function summarizeTagRequests(
+  rows: TagRequestSummaryRow[]
+): TagRequestSummary {
+  let open = 0;
+  let fulfilled = 0;
+  let assetsRequested = 0;
+  for (const r of rows) {
+    if (OPEN_STATUSES.includes(r.status)) open += 1;
+    else if (FULFILLED_STATUSES.includes(r.status)) fulfilled += 1;
+    assetsRequested += r.tag_request_assets?.[0]?.count ?? 0;
+  }
+  return { total: rows.length, open, fulfilled, assetsRequested };
+}
+
 /**
  * "Viewed" tracking is independent of status — `platform_viewed_at` records when
  * the platform admin opened a request, so unviewed requests surface as new work.

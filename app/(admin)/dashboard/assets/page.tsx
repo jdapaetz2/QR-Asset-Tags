@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
 import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/primary-button";
 import { ActionButton } from "@/components/action-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -52,6 +53,9 @@ type AssetRow = {
 
 const selectClass =
   "rounded-md border bg-background px-2 py-1.5 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring";
+
+const labelClass =
+  "text-[11px] font-medium uppercase tracking-[0.06em] text-iron-600";
 
 const SORT_LABELS: Record<string, string> = {
   asset_code: "Code",
@@ -223,153 +227,150 @@ export default async function AssetsPage({
             <Button asChild variant="outline">
               <Link href="/dashboard/assets/import">Import CSV</Link>
             </Button>
-            <Button asChild>
-              <Link href="/dashboard/assets/new">New asset</Link>
-            </Button>
+            <PrimaryButton href="/dashboard/assets/new">New asset</PrimaryButton>
           </>
         }
       />
 
-      {/* Search + filters + sort (GET form, mobile-friendly wrap) */}
-      <form
-        method="get"
-        className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3"
-      >
-        <label className="flex flex-1 flex-col gap-1 text-sm" style={{ minWidth: "12rem" }}>
-          <span className="text-muted-foreground">Search</span>
+      {/* Search + filters + sort — a designed toolbar (GET form; no client JS). */}
+      <form method="get" className="flex flex-col gap-4 rounded-lg border bg-card p-4">
+        <label className="flex flex-col gap-1">
+          <span className={labelClass}>Search</span>
           <input
             name="q"
             defaultValue={params.q}
             placeholder="Code, name, category, make, model, serial…"
-            className={selectClass}
+            className={`${selectClass} w-full`}
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted-foreground">Visibility</span>
-          <select name="status" defaultValue={params.publicStatus} className={selectClass}>
-            {PUBLIC_STATUS_FILTERS.map((v) => (
-              <option key={v} value={v}>
-                {v === "all" ? "All" : v[0].toUpperCase() + v.slice(1)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted-foreground">Category</span>
-          <select name="category" defaultValue={params.category} className={selectClass}>
-            <option value="">All</option>
-            {categories.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted-foreground">QR</span>
-          <select name="qr" defaultValue={params.qr} className={selectClass}>
-            {QR_FILTERS.map((v) => (
-              <option key={v} value={v}>
-                {v === "all" ? "All" : v === "has" ? "Has QR" : "Missing QR"}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted-foreground">Page</span>
-          <select name="page" defaultValue={params.page} className={selectClass}>
-            {PAGE_FILTERS.map((v) => (
-              <option key={v} value={v}>
-                {v === "all" ? "All" : v[0].toUpperCase() + v.slice(1)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted-foreground">Lifecycle</span>
-          <select name="lifecycle" defaultValue={params.lifecycle} className={selectClass}>
-            {LIFECYCLE_FILTERS.map((v) => (
-              <option key={v} value={v}>
-                {v[0].toUpperCase() + v.slice(1)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted-foreground">Rental</span>
-          <select name="rental" defaultValue={params.rental} className={selectClass}>
-            {RENTAL_FILTERS.map((v) => (
-              <option key={v} value={v}>
-                {v === "all" ? "All" : v[0].toUpperCase() + v.slice(1)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted-foreground">Sort</span>
-          <select name="sort" defaultValue={params.sort} className={selectClass}>
-            {ASSET_SORTS.map((v) => (
-              <option key={v} value={v}>
-                {SORT_LABELS[v]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="submit"
-          className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-        >
-          Apply
-        </button>
-        <Link
-          href="/dashboard/assets"
-          className="px-1 py-1.5 text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          Clear
-        </Link>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <label className="flex flex-col gap-1">
+            <span className={labelClass}>Visibility</span>
+            <select name="status" defaultValue={params.publicStatus} className={`${selectClass} w-full`}>
+              {PUBLIC_STATUS_FILTERS.map((v) => (
+                <option key={v} value={v}>
+                  {v === "all" ? "All" : v[0].toUpperCase() + v.slice(1)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className={labelClass}>Category</span>
+            <select name="category" defaultValue={params.category} className={`${selectClass} w-full`}>
+              <option value="">All</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className={labelClass}>QR</span>
+            <select name="qr" defaultValue={params.qr} className={`${selectClass} w-full`}>
+              {QR_FILTERS.map((v) => (
+                <option key={v} value={v}>
+                  {v === "all" ? "All" : v === "has" ? "Has QR" : "Missing QR"}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className={labelClass}>Page</span>
+            <select name="page" defaultValue={params.page} className={`${selectClass} w-full`}>
+              {PAGE_FILTERS.map((v) => (
+                <option key={v} value={v}>
+                  {v === "all" ? "All" : v[0].toUpperCase() + v.slice(1)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className={labelClass}>Lifecycle</span>
+            <select name="lifecycle" defaultValue={params.lifecycle} className={`${selectClass} w-full`}>
+              {LIFECYCLE_FILTERS.map((v) => (
+                <option key={v} value={v}>
+                  {v[0].toUpperCase() + v.slice(1)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className={labelClass}>Rental</span>
+            <select name="rental" defaultValue={params.rental} className={`${selectClass} w-full`}>
+              {RENTAL_FILTERS.map((v) => (
+                <option key={v} value={v}>
+                  {v === "all" ? "All" : v[0].toUpperCase() + v.slice(1)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className={labelClass}>Sort</span>
+            <select name="sort" defaultValue={params.sort} className={`${selectClass} w-full`}>
+              {ASSET_SORTS.map((v) => (
+                <option key={v} value={v}>
+                  {SORT_LABELS[v]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/dashboard/assets">Clear</Link>
+          </Button>
+          <Button type="submit" size="sm">
+            Apply filters
+          </Button>
+        </div>
       </form>
 
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-muted/50 text-left text-muted-foreground">
-            <tr>
-              <th className="px-4 py-2 font-medium">Code</th>
-              <th className="px-4 py-2 font-medium">Name</th>
-              <th className="px-4 py-2 font-medium">Category</th>
-              <th className="px-4 py-2 font-medium">Status</th>
-              <th className="whitespace-nowrap px-4 py-2 font-medium">Created</th>
-              <th className="px-4 py-2 font-medium sr-only">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
+      {rows.length === 0 ? (
+        filtersActive ? (
+          <EmptyState
+            title="No assets match these filters"
+            description="Try clearing the search or filters to see all of your equipment."
+            action={
+              <Button asChild variant="outline" size="sm">
+                <Link href="/dashboard/assets">Clear filters</Link>
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No assets yet"
+            description="Assets are your rental equipment records — each one gets a permanent QR page renters can scan for instructions and support. Add your first asset or import a CSV to get started."
+            action={
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Button asChild variant="outline">
+                  <Link href="/dashboard/assets/import">Import CSV</Link>
+                </Button>
+                <PrimaryButton href="/dashboard/assets/new">New asset</PrimaryButton>
+              </div>
+            }
+          />
+        )
+      ) : (
+        <div className="overflow-x-auto rounded-lg border bg-card">
+          <table className="w-full text-sm">
+            <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-[0.06em] text-iron-600">
               <tr>
-                <td colSpan={6} className="px-4 py-6">
-                  {filtersActive ? (
-                    <EmptyState
-                      title="No assets match these filters"
-                      description="Try clearing the search or filters to see all of your equipment."
-                    />
-                  ) : (
-                    <EmptyState
-                      title="No assets yet"
-                      description="Assets are your rental equipment records — each one gets a QR page renters can scan. Add your first asset or import a CSV to get started."
-                      action={
-                        <Link
-                          href="/dashboard/assets/new"
-                          className="text-sm underline-offset-4 hover:underline"
-                        >
-                          Add an asset →
-                        </Link>
-                      }
-                    />
-                  )}
-                </td>
+                <th className="px-3 py-2.5 font-medium">Code</th>
+                <th className="px-3 py-2.5 font-medium">Name</th>
+                <th className="px-3 py-2.5 font-medium">Category</th>
+                <th className="px-3 py-2.5 font-medium">Status</th>
+                <th className="whitespace-nowrap px-3 py-2.5 font-medium">Created</th>
+                <th className="px-3 py-2.5 font-medium sr-only">Actions</th>
               </tr>
-            ) : (
-              rows.map(({ asset, hasQr, hasActiveQr, pageStatus, activeSessionId }) => (
-                <tr key={asset.id} className="border-b last:border-0">
-                  <td className="whitespace-nowrap px-4 py-2 font-medium">
+            </thead>
+            <tbody>
+              {rows.map(({ asset, hasQr, hasActiveQr, pageStatus, activeSessionId }) => (
+                <tr
+                  key={asset.id}
+                  className="border-b last:border-0 hover:bg-muted/30"
+                >
+                  <td className="whitespace-nowrap px-3 py-2.5 font-medium">
                     <span className="flex items-center gap-3">
                       <AssetThumb
                         src={asset.cover_image_url}
@@ -378,11 +379,11 @@ export default async function AssetsPage({
                       <AssetTagChip code={asset.asset_code} />
                     </span>
                   </td>
-                  <td className="px-4 py-2">{asset.asset_name}</td>
-                  <td className="px-4 py-2 text-muted-foreground">
+                  <td className="px-3 py-2.5">{asset.asset_name}</td>
+                  <td className="px-3 py-2.5 text-muted-foreground">
                     {asset.category ?? "—"}
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-3 py-2.5">
                     <AssetStatusCell
                       status={deriveAssetStatus({
                         rented: Boolean(activeSessionId),
@@ -393,10 +394,10 @@ export default async function AssetsPage({
                       })}
                     />
                   </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-muted-foreground">
+                  <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">
                     <RelativeTime value={asset.created_at} />
                   </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-right">
+                  <td className="whitespace-nowrap px-3 py-2.5 text-right">
                     <div className="flex items-center justify-end gap-3">
                       {asset.archived_at ? null : activeSessionId ? (
                         <ActionButton
@@ -421,18 +422,18 @@ export default async function AssetsPage({
                       )}
                       <Link
                         href={`/dashboard/assets/${asset.id}`}
-                        className="text-sm underline-offset-4 hover:underline"
+                        className="whitespace-nowrap text-sm underline-offset-4 hover:underline"
                       >
                         View / edit
                       </Link>
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

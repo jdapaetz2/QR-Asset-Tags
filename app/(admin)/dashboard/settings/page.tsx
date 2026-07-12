@@ -11,6 +11,8 @@ import {
 import { NotificationSettingsForm } from "@/components/notification-settings-form";
 import type { NotificationSettings } from "@/lib/notifications/settings";
 import { PageHeader } from "@/components/ui/page-header";
+import { SectionCard } from "@/components/ui/section-card";
+import { Button } from "@/components/ui/button";
 import { PlanUsage } from "@/components/plan-usage";
 import { getCoveredCount } from "@/lib/plans/coverage-query";
 
@@ -53,7 +55,7 @@ export default async function SettingsPage() {
   const sampleHref = qr?.short_code ? `/t/${qr.short_code}` : null;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-3xl flex-col gap-6">
       <div>
         <Link
           href="/dashboard"
@@ -64,7 +66,7 @@ export default async function SettingsPage() {
         <div className="mt-2">
           <PageHeader
             title="Settings"
-            description="Organization profile, support contact, and public scanner page branding."
+            description="Organization profile, support contact, and branding. These settings shape your public QR scanner pages."
           />
         </div>
       </div>
@@ -83,54 +85,46 @@ export default async function SettingsPage() {
       />
 
       {isAdmin ? (
-        <section className="max-w-2xl border-t pt-6">
-          <h2 className="text-lg font-semibold tracking-tight">Team</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Invite staff and manage who can access your dashboard.
+        <SectionCard
+          title="Team"
+          description="Invite staff and manage who can access your dashboard."
+          actions={
+            <Button asChild variant="outline" size="sm">
+              <Link href="/dashboard/settings/users">Manage team</Link>
+            </Button>
+          }
+        >
+          <p className="text-sm text-muted-foreground">
+            Admins can invite teammates, set roles, and disable access.
           </p>
-          <div className="mt-4">
-            <Link
-              href="/dashboard/settings/users"
-              className="inline-flex rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-            >
-              Manage team
-            </Link>
-          </div>
-        </section>
+        </SectionCard>
       ) : null}
 
-      <section className="max-w-2xl border-t pt-6">
-        <h2 className="text-lg font-semibold tracking-tight">Plan &amp; usage</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Your subscription and covered-asset usage. Plan changes are handled by
-          AssetTag QR.
-        </p>
-        <div className="mt-4">
-          <PlanUsage
-            mode="full"
-            data={{
-              planName: org?.plan_name ?? "Custom plan",
-              status: org?.status ?? null,
-              covered: coveredCount,
-              limit: (org?.asset_limit as number | null) ?? null,
-              tagCreditCents: (org?.tag_credit_cents as number | null) ?? null,
-              storageLimitMb: (org?.storage_limit_mb as number | null) ?? null,
-              videoUploadsEnabled:
-                (org?.video_uploads_enabled as boolean | null) ?? null,
-            }}
-          />
-        </div>
-      </section>
+      <SectionCard
+        title="Plan & usage"
+        description="Your subscription and covered-asset usage. Plan changes are handled by AssetTag QR."
+      >
+        <PlanUsage
+          mode="full"
+          data={{
+            planName: org?.plan_name ?? "Custom plan",
+            status: org?.status ?? null,
+            covered: coveredCount,
+            limit: (org?.asset_limit as number | null) ?? null,
+            tagCreditCents: (org?.tag_credit_cents as number | null) ?? null,
+            storageLimitMb: (org?.storage_limit_mb as number | null) ?? null,
+            videoUploadsEnabled:
+              (org?.video_uploads_enabled as boolean | null) ?? null,
+          }}
+        />
+      </SectionCard>
 
-      <section className="max-w-2xl border-t pt-6">
-        <h2 className="text-lg font-semibold tracking-tight">Notifications</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Email alerts for public submissions and tag request updates.
-        </p>
-        <div className="mt-4">
-          <NotificationSettingsForm settings={notificationSettings} />
-        </div>
-      </section>
+      <SectionCard
+        title="Notifications"
+        description="Email alerts for public submissions and tag request updates."
+      >
+        <NotificationSettingsForm settings={notificationSettings} />
+      </SectionCard>
     </div>
   );
 }

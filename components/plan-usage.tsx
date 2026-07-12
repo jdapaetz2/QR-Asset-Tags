@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 
+import { Badge } from "@/components/ui/badge";
+import { orgStatusLabel } from "@/lib/ui/status-labels";
 import { formatCents } from "@/lib/plans/presets";
 import {
   COVERED_ASSET_DEFINITION,
@@ -87,16 +89,19 @@ function CoverageMeter({
   );
 }
 
-/** Full "Plan & usage" section for the settings page. */
+/**
+ * Full "Plan & usage" section for the settings page. Frameless — the settings page
+ * wraps it in a SectionCard, so it renders no border/surface of its own.
+ */
 function FullUsage({ data }: { data: PlanUsageData }) {
   return (
-    <div className="flex flex-col gap-4 rounded-lg border bg-card p-4">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-medium">{data.planName}</h3>
         {data.status ? (
-          <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
-            {data.status}
-          </span>
+          <Badge tone={data.status === "active" ? "success" : "warning"}>
+            {orgStatusLabel(data.status)}
+          </Badge>
         ) : null}
       </div>
 

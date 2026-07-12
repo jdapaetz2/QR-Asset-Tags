@@ -44,7 +44,7 @@ export function NotificationSettingsForm({
   >(updateNotificationSettings, {});
 
   return (
-    <form action={formAction} className="flex max-w-2xl flex-col gap-6">
+    <form action={formAction} className="flex w-full flex-col gap-4">
       {state.error ? (
         <p
           role="alert"
@@ -54,41 +54,39 @@ export function NotificationSettingsForm({
         </p>
       ) : null}
 
-      <fieldset className="flex flex-col gap-3 rounded-lg border p-4">
-        <legend className="px-1 text-sm font-medium">Email notifications</legend>
-        <p className="text-xs text-muted-foreground">
-          Get an email when submissions arrive or tag requests are updated. Leave the
-          address blank to turn all notifications off.
-        </p>
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">Notification email</span>
+        <input
+          name="notification_email"
+          type="email"
+          defaultValue={settings.notification_email ?? ""}
+          placeholder="alerts@yourcompany.com"
+          className={inputClass}
+        />
+        <span className="text-xs text-muted-foreground">
+          Where alerts are sent. Leave blank to turn all notifications off.
+        </span>
+      </label>
 
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Notification email</span>
-          <input
-            name="notification_email"
-            type="email"
-            defaultValue={settings.notification_email ?? ""}
-            placeholder="alerts@yourcompany.com"
-            className={inputClass}
-          />
-        </label>
-
-        <div className="flex flex-col gap-3 pt-1">
-          {TOGGLES.map((t) => (
-            <label key={t.name} className="flex items-start gap-3 text-sm">
-              <input
-                type="checkbox"
-                name={t.name}
-                defaultChecked={Boolean(settings[t.name])}
-                className="mt-0.5 size-4"
-              />
-              <span className="flex flex-col">
-                <span className="font-medium">{t.label}</span>
-                <span className="text-xs text-muted-foreground">{t.hint}</span>
-              </span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <div className="flex flex-col divide-y divide-iron-200 rounded-md border">
+        {TOGGLES.map((t) => (
+          <label
+            key={t.name}
+            className="flex items-start gap-3 px-3 py-2.5 text-sm"
+          >
+            <input
+              type="checkbox"
+              name={t.name}
+              defaultChecked={Boolean(settings[t.name])}
+              className="mt-0.5 size-4 accent-brass-500"
+            />
+            <span className="flex flex-col">
+              <span className="font-medium">{t.label}</span>
+              <span className="text-xs text-muted-foreground">{t.hint}</span>
+            </span>
+          </label>
+        ))}
+      </div>
 
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>

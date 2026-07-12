@@ -20,7 +20,7 @@ export function AssetThumb({
   if (!src || failed) {
     return (
       <span
-        className="flex size-10 shrink-0 items-center justify-center rounded-md border bg-muted text-muted-foreground"
+        className="flex size-10 shrink-0 items-center justify-center rounded-md border border-iron-200 bg-bone-50 text-iron-600"
         aria-hidden
       >
         <svg
@@ -46,7 +46,7 @@ export function AssetThumb({
       src={src}
       alt={alt}
       onError={() => setFailed(true)}
-      className="size-10 shrink-0 rounded-md border bg-background object-cover"
+      className="size-10 shrink-0 rounded-md border border-iron-200 bg-background object-cover"
     />
   );
 }
