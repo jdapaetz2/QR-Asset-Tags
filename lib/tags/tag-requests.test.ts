@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   isTagRequestStatus,
   parseViewedFilter,
-  summarizeTagRequests,
   tagRequestStatusLabel,
   unviewedCountByOrg,
   validateTagRequest,
@@ -68,42 +67,6 @@ describe("unviewedCountByOrg", () => {
         { organization_id: "a", platform_viewed_at: "2026-01-01T00:00:00Z" },
       ]).size
     ).toBe(0);
-  });
-});
-
-describe("summarizeTagRequests", () => {
-  const row = (status: string, count: number) => ({
-    status,
-    tag_request_assets: [{ count }],
-  });
-
-  it("counts totals, open vs fulfilled, and sums assets requested", () => {
-    const s = summarizeTagRequests([
-      row("requested", 3),
-      row("in_review", 2),
-      row("in_production", 5),
-      row("ready", 4),
-      row("delivered", 1),
-      row("cancelled", 6),
-    ]);
-    expect(s.total).toBe(6);
-    expect(s.open).toBe(3); // requested + in_review + in_production
-    expect(s.fulfilled).toBe(2); // ready + delivered (cancelled excluded)
-    expect(s.assetsRequested).toBe(21); // 3+2+5+4+1+6
-  });
-
-  it("handles missing/empty asset counts and an empty list", () => {
-    expect(summarizeTagRequests([])).toEqual({
-      total: 0,
-      open: 0,
-      fulfilled: 0,
-      assetsRequested: 0,
-    });
-    const s = summarizeTagRequests([
-      { status: "requested" },
-      { status: "ready", tag_request_assets: [] },
-    ]);
-    expect(s).toEqual({ total: 2, open: 1, fulfilled: 1, assetsRequested: 0 });
   });
 });
 

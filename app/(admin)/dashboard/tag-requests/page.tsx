@@ -7,11 +7,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { PrimaryButton } from "@/components/ui/primary-button";
-import { StatCard } from "@/components/ui/stat-card";
-import {
-  summarizeTagRequests,
-  tagRequestStatusLabel,
-} from "@/lib/tags/tag-requests";
+import { tagRequestStatusLabel } from "@/lib/tags/tag-requests";
 import { tagRequestStatusTone } from "@/lib/ui/status";
 import { RelativeTime } from "@/components/relative-time";
 
@@ -36,7 +32,6 @@ export default async function TagRequestsPage() {
     .select("id, status, material, tag_size, created_at, tag_request_assets(count)")
     .order("created_at", { ascending: false });
   const requests = (data ?? []) as RequestRow[];
-  const summary = summarizeTagRequests(requests);
 
   return (
     <div className="flex flex-col gap-6">
@@ -61,15 +56,7 @@ export default async function TagRequestsPage() {
           }
         />
       ) : (
-        <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatCard label="Total requests" value={summary.total} />
-            <StatCard label="Open in production" value={summary.open} />
-            <StatCard label="Ready or delivered" value={summary.fulfilled} />
-            <StatCard label="Assets requested" value={summary.assetsRequested} />
-          </div>
-
-          <div className="overflow-x-auto rounded-lg border bg-card">
+        <div className="overflow-x-auto rounded-lg border bg-card">
             <table className="w-full text-sm">
               <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-[0.06em] text-iron-600">
                 <tr>
@@ -110,8 +97,7 @@ export default async function TagRequestsPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-        </>
+        </div>
       )}
     </div>
   );

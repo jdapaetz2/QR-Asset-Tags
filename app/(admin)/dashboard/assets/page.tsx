@@ -207,6 +207,19 @@ export default async function AssetsPage({
     params.lifecycle !== "active" ||
     params.rental !== "all";
 
+  // Advanced (non-search) filters live behind a native <details> disclosure. Count the
+  // non-default ones for the summary chip, and open the disclosure when any is active or
+  // the sort is non-default (defaults come from parseAssetListParams in lib/assets/list).
+  const activeFilterCount = [
+    params.publicStatus !== "all",
+    Boolean(params.category),
+    params.qr !== "all",
+    params.page !== "all",
+    params.lifecycle !== "active",
+    params.rental !== "all",
+  ].filter(Boolean).length;
+  const filtersOpen = activeFilterCount > 0 || params.sort !== "asset_code";
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -232,98 +245,118 @@ export default async function AssetsPage({
         }
       />
 
-      {/* Search + filters + sort — a designed toolbar (GET form; no client JS). */}
-      <form method="get" className="flex flex-col gap-4 rounded-lg border bg-card p-4">
-        <label className="flex flex-col gap-1">
-          <span className={labelClass}>Search</span>
+      {/* Compact toolbar: search + Apply/Clear always visible; advanced filters collapse
+          into a native <details> (no client JS, no dependency). Collapsed selects still
+          submit — hidden, non-disabled form controls are included in GET submission. */}
+      <form method="get" className="rounded-lg border bg-card p-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <input
             name="q"
             defaultValue={params.q}
-            placeholder="Code, name, category, make, model, serial…"
-            className={`${selectClass} w-full`}
+            placeholder="Search code, name, category, make, model, serial…"
+            aria-label="Search assets"
+            className={`${selectClass} w-full sm:flex-1`}
           />
-        </label>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          <label className="flex flex-col gap-1">
-            <span className={labelClass}>Visibility</span>
-            <select name="status" defaultValue={params.publicStatus} className={`${selectClass} w-full`}>
-              {PUBLIC_STATUS_FILTERS.map((v) => (
-                <option key={v} value={v}>
-                  {v === "all" ? "All" : v[0].toUpperCase() + v.slice(1)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className={labelClass}>Category</span>
-            <select name="category" defaultValue={params.category} className={`${selectClass} w-full`}>
-              <option value="">All</option>
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className={labelClass}>QR</span>
-            <select name="qr" defaultValue={params.qr} className={`${selectClass} w-full`}>
-              {QR_FILTERS.map((v) => (
-                <option key={v} value={v}>
-                  {v === "all" ? "All" : v === "has" ? "Has QR" : "Missing QR"}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className={labelClass}>Page</span>
-            <select name="page" defaultValue={params.page} className={`${selectClass} w-full`}>
-              {PAGE_FILTERS.map((v) => (
-                <option key={v} value={v}>
-                  {v === "all" ? "All" : v[0].toUpperCase() + v.slice(1)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className={labelClass}>Lifecycle</span>
-            <select name="lifecycle" defaultValue={params.lifecycle} className={`${selectClass} w-full`}>
-              {LIFECYCLE_FILTERS.map((v) => (
-                <option key={v} value={v}>
-                  {v[0].toUpperCase() + v.slice(1)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className={labelClass}>Rental</span>
-            <select name="rental" defaultValue={params.rental} className={`${selectClass} w-full`}>
-              {RENTAL_FILTERS.map((v) => (
-                <option key={v} value={v}>
-                  {v === "all" ? "All" : v[0].toUpperCase() + v.slice(1)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className={labelClass}>Sort</span>
-            <select name="sort" defaultValue={params.sort} className={`${selectClass} w-full`}>
-              {ASSET_SORTS.map((v) => (
-                <option key={v} value={v}>
-                  {SORT_LABELS[v]}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="flex items-center gap-2">
+            <Button type="submit" size="sm">
+              Apply
+            </Button>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/dashboard/assets">Clear</Link>
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center justify-between gap-3">
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/dashboard/assets">Clear</Link>
-          </Button>
-          <Button type="submit" size="sm">
-            Apply filters
-          </Button>
-        </div>
+
+        <details className="group mt-2" open={filtersOpen}>
+          <summary className="inline-flex w-fit cursor-pointer list-none items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium uppercase tracking-[0.06em] text-iron-600 hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden">
+            Filters{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ""}
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+              className="size-3 transition-transform group-open:rotate-180"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </summary>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <label className="flex flex-col gap-1">
+              <span className={labelClass}>Visibility</span>
+              <select name="status" defaultValue={params.publicStatus} className={`${selectClass} w-full`}>
+                {PUBLIC_STATUS_FILTERS.map((v) => (
+                  <option key={v} value={v}>
+                    {v === "all" ? "All" : v[0].toUpperCase() + v.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className={labelClass}>Category</span>
+              <select name="category" defaultValue={params.category} className={`${selectClass} w-full`}>
+                <option value="">All</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className={labelClass}>QR</span>
+              <select name="qr" defaultValue={params.qr} className={`${selectClass} w-full`}>
+                {QR_FILTERS.map((v) => (
+                  <option key={v} value={v}>
+                    {v === "all" ? "All" : v === "has" ? "Has QR" : "Missing QR"}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className={labelClass}>Page</span>
+              <select name="page" defaultValue={params.page} className={`${selectClass} w-full`}>
+                {PAGE_FILTERS.map((v) => (
+                  <option key={v} value={v}>
+                    {v === "all" ? "All" : v[0].toUpperCase() + v.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className={labelClass}>Lifecycle</span>
+              <select name="lifecycle" defaultValue={params.lifecycle} className={`${selectClass} w-full`}>
+                {LIFECYCLE_FILTERS.map((v) => (
+                  <option key={v} value={v}>
+                    {v[0].toUpperCase() + v.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className={labelClass}>Rental</span>
+              <select name="rental" defaultValue={params.rental} className={`${selectClass} w-full`}>
+                {RENTAL_FILTERS.map((v) => (
+                  <option key={v} value={v}>
+                    {v === "all" ? "All" : v[0].toUpperCase() + v.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className={labelClass}>Sort</span>
+              <select name="sort" defaultValue={params.sort} className={`${selectClass} w-full`}>
+                {ASSET_SORTS.map((v) => (
+                  <option key={v} value={v}>
+                    {SORT_LABELS[v]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </details>
       </form>
 
       {rows.length === 0 ? (
