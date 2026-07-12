@@ -37,3 +37,7 @@ The platform hosts and displays customer-provided content. It does not author, g
 ## Deferred but data-model-ready
 
 Some non-goals are intentionally anticipated in the schema so they can be enabled later without painful migrations: multiple QR links per asset (`qr_links` is its own table), automated link checking (`documents.link_status` + `last_checked_at`), Stripe billing (`organizations.plan_name` / `monthly_fee` / `asset_limit`), and richer auditing (`activity_log`). Designing for these is allowed; *building* them now is not.
+
+### Self-service action measurement (deferred)
+
+A future measurement model would capture **renter self-service actions** on the public scan page — manual opened, startup guide opened, quick start expanded, support phone/email tapped, form started, form completed — so the dashboard's "captured so far" section could show proof of self-service value (e.g. "guides opened", "support taps") instead of only submission counts. This is **not implemented** in this pass: today's dashboard proof-of-value derives only from existing scan and submission rows, and the public scan experience logs no new events. When built, it should reuse the existing `scan_events` pattern (anon insert-only, hashed IPs, no user-agent/PII stored) rather than a new client analytics dependency, and must not change the public form/QR/scan behavior contract. Building it now is out of scope.

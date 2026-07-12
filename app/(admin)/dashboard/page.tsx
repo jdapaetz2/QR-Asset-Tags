@@ -10,6 +10,8 @@ import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { RelativeTime } from "@/components/relative-time";
 import { NameplateBand } from "@/components/dashboard/nameplate-band";
 import { AttentionQueue, type QueueItem } from "@/components/dashboard/attention-queue";
+import { ReturnDoneNotice } from "@/components/return-done-notice";
+import { StatCard } from "@/components/ui/stat-card";
 import { countCoveredAssets } from "@/lib/plans/coverage";
 import { deriveAssetStatus } from "@/lib/ui/status-view";
 import { assetPageStatus } from "@/lib/assets/list";
@@ -18,11 +20,13 @@ import { firstImagePath, submissionReference } from "@/lib/submissions/inbox";
 import {
   buildAttentionItems,
   buildBandStats,
+  buildSetupGaps,
   mergeRecentActivity,
   rollupScanEvents,
   scanTrend,
   setupProgress,
   shouldShowSetupDetail,
+  summarizeUnresolvedByAsset,
   timeGreeting,
   type ActivityEvent,
   type AttentionAsset,
@@ -65,7 +69,11 @@ function submissionSummary(data: Record<string, unknown> | null): string | null 
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ done?: string }>;
+}) {
   const profile = await requireProfile();
 
   // Platform owners have no organization; send them to their own landing.
@@ -73,9 +81,11 @@ export default async function DashboardPage() {
     redirect(landingPathForRole(profile.role));
   }
 
+  const sp = await searchParams;
   const supabase = await createClient();
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - SEVEN_DAYS_MS).toISOString();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 86_400_000).toISOString();
 
   // One parallel batch of RLS-scoped, head/limited reads — the whole briefing derives from these.
   const [
@@ -90,10 +100,15 @@ export default async function DashboardPage() {
     { data: recentSubData },
     { data: recentTagData },
     { data: rentalData },
+    { count: scans30d },
+    { count: submissionsCaptured },
+    { count: issuesResolved },
+    { count: returnsCompleted },
+    { count: photoBacked },
   ] = await Promise.all([
     supabase
       .from("organizations")
-      .select("name, customer_exports_enabled")
+      .select("name, customer_exports_enabled, asset_limit")
       .eq("id", profile.organization_id)
       .maybeSingle(),
     supabase
@@ -136,6 +151,27 @@ export default async function DashboardPage() {
       .select("asset_id, started_at, returned_at")
       .order("started_at", { ascending: false })
       .limit(10),
+    // Part D — "captured so far" head counts (count-only; no rows transferred).
+    supabase
+      .from("scan_events")
+      .select("id", { count: "exact", head: true })
+      .gte("scanned_at", thirtyDaysAgo),
+    supabase
+      .from("form_submissions")
+      .select("id", { count: "exact", head: true }),
+    supabase
+      .from("form_submissions")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "resolved"),
+    supabase
+      .from("form_submissions")
+      .select("id", { count: "exact", head: true })
+      .eq("form_type", "return_checklist")
+      .eq("status", "resolved"),
+    supabase
+      .from("form_submissions")
+      .select("id", { count: "exact", head: true })
+      .neq("media_urls", "{}"),
   ]);
 
   const assets = (assetData ?? []) as AssetRow[];
@@ -154,25 +190,22 @@ export default async function DashboardPage() {
   for (const p of pageRows) pageByAsset.set(p.asset_id, p.is_published);
 
   // subRows are already newest-first, so the first per asset is the latest.
-  const unresolvedByAsset = new Map<string, { count: number; hasOpenDamage: boolean }>();
   const latestSubByAsset = new Map<string, SubRow>();
   for (const s of subRows) {
     if (!s.asset_id) continue;
-    const prev = unresolvedByAsset.get(s.asset_id) ?? { count: 0, hasOpenDamage: false };
-    unresolvedByAsset.set(s.asset_id, {
-      count: prev.count + 1,
-      hasOpenDamage: prev.hasOpenDamage || s.form_type === "damage_report",
-    });
     if (!latestSubByAsset.has(s.asset_id)) latestSubByAsset.set(s.asset_id, s);
   }
+  // Per-asset attention signals (damage/urgent/return/flags/oldest) from the unresolved rows.
+  const signalsByAsset = summarizeUnresolvedByAsset(subRows);
 
   const codeById = new Map<string, string>();
   for (const a of assets) codeById.set(a.id, a.asset_code);
 
   const active = assets.filter((a) => a.archived_at === null);
 
-  // Derive per-asset readiness for setup progress + needs-attention.
-  const attentionAssets: AttentionAsset[] = active.map((a) => {
+  // Per-asset readiness — drives setup progress + the re-sourced Setup section only.
+  // Readiness gaps are NOT attention items (they moved off the action queue).
+  const readinessAssets = active.map((a) => {
     const qrStatus = qrByAsset.get(a.id)
       ? ("active" as const)
       : qrExists.has(a.id)
@@ -185,40 +218,56 @@ export default async function DashboardPage() {
       qrStatus,
       pageStatus,
     }).readiness;
-    const u = unresolvedByAsset.get(a.id);
+    return {
+      id: a.id,
+      code: a.asset_code,
+      name: a.asset_name,
+      ready: readiness.ready,
+      reason: readiness.reason,
+    };
+  });
+
+  // Attention assets — actionable ops only, from the unresolved submission signals.
+  const attentionAssets: AttentionAsset[] = active.map((a) => {
+    const sig = signalsByAsset.get(a.id);
     return {
       id: a.id,
       code: a.asset_code,
       name: a.asset_name,
       rented: a.active_rental_session_id !== null,
-      readiness,
-      unresolvedCount: u?.count ?? 0,
-      hasOpenDamage: u?.hasOpenDamage ?? false,
+      unresolvedCount: sig?.unresolvedCount ?? 0,
+      hasOpenDamage: sig?.hasOpenDamage ?? false,
+      hasUrgentDamage: sig?.hasUrgentDamage ?? false,
+      hasUnresolvedReturn: sig?.hasUnresolvedReturn ?? false,
+      returnSubmissionId: sig?.returnSubmissionId ?? null,
+      returnFlagsIssue: sig?.returnFlagsIssue ?? false,
+      oldestUnresolvedMs: sig?.oldestUnresolvedMs ?? null,
     };
   });
 
-  const progress = setupProgress(attentionAssets.map((a) => ({ ready: a.readiness.ready })));
-  const attention = buildAttentionItems(attentionAssets, { cap: 10 });
+  const progress = setupProgress(readinessAssets.map((a) => ({ ready: a.ready })));
+  const setupGaps = buildSetupGaps(readinessAssets, 3);
+  const attention = buildAttentionItems(attentionAssets, {
+    cap: 10,
+    now: now.getTime(),
+  });
 
-  // Sign the latest photo per submission-based attention item (post-filter, ≤10).
+  // Sign the latest photo per attention item (all are submission-based now; ≤10).
   const thumbByAsset = new Map<string, string>();
   await Promise.all(
-    attention
-      .filter((i) => !i.key.endsWith(":setup"))
-      .map(async (i) => {
-        const sub = latestSubByAsset.get(i.assetId);
-        const path = sub ? firstImagePath(sub.media_urls) : null;
-        if (!path) return;
-        const { data: signed } = await supabase.storage
-          .from(SUBMISSIONS_BUCKET)
-          .createSignedUrl(path, 3600);
-        if (signed?.signedUrl) thumbByAsset.set(i.assetId, signed.signedUrl);
-      })
+    attention.map(async (i) => {
+      const sub = latestSubByAsset.get(i.assetId);
+      const path = sub ? firstImagePath(sub.media_urls) : null;
+      if (!path) return;
+      const { data: signed } = await supabase.storage
+        .from(SUBMISSIONS_BUCKET)
+        .createSignedUrl(path, 3600);
+      if (signed?.signedUrl) thumbByAsset.set(i.assetId, signed.signedUrl);
+    })
   );
 
   const queueItems: QueueItem[] = attention.map((item) => {
-    const isSetup = item.key.endsWith(":setup");
-    const sub = isSetup ? undefined : latestSubByAsset.get(item.assetId);
+    const sub = latestSubByAsset.get(item.assetId);
     return {
       key: item.key,
       assetId: item.assetId,
@@ -227,7 +276,7 @@ export default async function DashboardPage() {
       reason: item.reason,
       href: item.href,
       historyHref: `/dashboard/assets/${item.assetId}/timeline`,
-      isSetup,
+      returnSubmissionId: item.returnSubmissionId,
       detail: sub
         ? {
             submissionId: sub.id,
@@ -245,9 +294,8 @@ export default async function DashboardPage() {
     };
   });
 
-  // Band stats derived in-memory from the fetched rows.
+  // Operational pulse (Part C) — derived in-memory from the fetched rows.
   const rentedCount = active.filter((a) => a.active_rental_session_id !== null).length;
-  const newCount = subRows.filter((s) => s.status === "new").length;
   const sparkValues = scanTrend(
     (scan7dData ?? []) as { scanned_at: string | null }[],
     7,
@@ -258,11 +306,13 @@ export default async function DashboardPage() {
     active.map((a) => a.id),
     qrRows.map((q) => q.asset_id)
   );
+  const orgLimit = org?.asset_limit ?? null;
   const stats = buildBandStats({
-    newCount,
-    scans7d,
     rented: rentedCount,
-    ready: progress.ready,
+    unresolved: subRows.length,
+    scans7d,
+    covered,
+    limit: orgLimit,
     totalAssets: progress.total,
   });
 
@@ -337,6 +387,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <ReturnDoneNotice done={sp.done} />
       <NameplateBand
         orgName={orgName}
         dateLabel={dateLabel}
@@ -373,22 +424,27 @@ export default async function DashboardPage() {
                 style={{ width: `${(progress.ready / progress.total) * 100}%` }}
               />
             </div>
-            <ul className="flex flex-col gap-1.5">
-              {attention
-                .filter((i) => i.key.endsWith(":setup"))
-                .slice(0, 3)
-                .map((i) => (
-                  <li key={i.key}>
+            {setupGaps.length > 0 ? (
+              <ul className="flex flex-col gap-1.5">
+                {setupGaps.map((g) => (
+                  <li key={g.id}>
                     <Link
-                      href={i.href}
+                      href={g.href}
                       className="flex flex-wrap items-center gap-2 text-sm underline-offset-4 hover:underline"
                     >
-                      <AssetTagChip code={i.code} />
-                      <span className="text-iron-600">{i.title}</span>
+                      <AssetTagChip code={g.code} />
+                      <span className="text-iron-600">{g.title}</span>
                     </Link>
                   </li>
                 ))}
-            </ul>
+              </ul>
+            ) : null}
+            <Link
+              href="/dashboard/assets?page=draft"
+              className="text-xs text-iron-600 underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Review setup on the Assets page →
+            </Link>
           </div>
         </section>
       ) : null}
@@ -422,6 +478,41 @@ export default async function DashboardPage() {
             ))}
           </ul>
         )}
+      </section>
+
+      {/* Captured so far (Part D) — quiet proof-of-value from existing data. Head counts
+          only; every tile links to a filtered view. No ROI, no "calls avoided" claims. */}
+      <section>
+        <Eyebrow as="h2" className="mb-2.5">
+          Captured so far
+        </Eyebrow>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard
+            label="scans · 30d"
+            value={scans30d ?? 0}
+            href="/dashboard/analytics?range=30"
+          />
+          <StatCard
+            label="submissions captured"
+            value={submissionsCaptured ?? 0}
+            href="/dashboard/submissions?status=all_active"
+          />
+          <StatCard
+            label="issues resolved"
+            value={issuesResolved ?? 0}
+            href="/dashboard/submissions?status=resolved"
+          />
+          <StatCard
+            label="returns completed"
+            value={returnsCompleted ?? 0}
+            href="/dashboard/submissions?form_type=return_checklist&status=resolved"
+          />
+        </div>
+        {(photoBacked ?? 0) > 0 ? (
+          <p className="mt-2 text-xs text-iron-600">
+            {photoBacked} of these came with photos.
+          </p>
+        ) : null}
       </section>
 
       {/* More — routes not in the header nav, kept reachable (see plan deviation #6). */}

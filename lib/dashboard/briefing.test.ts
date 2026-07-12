@@ -1,40 +1,22 @@
 import { describe, expect, it } from "vitest";
 
-import { deriveAssetStatus } from "@/lib/ui/status-view";
 import {
   buildAttentionItems,
   buildBandStats,
+  buildSetupGaps,
   mergeRecentActivity,
   nextOpenAccordionId,
   rollupScanEvents,
   scanTrend,
   setupProgress,
   shouldShowSetupDetail,
+  summarizeUnresolvedByAsset,
   timeGreeting,
   type ActivityEvent,
   type AttentionAsset,
 } from "./briefing";
 
-const readyReadiness = deriveAssetStatus({
-  rented: false,
-  publicStatus: "public",
-  qrStatus: "active",
-  pageStatus: "published",
-}).readiness;
-
-const draftReadiness = deriveAssetStatus({
-  rented: false,
-  publicStatus: "public",
-  qrStatus: "active",
-  pageStatus: "draft",
-}).readiness;
-
-const noQrReadiness = deriveAssetStatus({
-  rented: false,
-  publicStatus: "public",
-  qrStatus: null,
-  pageStatus: "published",
-}).readiness;
+const DAY = 86_400_000;
 
 describe("setupProgress", () => {
   it("counts ready over total", () => {
@@ -64,9 +46,13 @@ describe("buildAttentionItems", () => {
     code: "EX-1",
     name: "Excavator 1",
     rented: false,
-    readiness: readyReadiness,
     unresolvedCount: 0,
     hasOpenDamage: false,
+    hasUrgentDamage: false,
+    hasUnresolvedReturn: false,
+    returnSubmissionId: null,
+    returnFlagsIssue: false,
+    oldestUnresolvedMs: null,
   };
 
   it("emits a danger row for a rented asset with open damage", () => {
@@ -74,9 +60,18 @@ describe("buildAttentionItems", () => {
       { ...base, rented: true, hasOpenDamage: true, unresolvedCount: 2 },
     ]);
     expect(items[0].tone).toBe("danger");
+    expect(items[0].key).toContain(":damage-rented");
     expect(items[0].href).toBe(
       "/dashboard/submissions?asset_id=a1&status=unresolved"
     );
+  });
+
+  it("emits a danger row for an available asset with open damage", () => {
+    const items = buildAttentionItems([
+      { ...base, hasOpenDamage: true, unresolvedCount: 1 },
+    ]);
+    expect(items[0].tone).toBe("danger");
+    expect(items[0].key).toContain(":damage-available");
   });
 
   it("emits a warning row for unresolved submissions", () => {
@@ -85,22 +80,57 @@ describe("buildAttentionItems", () => {
     expect(items[0].title).toMatch(/3 open submissions/);
   });
 
-  it("maps setup-gap reasons to the right fix link", () => {
-    const draft = buildAttentionItems([{ ...base, id: "d", readiness: draftReadiness }]);
-    expect(draft[0].href).toBe("/dashboard/assets/d/page");
-    const noqr = buildAttentionItems([{ ...base, id: "q", readiness: noQrReadiness }]);
-    expect(noqr[0].href).toBe("/dashboard/assets/q");
+  it("carries returnSubmissionId on a return-while-rented row (the quick action)", () => {
+    const [item] = buildAttentionItems([
+      {
+        ...base,
+        rented: true,
+        unresolvedCount: 1,
+        hasUnresolvedReturn: true,
+        returnSubmissionId: "sub-9",
+      },
+    ]);
+    expect(item.key).toContain(":return-rented");
+    expect(item.returnSubmissionId).toBe("sub-9");
+    expect(item.tone).toBe("warning");
   });
 
-  it("orders danger first, then unresolved by count desc, then setup gaps", () => {
-    const items = buildAttentionItems([
-      { ...base, id: "gap", readiness: draftReadiness },
-      { ...base, id: "few", unresolvedCount: 1 },
-      { ...base, id: "many", unresolvedCount: 5 },
-      { ...base, id: "dmg", rented: true, hasOpenDamage: true },
+  it("flags a stale unresolved item when the oldest is over 24h", () => {
+    const now = 100 * DAY;
+    const items = buildAttentionItems(
+      [{ ...base, unresolvedCount: 1, oldestUnresolvedMs: now - 2 * DAY }],
+      { now }
+    );
+    expect(items[0].key).toContain(":stale");
+  });
+
+  it("orders by severity: damage-rented, damage-available, return-rented, multi, unresolved", () => {
+    const now = 10 * DAY;
+    const items = buildAttentionItems(
+      [
+        { ...base, id: "few", unresolvedCount: 1, oldestUnresolvedMs: now },
+        {
+          ...base,
+          id: "ret",
+          rented: true,
+          unresolvedCount: 1,
+          hasUnresolvedReturn: true,
+          returnSubmissionId: "s-ret",
+          oldestUnresolvedMs: now,
+        },
+        { ...base, id: "davail", hasOpenDamage: true, unresolvedCount: 1 },
+        { ...base, id: "drent", rented: true, hasOpenDamage: true, unresolvedCount: 1 },
+        { ...base, id: "multi", rented: true, unresolvedCount: 3, oldestUnresolvedMs: now },
+      ],
+      { now }
+    );
+    expect(items.map((i) => i.assetId)).toEqual([
+      "drent",
+      "davail",
+      "ret",
+      "multi",
+      "few",
     ]);
-    expect(items.map((i) => i.assetId).slice(0, 3)).toEqual(["dmg", "many", "few"]);
-    expect(items.at(-1)?.assetId).toBe("gap");
   });
 
   it("caps the number of items", () => {
@@ -112,8 +142,93 @@ describe("buildAttentionItems", () => {
     expect(buildAttentionItems(many, { cap: 5 })).toHaveLength(5);
   });
 
-  it("shows nothing when all assets are ready and clean", () => {
+  it("shows nothing for a clean asset (no unresolved work)", () => {
     expect(buildAttentionItems([base])).toEqual([]);
+  });
+});
+
+describe("summarizeUnresolvedByAsset", () => {
+  it("rolls up damage/urgency/return/oldest; ignores resolved + unlinked rows", () => {
+    const map = summarizeUnresolvedByAsset([
+      {
+        id: "d1",
+        asset_id: "a",
+        form_type: "damage_report",
+        status: "new",
+        created_at: "2026-07-02T00:00:00Z",
+        submission_data_json: { urgency: "high" },
+      },
+      {
+        id: "r1",
+        asset_id: "a",
+        form_type: "return_checklist",
+        status: "reviewed",
+        created_at: "2026-07-01T00:00:00Z",
+        submission_data_json: { damage_observed: "yes" },
+      },
+      {
+        id: "x1",
+        asset_id: "a",
+        form_type: "support_request",
+        status: "resolved", // ignored (not unresolved)
+        created_at: "2026-07-03T00:00:00Z",
+      },
+      {
+        id: "u1",
+        asset_id: null, // ignored (no asset)
+        form_type: "damage_report",
+        status: "new",
+        created_at: "2026-07-03T00:00:00Z",
+      },
+    ]);
+    const a = map.get("a");
+    expect(a?.unresolvedCount).toBe(2);
+    expect(a?.hasOpenDamage).toBe(true);
+    expect(a?.hasUrgentDamage).toBe(true);
+    expect(a?.hasUnresolvedReturn).toBe(true);
+    expect(a?.returnSubmissionId).toBe("r1");
+    expect(a?.returnFlagsIssue).toBe(true);
+    expect(a?.oldestUnresolvedMs).toBe(Date.parse("2026-07-01T00:00:00Z"));
+  });
+
+  it("does not flag a clean return checklist as an issue", () => {
+    const map = summarizeUnresolvedByAsset([
+      {
+        id: "r1",
+        asset_id: "a",
+        form_type: "return_checklist",
+        status: "new",
+        created_at: "2026-07-01T00:00:00Z",
+        submission_data_json: { damage_observed: "no", accessories_returned: "yes" },
+      },
+    ]);
+    expect(map.get("a")?.returnFlagsIssue).toBe(false);
+    expect(map.get("a")?.hasUnresolvedReturn).toBe(true);
+  });
+});
+
+describe("buildSetupGaps", () => {
+  it("lists only not-ready assets with a reason and maps the fix link", () => {
+    const gaps = buildSetupGaps([
+      { id: "ok", code: "OK", name: "Ready one", ready: true, reason: null },
+      { id: "d", code: "D", name: "Draft page", ready: false, reason: "page_draft" },
+      { id: "q", code: "Q", name: "No QR", ready: false, reason: "missing_qr" },
+    ]);
+    expect(gaps.map((g) => g.id)).toEqual(["d", "q"]);
+    expect(gaps[0].href).toBe("/dashboard/assets/d/page");
+    expect(gaps[1].href).toBe("/dashboard/assets/q");
+    expect(gaps[0].title).toBe("Equipment page is a draft");
+  });
+
+  it("caps to the limit", () => {
+    const many = Array.from({ length: 5 }, (_, i) => ({
+      id: `a${i}`,
+      code: `A${i}`,
+      name: "x",
+      ready: false,
+      reason: "missing_qr" as const,
+    }));
+    expect(buildSetupGaps(many, 2)).toHaveLength(2);
   });
 });
 
@@ -135,15 +250,21 @@ describe("mergeRecentActivity", () => {
 
 describe("buildBandStats", () => {
   const stats = buildBandStats({
-    newCount: 3,
-    scans7d: 186,
     rented: 4,
-    ready: 11,
+    unresolved: 3,
+    scans7d: 186,
+    covered: 9,
+    limit: 12,
     totalAssets: 12,
   });
 
-  it("returns the four ranked stats in order", () => {
-    expect(stats.map((s) => s.key)).toEqual(["new", "scans", "rented", "ready"]);
+  it("returns the operational pulse in order: rented, unresolved, scans, covered", () => {
+    expect(stats.map((s) => s.key)).toEqual([
+      "rented",
+      "unresolved",
+      "scans",
+      "covered",
+    ]);
   });
 
   it("every stat links to a filtered/analytics view (never inert)", () => {
@@ -151,22 +272,36 @@ describe("buildBandStats", () => {
       expect(s.href).toBeTruthy();
       expect(s.href.startsWith("/dashboard/")).toBe(true);
     }
-    expect(stats[0].href).toBe("/dashboard/submissions?status=new");
-    expect(stats[1].href).toBe("/dashboard/analytics");
-    expect(stats[2].href).toBe("/dashboard/assets?rental=rented");
-    expect(stats[3].href).toBe("/dashboard/assets?page=published");
+    expect(stats[0].href).toBe("/dashboard/assets?rental=rented");
+    expect(stats[1].href).toBe("/dashboard/submissions");
+    expect(stats[2].href).toBe("/dashboard/analytics");
+    expect(stats[3].href).toBe("/dashboard/assets?qr=has");
   });
 
-  it("flags new-submissions as attention only when non-zero", () => {
-    expect(stats[0].attention).toBe(true);
-    const clear = buildBandStats({
-      newCount: 0,
-      scans7d: 142,
-      rented: 6,
-      ready: 12,
+  it("shows covered/limit and drops the total when there is no plan cap", () => {
+    expect(stats[3].total).toBe(12);
+    const noCap = buildBandStats({
+      rented: 4,
+      unresolved: 0,
+      scans7d: 1,
+      covered: 9,
+      limit: null,
       totalAssets: 12,
     });
-    expect(clear[0].attention).toBe(false);
+    expect(noCap[3].total).toBeUndefined();
+  });
+
+  it("flags unresolved as attention only when non-zero", () => {
+    expect(stats[1].attention).toBe(true);
+    const clear = buildBandStats({
+      rented: 6,
+      unresolved: 0,
+      scans7d: 142,
+      covered: 12,
+      limit: 12,
+      totalAssets: 12,
+    });
+    expect(clear[1].attention).toBe(false);
   });
 });
 

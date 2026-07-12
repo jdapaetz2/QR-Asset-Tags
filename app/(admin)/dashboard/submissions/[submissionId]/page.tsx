@@ -17,6 +17,9 @@ import { RelativeTime } from "@/components/relative-time";
 import { submissionStatusTone } from "@/lib/ui/status";
 import { submissionStatusLabel } from "@/lib/ui/status-labels";
 import { SubmissionStatusForm } from "@/components/submission-status-form";
+import { MarkReturnedResolveButton } from "@/components/mark-returned-resolve-button";
+import { ReturnDoneNotice } from "@/components/return-done-notice";
+import { canQuickResolveReturn } from "@/lib/submissions/returns";
 
 const SUBMISSIONS_BUCKET = "submissions";
 
@@ -40,11 +43,14 @@ function titleCase(value: string): string {
 
 export default async function SubmissionDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ submissionId: string }>;
+  searchParams: Promise<{ done?: string }>;
 }) {
   await requireOrgId();
   const { submissionId } = await params;
+  const sp = await searchParams;
 
   const supabase = await createClient();
 
@@ -101,6 +107,7 @@ export default async function SubmissionDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <ReturnDoneNotice done={sp.done} />
       {/* Header */}
       <section className="flex flex-col gap-3 rounded-lg border bg-card p-5">
         <Link
@@ -182,10 +189,21 @@ export default async function SubmissionDetailPage({
             Set the workflow state as this submission is triaged and resolved.
           </p>
         </div>
-        <SubmissionStatusForm
-          submissionId={submission.id}
-          current={submission.status}
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          {canQuickResolveReturn({
+            formType: submission.form_type,
+            status: submission.status,
+          }) ? (
+            <MarkReturnedResolveButton
+              submissionId={submission.id}
+              redirectTo={`/dashboard/submissions/${submission.id}`}
+            />
+          ) : null}
+          <SubmissionStatusForm
+            submissionId={submission.id}
+            current={submission.status}
+          />
+        </div>
       </section>
 
       {/* Submitter */}

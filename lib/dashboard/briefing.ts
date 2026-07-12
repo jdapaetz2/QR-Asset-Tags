@@ -4,11 +4,9 @@
  * nothing is stored (no checklist table, no per-user read model).
  */
 
-import {
-  type AssetStatusView,
-  type ReadinessReason,
-  readinessReasonLabel,
-} from "@/lib/ui/status-view";
+import { type ReadinessReason } from "@/lib/ui/status-view";
+import { isUnresolvedStatus, submissionUrgency } from "@/lib/submissions/inbox";
+import { returnChecklistFlags } from "@/lib/submissions/returns";
 
 // ---------------------------------------------------------------------------
 // Setup progress — "N of M assets ready", derived from readiness. Never stored.
@@ -41,6 +39,10 @@ export type AttentionItem = {
   reason: string;
   href: string;
   tone: AttentionTone;
+  /** When the asset has an unresolved return checklist, its id — enables the quick action. */
+  returnSubmissionId: string | null;
+  /** Sort rank; lower = more urgent. */
+  priority: number;
 };
 
 export type AttentionAsset = {
@@ -48,9 +50,220 @@ export type AttentionAsset = {
   code: string;
   name: string;
   rented: boolean;
-  readiness: AssetStatusView["readiness"];
   unresolvedCount: number;
   hasOpenDamage: boolean;
+  hasUrgentDamage: boolean;
+  hasUnresolvedReturn: boolean;
+  returnSubmissionId: string | null;
+  returnFlagsIssue: boolean;
+  /** created_at (epoch ms) of the oldest unresolved submission on this asset, or null. */
+  oldestUnresolvedMs: number | null;
+};
+
+const DAY_MS = 86_400_000;
+
+/**
+ * Build the needs-attention rows — ONE prioritized item per asset, most severe first. The
+ * queue holds only actionable, time-sensitive operations; setup/readiness gaps are NOT here
+ * (they live in the separate Setup section — see `buildSetupGaps`). Priority (lower first):
+ *   1. damage on a rented asset (danger),
+ *   2. unresolved damage on an available asset (danger),
+ *   3. return checklist received while still rented (warning, quick action),
+ *   4. rented asset with 2+ unresolved (warning),
+ *   5. return checklist reporting damage/missing items (warning, quick action),
+ *   6. unresolved older than ~24h (warning),
+ *   7. any unresolved (warning, fallback).
+ * `returnSubmissionId` rides along whenever the asset has an unresolved return, so the row can
+ * offer "Mark returned & resolve". Capped to `cap` (default 10).
+ */
+export function buildAttentionItems(
+  assets: AttentionAsset[],
+  opts: { cap?: number; now?: number } = {}
+): AttentionItem[] {
+  const cap = opts.cap ?? 10;
+  const now = opts.now ?? Date.now();
+  const items: AttentionItem[] = [];
+
+  for (const a of assets) {
+    // The quick action only rides on return-oriented rows, so a damage/stale row never
+    // offers "Mark returned & resolve" (which would resolve the return, not the damage).
+    const base = {
+      assetId: a.id,
+      code: a.code,
+      href: `/dashboard/submissions?asset_id=${a.id}&status=unresolved`,
+      returnSubmissionId: null as string | null,
+    };
+    const plural = a.unresolvedCount === 1 ? "" : "s";
+    let item: AttentionItem | null = null;
+
+    if (a.rented && a.hasOpenDamage) {
+      item = {
+        ...base,
+        key: `${a.id}:damage-rented`,
+        title: "Open damage on a rented asset",
+        reason: a.hasUrgentDamage
+          ? "Marked urgent. Review before the next handoff."
+          : "Review before the next handoff.",
+        tone: "danger",
+        priority: 1,
+      };
+    } else if (!a.rented && a.hasOpenDamage) {
+      item = {
+        ...base,
+        key: `${a.id}:damage-available`,
+        title: "Unresolved damage on an available asset",
+        reason: "Resolve it before the asset goes out again.",
+        tone: "danger",
+        priority: 2,
+      };
+    } else if (a.rented && a.hasUnresolvedReturn) {
+      item = {
+        ...base,
+        key: `${a.id}:return-rented`,
+        title: "Return checklist received while still rented",
+        reason: "Mark it returned to free the asset.",
+        tone: "warning",
+        priority: 3,
+        returnSubmissionId: a.returnSubmissionId,
+      };
+    } else if (a.rented && a.unresolvedCount >= 2) {
+      item = {
+        ...base,
+        key: `${a.id}:multi-rented`,
+        title: `${a.unresolvedCount} open submissions on a rented asset`,
+        reason: a.name,
+        tone: "warning",
+        priority: 4,
+      };
+    } else if (a.hasUnresolvedReturn && a.returnFlagsIssue) {
+      item = {
+        ...base,
+        key: `${a.id}:return-flagged`,
+        title: "Return reports damage or missing items",
+        reason: a.name,
+        tone: "warning",
+        priority: 5,
+        returnSubmissionId: a.returnSubmissionId,
+      };
+    } else if (
+      a.oldestUnresolvedMs !== null &&
+      now - a.oldestUnresolvedMs > DAY_MS
+    ) {
+      const hours = Math.floor((now - a.oldestUnresolvedMs) / (60 * 60 * 1000));
+      item = {
+        ...base,
+        key: `${a.id}:stale`,
+        title: `${a.unresolvedCount} open submission${plural}`,
+        reason: `Waiting ${hours}h without a response.`,
+        tone: "warning",
+        priority: 6,
+      };
+    } else if (a.unresolvedCount > 0) {
+      item = {
+        ...base,
+        key: `${a.id}:unresolved`,
+        title: `${a.unresolvedCount} open submission${plural}`,
+        reason: a.name,
+        tone: "warning",
+        priority: 7,
+      };
+    }
+
+    if (item) items.push(item);
+  }
+
+  // Stable sort by priority; within a priority the input order (the page's asset order) holds.
+  items.sort((x, y) => x.priority - y.priority);
+  return items.slice(0, cap);
+}
+
+// ---------------------------------------------------------------------------
+// Per-asset unresolved roll-up — derives the attention signals from the org's
+// already-fetched unresolved submission rows. Pure; nothing stored.
+// ---------------------------------------------------------------------------
+
+export type UnresolvedSignals = {
+  unresolvedCount: number;
+  hasOpenDamage: boolean;
+  hasUrgentDamage: boolean;
+  hasUnresolvedReturn: boolean;
+  returnSubmissionId: string | null;
+  returnFlagsIssue: boolean;
+  oldestUnresolvedMs: number | null;
+};
+
+export type AttentionSubmission = {
+  id: string;
+  asset_id: string | null;
+  form_type: string;
+  status: string;
+  created_at: string;
+  submission_data_json?: unknown;
+};
+
+/**
+ * Fold an org's submissions into per-asset attention signals, counting only unresolved
+ * (new/reviewed) rows. Damage → open/urgent flags; return checklist → the first unresolved
+ * return submission id in input order + a damage/missing flag; the oldest unresolved timestamp
+ * drives the "stale" item. Keyed by `asset_id`; submissions with no asset are ignored.
+ */
+export function summarizeUnresolvedByAsset(
+  submissions: AttentionSubmission[]
+): Map<string, UnresolvedSignals> {
+  const map = new Map<string, UnresolvedSignals>();
+  for (const s of submissions) {
+    if (!s.asset_id || !isUnresolvedStatus(s.status)) continue;
+    const cur =
+      map.get(s.asset_id) ??
+      {
+        unresolvedCount: 0,
+        hasOpenDamage: false,
+        hasUrgentDamage: false,
+        hasUnresolvedReturn: false,
+        returnSubmissionId: null,
+        returnFlagsIssue: false,
+        oldestUnresolvedMs: null,
+      };
+
+    cur.unresolvedCount += 1;
+
+    if (s.form_type === "damage_report") {
+      cur.hasOpenDamage = true;
+      if (submissionUrgency(s.form_type, s.submission_data_json) === "high") {
+        cur.hasUrgentDamage = true;
+      }
+    }
+
+    if (s.form_type === "return_checklist") {
+      cur.hasUnresolvedReturn = true;
+      if (cur.returnSubmissionId === null) cur.returnSubmissionId = s.id;
+      if (returnChecklistFlags(s.submission_data_json).flagged) {
+        cur.returnFlagsIssue = true;
+      }
+    }
+
+    const t = new Date(s.created_at).getTime();
+    if (!Number.isNaN(t)) {
+      cur.oldestUnresolvedMs =
+        cur.oldestUnresolvedMs === null ? t : Math.min(cur.oldestUnresolvedMs, t);
+    }
+
+    map.set(s.asset_id, cur);
+  }
+  return map;
+}
+
+// ---------------------------------------------------------------------------
+// Setup gaps — the re-sourced, low-priority readiness list (NOT the attention
+// queue). Moved off the action queue so setup never competes with active work.
+// ---------------------------------------------------------------------------
+
+export type SetupGap = {
+  id: string;
+  code: string;
+  name: string;
+  title: string;
+  href: string;
 };
 
 /** Fix link for a setup-gap reason → the page that resolves it. */
@@ -74,69 +287,33 @@ const SETUP_TITLE: Partial<Record<ReadinessReason, string>> = {
 };
 
 /**
- * Build the needs-attention rows for the briefing. Order of severity:
- *   1. rented asset with an open damage report (danger),
- *   2. assets with unresolved submissions (warning, by count desc),
- *   3. setup gaps — not live/scannable (warning).
- * An asset can appear for more than one concern. Capped to `cap` (default 10).
+ * The setup/readiness gaps for the quiet Setup section — never time-sensitive ops, so they
+ * never enter the attention queue. Up to `limit` (default 3) not-ready assets, each linking to
+ * the page that fixes it.
  */
-export function buildAttentionItems(
-  assets: AttentionAsset[],
-  opts: { cap?: number } = {}
-): AttentionItem[] {
-  const cap = opts.cap ?? 10;
-  const damage: AttentionItem[] = [];
-  const unresolved: AttentionItem[] = [];
-  const setup: AttentionItem[] = [];
-
+export function buildSetupGaps(
+  assets: {
+    id: string;
+    code: string;
+    name: string;
+    ready: boolean;
+    reason: ReadinessReason | null;
+  }[],
+  limit = 3
+): SetupGap[] {
+  const gaps: SetupGap[] = [];
   for (const a of assets) {
-    if (a.rented && a.hasOpenDamage) {
-      damage.push({
-        key: `${a.id}:damage`,
-        assetId: a.id,
-        code: a.code,
-        title: "Open damage on a rented asset",
-        reason: "Review before the next handoff.",
-        href: `/dashboard/submissions?asset_id=${a.id}&status=unresolved`,
-        tone: "danger",
-      });
-    } else if (a.unresolvedCount > 0) {
-      unresolved.push({
-        key: `${a.id}:unresolved`,
-        assetId: a.id,
-        code: a.code,
-        title: `${a.unresolvedCount} open submission${a.unresolvedCount === 1 ? "" : "s"}`,
-        reason: a.name,
-        href: `/dashboard/submissions?asset_id=${a.id}&status=unresolved`,
-        tone: "warning",
-      });
-    }
-
-    if (!a.readiness.ready && a.readiness.reason) {
-      const reason = a.readiness.reason;
-      setup.push({
-        key: `${a.id}:setup`,
-        assetId: a.id,
-        code: a.code,
-        title: SETUP_TITLE[reason] ?? "Not live yet",
-        reason: `${a.name} · ${readinessReasonLabel(reason)}`,
-        href: reasonHref(a.id, reason),
-        tone: "warning",
-      });
-    }
+    if (a.ready || !a.reason) continue;
+    gaps.push({
+      id: a.id,
+      code: a.code,
+      name: a.name,
+      title: SETUP_TITLE[a.reason] ?? "Not live yet",
+      href: reasonHref(a.id, a.reason),
+    });
+    if (gaps.length >= limit) break;
   }
-
-  unresolved.sort(
-    (x, y) =>
-      (assetById(assets, y.assetId)?.unresolvedCount ?? 0) -
-      (assetById(assets, x.assetId)?.unresolvedCount ?? 0)
-  );
-
-  return [...damage, ...unresolved, ...setup].slice(0, cap);
-}
-
-function assetById(assets: AttentionAsset[], id: string): AttentionAsset | undefined {
-  return assets.find((a) => a.id === id);
+  return gaps;
 }
 
 // ---------------------------------------------------------------------------
@@ -197,25 +374,35 @@ export type BandStatSpec = {
 };
 
 /**
- * The four ranked BandStats. Every stat links to an existing filtered view — a
- * stat that links nowhere does not belong in the band (ui-language.md), which the
- * test suite enforces. `attention` is on only when the new-submissions count > 0,
- * so the all-clear state stays neutral.
+ * The operational-pulse BandStats (Part C): rented, unresolved, scans·7d, covered/limit —
+ * exactly the four live numbers that describe the day. Every stat links to an existing
+ * filtered view — a stat that links nowhere does not belong in the band (ui-language.md),
+ * which the test suite enforces. `attention` is on only when unresolved > 0, so the
+ * all-clear state stays neutral. Ready/total moves to the Setup section header. `limit` null
+ * (no per-asset plan cap) renders covered as a bare count. No ROI, no IP/user-agent.
  */
 export function buildBandStats(input: {
-  newCount: number;
-  scans7d: number;
   rented: number;
-  ready: number;
+  unresolved: number;
+  scans7d: number;
+  covered: number;
+  limit: number | null;
   totalAssets: number;
 }): BandStatSpec[] {
   return [
     {
-      key: "new",
-      label: "new submissions",
-      value: input.newCount,
-      href: "/dashboard/submissions?status=new",
-      attention: input.newCount > 0,
+      key: "rented",
+      label: "rented",
+      value: input.rented,
+      total: input.totalAssets,
+      href: "/dashboard/assets?rental=rented",
+    },
+    {
+      key: "unresolved",
+      label: "unresolved",
+      value: input.unresolved,
+      href: "/dashboard/submissions",
+      attention: input.unresolved > 0,
     },
     {
       key: "scans",
@@ -225,18 +412,11 @@ export function buildBandStats(input: {
       sparkline: true,
     },
     {
-      key: "rented",
-      label: "rented",
-      value: input.rented,
-      total: input.totalAssets,
-      href: "/dashboard/assets?rental=rented",
-    },
-    {
-      key: "ready",
-      label: "assets ready",
-      value: input.ready,
-      total: input.totalAssets,
-      href: "/dashboard/assets?page=published",
+      key: "covered",
+      label: "covered",
+      value: input.covered,
+      total: input.limit ?? undefined,
+      href: "/dashboard/assets?qr=has",
     },
   ];
 }

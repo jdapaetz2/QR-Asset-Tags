@@ -28,6 +28,9 @@ import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { RefreshControls } from "@/components/refresh-controls";
+import { MarkReturnedResolveButton } from "@/components/mark-returned-resolve-button";
+import { ReturnDoneNotice } from "@/components/return-done-notice";
+import { canQuickResolveReturn } from "@/lib/submissions/returns";
 import { submissionStatusTone, type BadgeTone } from "@/lib/ui/status";
 import { submissionStatusLabel } from "@/lib/ui/status-labels";
 
@@ -155,6 +158,7 @@ export default async function SubmissionsPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <ReturnDoneNotice done={typeof sp.done === "string" ? sp.done : null} />
       <PageHeader
         title="Submissions"
         description="Damage reports, support requests, and return checklists from your QR pages."
@@ -415,13 +419,24 @@ export default async function SubmissionsPage({
                         {submissionStatusLabel(row.status)}
                       </Badge>
                     </td>
-                    <td className="px-4 py-2 text-right">
-                      <Link
-                        href={`/dashboard/submissions/${row.id}`}
-                        className="text-sm font-medium underline-offset-4 hover:underline"
-                      >
-                        Open
-                      </Link>
+                    <td className="px-4 py-2">
+                      <div className="flex flex-col items-end gap-1.5">
+                        <Link
+                          href={`/dashboard/submissions/${row.id}`}
+                          className="text-sm font-medium underline-offset-4 hover:underline"
+                        >
+                          Open
+                        </Link>
+                        {canQuickResolveReturn({
+                          formType: row.form_type,
+                          status: row.status,
+                        }) ? (
+                          <MarkReturnedResolveButton
+                            submissionId={row.id}
+                            redirectTo="/dashboard/submissions"
+                          />
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 );

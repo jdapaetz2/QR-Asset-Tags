@@ -3,8 +3,9 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireProfile } from "@/lib/auth/session";
+import { requireOrgId, requireProfile } from "@/lib/auth/session";
 import { isSubmissionStatus } from "@/lib/submissions/display";
+import { returnActionOutcome } from "@/lib/submissions/returns";
 
 export type SubmissionActionState = { error?: string };
 
@@ -50,4 +51,40 @@ export async function setSubmissionStatus(
       `/dashboard/submissions/${submissionId}`
     )
   );
+}
+
+/**
+ * "Mark returned & resolve" — the one admin action that completes a return checklist
+ * atomically. All the work (close the active rental session, clear the asset's rental
+ * pointer, resolve the submission) happens inside the `mark_return_and_resolve` RPC
+ * (migration 0022), a single transaction, so there is no partial state and no separate
+ * timeline write (the timeline is derived from the rows the RPC updates).
+ *
+ * `requireOrgId()` gates this to a signed-in member of an active org; the RPC re-checks
+ * ownership (`organization_id = current_org_id()`) under RLS. It is idempotent — a second
+ * click on an already-resolved checklist is a safe no-op. On success it redirects back to
+ * `redirect_to` with a `?done=` flag so the caller shows the confirmation banner.
+ */
+export async function markReturnAndResolve(
+  submissionId: string,
+  _prev: SubmissionActionState,
+  formData: FormData
+): Promise<SubmissionActionState> {
+  await requireOrgId();
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("mark_return_and_resolve", {
+    p_submission_id: submissionId,
+  });
+  if (error) return { error: "Could not complete the return." };
+
+  const outcome = returnActionOutcome(String(data ?? ""));
+  if (!outcome.ok) return { error: outcome.error };
+
+  const base = safeRedirect(
+    formData.get("redirect_to"),
+    `/dashboard/submissions/${submissionId}`
+  );
+  const sep = base.includes("?") ? "&" : "?";
+  redirect(`${base}${sep}done=${outcome.done}`);
 }

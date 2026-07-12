@@ -6,6 +6,7 @@ import { useActionState, useState } from "react";
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { RelativeTime } from "@/components/relative-time";
+import { MarkReturnedResolveButton } from "@/components/mark-returned-resolve-button";
 import { cn } from "@/lib/utils";
 import { nextOpenAccordionId } from "@/lib/dashboard/briefing";
 import {
@@ -20,11 +21,11 @@ export type QueueItem = {
   /** Substantive one-line summary shown on the collapsed row + as the amber chip. */
   title: string;
   reason: string;
-  /** Primary destination: "Open in submissions" (submission items) or the fix page (setup gaps). */
+  /** Primary destination — always "Open in submissions" (the queue is submission ops only). */
   href: string;
   historyHref: string;
-  /** Setup gaps get an iron dot + "Finish setup"; submission items get an amber dot. */
-  isSetup: boolean;
+  /** Present when the asset has an unresolved return checklist → offers "Mark returned & resolve". */
+  returnSubmissionId: string | null;
   detail: {
     submissionId: string;
     /** The latest unresolved submission is still `new` → "Mark reviewed" is offered. */
@@ -100,7 +101,7 @@ export function AttentionQueue({ items }: { items: QueueItem[] }) {
     <div className="overflow-hidden rounded-lg border bg-card">
       {items.map((item) => {
         const open = openId === item.key;
-        const primaryLabel = item.isSetup ? "Finish setup" : "Open in submissions";
+        const primaryLabel = "Open in submissions";
         return (
           <div key={item.key} className="border-b border-iron-200 last:border-b-0">
             <button
@@ -112,10 +113,7 @@ export function AttentionQueue({ items }: { items: QueueItem[] }) {
               {!open ? (
                 <span
                   aria-hidden
-                  className={cn(
-                    "size-2 shrink-0 rounded-full",
-                    item.isSetup ? "bg-iron-600" : "bg-warning"
-                  )}
+                  className="size-2 shrink-0 rounded-full bg-warning"
                 />
               ) : null}
               <AssetTagChip code={item.code} />
@@ -183,7 +181,12 @@ export function AttentionQueue({ items }: { items: QueueItem[] }) {
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <PrimaryButton href={item.href}>{primaryLabel}</PrimaryButton>
-                    {item.detail?.canReview ? (
+                    {item.returnSubmissionId ? (
+                      <MarkReturnedResolveButton
+                        submissionId={item.returnSubmissionId}
+                        redirectTo="/dashboard"
+                      />
+                    ) : item.detail?.canReview ? (
                       <MarkReviewedButton submissionId={item.detail.submissionId} />
                     ) : null}
                     <Link
