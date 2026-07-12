@@ -102,9 +102,12 @@ describe("parseSubmissionFilters", () => {
     expect(parseSubmissionFilters({}).hasMedia).toBe(false);
   });
 
-  it("keeps the synthetic unresolved status", () => {
+  it("keeps the synthetic unresolved + all_active statuses", () => {
     expect(parseSubmissionFilters({ status: "unresolved" }).status).toBe(
       "unresolved"
+    );
+    expect(parseSubmissionFilters({ status: "all_active" }).status).toBe(
+      "all_active"
     );
   });
 });
@@ -127,14 +130,15 @@ describe("activeQuickFilterKey", () => {
     q: "",
   };
 
-  it("matches All when nothing is set", () => {
-    expect(activeQuickFilterKey(base)).toBe("all");
+  it("defaults to the Unresolved chip when nothing is set", () => {
+    expect(activeQuickFilterKey(base)).toBe("unresolved");
   });
 
-  it("matches the Unresolved chip", () => {
+  it("matches the Unresolved chip (explicit) and the All active chip", () => {
     expect(activeQuickFilterKey({ ...base, status: "unresolved" })).toBe(
       "unresolved"
     );
+    expect(activeQuickFilterKey({ ...base, status: "all_active" })).toBe("all");
   });
 
   it("matches the New, type, and Archived chips", () => {
@@ -157,12 +161,10 @@ describe("activeQuickFilterKey", () => {
 });
 
 describe("resolveStatusFilter", () => {
-  it("defaults to active statuses (archived hidden) when no status is set", () => {
+  it("defaults to unresolved (new + reviewed) when no status is set", () => {
     const f = resolveStatusFilter("");
-    expect(f).toEqual({
-      mode: "active",
-      statuses: ["new", "reviewed", "resolved"],
-    });
+    expect(f).toEqual({ mode: "active", statuses: ["new", "reviewed"] });
+    expect(f.mode === "active" && f.statuses).not.toContain("resolved");
     expect(f.mode === "active" && f.statuses).not.toContain("archived");
   });
 
@@ -170,6 +172,15 @@ describe("resolveStatusFilter", () => {
     const f = resolveStatusFilter("unresolved");
     expect(f).toEqual({ mode: "active", statuses: ["new", "reviewed"] });
     expect(f.mode === "active" && f.statuses).not.toContain("resolved");
+    expect(f.mode === "active" && f.statuses).not.toContain("archived");
+  });
+
+  it("returns the active set (archived hidden) for all_active", () => {
+    const f = resolveStatusFilter("all_active");
+    expect(f).toEqual({
+      mode: "active",
+      statuses: ["new", "reviewed", "resolved"],
+    });
     expect(f.mode === "active" && f.statuses).not.toContain("archived");
   });
 

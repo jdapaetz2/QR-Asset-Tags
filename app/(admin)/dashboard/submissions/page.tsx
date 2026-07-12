@@ -89,7 +89,8 @@ export default async function SubmissionsPage({
     )
     .order("created_at", { ascending: false });
 
-  // Archived is hidden unless deliberately selected. No status → active statuses only.
+  // No status → the Unresolved default (new + reviewed). "all_active" adds resolved;
+  // archived shows only when deliberately selected. resolveStatusFilter is the source of truth.
   const statusFilter = resolveStatusFilter(filters.status);
   if (statusFilter.mode === "single") {
     query = query.eq("status", statusFilter.status);
@@ -228,11 +229,13 @@ export default async function SubmissionsPage({
           <span className="text-muted-foreground">Status</span>
           <select
             name="status"
-            defaultValue={filters.status}
+            // "" is the default view (Unresolved). An explicit ?status=unresolved
+            // deep-link resolves to the same set, so show it on the "" option.
+            defaultValue={filters.status === "unresolved" ? "" : filters.status}
             className={selectClass}
           >
-            <option value="">All active</option>
-            <option value="unresolved">Unresolved (new + reviewed)</option>
+            <option value="">Unresolved (new + reviewed)</option>
+            <option value="all_active">All active</option>
             {SUBMISSION_STATUSES.map((s) => (
               <option key={s} value={s}>
                 {submissionStatusLabel(s)}

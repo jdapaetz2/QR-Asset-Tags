@@ -55,7 +55,7 @@ export default async function SettingsPage() {
   const sampleHref = qr?.short_code ? `/t/${qr.short_code}` : null;
 
   return (
-    <div className="flex max-w-3xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
       <div>
         <Link
           href="/dashboard"

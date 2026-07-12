@@ -23,7 +23,9 @@ export async function GET(request: NextRequest) {
     ? statusRaw
     : statusRaw === "unresolved"
       ? "unresolved"
-      : "";
+      : statusRaw === "all_active"
+        ? "all_active"
+        : "";
   const assetId = sp.get("asset_id") ?? "";
 
   const supabase = await createClient();
@@ -36,7 +38,8 @@ export async function GET(request: NextRequest) {
     )
     .order("created_at", { ascending: false });
 
-  // Mirror the inbox: no status → active statuses only (archived excluded).
+  // Mirror the inbox: no status → the Unresolved default (new + reviewed); "all_active"
+  // exports new + reviewed + resolved; archived only when explicitly selected.
   const statusFilter = resolveStatusFilter(status);
   if (statusFilter.mode === "single") {
     query = query.eq("status", statusFilter.status);

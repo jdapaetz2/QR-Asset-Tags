@@ -107,8 +107,9 @@ export function urgencyTone(urgency: string): BadgeTone {
 }
 
 /**
- * Operational (non-archived) statuses. The default inbox shows only these; archived
- * submissions surface only when Archived is deliberately selected.
+ * Operational (non-archived) statuses — the "All active" filter. Archived submissions
+ * surface only when Archived is deliberately selected. (The default inbox is narrower
+ * still: UNRESOLVED_STATUSES = new + reviewed.)
  */
 export const ACTIVE_STATUSES = ["new", "reviewed", "resolved"] as const;
 
@@ -117,24 +118,30 @@ export type StatusFilter =
   | { mode: "single"; status: SubmissionStatus };
 
 /**
- * Accepted values of the `status` filter. Beyond the real statuses and "" (All
- * active), "unresolved" is a synthetic filter meaning new + reviewed only — the
- * work still on the operator's plate. It has no DB status of its own; it maps to
- * a multi-status "active" filter over UNRESOLVED_STATUSES.
+ * Accepted values of the `status` filter. Two synthetic values sit beside the real
+ * statuses: "unresolved" (new + reviewed — work still on the operator's plate) and
+ * "all_active" (new + reviewed + resolved — everything but archived). "" is the
+ * default/no-param value and means the same as "unresolved". None of the synthetic
+ * values is a DB status; each maps to a multi-status "active" filter.
  */
-export type StatusFilterValue = SubmissionStatus | "unresolved" | "";
+export type StatusFilterValue =
+  | SubmissionStatus
+  | "unresolved"
+  | "all_active"
+  | "";
 
 /**
- * Resolve the status query into a DB filter. No status → "active" (excludes
- * archived); "unresolved" → new + reviewed (excludes resolved + archived); a
- * specific status → that status only (including "archived"). This is the single
- * source of truth for "archived hidden by default".
+ * Resolve the status query into a DB filter. The **default** (no status) and
+ * "unresolved" → new + reviewed (the work that still needs attention). "all_active"
+ * → new + reviewed + resolved (archived excluded). A specific status → that status
+ * only (including "archived"). This is the single source of truth for both "archived
+ * hidden by default" and "the inbox defaults to unresolved".
  */
 export function resolveStatusFilter(status: StatusFilterValue): StatusFilter {
-  if (status === "") {
+  if (status === "all_active") {
     return { mode: "active", statuses: ACTIVE_STATUSES };
   }
-  if (status === "unresolved") {
+  if (status === "" || status === "unresolved") {
     return { mode: "active", statuses: UNRESOLVED_STATUSES };
   }
   return { mode: "single", status };
@@ -205,7 +212,9 @@ export function parseSubmissionFilters(
       ? statusRaw
       : statusRaw === "unresolved"
         ? "unresolved"
-        : "",
+        : statusRaw === "all_active"
+          ? "all_active"
+          : "",
     assetId: firstString(raw.asset_id),
     hasMedia: media === "1" || media === "true",
     q: firstString(raw.q).trim(),
@@ -228,18 +237,19 @@ export function submissionFilterQuery(
 export type QuickFilter = {
   key: string;
   label: string;
-  /** Filter params this chip applies; an empty object is the default "All active". */
+  /** Filter params this chip applies (serialized into the chip's href). */
   params: Partial<SubmissionFilters>;
 };
 
 /**
- * Quick-filter chips for the inbox toolbar. Order matters (left → right). "All
- * active" (default) and the type/media chips exclude archived; Archived is a
- * deliberate chip that shows archived rows only.
+ * Quick-filter chips for the inbox toolbar. Order matters (left → right). "Unresolved"
+ * is the default view (new + reviewed); "All active" adds resolved; both — and the
+ * type/media chips — exclude archived. Archived is a deliberate chip that shows archived
+ * rows only.
  */
 export const QUICK_FILTERS: QuickFilter[] = [
-  { key: "all", label: "All active", params: {} },
   { key: "unresolved", label: "Unresolved", params: { status: "unresolved" } },
+  { key: "all", label: "All active", params: { status: "all_active" } },
   { key: "new", label: "New", params: { status: "new" } },
   {
     key: "damage",
@@ -262,27 +272,19 @@ export const QUICK_FILTERS: QuickFilter[] = [
 
 /** Which quick-filter chip (if any) exactly matches the active filters. */
 export function activeQuickFilterKey(filters: SubmissionFilters): string | null {
+  // The default (no status) is the Unresolved view, so treat "" as "unresolved" on
+  // both sides: a bare inbox highlights Unresolved, and type/media chips (which carry
+  // no status) inherit that default scope.
+  const norm = (s: string) => (s === "" ? "unresolved" : s);
+  const filterStatus = norm(filters.status);
   for (const chip of QUICK_FILTERS) {
     const p = chip.params;
     const matches =
-      (p.status ?? "") === filters.status &&
+      norm(p.status ?? "") === filterStatus &&
       (p.formType ?? "") === filters.formType &&
       Boolean(p.hasMedia) === filters.hasMedia &&
       (p.assetId ?? "") === filters.assetId &&
       !filters.q;
-    // "All active" only matches when nothing is set (no archived, no other filters).
-    if (chip.key === "all") {
-      if (
-        !filters.status &&
-        !filters.formType &&
-        !filters.hasMedia &&
-        !filters.assetId &&
-        !filters.q
-      ) {
-        return "all";
-      }
-      continue;
-    }
     if (matches) return chip.key;
   }
   return null;
