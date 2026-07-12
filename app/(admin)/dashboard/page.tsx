@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireProfile, landingPathForRole } from "@/lib/auth/session";
+import { requireProfile, SUSPENDED_PATH } from "@/lib/auth/session";
+import { ROLES } from "@/lib/auth/roles";
 import { firstNameToken } from "@/lib/auth/name";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -78,9 +79,16 @@ export default async function DashboardPage({
 }) {
   const profile = await requireProfile();
 
-  // Platform owners have no organization; send them to their own landing.
+  // Platform owners land on their own console — NOT the customer dashboard.
+  if (profile.role === ROLES.PLATFORM_OWNER) {
+    redirect("/owner");
+  }
+  // A customer profile with no organization can't load org-scoped data. Route it to
+  // /suspended, matching the (admin) layout's requireActiveOrg guard. Never redirect to
+  // /dashboard here: landingPathForRole returns "/dashboard" for non-owners, which would
+  // re-enter this page and loop (the "many consecutive GET /dashboard" regression).
   if (!profile.organization_id) {
-    redirect(landingPathForRole(profile.role));
+    redirect(SUSPENDED_PATH);
   }
 
   const sp = await searchParams;

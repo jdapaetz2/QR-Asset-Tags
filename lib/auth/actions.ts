@@ -6,6 +6,7 @@ import { type EmailOtpType } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/server";
 import { landingPathForRole, requireProfile } from "@/lib/auth/session";
+import { SIGN_OUT_REDIRECT_PATH } from "@/lib/auth/sign-out";
 import { sanitizeNextPath } from "@/lib/auth/redirect";
 import { isRole, type Role } from "@/lib/auth/roles";
 import { publicEnv } from "@/lib/env";
@@ -151,5 +152,5 @@ export async function setPassword(formData: FormData) {
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/login");
+  redirect(SIGN_OUT_REDIRECT_PATH);
 }
