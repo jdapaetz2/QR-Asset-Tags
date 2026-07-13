@@ -16,7 +16,7 @@ import {
   evaluateInspection,
   parseAnswerValues,
   readOmissionAck,
-  resolveDamagePhotoEvidence,
+  resolvePhotoEvidence,
   visiblePhotoSlots,
 } from "@/lib/inspections/validate";
 import { DAMAGE_PHOTOS_SLOT_ID } from "@/lib/inspections/templates";
@@ -92,13 +92,10 @@ export async function submitStaffReturnInspectionCore(
   );
   if (mediaError) return { error: mediaError };
 
+  // Per-slot maximum only (Phase 3C.1.1): no photo is a hard prerequisite (soft evidence below).
   for (const slot of slots) {
     const count = filesBySlot.get(slot.id)?.length ?? 0;
-    const min = slot.photo?.minPhotos ?? 0;
     const max = slot.photo?.maxPhotos ?? 6;
-    if (count < min) {
-      return { error: `Add at least ${min} photo${min === 1 ? "" : "s"} for "${slot.label}".` };
-    }
     if (count > max) return { error: `"${slot.label}" allows at most ${max} photos.` };
   }
 
@@ -128,14 +125,22 @@ export async function submitStaffReturnInspectionCore(
   }
 
   const flags = deriveFlags(template, values);
-  // Soft damage-photo evidence (Phase 3C.1): server-authoritative count + explicit omission ack.
-  const evidence = resolveDamagePhotoEvidence({
+  // Soft photo evidence (Phase 3C.1.1): server-authoritative counts + explicit omission ack.
+  const totalPhotoCount = Object.values(photos).reduce((n, list) => n + list.length, 0);
+  const evidence = resolvePhotoEvidence({
     damage: flags.damage_observed === "yes",
     damagePhotoCount: photos[DAMAGE_PHOTOS_SLOT_ID]?.length ?? 0,
+    totalPhotoCount,
+    hasPhotoSlots: slots.length > 0,
     acknowledged: readOmissionAck(formData),
   });
   if (evidence.error) return { error: evidence.error };
-  flags.damage_photos_missing = evidence.missing;
+  flags.damage_photos_missing = evidence.damagePhotosMissing;
+  flags.condition_photos_missing = evidence.conditionPhotosMissing;
+
+  const missingSlots = slots
+    .filter((slot) => (photos[slot.id]?.length ?? 0) === 0)
+    .map((slot) => slot.id);
 
   const status = staffReturnStatus({
     damage: flags.damage_observed === "yes",
@@ -145,7 +150,10 @@ export async function submitStaffReturnInspectionCore(
   const data = {
     ...buildReturnSubmissionData({ template, answers: buildAnswers(values, photos), flags }),
     audience: "staff" as const,
-    ...(evidence.missing ? { damage_photo_omission_acknowledged: true } : {}),
+    ...(missingSlots.length > 0 ? { missing_recommended_photo_slots: missingSlots } : {}),
+    ...(evidence.damagePhotosMissing || evidence.conditionPhotosMissing
+      ? { photo_omission_acknowledged: true }
+      : {}),
   };
 
   // Atomic: insert the staff return, close the active session, clear the asset pointer (all-or-nothing).

@@ -51,12 +51,27 @@ export function ReturnInspectionSummary({
 
   const damaged = flags.damage_observed === "yes";
   const missing = flags.accessories_missing === true;
-  // Soft damage-photo evidence (Phase 3C.1): reported damage with no damage photo. Prefer the server flag,
-  // else derive from the snapshot photos (older payloads have no flag).
+  // Soft photo evidence (Phase 3C.1.1). Prefer the server flags; fall back to snapshot photos for older
+  // payloads. One consolidated Evidence note by priority: damage-without-photo → no photos → some missing.
+  const f = flags as { damage_photos_missing?: boolean; condition_photos_missing?: boolean };
+  const totalPhotoCount = Object.values(photos as Record<string, unknown[]>).reduce(
+    (n, list) => n + (Array.isArray(list) ? list.length : 0),
+    0
+  );
   const damagePhotoCount = (photos as Record<string, unknown[]>)?.["damage_photos"]?.length ?? 0;
-  const damagePhotosMissing =
-    (flags as { damage_photos_missing?: boolean }).damage_photos_missing === true ||
-    (damaged && damagePhotoCount === 0);
+  const damagePhotosMissing = f.damage_photos_missing === true || (damaged && damagePhotoCount === 0);
+  const conditionPhotosMissing = f.condition_photos_missing === true || totalPhotoCount === 0;
+  const missingRecommended = data.missing_recommended_photo_slots ?? [];
+  const someRecommendedMissing = !conditionPhotosMissing && missingRecommended.length > 0;
+  const omissionAck =
+    data.photo_omission_acknowledged === true || data.damage_photo_omission_acknowledged === true;
+  const evidenceNote = damagePhotosMissing
+    ? "Damage reported without photos."
+    : conditionPhotosMissing
+      ? "No condition photos provided."
+      : someRecommendedMissing
+        ? "Some recommended photos were not provided."
+        : null;
   const heading =
     template.inspection_type === "outbound"
       ? "Outbound inspection"
@@ -76,20 +91,24 @@ export function ReturnInspectionSummary({
         <div className="flex flex-wrap gap-1.5">
           {damaged ? <Badge tone="danger">Damage reported</Badge> : null}
           {missing ? <Badge tone="warning">Accessories missing</Badge> : null}
-          {damagePhotosMissing ? <Badge tone="warning">No damage photos</Badge> : null}
           {!damaged && !missing ? <Badge tone="success">No issues flagged</Badge> : null}
         </div>
       </div>
 
-      {damagePhotosMissing ? (
-        <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
-          <span className="font-medium text-amber-700 dark:text-amber-400">
-            Damage photos not provided.
-          </span>{" "}
-          <span className="text-muted-foreground">
-            Damage was reported without supporting photos — review the description and follow up as needed.
-          </span>
-        </p>
+      {/* One concise Evidence summary (Phase 3C.1.1). */}
+      {evidenceNote ? (
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+            Evidence
+          </p>
+          <p className="mt-0.5">
+            <span className="font-medium text-amber-700 dark:text-amber-400">{evidenceNote}</span>{" "}
+            <span className="text-muted-foreground">
+              {totalPhotoCount} photo{totalPhotoCount === 1 ? "" : "s"} received.
+              {omissionAck ? " Submission without photos was acknowledged." : ""}
+            </span>
+          </p>
+        </div>
       ) : null}
 
       {/* Checklist answers in template order (photos + attestation handled separately). */}

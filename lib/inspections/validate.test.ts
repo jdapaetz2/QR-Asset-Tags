@@ -5,7 +5,7 @@ import {
   evaluateInspection,
   firstInspectionError,
   parseAnswerValues,
-  resolveDamagePhotoEvidence,
+  resolvePhotoEvidence,
   visiblePhotoSlotCounts,
   visiblePhotoSlots,
   type AnswerReader,
@@ -194,7 +194,6 @@ describe("visiblePhotoSlots", () => {
 // Client-side gate for opening the Review stage (Phase 1A.1). Uses plain client `values` maps
 // (attestation is "yes"/"" here, not "on"/parsed) and a fileCounts map keyed by photo-slot id.
 describe("firstInspectionError", () => {
-  const OVERVIEW_FC = { front_hitch_photo: 1, deck_photo: 1 };
   const baseValues: Record<string, string> = {
     tires_wheels: "pass",
     lights_wiring: "pass",
@@ -207,98 +206,79 @@ describe("firstInspectionError", () => {
     attestation: "yes",
   };
 
-  it("returns null for a complete submission (damage=no, additional photos optional)", () => {
-    expect(firstInspectionError(utility, baseValues, OVERVIEW_FC)).toBeNull();
-    // Additional photos absent is fine (optional slot).
-    expect(firstInspectionError(utility, baseValues, OVERVIEW_FC)?.fieldId).toBeUndefined();
+  it("returns null for a complete submission with NO photos (Phase 3C.1.1 — photos never block)", () => {
+    expect(firstInspectionError(utility, baseValues)).toBeNull();
   });
 
-  it("flags a missing required field by id", () => {
-    const err = firstInspectionError(
-      utility,
-      { ...baseValues, tires_wheels: "" },
-      OVERVIEW_FC
+  it("a valid Pass for tires_wheels does not produce a required error (regression)", () => {
+    expect(firstInspectionError(utility, baseValues)?.fieldId).not.toBe("tires_wheels");
+    expect(firstInspectionError(utility, baseValues)).toBeNull();
+  });
+
+  it("flags a genuinely missing required non-photo field by id", () => {
+    expect(firstInspectionError(utility, { ...baseValues, tires_wheels: "" })?.fieldId).toBe(
+      "tires_wheels"
     );
-    expect(err?.fieldId).toBe("tires_wheels");
   });
 
-  it("flags a missing required overview photo by slot id", () => {
-    const err = firstInspectionError(utility, baseValues, { front_hitch_photo: 1 });
-    expect(err?.fieldId).toBe("deck_photo");
-  });
-
-  it("requires damage location/severity/description when damage=yes (Phase 3C.1)", () => {
-    const dmg = { ...baseValues, damage_observed: "yes" };
-    // Details missing → first damage field.
-    expect(firstInspectionError(utility, dmg, OVERVIEW_FC)?.fieldId).toBe("damage_location");
-    expect(
-      firstInspectionError(utility, { ...dmg, damage_location: "left fender" }, OVERVIEW_FC)?.fieldId
-    ).toBe("damage_severity");
-    expect(
-      firstInspectionError(
-        utility,
-        { ...dmg, damage_location: "x", damage_severity: "minor" },
-        OVERVIEW_FC
-      )?.fieldId
-    ).toBe("damage_description");
-  });
-
-  it("does NOT block Review on a missing damage photo (soft evidence)", () => {
-    const withDetails = {
+  it("never blocks on a missing photo slot (overview, damage, or additional)", () => {
+    // No photo counts supplied at all → still valid.
+    expect(firstInspectionError(utility, baseValues)).toBeNull();
+    const withDamage = {
       ...baseValues,
       damage_observed: "yes",
       damage_location: "left fender",
       damage_severity: "minor",
       damage_description: "scratch",
     };
-    // Damage details complete + zero damage photos → no client error (Review is reachable).
-    expect(firstInspectionError(utility, withDetails, OVERVIEW_FC)).toBeNull();
+    // Damage details complete, zero damage photos → Review still reachable.
+    expect(firstInspectionError(utility, withDamage)).toBeNull();
   });
 
-  it("never requires the optional additional-photos slot", () => {
+  it("requires damage location/severity/description when damage=yes", () => {
+    const dmg = { ...baseValues, damage_observed: "yes" };
+    expect(firstInspectionError(utility, dmg)?.fieldId).toBe("damage_location");
+    expect(firstInspectionError(utility, { ...dmg, damage_location: "x" })?.fieldId).toBe(
+      "damage_severity"
+    );
     expect(
-      firstInspectionError(utility, baseValues, { ...OVERVIEW_FC, additional_photos: 0 })
-    ).toBeNull();
+      firstInspectionError(utility, { ...dmg, damage_location: "x", damage_severity: "minor" })?.fieldId
+    ).toBe("damage_description");
   });
 
   it("sectionFilter scopes validation to a single stage's sections", () => {
-    // Only the photos section: an unanswered condition field elsewhere is ignored.
     const err = firstInspectionError(
       utility,
       { ...baseValues, tires_wheels: "" },
-      { front_hitch_photo: 1, deck_photo: 1 },
       { sectionFilter: (s) => s.id === "photos" }
     );
     expect(err).toBeNull();
   });
 });
 
-describe("resolveDamagePhotoEvidence", () => {
-  it("no damage → never missing, no acknowledgement needed", () => {
-    expect(resolveDamagePhotoEvidence({ damage: false, damagePhotoCount: 0, acknowledged: false })).toEqual({
-      missing: false,
-      error: null,
-    });
+describe("resolvePhotoEvidence", () => {
+  it("no photos + no damage → condition photos missing, needs acknowledgement", () => {
+    const r = resolvePhotoEvidence({ damage: false, damagePhotoCount: 0, totalPhotoCount: 0, acknowledged: false });
+    expect(r.conditionPhotosMissing).toBe(true);
+    expect(r.damagePhotosMissing).toBe(false);
+    expect(r.error).toBeTruthy();
+    // Acknowledged → allowed.
+    expect(
+      resolvePhotoEvidence({ damage: false, damagePhotoCount: 0, totalPhotoCount: 0, acknowledged: true }).error
+    ).toBeNull();
   });
 
-  it("damage + a photo → not missing", () => {
-    expect(resolveDamagePhotoEvidence({ damage: true, damagePhotoCount: 2, acknowledged: false })).toEqual({
-      missing: false,
-      error: null,
-    });
+  it("damage without a damage photo → damagePhotosMissing, needs acknowledgement", () => {
+    const r = resolvePhotoEvidence({ damage: true, damagePhotoCount: 0, totalPhotoCount: 3, acknowledged: false });
+    expect(r.damagePhotosMissing).toBe(true);
+    expect(r.conditionPhotosMissing).toBe(false);
+    expect(r.error).toBeTruthy();
   });
 
-  it("damage + no photo + no acknowledgement → error (blocks the omission)", () => {
-    const r = resolveDamagePhotoEvidence({ damage: true, damagePhotoCount: 0, acknowledged: false });
-    expect(r.missing).toBe(true);
-    expect(r.error).toMatch(/damage photos/i);
-  });
-
-  it("damage + no photo + acknowledged → recorded as missing, allowed", () => {
-    expect(resolveDamagePhotoEvidence({ damage: true, damagePhotoCount: 0, acknowledged: true })).toEqual({
-      missing: true,
-      error: null,
-    });
+  it("photos present clears both flags and needs no acknowledgement", () => {
+    expect(
+      resolvePhotoEvidence({ damage: true, damagePhotoCount: 2, totalPhotoCount: 5, acknowledged: false })
+    ).toEqual({ damagePhotosMissing: false, conditionPhotosMissing: false, error: null });
   });
 });
 

@@ -19,7 +19,7 @@ import {
   evaluateInspection,
   parseAnswerValues,
   readOmissionAck,
-  resolveDamagePhotoEvidence,
+  resolvePhotoEvidence,
   visiblePhotoSlots,
 } from "@/lib/inspections/validate";
 import { DAMAGE_PHOTOS_SLOT_ID } from "@/lib/inspections/templates";
@@ -103,14 +103,11 @@ export async function submitReturnInspectionCore(
   );
   if (mediaError) return { error: mediaError };
 
-  // Per-slot minimums (required overview + conditional damage photos) and maximums.
+  // Per-slot maximum only (Phase 3C.1.1): NO photo is a hard prerequisite — minimums are not enforced.
+  // Missing photos are handled by the soft evidence rule below; the global media limits still apply.
   for (const slot of slots) {
     const count = filesBySlot.get(slot.id)?.length ?? 0;
-    const min = slot.photo?.minPhotos ?? 0;
     const max = slot.photo?.maxPhotos ?? 6;
-    if (count < min) {
-      return { error: `Add at least ${min} photo${min === 1 ? "" : "s"} for "${slot.label}".` };
-    }
     if (count > max) return { error: `"${slot.label}" allows at most ${max} photos.` };
   }
 
@@ -136,18 +133,30 @@ export async function submitReturnInspectionCore(
   }
 
   const flags = deriveFlags(template, values);
-  // Soft damage-photo evidence (Phase 3C.1): the server counts damage photos from the validated uploads
-  // and requires an explicit omission acknowledgement when damage is reported without any.
-  const evidence = resolveDamagePhotoEvidence({
+  // Soft photo evidence (Phase 3C.1.1): the server counts photos from the VALIDATED uploads and requires an
+  // explicit omission acknowledgement when damage has no photo OR nothing was attached at all.
+  const totalPhotoCount = Object.values(photos).reduce((n, list) => n + list.length, 0);
+  const evidence = resolvePhotoEvidence({
     damage: flags.damage_observed === "yes",
     damagePhotoCount: photos[DAMAGE_PHOTOS_SLOT_ID]?.length ?? 0,
+    totalPhotoCount,
+    hasPhotoSlots: slots.length > 0,
     acknowledged: readOmissionAck(formData),
   });
   if (evidence.error) return { error: evidence.error };
-  flags.damage_photos_missing = evidence.missing;
+  flags.damage_photos_missing = evidence.damagePhotosMissing;
+  flags.condition_photos_missing = evidence.conditionPhotosMissing;
+
+  // Visible photo slots that received no upload (server-computed) — admin sees which angles are missing.
+  const missingSlots = slots
+    .filter((slot) => (photos[slot.id]?.length ?? 0) === 0)
+    .map((slot) => slot.id);
 
   const data = buildReturnSubmissionData({ template, answers: buildAnswers(values, photos), flags });
-  if (evidence.missing) data.damage_photo_omission_acknowledged = true;
+  if (missingSlots.length > 0) data.missing_recommended_photo_slots = missingSlots;
+  if (evidence.damagePhotosMissing || evidence.conditionPhotosMissing) {
+    data.photo_omission_acknowledged = true;
+  }
 
   // id + created_at set app-side so the reference is byte-identical to the admin's (anon can't read back).
   const createdAt = new Date().toISOString();

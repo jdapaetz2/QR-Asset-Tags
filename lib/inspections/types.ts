@@ -121,6 +121,11 @@ export type InspectionFlags = {
    * V2 payloads (absent = photos not omitted / not applicable).
    */
   damage_photos_missing?: boolean;
+  /**
+   * True when the inspection was submitted with ZERO photos across every slot (Phase 3C.1.1).
+   * Server-authoritative (counted from validated uploads).
+   */
+  condition_photos_missing?: boolean;
 };
 
 /** The V2 `submission_data_json` shape. */
@@ -133,9 +138,19 @@ export type ReturnInspectionData = {
   flags: InspectionFlags;
   /**
    * Set true only when the user explicitly elected to submit reported damage WITHOUT photos (Phase 3C.1).
-   * Evidence of intent, not a security credential — the server is authoritative on whether photos exist.
+   * Superseded by `photo_omission_acknowledged`; still read for back-compat with 3C.1 payloads.
    */
   damage_photo_omission_acknowledged?: boolean;
+  /**
+   * Set true when the user explicitly acknowledged submitting without photos (Phase 3C.1.1) — for either the
+   * damage-without-photo or the zero-photos condition. Evidence of intent, not a security credential.
+   */
+  photo_omission_acknowledged?: boolean;
+  /**
+   * Visible photo slots that received no upload (Phase 3C.1.1), server-computed. Lets admin see which
+   * recommended angles are missing without one warning per slot.
+   */
+  missing_recommended_photo_slots?: string[];
   /**
    * Who performed the inspection. Absent = a public renter submission (default). "staff" marks an
    * authenticated staff return/outbound inspection, so the historical snapshot self-identifies the

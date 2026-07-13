@@ -130,6 +130,23 @@ DB/RLS/storage/auth/session change; media limits unchanged.
   identity + no acknowledgement; the omission dialog is renderer-level for both; staff completion still closes
   the session + marks the asset Available.
 
+### Phase 3C.1.1 — hotfix (choice validation + fully non-blocking photos)
+- **False required-error fix:** closed-choice fields (yes_no / pass_fail_na / select / severity / fuel /
+  accessory items) now submit their value via a **single hidden `answer:<id>` input sourced from the client
+  `values` state**; the visible radios group under a non-`answer` name (`ui:<id>`) for UX + a11y only. The
+  submitted value is therefore identical to the Review summary + client validation — eliminating the
+  "Tires / wheels is required" divergence. Selecting/changing a value clears its stale error immediately, and
+  the step to Review validates ALL non-photo required fields (jumping to the offending field's stage).
+- **Every photo slot is non-blocking:** `firstInspectionError` and both submit cores no longer enforce any
+  photo minimum (overview/category/damage/additional) — validation-only change, **no template/version/snapshot
+  change**. Photo fields show no required asterisk + "strongly recommended" copy. Damage location/severity/
+  description stay hard-required.
+- **One consolidated omission dialog** (priority: damage-without-photo → zero-photos; some-missing angles get a
+  non-blocking Review note only). Server `resolvePhotoEvidence` stores `flags.damage_photos_missing` +
+  `flags.condition_photos_missing`, `data.photo_omission_acknowledged`, and
+  `data.missing_recommended_photo_slots` (all from validated uploads). Admin shows one concise **Evidence**
+  note. No-photo damage still counts as open damage. Media limits unchanged.
+
 ---
 
 > **Original design (future scope beyond 3A).** This documents the broader wave so it can be

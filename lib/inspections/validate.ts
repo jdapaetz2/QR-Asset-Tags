@@ -177,15 +177,14 @@ export function evaluateInspection(
 
 /**
  * First client-side blocking error across ALL currently-visible sections (Phase 1A.1). Mirrors the
- * server's required / required_when / acknowledgement / photo-slot-minimum checks and returns the
- * offending field id (so the single-page form can scroll + focus it) with a message. The server remains
- * authoritative — this only gates opening the Review stage. Value-domain checks (bad numbers, etc.) are
- * left to the server. `fileCounts` maps a photo_slot id to the number of files chosen for it.
+ * server's required / required_when / acknowledgement checks and returns the offending field id (so the
+ * single-page form can scroll + focus it) with a message. Photos NEVER block (Phase 3C.1.1) — all photo
+ * evidence is recommended and confirmed at submit. The server remains authoritative — this only gates
+ * opening the Review stage; value-domain checks (bad numbers, etc.) are left to the server.
  */
 export function firstInspectionError(
   template: InspectionTemplate,
   values: AnswerValues,
-  fileCounts: Record<string, number>,
   opts?: { sectionFilter?: (section: InspectionSection) => boolean }
 ): { fieldId: string; message: string } | null {
   const sections = opts?.sectionFilter
@@ -193,16 +192,8 @@ export function firstInspectionError(
     : visibleSections(template, values);
   for (const section of sections) {
     for (const field of visibleFields(section, values)) {
-      if (field.type === "photo_slot") {
-        const min = field.photo?.minPhotos ?? 0;
-        if ((fileCounts[field.id] ?? 0) < min) {
-          return {
-            fieldId: field.id,
-            message: `Add at least ${min} photo${min === 1 ? "" : "s"} for "${field.label}".`,
-          };
-        }
-        continue;
-      }
+      // Photos never block Review (Phase 3C.1.1) — all photo evidence is recommended, confirmed at submit.
+      if (field.type === "photo_slot") continue;
       if (field.type === "acknowledgement") {
         if (field.required && values[field.id] !== "yes") {
           return { fieldId: field.id, message: "Please confirm the attestation to submit." };
@@ -254,39 +245,43 @@ export function deriveFlags(
 }
 
 /**
- * Server-authoritative resolution of the SOFT damage-photo evidence rule (Phase 3C.1). Damage photos are
- * strongly recommended, not mandatory: reported damage may be submitted without photos only after an explicit
- * omission acknowledgement. `damagePhotoCount` is computed by the caller from the VALIDATED uploaded files
- * (never a client claim); `acknowledged` reflects the dedicated omission form field.
- *
- * Returns `{ missing, error }`:
- *   - no damage → `{missing:false}` (no acknowledgement needed).
- *   - damage + ≥1 photo → `{missing:false}`.
- *   - damage + 0 photos + acknowledged → `{missing:true}` (recorded so staff see the gap).
- *   - damage + 0 photos + NOT acknowledged → `{error}` (the omission was not explicitly confirmed).
+ * Read the explicit photo-omission acknowledgement from a submitted form (server-side).
  */
 const ACK_TRUE = new Set(["yes", "on", "true", "1"]);
 
-/** Read the explicit damage-photo omission acknowledgement from a submitted form (server-side). */
 export function readOmissionAck(formData: FormData): boolean {
   const raw = formData.get("damage_photos_omission_ack");
   return typeof raw === "string" && ACK_TRUE.has(raw.trim().toLowerCase());
 }
 
-export function resolveDamagePhotoEvidence(input: {
+/**
+ * Server-authoritative resolution of the SOFT photo-evidence rule (Phase 3C.1.1). ALL photos are strongly
+ * recommended, never mandatory. An inspection may be submitted (a) with reported damage but no damage photo,
+ * or (b) with no photos at all — only after an explicit omission acknowledgement. Counts are computed by the
+ * caller from the VALIDATED uploaded files (never a client claim); `acknowledged` reflects the omission form
+ * field.
+ *
+ *   - damagePhotosMissing    = damage reported AND zero damage photos.
+ *   - conditionPhotosMissing = zero photos across every slot.
+ *   - error (non-null) when either condition holds but the user did not acknowledge → blocks the omission.
+ */
+export function resolvePhotoEvidence(input: {
   damage: boolean;
   damagePhotoCount: number;
+  totalPhotoCount: number;
+  /** Whether the resolved template exposes any photo slot at all (default true). */
+  hasPhotoSlots?: boolean;
   acknowledged: boolean;
-}): { missing: boolean; error: string | null } {
-  if (!input.damage) return { missing: false, error: null };
-  if (input.damagePhotoCount > 0) return { missing: false, error: null };
-  if (!input.acknowledged) {
-    return {
-      missing: true,
-      error: "Add damage photos, or confirm you want to submit the inspection without them.",
-    };
-  }
-  return { missing: true, error: null };
+}): { damagePhotosMissing: boolean; conditionPhotosMissing: boolean; error: string | null } {
+  const damagePhotosMissing = input.damage && input.damagePhotoCount === 0;
+  // "No condition photos" only applies when the template actually offers photo slots.
+  const conditionPhotosMissing = (input.hasPhotoSlots ?? true) && input.totalPhotoCount === 0;
+  const needsAck = damagePhotosMissing || conditionPhotosMissing;
+  const error =
+    needsAck && !input.acknowledged
+      ? "Add photos, or confirm you want to submit the inspection without them."
+      : null;
+  return { damagePhotosMissing, conditionPhotosMissing, error };
 }
 
 /** Assemble the structured answers object (values + per-slot photos) stored on the submission. */

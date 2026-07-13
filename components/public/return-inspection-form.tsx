@@ -127,7 +127,7 @@ export function ReturnInspectionForm({
   const [omissionAck, setOmissionAck] = useState(false);
   // One-shot flags kept in refs (not state) so the effects only touch external systems (DOM focus / submit).
   const submitAfterAckRef = useRef(false);
-  const focusDamageRef = useRef(false);
+  const pendingFocusRef = useRef<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -139,15 +139,37 @@ export function ReturnInspectionForm({
     activeSections.filter((s) => sectionStage(s) === stageKey);
 
   const damageShown = values["damage_observed"] === "yes";
-  const damagePhotoCount = fileCounts[DAMAGE_PHOTOS_SLOT_ID] ?? 0;
-  const damageWithoutPhoto = damageShown && damagePhotoCount === 0;
 
-  const setVal = (id: string, v: string) => setValues((p) => ({ ...p, [id]: v }));
-  const setItem = (fieldId: string, itemId: string, v: string) =>
+  // Photo counts over the currently-VISIBLE slots (Phase 3C.1.1) — drives the consolidated omission dialog
+  // and the Review warnings. Hidden/stale slots (e.g. damage photos when damage=no) are excluded.
+  const photoCounts = visiblePhotoSlotCounts(template, values, fileCounts);
+  const totalPhotoCount = photoCounts.reduce((n, s) => n + s.count, 0);
+  const damagePhotoCount = photoCounts.find((s) => s.id === DAMAGE_PHOTOS_SLOT_ID)?.count ?? 0;
+  const damageWithoutPhoto = damageShown && damagePhotoCount === 0;
+  const hasPhotoSlots = photoCounts.length > 0;
+  const noPhotosAtAll = hasPhotoSlots && totalPhotoCount === 0;
+  const someRecommendedMissing = totalPhotoCount > 0 && photoCounts.some((s) => s.count === 0);
+  const firstPhotoSlotId = photoCounts[0]?.id ?? DAMAGE_PHOTOS_SLOT_ID;
+  // Which single omission dialog (if any) to show on Submit — the stronger damage warning wins.
+  const omissionKind: "damage" | "none" | null = damageWithoutPhoto
+    ? "damage"
+    : noPhotosAtAll
+      ? "none"
+      : null;
+
+  // Selecting/typing a value immediately clears that field's stale required error (Phase 3C.1.1).
+  const clearErrorFor = (id: string) => setError((e) => (e?.fieldId === id ? null : e));
+  const setVal = (id: string, v: string) => {
+    setValues((p) => ({ ...p, [id]: v }));
+    clearErrorFor(id);
+  };
+  const setItem = (fieldId: string, itemId: string, v: string) => {
     setValues((p) => {
       const cur = (p[fieldId] as Record<string, string>) ?? {};
       return { ...p, [fieldId]: { ...cur, [itemId]: v } };
     });
+    clearErrorFor(fieldId);
+  };
 
   function focusFirstError(fieldId: string) {
     const el = document.getElementById(fieldDomId(fieldId));
@@ -158,14 +180,33 @@ export function ReturnInspectionForm({
     }
   }
 
-  /** Validate only the current stage's sections, then advance. No auto-advance on choice selection. */
+  function stageOfField(fieldId: string): InspectionStage | null {
+    for (const s of template.sections) {
+      if (s.fields.some((f) => f.id === fieldId)) return sectionStage(s);
+    }
+    return null;
+  }
+
+  /**
+   * Advance a stage. No auto-advance on choice selection. The final step to Review validates ALL visible
+   * non-photo required fields (Phase 3C.1.1) so Review can never open with a genuine missing answer; a
+   * failure jumps to the offending field's stage and focuses it. Photos never block (they are recommended).
+   */
   function goNext(current: InspectionStage, next: "return_details" | "review") {
-    const err = firstInspectionError(template, values, fileCounts, {
-      sectionFilter: (s) => sectionStage(s) === current,
-    });
+    const err =
+      next === "review"
+        ? firstInspectionError(template, values)
+        : firstInspectionError(template, values, { sectionFilter: (s) => sectionStage(s) === current });
     if (err) {
       setError(err);
-      focusFirstError(err.fieldId);
+      const target = stageOfField(err.fieldId) ?? current;
+      if (target !== current) {
+        pendingFocusRef.current = err.fieldId;
+        setStage(target);
+        window.scrollTo({ top: 0 });
+      } else {
+        focusFirstError(err.fieldId);
+      }
       return;
     }
     setError(null);
@@ -178,13 +219,17 @@ export function ReturnInspectionForm({
     window.scrollTo({ top: 0 });
   }
 
-  // After choosing "Add photos", return to the details stage and focus the damage-photo input (DOM only).
+  // Focus a pending field after a stage switch (validation jump, or the dialog's "Add photos"). DOM only.
   useEffect(() => {
-    if (stage === "return_details" && focusDamageRef.current) {
-      focusDamageRef.current = false;
-      const el = document.getElementById(fieldDomId(DAMAGE_PHOTOS_SLOT_ID));
+    if (pendingFocusRef.current) {
+      const id = pendingFocusRef.current;
+      pendingFocusRef.current = null;
+      const el = document.getElementById(fieldDomId(id));
       el?.scrollIntoView({ block: "center" });
       (el as HTMLElement | null)?.focus?.();
+      if (el && document.activeElement !== el) {
+        (el.querySelector("input,select,textarea,button") as HTMLElement | null)?.focus?.();
+      }
     }
   }, [stage]);
 
@@ -197,8 +242,8 @@ export function ReturnInspectionForm({
   }, [omissionAck]);
 
   function handleSubmitClick(e: React.MouseEvent<HTMLButtonElement>) {
-    // Guard: reported damage with zero photos → explicit confirmation before submitting.
-    if (damageWithoutPhoto && !omissionAck) {
+    // Guard: one consolidated confirmation when a recommended-photo condition applies (damage → precedence).
+    if (omissionKind && !omissionAck) {
       e.preventDefault();
       dialogRef.current?.showModal();
     }
@@ -258,11 +303,9 @@ export function ReturnInspectionForm({
       {/* Stage 3 — Review & submit */}
       <div hidden={!onReview} className="flex flex-col gap-4">
         <ReviewSummary template={template} values={values} fileCounts={fileCounts} />
+        {/* One consolidated evidence note (priority: damage → no photos → some recommended missing). */}
         {damageWithoutPhoto ? (
-          <div
-            role="alert"
-            className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm"
-          >
+          <div role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
             <p className="font-medium text-amber-700 dark:text-amber-400">
               Damage was reported without photos.
             </p>
@@ -270,6 +313,17 @@ export function ReturnInspectionForm({
               Photos help document condition and support follow-up. You can still add them in Return details.
             </p>
           </div>
+        ) : noPhotosAtAll ? (
+          <div role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+            <p className="font-medium text-amber-700 dark:text-amber-400">No condition photos attached.</p>
+            <p className="mt-1 text-muted-foreground">
+              Photos are strongly recommended — they help document the equipment&apos;s condition at return.
+            </p>
+          </div>
+        ) : someRecommendedMissing ? (
+          <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            Some recommended photos were not attached. You can add them in Return details.
+          </p>
         ) : null}
         <div className="flex flex-col gap-3 rounded-lg border bg-card p-4">
           <p className="text-sm font-medium">{contextTitle}</p>
@@ -352,10 +406,14 @@ export function ReturnInspectionForm({
         className="m-auto w-[min(92vw,26rem)] rounded-lg border bg-card p-5 text-foreground backdrop:bg-black/40"
       >
         <h2 id="omission-title" className="text-lg font-semibold">
-          Submit without damage photos?
+          {omissionKind === "damage"
+            ? "Submit damage report without photos?"
+            : "Submit without condition photos?"}
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Damage was reported, but no damage photos were attached. Submit the inspection anyway?
+          {omissionKind === "damage"
+            ? "Damage was reported, but no damage photos were attached. Photos are strongly recommended because they help document condition and support follow-up."
+            : "No condition photos were attached. Photos are strongly recommended because they help document the equipment's condition at return."}
         </p>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row-reverse">
           <Button
@@ -374,7 +432,7 @@ export function ReturnInspectionForm({
             type="button"
             onClick={() => {
               dialogRef.current?.close();
-              focusDamageRef.current = true;
+              pendingFocusRef.current = damageWithoutPhoto ? DAMAGE_PHOTOS_SLOT_ID : firstPhotoSlotId;
               setStage("return_details");
               window.scrollTo({ top: 0 });
             }}
@@ -547,12 +605,12 @@ function FieldControl({
       );
     case "photo_slot":
       return (
+        // Photos are strongly recommended, never required (Phase 3C.1.1) — no asterisk.
         <label className="flex flex-col gap-1 text-sm" htmlFor={domId}>
-          <span className="font-medium">
-            {field.label}
-            {(field.photo?.minPhotos ?? 0) > 0 ? " *" : ""}
+          <span className="font-medium">{field.label}</span>
+          <span className="text-xs text-muted-foreground">
+            {field.help ?? "Photos are strongly recommended. They help document condition and support follow-up."}
           </span>
-          {field.help ? <span className="text-xs text-muted-foreground">{field.help}</span> : null}
           <input
             id={domId}
             className={fieldClass}
@@ -651,36 +709,49 @@ function ChoiceRow({
   );
 }
 
-/** Shared radio-as-button group: 44px targets, wraps cleanly, keyboard + SR accessible. */
+/**
+ * Shared radio-as-button group: 44px targets, wraps cleanly, keyboard + SR accessible.
+ *
+ * Submission fix (Phase 3C.1.1): the value POSTed to the server is a single hidden input sourced directly
+ * from `value` (the canonical `values` state that the Review summary + client validation read) — so the
+ * submitted answer can never diverge from what the user sees. The visible radios are grouped under a
+ * NON-`answer` name (`ui:<name>`) so they drive UX + keyboard/SR semantics only and are ignored by the
+ * server (`parseAnswerValues` reads `answer:*` exclusively).
+ */
 function ChoiceButtons({
   name,
   value,
   onChange,
   options,
 }: {
-  name: string;
+  name: string; // canonical answer key, e.g. "answer:tires_wheels" or "answer:accessories:straps"
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
 }) {
+  const groupName = `ui:${name}`;
   return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((o) => (
-        <label key={o.value} className="min-w-[5rem] flex-1">
-          <input
-            type="radio"
-            name={name}
-            value={o.value}
-            checked={value === o.value}
-            onChange={() => onChange(o.value)}
-            className="peer sr-only"
-          />
-          <span className="flex min-h-11 cursor-pointer items-center justify-center rounded-md border px-3 py-2 text-center text-sm font-medium transition-colors hover:bg-accent peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50">
-            {o.label}
-          </span>
-        </label>
-      ))}
-    </div>
+    <>
+      {/* Single canonical submitted value — always in sync with client state. */}
+      <input type="hidden" name={name} value={value} />
+      <div className="flex flex-wrap gap-2">
+        {options.map((o) => (
+          <label key={o.value} className="min-w-[5rem] flex-1">
+            <input
+              type="radio"
+              name={groupName}
+              value={o.value}
+              checked={value === o.value}
+              onChange={() => onChange(o.value)}
+              className="peer sr-only"
+            />
+            <span className="flex min-h-11 cursor-pointer items-center justify-center rounded-md border px-3 py-2 text-center text-sm font-medium transition-colors hover:bg-accent peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50">
+              {o.label}
+            </span>
+          </label>
+        ))}
+      </div>
+    </>
   );
 }
 

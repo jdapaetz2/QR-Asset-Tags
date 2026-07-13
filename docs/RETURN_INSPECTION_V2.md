@@ -78,6 +78,10 @@ assignment/resolution, snapshot mechanism, media limits, admin summary semantics
 > after an explicit confirmation, recorded as `flags.damage_photos_missing` +
 > `damage_photo_omission_acknowledged` (return template `V` = 2026-07-2). See
 > [`YARD_STAFF_SCANNER_MODE.md`](YARD_STAFF_SCANNER_MODE.md) → "Phase 3C.1". No data-model/RLS/storage/media-limit change.
+>
+> **Phase 3C.1.1 hotfix:** closed-choice fields submit a single canonical hidden `answer:<id>` value (fixing a
+> false "required" error), and **every** photo slot is non-blocking (validation-only — no template/version
+> change) with one consolidated omission confirmation. See YARD_STAFF_SCANNER_MODE.md → "Phase 3C.1.1".
 
 ### Phase 1B — organization category defaults + template catalog
 Lets an organization map its OWN exact category values to a default system return template, and adds a
