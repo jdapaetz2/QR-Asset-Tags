@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
 import { buildAssetTimeline, type TimelineEvent } from "@/lib/timeline/timeline";
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { rentalEvidenceHref } from "@/lib/rentals/evidence";
 
 // Read-only, auth-scoped per request; never cache.
 export const dynamic = "force-dynamic";
@@ -115,6 +116,12 @@ export default async function AssetTimelinePage({
     }[],
   });
 
+  // Most recent rental session (by start) → the session evidence view link.
+  const latestSessionId =
+    ((rentals ?? []) as { id: string; started_at: string }[])
+      .slice()
+      .sort((a, b) => b.started_at.localeCompare(a.started_at))[0]?.id ?? null;
+
   return (
     <div className="flex flex-col gap-6">
       <section>
@@ -130,6 +137,14 @@ export default async function AssetTimelinePage({
           <span>
             {asset.asset_name} · {events.length} event{events.length === 1 ? "" : "s"}
           </span>
+          {latestSessionId ? (
+            <Link
+              href={rentalEvidenceHref(latestSessionId)}
+              className="rounded-md border px-2 py-0.5 text-xs text-foreground underline-offset-4 hover:bg-accent"
+            >
+              Latest rental evidence →
+            </Link>
+          ) : null}
         </div>
       </section>
 

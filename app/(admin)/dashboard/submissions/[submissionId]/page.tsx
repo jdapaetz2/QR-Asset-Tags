@@ -11,6 +11,7 @@ import {
   submissionTypeLabel,
 } from "@/lib/submissions/origin";
 import { returnChecklistFlags } from "@/lib/submissions/returns";
+import { rentalEvidenceHref } from "@/lib/rentals/evidence";
 import {
   UNRESOLVED_STATUSES,
   mediaCount,
@@ -220,6 +221,16 @@ export default async function SubmissionDetailPage({
                 >
                   Asset timeline →
                 </Link>
+                {submission.rental_session_id &&
+                (submission.form_type === "return_checklist" ||
+                  submission.form_type === "pre_use_inspection") ? (
+                  <Link
+                    href={rentalEvidenceHref(submission.rental_session_id)}
+                    className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
+                  >
+                    Session evidence →
+                  </Link>
+                ) : null}
               </div>
             ) : null}
           </div>

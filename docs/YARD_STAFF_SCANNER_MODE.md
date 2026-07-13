@@ -1,8 +1,9 @@
 # Yard Staff Outbound/Return Scanner Mode
 
-> **Status: Phase 3A BUILT (outbound scan + condition baseline) + Phase 3A.1 BUILT (protected staff
-> return + atomic completion); before/after comparison still deferred.** Ships behind migrations `0027`
-> and `0028`, unapplied until `npx.cmd supabase db push`.
+> **Status: Phase 3A + 3A.1 + 3B BUILT** — outbound baseline, protected atomic staff return, and the
+> connected condition story (baseline-aware return, structured comparison, renter-report reconciliation,
+> session evidence view). Ships behind migrations `0027`, `0028`, `0029`, unapplied until
+> `npx.cmd supabase db push`.
 
 ## Phase 3A — as built (authoritative)
 Authenticated staff (customer_admin / customer_staff) scan the tag and run an **outbound (pre-use)
@@ -54,6 +55,33 @@ form. Staff now get a dedicated, protected return that completes the rental atom
   `data.audience='staff'`.
 - **NOT built (still deferred):** before/after comparison, org-customized templates for staff, a dedicated
   `yard_worker` role, work orders / maintenance scheduling / damage billing / signatures, SMS, offline, video.
+
+## Phase 3B — as built (authoritative)
+Connects the three condition sources (outbound baseline → renter return report → staff return) into one
+story per rental session — all linked by `rental_session_id` only.
+- **Baseline-aware staff return:** the staff return page loads the session's outbound baseline + any renter
+  reports. A compact renter-report **context card** appears above the form (reference, time, damage/missing,
+  notes, photo count, Open report) — context only, nothing pre-filled. Per-field **outbound baseline hints**
+  (`outboundBaselineHints`) render as compact expandable `<details>` under the matching field via a new
+  optional `baseline` prop on `ReturnInspectionForm`. No outbound → "No outbound baseline recorded"; staff
+  answers stay fully editable + independent.
+- **Structured comparison (`lib/inspections/session-comparison.ts`, pure):** `buildSessionComparison` diffs
+  the V2 payloads by shared field id — meter delta, fuel/condition difference, pass→fail downgrade,
+  accessory difference — plus a damage/missing reconciliation summary. Notes come from a CLOSED vocabulary
+  ("Difference recorded", "Review recommended", "Renter reported damage", "Staff confirmed damage", "Staff
+  did not confirm reported damage"). **No causation / blame / billing** anywhere. No source → no fabricated
+  comparison.
+- **Renter-report reconciliation (migration `0029`):** `complete_staff_return` re-defined to reconcile
+  same-session renter reports IN THE SAME transaction — clean staff + clean renter → the renter report
+  auto-**resolves**; otherwise it is marked **reviewed at most** (kept unresolved for a manager).
+  Resolved/archived + all unrelated submissions untouched. Mirrored by a pure `reconcileRenterStatus`.
+- **Session evidence view** (`/dashboard/rentals/[sessionId]`, authenticated, RLS-scoped): outbound /
+  renter(s) / staff sources (via `ReturnInspectionSummary`), the differences table + follow-ups, photos
+  grouped by source + slot (signed, private), inspector + renter + references/timestamps, and a Print
+  button (printable HTML, no PDF infra). Linked from the staff completion page, submission detail, asset
+  detail, and asset timeline.
+- **NOT built (still deferred):** damage billing, fault attribution, work orders, maintenance scheduling,
+  AI image comparison, renter signatures, GPS, offline, video.
 
 ---
 

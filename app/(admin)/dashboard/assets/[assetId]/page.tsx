@@ -23,6 +23,7 @@ import {
   getOrgTemplate,
 } from "@/lib/inspections/org-templates-data";
 import { RETURN_TEMPLATE_PICKER } from "@/lib/inspections/templates";
+import { rentalEvidenceHref } from "@/lib/rentals/evidence";
 import { UNRESOLVED_STATUSES } from "@/lib/submissions/inbox";
 import { AssetForm } from "@/components/asset-form";
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
@@ -253,6 +254,15 @@ export default async function EditAssetPage({
           className="-mt-2 text-sm text-muted-foreground underline-offset-4 hover:underline"
         >
           View outbound baseline inspection →
+        </Link>
+      ) : null}
+
+      {rentalSession?.id ? (
+        <Link
+          href={rentalEvidenceHref(rentalSession.id)}
+          className="-mt-2 text-sm text-muted-foreground underline-offset-4 hover:underline"
+        >
+          View rental session evidence →
         </Link>
       ) : null}
 

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireStaffAssetByShortCode } from "@/lib/staff/guard";
 import { submissionReference } from "@/lib/submissions/inbox";
 import { returnChecklistFlags } from "@/lib/submissions/returns";
+import { rentalEvidenceHref } from "@/lib/rentals/evidence";
 
 export const dynamic = "force-dynamic";
 
@@ -139,6 +140,14 @@ export default async function StaffReturnCompletePage({
         >
           View inspection
         </Link>
+        {data.rental_session_id ? (
+          <Link
+            href={rentalEvidenceHref(data.rental_session_id)}
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+          >
+            View session evidence
+          </Link>
+        ) : null}
         <Link
           href={`/staff/t/${shortCode}`}
           className="text-center text-sm text-muted-foreground underline-offset-4 hover:underline"

@@ -72,6 +72,7 @@ export function ReturnInspectionForm({
   submittingCta = "Submitting…",
   contextTitle = "Contact (optional)",
   contextFields,
+  baseline,
 }: {
   template: InspectionTemplate;
   shortCode: string;
@@ -85,6 +86,12 @@ export function ReturnInspectionForm({
   contextTitle?: string;
   /** Review-step context inputs. When provided, replaces the default public contact fields. */
   contextFields?: ReactNode;
+  /**
+   * Optional per-field baseline hints keyed by field id (Phase 3B, staff return). When present, a compact
+   * expandable "Baseline" reference renders under the matching field. Reference only — never pre-fills or
+   * constrains the answer.
+   */
+  baseline?: Record<string, string>;
 }) {
   const [state, formAction, pending] = useActionState<PublicFormState, FormData>(
     action ?? submitReturnInspection.bind(null, shortCode),
@@ -173,15 +180,22 @@ export function ReturnInspectionForm({
             {section.fields
               .filter((f) => fieldVisible(f, values))
               .map((field) => (
-                <FieldControl
-                  key={field.id}
-                  field={field}
-                  value={values[field.id]}
-                  error={error?.fieldId === field.id ? error.message : null}
-                  onText={(v) => setVal(field.id, v)}
-                  onItem={(itemId, v) => setItem(field.id, itemId, v)}
-                  onFiles={(n) => setFileCounts((p) => ({ ...p, [field.id]: n }))}
-                />
+                <div key={field.id} className="flex flex-col gap-1">
+                  <FieldControl
+                    field={field}
+                    value={values[field.id]}
+                    error={error?.fieldId === field.id ? error.message : null}
+                    onText={(v) => setVal(field.id, v)}
+                    onItem={(itemId, v) => setItem(field.id, itemId, v)}
+                    onFiles={(n) => setFileCounts((p) => ({ ...p, [field.id]: n }))}
+                  />
+                  {baseline?.[field.id] ? (
+                    <details className="rounded-md border bg-muted/30 px-2 py-1 text-xs text-muted-foreground">
+                      <summary className="cursor-pointer select-none font-medium">Baseline</summary>
+                      <p className="mt-1">{baseline[field.id]}</p>
+                    </details>
+                  ) : null}
+                </div>
               ))}
           </fieldset>
         ))}
