@@ -69,12 +69,21 @@ export type InspectionField = {
   flag?: FieldFlag;
 };
 
+/** Presentational stage grouping (Phase 3C.1) — collapses the guided form into ≤3 primary stages. */
+export type InspectionStage = "condition" | "return_details";
+
 export type InspectionSection = {
   id: string;
   title: string;
   help?: string;
   /** Hide the whole section (e.g. Damage details) until the condition holds. */
   visible_when?: Condition;
+  /**
+   * Which primary stage this section renders in (Phase 3C.1). Optional + snapshot-safe: when absent the
+   * renderer infers it from the section id (see lib/inspections/stages.ts), so old snapshots and custom
+   * templates still collapse to Condition → Return details → Review.
+   */
+  stage?: InspectionStage;
   fields: InspectionField[];
 };
 
@@ -106,6 +115,12 @@ export type InspectionAnswers = {
 export type InspectionFlags = {
   damage_observed: YesNo;
   accessories_missing: boolean;
+  /**
+   * True when damage was reported but no damage photo was attached (Phase 3C.1). Server-authoritative —
+   * derived from the validated uploaded files, never a client claim. Optional for back-compat with pre-3C.1
+   * V2 payloads (absent = photos not omitted / not applicable).
+   */
+  damage_photos_missing?: boolean;
 };
 
 /** The V2 `submission_data_json` shape. */
@@ -116,6 +131,11 @@ export type ReturnInspectionData = {
   template_snapshot: InspectionTemplate;
   answers: InspectionAnswers;
   flags: InspectionFlags;
+  /**
+   * Set true only when the user explicitly elected to submit reported damage WITHOUT photos (Phase 3C.1).
+   * Evidence of intent, not a security credential — the server is authoritative on whether photos exist.
+   */
+  damage_photo_omission_acknowledged?: boolean;
   /**
    * Who performed the inspection. Absent = a public renter submission (default). "staff" marks an
    * authenticated staff return/outbound inspection, so the historical snapshot self-identifies the

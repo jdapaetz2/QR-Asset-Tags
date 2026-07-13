@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -14,8 +14,12 @@ import {
   isConditionMet,
   visiblePhotoSlotCounts,
 } from "@/lib/inspections/validate";
+import { sectionStage } from "@/lib/inspections/stages";
+import { DAMAGE_PHOTOS_SLOT_ID } from "@/lib/inspections/templates";
 import type {
   InspectionField,
+  InspectionSection,
+  InspectionStage,
   InspectionTemplate,
 } from "@/lib/inspections/types";
 
@@ -35,6 +39,22 @@ const ACCESSORY_OPTIONS = [
   { value: "missing", label: "Missing" },
   { value: "na", label: "N/A" },
 ];
+// Preset fuel/charge choices rendered as buttons (free of a dropdown). "Other" keeps a text fallback.
+const FUEL_OPTIONS = [
+  { value: "Full", label: "Full" },
+  { value: "3/4", label: "3/4" },
+  { value: "1/2", label: "1/2" },
+  { value: "1/4", label: "1/4" },
+  { value: "Empty", label: "Empty" },
+  { value: "Fully charged", label: "Fully charged" },
+  { value: "Partial charge", label: "Partial charge" },
+];
+
+const STAGE_ORDER: InspectionStage[] = ["condition", "return_details"];
+const STAGE_TITLES: Record<InspectionStage, string> = {
+  condition: "Condition",
+  return_details: "Return details",
+};
 
 const fieldDomId = (id: string) => `field-${id}`;
 const errDomId = (id: string) => `err-${id}`;
@@ -99,17 +119,28 @@ export function ReturnInspectionForm({
   );
   const [values, setValues] = useState<Values>({});
   const [fileCounts, setFileCounts] = useState<Record<string, number>>({});
-  const [stage, setStage] = useState<"inspect" | "review">("inspect");
+  // Three primary stages: condition → return_details → review.
+  const [stage, setStage] = useState<"condition" | "return_details" | "review">("condition");
   const [error, setError] = useState<{ fieldId: string; message: string } | null>(null);
 
-  // Sections whose condition currently holds. The Damage-details section only appears when
-  // damage_observed=yes, so it is conditionally mounted inline; switching back to "no" unmounts it,
-  // which discards any selected damage files (they never reach the server).
+  // Soft damage-photo omission (Phase 3C.1): acknowledged via an explicit dialog before Submit.
+  const [omissionAck, setOmissionAck] = useState(false);
+  // One-shot flags kept in refs (not state) so the effects only touch external systems (DOM focus / submit).
+  const submitAfterAckRef = useRef(false);
+  const focusDamageRef = useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
   const activeSections = useMemo(
     () => template.sections.filter((s) => isConditionMet(s.visible_when, values)),
     [template.sections, values]
   );
+  const sectionsFor = (stageKey: InspectionStage) =>
+    activeSections.filter((s) => sectionStage(s) === stageKey);
+
   const damageShown = values["damage_observed"] === "yes";
+  const damagePhotoCount = fileCounts[DAMAGE_PHOTOS_SLOT_ID] ?? 0;
+  const damageWithoutPhoto = damageShown && damagePhotoCount === 0;
 
   const setVal = (id: string, v: string) => setValues((p) => ({ ...p, [id]: v }));
   const setItem = (fieldId: string, itemId: string, v: string) =>
@@ -118,37 +149,74 @@ export function ReturnInspectionForm({
       return { ...p, [fieldId]: { ...cur, [itemId]: v } };
     });
 
-  function goReview() {
-    const err = firstInspectionError(template, values, fileCounts);
+  function focusFirstError(fieldId: string) {
+    const el = document.getElementById(fieldDomId(fieldId));
+    el?.scrollIntoView({ block: "center" });
+    (el as HTMLElement | null)?.focus?.();
+    if (el && document.activeElement !== el) {
+      (el.querySelector("input,select,textarea,button") as HTMLElement | null)?.focus?.();
+    }
+  }
+
+  /** Validate only the current stage's sections, then advance. No auto-advance on choice selection. */
+  function goNext(current: InspectionStage, next: "return_details" | "review") {
+    const err = firstInspectionError(template, values, fileCounts, {
+      sectionFilter: (s) => sectionStage(s) === current,
+    });
     if (err) {
       setError(err);
-      const el = document.getElementById(fieldDomId(err.fieldId));
-      el?.scrollIntoView({ block: "center" });
-      (el as HTMLElement | null)?.focus?.();
-      if (el && document.activeElement !== el) {
-        (el.querySelector("input,select,textarea") as HTMLElement | null)?.focus?.();
-      }
+      focusFirstError(err.fieldId);
       return;
     }
     setError(null);
-    setStage("review");
+    setStage(next);
     window.scrollTo({ top: 0 });
   }
-  function backToInspect() {
-    setStage("inspect");
+
+  function goBack(to: "condition" | "return_details") {
+    setStage(to);
     window.scrollTo({ top: 0 });
+  }
+
+  // After choosing "Add photos", return to the details stage and focus the damage-photo input (DOM only).
+  useEffect(() => {
+    if (stage === "return_details" && focusDamageRef.current) {
+      focusDamageRef.current = false;
+      const el = document.getElementById(fieldDomId(DAMAGE_PHOTOS_SLOT_ID));
+      el?.scrollIntoView({ block: "center" });
+      (el as HTMLElement | null)?.focus?.();
+    }
+  }, [stage]);
+
+  // Submit only after the omission acknowledgement flag is committed to the DOM (hidden input).
+  useEffect(() => {
+    if (omissionAck && submitAfterAckRef.current) {
+      submitAfterAckRef.current = false;
+      formRef.current?.requestSubmit();
+    }
+  }, [omissionAck]);
+
+  function handleSubmitClick(e: React.MouseEvent<HTMLButtonElement>) {
+    // Guard: reported damage with zero photos → explicit confirmation before submitting.
+    if (damageWithoutPhoto && !omissionAck) {
+      e.preventDefault();
+      dialogRef.current?.showModal();
+    }
   }
 
   const onReview = stage === "review";
+  const stepIndex = stage === "condition" ? 1 : stage === "return_details" ? 2 : 3;
 
   return (
-    <form action={formAction} className="flex flex-col gap-5 pb-8">
+    <form action={formAction} ref={formRef} className="flex flex-col gap-5 pb-24">
       <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
         {disclaimer}
       </p>
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span className="font-medium">{onReview ? "Review & submit" : "Inspection"}</span>
+        <span className="font-medium">
+          Step {stepIndex} of 3 · {onReview ? "Review & submit" : STAGE_TITLES[stage]}
+        </span>
         <span aria-hidden>{template.name}</span>
       </div>
 
@@ -158,52 +226,51 @@ export function ReturnInspectionForm({
         </p>
       ) : null}
 
-      {/* Stage 1 — Inspection: one scrollable page. Kept mounted during Review (hidden) so a single POST
-          captures every answer + file and Back never clears anything. */}
-      <div hidden={onReview} className="flex flex-col gap-4">
-        {/* Live status: announces the damage section when it is revealed. */}
-        <p role="status" aria-live="polite" className="sr-only">
-          {damageShown
-            ? "Damage details section shown. Complete the damage fields and add at least one photo."
-            : ""}
-        </p>
+      {/* Live status: announces the damage section when it is revealed. */}
+      <p role="status" aria-live="polite" className="sr-only">
+        {damageShown
+          ? "Damage details section shown. Complete the damage fields; photos are recommended."
+          : ""}
+      </p>
 
-        {activeSections.map((section) => (
-          <fieldset
-            key={section.id}
-            className="flex flex-col gap-4 rounded-lg border bg-card p-4"
-          >
-            <legend className="px-1 text-base font-semibold">{section.title}</legend>
-            {section.help ? (
-              <p className="-mt-2 text-xs text-muted-foreground">{section.help}</p>
-            ) : null}
-            {section.fields
-              .filter((f) => fieldVisible(f, values))
-              .map((field) => (
-                <div key={field.id} className="flex flex-col gap-1">
-                  <FieldControl
-                    field={field}
-                    value={values[field.id]}
-                    error={error?.fieldId === field.id ? error.message : null}
-                    onText={(v) => setVal(field.id, v)}
-                    onItem={(itemId, v) => setItem(field.id, itemId, v)}
-                    onFiles={(n) => setFileCounts((p) => ({ ...p, [field.id]: n }))}
-                  />
-                  {baseline?.[field.id] ? (
-                    <details className="rounded-md border bg-muted/30 px-2 py-1 text-xs text-muted-foreground">
-                      <summary className="cursor-pointer select-none font-medium">Baseline</summary>
-                      <p className="mt-1">{baseline[field.id]}</p>
-                    </details>
-                  ) : null}
-                </div>
-              ))}
-          </fieldset>
-        ))}
-      </div>
+      {/* Every stage stays mounted (hidden) so a single POST captures all answers/files and Back never clears. */}
+      {STAGE_ORDER.map((stageKey) => (
+        <div
+          key={stageKey}
+          hidden={stage !== stageKey}
+          className="flex flex-col gap-4"
+        >
+          {sectionsFor(stageKey).map((section) => (
+            <SectionFieldset
+              key={section.id}
+              section={section}
+              values={values}
+              error={error}
+              baseline={baseline}
+              onText={setVal}
+              onItem={setItem}
+              onFiles={(id, n) => setFileCounts((p) => ({ ...p, [id]: n }))}
+            />
+          ))}
+        </div>
+      ))}
 
-      {/* Stage 2 — Review & submit */}
+      {/* Stage 3 — Review & submit */}
       <div hidden={!onReview} className="flex flex-col gap-4">
         <ReviewSummary template={template} values={values} fileCounts={fileCounts} />
+        {damageWithoutPhoto ? (
+          <div
+            role="alert"
+            className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm"
+          >
+            <p className="font-medium text-amber-700 dark:text-amber-400">
+              Damage was reported without photos.
+            </p>
+            <p className="mt-1 text-muted-foreground">
+              Photos help document condition and support follow-up. You can still add them in Return details.
+            </p>
+          </div>
+        ) : null}
         <div className="flex flex-col gap-3 rounded-lg border bg-card p-4">
           <p className="text-sm font-medium">{contextTitle}</p>
           {contextFields ?? (
@@ -236,32 +303,133 @@ export function ReturnInspectionForm({
         </label>
       </div>
 
+      {/* Server-authoritative omission acknowledgement (only meaningful when damage has no photo). */}
+      <input type="hidden" name="damage_photos_omission_ack" value={omissionAck ? "yes" : ""} />
+
       {!onReview && error ? (
         <p role="alert" className="text-sm text-destructive">
           {error.message}
         </p>
       ) : null}
 
-      {/* Actions */}
-      {onReview ? (
+      {/* Stage navigation */}
+      {stage === "condition" ? (
+        <Button type="button" onClick={() => goNext("condition", "return_details")} className="h-11 w-full">
+          Continue
+        </Button>
+      ) : stage === "return_details" ? (
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={backToInspect}
+            onClick={() => goBack("condition")}
             className="inline-flex h-11 flex-1 items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             Back
           </button>
-          <Button type="submit" disabled={pending} className="h-11 flex-1">
-            {pending ? submittingCta : submitCta}
+          <Button type="button" onClick={() => goNext("return_details", "review")} className="h-11 flex-1">
+            {reviewCta}
           </Button>
         </div>
       ) : (
-        <Button type="button" onClick={goReview} className="h-11 w-full">
-          {reviewCta}
-        </Button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => goBack("return_details")}
+            className="inline-flex h-11 flex-1 items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          >
+            Back
+          </button>
+          <Button type="submit" onClick={handleSubmitClick} disabled={pending} className="h-11 flex-1">
+            {pending ? submittingCta : submitCta}
+          </Button>
+        </div>
       )}
+
+      {/* Accessible omission confirmation — native dialog (focus-trapping, Esc, no dependency). */}
+      <dialog
+        ref={dialogRef}
+        aria-labelledby="omission-title"
+        className="m-auto w-[min(92vw,26rem)] rounded-lg border bg-card p-5 text-foreground backdrop:bg-black/40"
+      >
+        <h2 id="omission-title" className="text-lg font-semibold">
+          Submit without damage photos?
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Damage was reported, but no damage photos were attached. Submit the inspection anyway?
+        </p>
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row-reverse">
+          <Button
+            type="button"
+            disabled={pending}
+            onClick={() => {
+              submitAfterAckRef.current = true;
+              setOmissionAck(true);
+              dialogRef.current?.close();
+            }}
+            className="h-11 flex-1"
+          >
+            Submit without photos
+          </Button>
+          <button
+            type="button"
+            onClick={() => {
+              dialogRef.current?.close();
+              focusDamageRef.current = true;
+              setStage("return_details");
+              window.scrollTo({ top: 0 });
+            }}
+            className="inline-flex h-11 flex-1 items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          >
+            Add photos
+          </button>
+        </div>
+      </dialog>
     </form>
+  );
+}
+
+function SectionFieldset({
+  section,
+  values,
+  error,
+  baseline,
+  onText,
+  onItem,
+  onFiles,
+}: {
+  section: InspectionSection;
+  values: Values;
+  error: { fieldId: string; message: string } | null;
+  baseline?: Record<string, string>;
+  onText: (id: string, v: string) => void;
+  onItem: (fieldId: string, itemId: string, v: string) => void;
+  onFiles: (id: string, n: number) => void;
+}) {
+  return (
+    <fieldset className="flex flex-col gap-4 rounded-lg border bg-card p-4">
+      <legend className="px-1 text-base font-semibold">{section.title}</legend>
+      {section.help ? <p className="-mt-2 text-xs text-muted-foreground">{section.help}</p> : null}
+      {section.fields
+        .filter((f) => fieldVisible(f, values))
+        .map((field) => (
+          <div key={field.id} className="flex flex-col gap-1">
+            <FieldControl
+              field={field}
+              value={values[field.id]}
+              error={error?.fieldId === field.id ? error.message : null}
+              onText={(v) => onText(field.id, v)}
+              onItem={(itemId, v) => onItem(field.id, itemId, v)}
+              onFiles={(n) => onFiles(field.id, n)}
+            />
+            {baseline?.[field.id] ? (
+              <details className="rounded-md border bg-muted/30 px-2 py-1 text-xs text-muted-foreground">
+                <summary className="cursor-pointer select-none font-medium">Baseline</summary>
+                <p className="mt-1">{baseline[field.id]}</p>
+              </details>
+            ) : null}
+          </div>
+        ))}
+    </fieldset>
   );
 }
 
@@ -284,15 +452,18 @@ function FieldControl({
   const strVal = typeof value === "string" ? value : "";
   const name = `answer:${field.id}`;
   const domId = fieldDomId(field.id);
-  const invalid = Boolean(error);
-  const describedBy = invalid ? errDomId(field.id) : undefined;
-  const aria = { "aria-invalid": invalid || undefined, "aria-describedby": describedBy };
 
   const errorNote = error ? (
     <span id={errDomId(field.id)} role="alert" className="text-xs text-destructive">
       {error}
     </span>
   ) : null;
+
+  const invalid = Boolean(error);
+  const aria = {
+    "aria-invalid": invalid || undefined,
+    "aria-describedby": invalid ? errDomId(field.id) : undefined,
+  };
 
   const labelWrap = (inner: React.ReactNode) => (
     <label className="flex flex-col gap-1 text-sm" htmlFor={domId}>
@@ -308,12 +479,20 @@ function FieldControl({
 
   switch (field.type) {
     case "pass_fail_na":
-      return labelWrap(<SelectInput id={domId} name={name} value={strVal} onChange={onText} options={PASS_FAIL_OPTIONS} aria={aria} />);
+      return (
+        <ChoiceGroup field={field} value={strVal} onChange={onText} options={PASS_FAIL_OPTIONS} error={error} />
+      );
     case "yes_no":
-      return labelWrap(<SelectInput id={domId} name={name} value={strVal} onChange={onText} options={YES_NO_OPTIONS} aria={aria} />);
+      return (
+        <ChoiceGroup field={field} value={strVal} onChange={onText} options={YES_NO_OPTIONS} error={error} />
+      );
     case "select":
-      return labelWrap(
-        <SelectInput id={domId} name={name} value={strVal} onChange={onText} options={field.options ?? []} aria={aria} />
+      return (
+        <ChoiceGroup field={field} value={strVal} onChange={onText} options={field.options ?? []} error={error} />
+      );
+    case "fuel_charge_level":
+      return (
+        <ChoiceGroup field={field} value={strVal} onChange={onText} options={FUEL_OPTIONS} error={error} />
       );
     case "short_text":
       return labelWrap(
@@ -341,39 +520,30 @@ function FieldControl({
           {field.unit ? <span className="text-xs text-muted-foreground">{field.unit}</span> : null}
         </span>
       );
-    case "fuel_charge_level":
-      return labelWrap(
-        <input
-          id={domId}
-          className={fieldClass}
-          name={name}
-          value={strVal}
-          placeholder="e.g. Full, 1/2 tank, fully charged"
-          onChange={(e) => onText(e.target.value)}
-          {...aria}
-        />
-      );
     case "accessory_checklist":
       return (
-        <div id={domId} className="flex flex-col gap-2 text-sm">
-          <span className="font-medium">{field.label}</span>
+        <fieldset
+          id={domId}
+          className="flex flex-col gap-3 text-sm"
+          aria-invalid={invalid || undefined}
+          aria-describedby={invalid ? errDomId(field.id) : undefined}
+        >
+          <legend className="font-medium">{field.label}</legend>
           {(field.items ?? []).map((item) => {
             const itemVal = (value as Record<string, string>)?.[item.id] ?? "";
             return (
-              <div key={item.id} className="flex flex-wrap items-center justify-between gap-2">
-                <span className="min-w-0 break-words">{item.label}</span>
-                <SelectInput
-                  name={`answer:${field.id}:${item.id}`}
-                  value={itemVal}
-                  onChange={(v) => onItem(item.id, v)}
-                  options={ACCESSORY_OPTIONS}
-                  compact
-                />
-              </div>
+              <ChoiceRow
+                key={item.id}
+                legend={item.label}
+                name={`answer:${field.id}:${item.id}`}
+                value={itemVal}
+                onChange={(v) => onItem(item.id, v)}
+                options={ACCESSORY_OPTIONS}
+              />
             );
           })}
           {errorNote}
-        </div>
+        </fieldset>
       );
     case "photo_slot":
       return (
@@ -422,39 +592,95 @@ function FieldControl({
   }
 }
 
-function SelectInput({
-  id,
+/** A single field rendered as large, wrapping choice buttons (semantic radios). */
+function ChoiceGroup({
+  field,
+  value,
+  onChange,
+  options,
+  error,
+}: {
+  field: InspectionField;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  error: string | null;
+}) {
+  const invalid = Boolean(error);
+  return (
+    <fieldset
+      id={fieldDomId(field.id)}
+      className="flex flex-col gap-1.5 text-sm"
+      aria-invalid={invalid || undefined}
+      aria-describedby={invalid ? errDomId(field.id) : undefined}
+    >
+      <legend className="font-medium">
+        {field.label}
+        {field.required ? " *" : ""}
+      </legend>
+      {field.help ? <span className="-mt-1 text-xs text-muted-foreground">{field.help}</span> : null}
+      <ChoiceButtons name={`answer:${field.id}`} value={value} onChange={onChange} options={options} />
+      {error ? (
+        <span id={errDomId(field.id)} role="alert" className="text-xs text-destructive">
+          {error}
+        </span>
+      ) : null}
+    </fieldset>
+  );
+}
+
+/** An accessory item: a compact labeled row of choice buttons. */
+function ChoiceRow({
+  legend,
   name,
   value,
   onChange,
   options,
-  compact,
-  aria,
 }: {
-  id?: string;
+  legend: string;
   name: string;
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
-  compact?: boolean;
-  aria?: { "aria-invalid": true | undefined; "aria-describedby": string | undefined };
 }) {
   return (
-    <select
-      id={id}
-      className={compact ? "h-11 min-w-28 rounded-md border bg-background px-2 text-sm" : fieldClass}
-      name={name}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      {...aria}
-    >
-      <option value="">— select —</option>
+    <fieldset className="flex flex-col gap-1.5">
+      <legend className="min-w-0 break-words">{legend}</legend>
+      <ChoiceButtons name={name} value={value} onChange={onChange} options={options} />
+    </fieldset>
+  );
+}
+
+/** Shared radio-as-button group: 44px targets, wraps cleanly, keyboard + SR accessible. */
+function ChoiceButtons({
+  name,
+  value,
+  onChange,
+  options,
+}: {
+  name: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
       {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
+        <label key={o.value} className="min-w-[5rem] flex-1">
+          <input
+            type="radio"
+            name={name}
+            value={o.value}
+            checked={value === o.value}
+            onChange={() => onChange(o.value)}
+            className="peer sr-only"
+          />
+          <span className="flex min-h-11 cursor-pointer items-center justify-center rounded-md border px-3 py-2 text-center text-sm font-medium transition-colors hover:bg-accent peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50">
+            {o.label}
+          </span>
+        </label>
       ))}
-    </select>
+    </div>
   );
 }
 

@@ -18,8 +18,11 @@ import {
   deriveFlags,
   evaluateInspection,
   parseAnswerValues,
+  readOmissionAck,
+  resolveDamagePhotoEvidence,
   visiblePhotoSlots,
 } from "@/lib/inspections/validate";
+import { DAMAGE_PHOTOS_SLOT_ID } from "@/lib/inspections/templates";
 import { buildReturnSubmissionData } from "@/lib/inspections/snapshot";
 import type { PhotoAnswer } from "@/lib/inspections/types";
 import type { PublicFormState } from "@/lib/forms/submit";
@@ -133,7 +136,18 @@ export async function submitReturnInspectionCore(
   }
 
   const flags = deriveFlags(template, values);
+  // Soft damage-photo evidence (Phase 3C.1): the server counts damage photos from the validated uploads
+  // and requires an explicit omission acknowledgement when damage is reported without any.
+  const evidence = resolveDamagePhotoEvidence({
+    damage: flags.damage_observed === "yes",
+    damagePhotoCount: photos[DAMAGE_PHOTOS_SLOT_ID]?.length ?? 0,
+    acknowledged: readOmissionAck(formData),
+  });
+  if (evidence.error) return { error: evidence.error };
+  flags.damage_photos_missing = evidence.missing;
+
   const data = buildReturnSubmissionData({ template, answers: buildAnswers(values, photos), flags });
+  if (evidence.missing) data.damage_photo_omission_acknowledged = true;
 
   // id + created_at set app-side so the reference is byte-identical to the admin's (anon can't read back).
   const createdAt = new Date().toISOString();

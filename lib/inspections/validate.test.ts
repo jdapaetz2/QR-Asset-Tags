@@ -5,6 +5,7 @@ import {
   evaluateInspection,
   firstInspectionError,
   parseAnswerValues,
+  resolveDamagePhotoEvidence,
   visiblePhotoSlotCounts,
   visiblePhotoSlots,
   type AnswerReader,
@@ -226,28 +227,78 @@ describe("firstInspectionError", () => {
     expect(err?.fieldId).toBe("deck_photo");
   });
 
-  it("requires damage details, then a damage photo, when damage=yes", () => {
+  it("requires damage location/severity/description when damage=yes (Phase 3C.1)", () => {
     const dmg = { ...baseValues, damage_observed: "yes" };
     // Details missing → first damage field.
     expect(firstInspectionError(utility, dmg, OVERVIEW_FC)?.fieldId).toBe("damage_location");
-    // Details filled but no damage photo → the damage photo slot.
+    expect(
+      firstInspectionError(utility, { ...dmg, damage_location: "left fender" }, OVERVIEW_FC)?.fieldId
+    ).toBe("damage_severity");
+    expect(
+      firstInspectionError(
+        utility,
+        { ...dmg, damage_location: "x", damage_severity: "minor" },
+        OVERVIEW_FC
+      )?.fieldId
+    ).toBe("damage_description");
+  });
+
+  it("does NOT block Review on a missing damage photo (soft evidence)", () => {
     const withDetails = {
-      ...dmg,
+      ...baseValues,
+      damage_observed: "yes",
       damage_location: "left fender",
       damage_severity: "minor",
       damage_description: "scratch",
     };
-    expect(firstInspectionError(utility, withDetails, OVERVIEW_FC)?.fieldId).toBe("damage_photos");
-    // With a damage photo → clears.
-    expect(
-      firstInspectionError(utility, withDetails, { ...OVERVIEW_FC, damage_photos: 1 })
-    ).toBeNull();
+    // Damage details complete + zero damage photos → no client error (Review is reachable).
+    expect(firstInspectionError(utility, withDetails, OVERVIEW_FC)).toBeNull();
   });
 
   it("never requires the optional additional-photos slot", () => {
     expect(
       firstInspectionError(utility, baseValues, { ...OVERVIEW_FC, additional_photos: 0 })
     ).toBeNull();
+  });
+
+  it("sectionFilter scopes validation to a single stage's sections", () => {
+    // Only the photos section: an unanswered condition field elsewhere is ignored.
+    const err = firstInspectionError(
+      utility,
+      { ...baseValues, tires_wheels: "" },
+      { front_hitch_photo: 1, deck_photo: 1 },
+      { sectionFilter: (s) => s.id === "photos" }
+    );
+    expect(err).toBeNull();
+  });
+});
+
+describe("resolveDamagePhotoEvidence", () => {
+  it("no damage → never missing, no acknowledgement needed", () => {
+    expect(resolveDamagePhotoEvidence({ damage: false, damagePhotoCount: 0, acknowledged: false })).toEqual({
+      missing: false,
+      error: null,
+    });
+  });
+
+  it("damage + a photo → not missing", () => {
+    expect(resolveDamagePhotoEvidence({ damage: true, damagePhotoCount: 2, acknowledged: false })).toEqual({
+      missing: false,
+      error: null,
+    });
+  });
+
+  it("damage + no photo + no acknowledgement → error (blocks the omission)", () => {
+    const r = resolveDamagePhotoEvidence({ damage: true, damagePhotoCount: 0, acknowledged: false });
+    expect(r.missing).toBe(true);
+    expect(r.error).toMatch(/damage photos/i);
+  });
+
+  it("damage + no photo + acknowledged → recorded as missing, allowed", () => {
+    expect(resolveDamagePhotoEvidence({ damage: true, damagePhotoCount: 0, acknowledged: true })).toEqual({
+      missing: true,
+      error: null,
+    });
   });
 });
 

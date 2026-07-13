@@ -2,11 +2,33 @@ import { describe, expect, it } from "vitest";
 
 import {
   ADDITIONAL_PHOTOS_SLOT_ID,
+  DAMAGE_PHOTOS_SLOT_ID,
   RETURN_TEMPLATE_KEYS,
   RETURN_TEMPLATES,
   getReturnTemplate,
 } from "./templates";
 import type { InspectionField } from "./types";
+
+describe("return templates — Phase 3C.1 soft damage photos", () => {
+  it.each(RETURN_TEMPLATE_KEYS)("%s is version 2026-07-2 with an OPTIONAL damage-photos slot", (key) => {
+    const template = getReturnTemplate(key);
+    expect(template.version).toBe("2026-07-2");
+    const damageSlot = template.sections
+      .flatMap((s) => s.fields)
+      .find((f) => f.id === DAMAGE_PHOTOS_SLOT_ID);
+    // The slot still exists (damage details) but no longer hard-requires a photo.
+    expect(damageSlot?.type).toBe("photo_slot");
+    expect(damageSlot?.required).not.toBe(true);
+    expect(damageSlot?.photo?.minPhotos).toBe(0);
+  });
+
+  it.each(RETURN_TEMPLATE_KEYS)("%s keeps its overview photo required (min 1)", (key) => {
+    const overview = getReturnTemplate(key).sections
+      .find((s) => s.id === "photos")
+      ?.fields.find((f) => f.type === "photo_slot");
+    expect(overview?.photo?.minPhotos).toBe(1);
+  });
+});
 
 function allFields(sectionFields: InspectionField[]): InspectionField[] {
   return sectionFields;

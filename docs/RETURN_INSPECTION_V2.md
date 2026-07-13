@@ -72,6 +72,13 @@ assignment/resolution, snapshot mechanism, media limits, admin summary semantics
 - **Confirmation button.** The shared `FormThanks` now shows a prominent full-width **Return to equipment
   page** button (`/t/[shortCode]`) — applied to the return, damage, and support confirmation pages alike.
 
+> **Superseded by Phase 3C.1 (mobile UX + soft damage photos):** the guided form is now a **three-stage**
+> flow (Condition → Return details → Review), closed-choice fields render as **buttons** (not dropdowns), and
+> damage photos are **strongly recommended, not required** — reported damage may be submitted without photos
+> after an explicit confirmation, recorded as `flags.damage_photos_missing` +
+> `damage_photo_omission_acknowledged` (return template `V` = 2026-07-2). See
+> [`YARD_STAFF_SCANNER_MODE.md`](YARD_STAFF_SCANNER_MODE.md) → "Phase 3C.1". No data-model/RLS/storage/media-limit change.
+
 ### Phase 1B — organization category defaults + template catalog
 Lets an organization map its OWN exact category values to a default system return template, and adds a
 read-only catalog. **No** custom template-content editing, form builder, fuzzy matching, or category

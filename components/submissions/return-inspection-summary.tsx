@@ -51,6 +51,12 @@ export function ReturnInspectionSummary({
 
   const damaged = flags.damage_observed === "yes";
   const missing = flags.accessories_missing === true;
+  // Soft damage-photo evidence (Phase 3C.1): reported damage with no damage photo. Prefer the server flag,
+  // else derive from the snapshot photos (older payloads have no flag).
+  const damagePhotoCount = (photos as Record<string, unknown[]>)?.["damage_photos"]?.length ?? 0;
+  const damagePhotosMissing =
+    (flags as { damage_photos_missing?: boolean }).damage_photos_missing === true ||
+    (damaged && damagePhotoCount === 0);
   const heading =
     template.inspection_type === "outbound"
       ? "Outbound inspection"
@@ -70,9 +76,21 @@ export function ReturnInspectionSummary({
         <div className="flex flex-wrap gap-1.5">
           {damaged ? <Badge tone="danger">Damage reported</Badge> : null}
           {missing ? <Badge tone="warning">Accessories missing</Badge> : null}
+          {damagePhotosMissing ? <Badge tone="warning">No damage photos</Badge> : null}
           {!damaged && !missing ? <Badge tone="success">No issues flagged</Badge> : null}
         </div>
       </div>
+
+      {damagePhotosMissing ? (
+        <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
+          <span className="font-medium text-amber-700 dark:text-amber-400">
+            Damage photos not provided.
+          </span>{" "}
+          <span className="text-muted-foreground">
+            Damage was reported without supporting photos — review the description and follow up as needed.
+          </span>
+        </p>
+      ) : null}
 
       {/* Checklist answers in template order (photos + attestation handled separately). */}
       {template.sections.map((section) => {

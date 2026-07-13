@@ -185,9 +185,13 @@ export function evaluateInspection(
 export function firstInspectionError(
   template: InspectionTemplate,
   values: AnswerValues,
-  fileCounts: Record<string, number>
+  fileCounts: Record<string, number>,
+  opts?: { sectionFilter?: (section: InspectionSection) => boolean }
 ): { fieldId: string; message: string } | null {
-  for (const section of visibleSections(template, values)) {
+  const sections = opts?.sectionFilter
+    ? visibleSections(template, values).filter(opts.sectionFilter)
+    : visibleSections(template, values);
+  for (const section of sections) {
     for (const field of visibleFields(section, values)) {
       if (field.type === "photo_slot") {
         const min = field.photo?.minPhotos ?? 0;
@@ -247,6 +251,42 @@ export function deriveFlags(
     }
   }
   return { damage_observed: damage, accessories_missing: missing };
+}
+
+/**
+ * Server-authoritative resolution of the SOFT damage-photo evidence rule (Phase 3C.1). Damage photos are
+ * strongly recommended, not mandatory: reported damage may be submitted without photos only after an explicit
+ * omission acknowledgement. `damagePhotoCount` is computed by the caller from the VALIDATED uploaded files
+ * (never a client claim); `acknowledged` reflects the dedicated omission form field.
+ *
+ * Returns `{ missing, error }`:
+ *   - no damage → `{missing:false}` (no acknowledgement needed).
+ *   - damage + ≥1 photo → `{missing:false}`.
+ *   - damage + 0 photos + acknowledged → `{missing:true}` (recorded so staff see the gap).
+ *   - damage + 0 photos + NOT acknowledged → `{error}` (the omission was not explicitly confirmed).
+ */
+const ACK_TRUE = new Set(["yes", "on", "true", "1"]);
+
+/** Read the explicit damage-photo omission acknowledgement from a submitted form (server-side). */
+export function readOmissionAck(formData: FormData): boolean {
+  const raw = formData.get("damage_photos_omission_ack");
+  return typeof raw === "string" && ACK_TRUE.has(raw.trim().toLowerCase());
+}
+
+export function resolveDamagePhotoEvidence(input: {
+  damage: boolean;
+  damagePhotoCount: number;
+  acknowledged: boolean;
+}): { missing: boolean; error: string | null } {
+  if (!input.damage) return { missing: false, error: null };
+  if (input.damagePhotoCount > 0) return { missing: false, error: null };
+  if (!input.acknowledged) {
+    return {
+      missing: true,
+      error: "Add damage photos, or confirm you want to submit the inspection without them.",
+    };
+  }
+  return { missing: true, error: null };
 }
 
 /** Assemble the structured answers object (values + per-slot photos) stored on the submission. */

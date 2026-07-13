@@ -24,8 +24,14 @@ import {
   yesNo,
 } from "@/lib/inspections/field-builders";
 
-/** Shared version stamp for this initial release. Bump per-template when a template changes. */
-const V = "2026-07-1";
+/**
+ * Shared version stamp. Bump per-template when a template changes.
+ * 2026-07-2 (Phase 3C.1): damage photos are now strongly recommended, not required (soft evidence).
+ */
+const V = "2026-07-2";
+
+/** Stable slot id for the conditional damage photos (soft-required, Phase 3C.1). */
+export const DAMAGE_PHOTOS_SLOT_ID = "damage_photos";
 
 const SEVERITY_OPTIONS = [
   { value: "minor", label: "Minor" },
@@ -46,10 +52,11 @@ const DAMAGE_DETAILS_SECTION: InspectionSection = {
     shortText("damage_location", "Where is the damage?", true),
     select("damage_severity", "Severity", SEVERITY_OPTIONS, true),
     longText("damage_description", "Describe the damage", true),
-    photoSlot("damage_photos", "Damage photos", {
-      required: true,
-      min: 1,
-      help: "At least one close-up of the damage.",
+    // Soft evidence (Phase 3C.1): strongly recommended, not required. Omission is confirmed + recorded.
+    photoSlot(DAMAGE_PHOTOS_SLOT_ID, "Damage photos", {
+      required: false,
+      min: 0,
+      help: "Add clear photos where practical. Photos help the rental company review the damage.",
     }),
   ],
 };

@@ -107,6 +107,29 @@ schema change (presentation + queries only).
 - **NOT built (still deferred):** maintenance work orders, repair scheduling, out-of-service workflow,
   automated damage billing, GPS, a stored event-log table, any new public functionality.
 
+## Phase 3C.1 — as built (authoritative)
+Mobile UX + soft damage-photo evidence for both renter and staff returns (shared `ReturnInspectionForm`). No
+DB/RLS/storage/auth/session change; media limits unchanged.
+- **Three primary stages:** Condition → Return details → Review & submit, with explicit Continue/Back (no
+  auto-advance), "Step N of 3", per-stage validation, all stages mounted for the single final POST + value/file
+  preservation. Stage grouping is the pure `lib/inspections/stages.ts#sectionStage` (section `stage` field else
+  id inference) — every system/org/outbound template collapses to ≤3 stages, no template change.
+- **Button choice controls:** closed-choice fields (`yes_no`, `pass_fail_na`, `select`, `fuel_charge_level`,
+  accessory item state) render as **semantic radios styled as buttons** (44px, wrap at 360–430px, keyboard +
+  SR accessible) instead of dropdowns. Text/meter/long-text stay text inputs.
+- **Soft damage photos:** `damage_photos` is now optional (return template `V` → 2026-07-2; location/severity/
+  description stay required). Zero damage photos no longer blocks Review. On Submit, reported damage with no
+  photo opens an accessible native `<dialog>` ("Submit without damage photos?" → Add photos / Submit without
+  photos). The server is authoritative: it counts damage photos from validated uploads
+  (`resolveDamagePhotoEvidence`), requires the explicit `damage_photos_omission_ack` field, and stores
+  `flags.damage_photos_missing` + `data.damage_photo_omission_acknowledged`.
+- **Admin visibility:** the return summary shows a "No damage photos" badge + "Damage photos not provided"
+  note; the reported damage still renders in full and still counts as open damage (`isOpenDamageRow` keys on
+  the damage flag, not photos).
+- **Renter vs staff unchanged:** public keeps optional contact + acknowledgement; staff keeps read-only
+  identity + no acknowledgement; the omission dialog is renderer-level for both; staff completion still closes
+  the session + marks the asset Available.
+
 ---
 
 > **Original design (future scope beyond 3A).** This documents the broader wave so it can be

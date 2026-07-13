@@ -15,8 +15,11 @@ import {
   deriveFlags,
   evaluateInspection,
   parseAnswerValues,
+  readOmissionAck,
+  resolveDamagePhotoEvidence,
   visiblePhotoSlots,
 } from "@/lib/inspections/validate";
+import { DAMAGE_PHOTOS_SLOT_ID } from "@/lib/inspections/templates";
 import { buildReturnSubmissionData } from "@/lib/inspections/snapshot";
 import type { PhotoAnswer } from "@/lib/inspections/types";
 import type { PublicFormState } from "@/lib/forms/submit";
@@ -125,6 +128,15 @@ export async function submitStaffReturnInspectionCore(
   }
 
   const flags = deriveFlags(template, values);
+  // Soft damage-photo evidence (Phase 3C.1): server-authoritative count + explicit omission ack.
+  const evidence = resolveDamagePhotoEvidence({
+    damage: flags.damage_observed === "yes",
+    damagePhotoCount: photos[DAMAGE_PHOTOS_SLOT_ID]?.length ?? 0,
+    acknowledged: readOmissionAck(formData),
+  });
+  if (evidence.error) return { error: evidence.error };
+  flags.damage_photos_missing = evidence.missing;
+
   const status = staffReturnStatus({
     damage: flags.damage_observed === "yes",
     missing: flags.accessories_missing,
@@ -133,6 +145,7 @@ export async function submitStaffReturnInspectionCore(
   const data = {
     ...buildReturnSubmissionData({ template, answers: buildAnswers(values, photos), flags }),
     audience: "staff" as const,
+    ...(evidence.missing ? { damage_photo_omission_acknowledged: true } : {}),
   };
 
   // Atomic: insert the staff return, close the active session, clear the asset pointer (all-or-nothing).
