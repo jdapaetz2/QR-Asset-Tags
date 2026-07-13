@@ -5,7 +5,7 @@
  * derives only from the passed arrays, the timeline is inherently single-asset.
  */
 
-import { formTypeLabel } from "@/lib/submissions/display";
+import { submissionTypeLabel } from "@/lib/submissions/origin";
 import { tagRequestStatusLabel } from "@/lib/tags/tag-requests";
 
 export type TimelineKind =
@@ -43,6 +43,8 @@ export type TimelineInput = {
     created_at: string;
     submitted_by_name: string | null;
     attachmentCount: number;
+    /** 'public' (renter) | 'staff' — distinguishes staff vs renter returns in the title. */
+    origin?: string | null;
   }[];
   acknowledgements: {
     id: string;
@@ -74,7 +76,7 @@ export function buildAssetTimeline(input: TimelineInput): TimelineEvent[] {
     events.push({
       kind: "submission",
       at: s.created_at,
-      title: formTypeLabel(s.form_type),
+      title: submissionTypeLabel(s.form_type, s.origin),
       detail: s.submitted_by_name ?? undefined,
       badge: s.status,
       href: `/dashboard/submissions/${s.id}`,

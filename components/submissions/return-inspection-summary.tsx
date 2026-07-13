@@ -52,7 +52,11 @@ export function ReturnInspectionSummary({
   const damaged = flags.damage_observed === "yes";
   const missing = flags.accessories_missing === true;
   const heading =
-    template.inspection_type === "outbound" ? "Outbound inspection" : "Return inspection";
+    template.inspection_type === "outbound"
+      ? "Outbound inspection"
+      : data.audience === "staff"
+        ? "Staff return inspection"
+        : "Return inspection";
 
   return (
     <section className="flex flex-col gap-4 rounded-lg border bg-card p-4 text-sm">

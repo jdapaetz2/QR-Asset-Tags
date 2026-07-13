@@ -11,6 +11,7 @@ import {
 } from "@/lib/forms/validate";
 import { submitReturnInspectionCore } from "@/lib/inspections/submit";
 import { submitOutboundInspectionCore } from "@/lib/inspections/outbound-submit";
+import { submitStaffReturnInspectionCore } from "@/lib/inspections/staff-return-submit";
 
 /** Public damage-report intake. */
 export async function submitDamageReport(
@@ -83,4 +84,17 @@ export async function submitOutboundInspection(
   formData: FormData
 ): Promise<PublicFormState> {
   return submitOutboundInspectionCore(shortCode, formData);
+}
+
+/**
+ * Authenticated STAFF return inspection intake (Phase 3A.1). Records the return condition and COMPLETES the
+ * physical return atomically (closes the rental session + clears the asset pointer). Guarded to the caller's
+ * own organization by the staff guard; no renter contact/acknowledgement; identity derived from the session.
+ */
+export async function submitStaffReturnInspection(
+  shortCode: string,
+  _prev: PublicFormState,
+  formData: FormData
+): Promise<PublicFormState> {
+  return submitStaffReturnInspectionCore(shortCode, formData);
 }

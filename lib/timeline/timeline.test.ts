@@ -77,9 +77,45 @@ describe("buildAssetTimeline", () => {
     // Active session with no return → no rental_ended.
     expect(kinds).not.toContain("rental_ended");
     const outbound = events.find((e) => e.kind === "submission");
-    expect(outbound?.title).toBe("Pre-use inspection");
+    expect(outbound?.title).toBe("Outbound inspection");
     expect(outbound?.detail).toBe("Sam (staff)");
     expect(outbound?.attachmentCount).toBe(3);
+  });
+
+  it("titles a staff return distinctly from a renter return via origin", () => {
+    const staff = buildAssetTimeline({
+      ...base,
+      assetCreatedAt: null,
+      submissions: [
+        {
+          id: "sr1",
+          form_type: "return_checklist",
+          status: "resolved",
+          created_at: "2026-05-02T00:00:00Z",
+          submitted_by_name: "Sam (staff)",
+          attachmentCount: 1,
+          origin: "staff",
+        },
+      ],
+    });
+    expect(staff[0].title).toBe("Staff return inspection");
+
+    const renter = buildAssetTimeline({
+      ...base,
+      assetCreatedAt: null,
+      submissions: [
+        {
+          id: "rr1",
+          form_type: "return_checklist",
+          status: "new",
+          created_at: "2026-05-02T00:00:00Z",
+          submitted_by_name: "Pat",
+          attachmentCount: 1,
+          origin: "public",
+        },
+      ],
+    });
+    expect(renter[0].title).toBe("Renter return");
   });
 
   it("carries the acknowledgement name, contact, and statement as a record", () => {

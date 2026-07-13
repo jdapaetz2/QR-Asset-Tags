@@ -116,4 +116,11 @@ export type ReturnInspectionData = {
   template_snapshot: InspectionTemplate;
   answers: InspectionAnswers;
   flags: InspectionFlags;
+  /**
+   * Who performed the inspection. Absent = a public renter submission (default). "staff" marks an
+   * authenticated staff return/outbound inspection, so the historical snapshot self-identifies the
+   * workflow even independently of the DB `submission_origin` column. Optional for back-compat with
+   * every V2 payload written before Phase 3A.1.
+   */
+  audience?: "public" | "staff";
 };

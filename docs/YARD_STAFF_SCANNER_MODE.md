@@ -1,7 +1,8 @@
 # Yard Staff Outbound/Return Scanner Mode
 
-> **Status: Phase 3A BUILT (outbound scan + condition baseline); return-side + comparison still
-> deferred.** Ships behind migration `0027`, unapplied until `npx.cmd supabase db push`.
+> **Status: Phase 3A BUILT (outbound scan + condition baseline) + Phase 3A.1 BUILT (protected staff
+> return + atomic completion); before/after comparison still deferred.** Ships behind migrations `0027`
+> and `0028`, unapplied until `npx.cmd supabase db push`.
 
 ## Phase 3A — as built (authoritative)
 Authenticated staff (customer_admin / customer_staff) scan the tag and run an **outbound (pre-use)
@@ -25,8 +26,34 @@ inspection** that records baseline condition/accessories/meters/photos and marks
   summary (heading "Outbound inspection"), a "Pre-use inspections" inbox chip, and a baseline link on the
   asset detail + staff summary. Baseline submissions are `status='resolved'` (kept out of the attention
   queue). Media stay private; the action is auditable via `created_by_profile_id` + `submitted_by_name`.
-- **NOT built (still deferred):** the return-side staff flow (Phase 3B), outbound-vs-return comparison, a
-  dedicated `yard_worker` role, reservations/booking/billing/dispatch/CMMS/GPS/signatures, offline, video.
+- **NOT built (still deferred):** before/after (outbound-vs-return) comparison, a dedicated `yard_worker`
+  role, reservations/booking/billing/dispatch/CMMS/GPS/signatures, offline, video.
+
+## Phase 3A.1 — as built (authoritative)
+Corrects the staff RETURN workflow: Phase 3A had the staff summary link a rented asset to the PUBLIC renter
+form. Staff now get a dedicated, protected return that completes the rental atomically.
+- **Origin + actor (migration `0028`):** `form_submissions.submission_origin` ('public' | 'staff') +
+  `submitted_by_profile_id`, both **server-set and un-forgeable** — the `set_return_submission_session`
+  trigger stamps them on every insert (anon → public/null; authenticated 'staff' → the caller's own profile
+  id, overwritten). Outbound baselines are corrected to origin='staff'.
+- **Atomic completion (`complete_staff_return` RPC):** inserts the staff return, closes the active rental
+  session, and clears `assets.active_rental_session_id` in ONE transaction (security invoker, org-scoped,
+  mirrors `mark_return_and_resolve`). No separate "Mark returned & resolve" step. **Idempotent** — once the
+  pointer is cleared, a replay returns the existing completion. Media upload precedes the RPC and is cleaned
+  up on failure.
+- **Route + template:** `/staff/t/[shortCode]/return` renders the parametrized `ReturnInspectionForm` with a
+  **system return template, attestation stripped** (`lib/inspections/staff-return-templates.ts`) — no renter
+  acknowledgement, no contact fields, a read-only staff identity block instead. Completing lands on a
+  protected `/staff/t/[shortCode]/return/complete` result page (asset Available, session closed, reference,
+  condition result, staff name, related renter-report count) — never the public "Sent to…" page.
+- **Status semantics:** a clean staff return → `resolved`; a return flagging damage/missing accessories →
+  `new` (stays in the attention queue). The rental closes in both cases; damage is never auto-resolved.
+- **Records:** staff vs renter returns read distinctly in the inbox (type label + Renter/Staff source badge)
+  and timeline; the submission detail links same-session records from the opposite workflow
+  (`rental_session_id`, admin-only, never public, same-session only). V2 snapshot self-identifies via
+  `data.audience='staff'`.
+- **NOT built (still deferred):** before/after comparison, org-customized templates for staff, a dedicated
+  `yard_worker` role, work orders / maintenance scheduling / damage billing / signatures, SMS, offline, video.
 
 ---
 

@@ -5,7 +5,16 @@ import {
   returnActionOutcome,
   returnChecklistFlags,
   returnDoneMessage,
+  staffReturnStatus,
 } from "./returns";
+
+describe("staffReturnStatus", () => {
+  it("a clean staff return resolves; a flagged one stays new for follow-up", () => {
+    expect(staffReturnStatus({ damage: false, missing: false, flagged: false })).toBe("resolved");
+    expect(staffReturnStatus({ damage: true, missing: false, flagged: true })).toBe("new");
+    expect(staffReturnStatus({ damage: false, missing: true, flagged: true })).toBe("new");
+  });
+});
 
 describe("canQuickResolveReturn", () => {
   it("is true only for an unresolved return checklist", () => {

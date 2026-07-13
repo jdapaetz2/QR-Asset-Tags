@@ -50,7 +50,7 @@ export default async function AssetTimelinePage({
     await Promise.all([
       supabase
         .from("form_submissions")
-        .select("id, form_type, status, created_at, submitted_by_name, media_urls")
+        .select("id, form_type, status, created_at, submitted_by_name, submission_origin, media_urls")
         .eq("asset_id", assetId),
       supabase
         .from("asset_acknowledgements")
@@ -85,6 +85,7 @@ export default async function AssetTimelinePage({
       status: string;
       created_at: string;
       submitted_by_name: string | null;
+      submission_origin: string | null;
       media_urls: unknown;
     }[]).map((s) => ({
       id: s.id,
@@ -93,6 +94,7 @@ export default async function AssetTimelinePage({
       created_at: s.created_at,
       submitted_by_name: s.submitted_by_name,
       attachmentCount: Array.isArray(s.media_urls) ? s.media_urls.length : 0,
+      origin: s.submission_origin,
     })),
     acknowledgements: (acks ?? []) as {
       id: string;

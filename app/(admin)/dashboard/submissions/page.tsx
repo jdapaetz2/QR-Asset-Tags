@@ -6,8 +6,11 @@ import { RelativeTime } from "@/components/relative-time";
 import {
   SUBMISSION_STATUSES,
   FORM_TYPE_LABELS,
-  formTypeLabel,
 } from "@/lib/submissions/display";
+import {
+  submissionSourceBadge,
+  submissionTypeLabel,
+} from "@/lib/submissions/origin";
 import {
   FILTER_FORM_TYPES,
   QUICK_FILTERS,
@@ -55,6 +58,7 @@ type SubmissionRow = {
   created_at: string;
   form_type: string;
   status: string;
+  submission_origin: string | null;
   submitted_by_name: string | null;
   submitted_by_email: string | null;
   submitted_by_phone: string | null;
@@ -89,7 +93,7 @@ export default async function SubmissionsPage({
   let query = supabase
     .from("form_submissions")
     .select(
-      "id, created_at, form_type, status, submitted_by_name, submitted_by_email, submitted_by_phone, submission_data_json, media_urls, asset:assets(asset_code, asset_name)"
+      "id, created_at, form_type, status, submission_origin, submitted_by_name, submitted_by_email, submitted_by_phone, submission_data_json, media_urls, asset:assets(asset_code, asset_name)"
     )
     .order("created_at", { ascending: false });
 
@@ -334,6 +338,10 @@ export default async function SubmissionsPage({
                   row.form_type,
                   row.submission_data_json
                 );
+                const source = submissionSourceBadge(
+                  row.form_type,
+                  row.submission_origin
+                );
                 const submitter =
                   row.submitted_by_name ??
                   row.submitted_by_email ??
@@ -383,8 +391,9 @@ export default async function SubmissionsPage({
                     <td className="px-4 py-2">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <Badge tone={FORM_TYPE_TONE[row.form_type] ?? "neutral"}>
-                          {formTypeLabel(row.form_type)}
+                          {submissionTypeLabel(row.form_type, row.submission_origin)}
                         </Badge>
+                        {source ? <Badge tone={source.tone}>{source.label}</Badge> : null}
                         {urgency ? (
                           <Badge tone={urgencyTone(urgency)}>
                             {titleCase(urgency)}

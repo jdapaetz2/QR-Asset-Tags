@@ -49,6 +49,20 @@ export function returnChecklistFlags(data: unknown): {
   return { damage, missing, flagged: damage || missing };
 }
 
+/**
+ * Status for a completed STAFF return inspection (Phase 3A.1). The physical return is always completed
+ * (the rental session closes regardless), but a return that reports damage or missing accessories stays
+ * "new" so it keeps surfacing in the dashboard attention queue; a clean return goes straight to "resolved".
+ * Never claims damage is repaired — it only keeps a flagged condition visible for follow-up.
+ */
+export function staffReturnStatus(flags: {
+  damage: boolean;
+  missing: boolean;
+  flagged: boolean;
+}): "new" | "resolved" {
+  return flags.flagged ? "new" : "resolved";
+}
+
 export type ReturnActionOutcome =
   | { ok: true; done: "returned" | "already"; message: string }
   | { ok: false; error: string };

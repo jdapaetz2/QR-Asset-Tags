@@ -126,10 +126,10 @@ export default async function StaffAssetPage({
             </Link>
           ) : null}
           <Link
-            href={`/forms/${shortCode}/return`}
-            className="text-sm underline-offset-4 hover:underline"
+            href={`/staff/t/${shortCode}/return`}
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
-            Open the return inspection
+            Complete return inspection
           </Link>
         </div>
       )}

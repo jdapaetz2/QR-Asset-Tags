@@ -3,7 +3,14 @@ import { notFound } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
-import { submissionFields, formTypeLabel } from "@/lib/submissions/display";
+import { submissionFields } from "@/lib/submissions/display";
+import {
+  normalizeOrigin,
+  oppositeOrigin,
+  submissionSourceBadge,
+  submissionTypeLabel,
+} from "@/lib/submissions/origin";
+import { returnChecklistFlags } from "@/lib/submissions/returns";
 import {
   UNRESOLVED_STATUSES,
   mediaCount,
@@ -32,6 +39,8 @@ type SubmissionDetail = {
   created_at: string;
   form_type: string;
   status: string;
+  submission_origin: string | null;
+  rental_session_id: string | null;
   submitted_by_name: string | null;
   submitted_by_email: string | null;
   submitted_by_phone: string | null;
@@ -62,7 +71,7 @@ export default async function SubmissionDetailPage({
   const { data } = await supabase
     .from("form_submissions")
     .select(
-      "id, created_at, form_type, status, submitted_by_name, submitted_by_email, submitted_by_phone, submission_data_json, media_urls, asset_id, asset:assets(asset_code, asset_name)"
+      "id, created_at, form_type, status, submission_origin, rental_session_id, submitted_by_name, submitted_by_email, submitted_by_phone, submission_data_json, media_urls, asset_id, asset:assets(asset_code, asset_name)"
     )
     .eq("id", submissionId)
     .maybeSingle();
@@ -115,6 +124,33 @@ export default async function SubmissionDetailPage({
     assetUnresolved = count ?? 0;
   }
 
+  const origin = normalizeOrigin(submission.submission_origin);
+  const isStaff = origin === "staff";
+  const source = submissionSourceBadge(submission.form_type, submission.submission_origin);
+
+  // Related records from the SAME rental session but the OPPOSITE workflow (staff return <-> renter return).
+  // RLS-scoped (own org); never exposed publicly; same-session only (no cross-session links).
+  type RelatedRow = {
+    id: string;
+    created_at: string;
+    status: string;
+    submitted_by_name: string | null;
+    submission_data_json: unknown;
+  };
+  let related: RelatedRow[] = [];
+  if (submission.form_type === "return_checklist" && submission.rental_session_id) {
+    const { data: rel } = await supabase
+      .from("form_submissions")
+      .select("id, created_at, status, submitted_by_name, submission_data_json")
+      .eq("rental_session_id", submission.rental_session_id)
+      .eq("form_type", "return_checklist")
+      .eq("submission_origin", oppositeOrigin(origin))
+      .neq("id", submission.id)
+      .order("created_at", { ascending: false });
+    related = (rel ?? []) as RelatedRow[];
+  }
+  const relatedHeading = isStaff ? "Related renter return reports" : "Related staff return inspection";
+
   return (
     <div className="flex flex-col gap-6">
       <ReturnDoneNotice done={sp.done} />
@@ -128,8 +164,9 @@ export default async function SubmissionDetailPage({
         </Link>
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-tight">
-            {formTypeLabel(submission.form_type)}
+            {submissionTypeLabel(submission.form_type, submission.submission_origin)}
           </h1>
+          {source ? <Badge tone={source.tone}>{source.label}</Badge> : null}
           <Badge tone={submissionStatusTone(submission.status)}>
             {submissionStatusLabel(submission.status)}
           </Badge>
@@ -216,7 +253,32 @@ export default async function SubmissionDetailPage({
         </div>
       </section>
 
-      {/* Submitter */}
+      {/* Submitter / performer */}
+      {isStaff ? (
+        <section className="rounded-lg border bg-card p-4 text-sm">
+          <h2 className="mb-3 font-medium">Performed by</h2>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-muted-foreground">
+            <dt>Staff</dt>
+            <dd className="text-foreground">{submission.submitted_by_name ?? "Staff"}</dd>
+            {submission.submitted_by_email ? (
+              <>
+                <dt>Email</dt>
+                <dd className="text-foreground">
+                  <a
+                    href={`mailto:${submission.submitted_by_email}`}
+                    className="underline-offset-4 hover:underline"
+                  >
+                    {submission.submitted_by_email}
+                  </a>
+                </dd>
+              </>
+            ) : null}
+          </dl>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Recorded from the authenticated staff account.
+          </p>
+        </section>
+      ) : (
       <section className="rounded-lg border bg-card p-4 text-sm">
         <h2 className="mb-3 font-medium">Submitted by</h2>
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-muted-foreground">
@@ -250,6 +312,49 @@ export default async function SubmissionDetailPage({
           </dd>
         </dl>
       </section>
+      )}
+
+      {/* Related same-session records from the opposite workflow (staff <-> renter). */}
+      {submission.form_type === "return_checklist" && submission.rental_session_id ? (
+        <section className="rounded-lg border bg-card p-4 text-sm">
+          <h2 className="mb-3 font-medium">{relatedHeading}</h2>
+          {related.length === 0 ? (
+            <p className="text-muted-foreground">
+              No {isStaff ? "renter return reports" : "staff return inspection"} for this rental.
+            </p>
+          ) : (
+            <ul className="flex flex-col divide-y">
+              {related.map((r) => {
+                const flags = returnChecklistFlags(r.submission_data_json);
+                return (
+                  <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                    <div className="flex flex-col">
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {submissionReference(r.id, r.created_at)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        <RelativeTime value={r.created_at} />
+                        {r.submitted_by_name ? ` · ${r.submitted_by_name}` : ""}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {flags.damage ? <Badge tone="danger">Damage</Badge> : null}
+                      {flags.missing ? <Badge tone="warning">Missing</Badge> : null}
+                      {!flags.flagged ? <Badge tone="success">No issues</Badge> : null}
+                      <Link
+                        href={`/dashboard/submissions/${r.id}`}
+                        className="text-sm underline-offset-4 hover:underline"
+                      >
+                        Open {isStaff ? "report" : "inspection"} →
+                      </Link>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      ) : null}
 
       {v2Data ? (
         /* V2 guided return inspection — structured summary + photos grouped by slot. */
