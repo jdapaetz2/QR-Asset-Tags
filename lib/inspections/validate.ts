@@ -175,6 +175,57 @@ export function evaluateInspection(
   return null;
 }
 
+/**
+ * First client-side blocking error across ALL currently-visible sections (Phase 1A.1). Mirrors the
+ * server's required / required_when / acknowledgement / photo-slot-minimum checks and returns the
+ * offending field id (so the single-page form can scroll + focus it) with a message. The server remains
+ * authoritative — this only gates opening the Review stage. Value-domain checks (bad numbers, etc.) are
+ * left to the server. `fileCounts` maps a photo_slot id to the number of files chosen for it.
+ */
+export function firstInspectionError(
+  template: InspectionTemplate,
+  values: AnswerValues,
+  fileCounts: Record<string, number>
+): { fieldId: string; message: string } | null {
+  for (const section of visibleSections(template, values)) {
+    for (const field of visibleFields(section, values)) {
+      if (field.type === "photo_slot") {
+        const min = field.photo?.minPhotos ?? 0;
+        if ((fileCounts[field.id] ?? 0) < min) {
+          return {
+            fieldId: field.id,
+            message: `Add at least ${min} photo${min === 1 ? "" : "s"} for "${field.label}".`,
+          };
+        }
+        continue;
+      }
+      if (field.type === "acknowledgement") {
+        if (field.required && values[field.id] !== "yes") {
+          return { fieldId: field.id, message: "Please confirm the attestation to submit." };
+        }
+        continue;
+      }
+      if (fieldRequired(field, values) && !isAnswered(field, values)) {
+        return { fieldId: field.id, message: `"${field.label}" is required.` };
+      }
+    }
+  }
+  return null;
+}
+
+/** Per-slot photo counts for the currently-visible photo slots (drives the Review photo summary). */
+export function visiblePhotoSlotCounts(
+  template: InspectionTemplate,
+  values: AnswerValues,
+  fileCounts: Record<string, number>
+): { id: string; label: string; count: number }[] {
+  return visiblePhotoSlots(template, values).map((slot) => ({
+    id: slot.id,
+    label: slot.label,
+    count: fileCounts[slot.id] ?? 0,
+  }));
+}
+
 /** Canonical flags derived from the answers (damage yes/no + accessories missing). */
 export function deriveFlags(
   template: InspectionTemplate,

@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   deriveFlags,
   evaluateInspection,
+  firstInspectionError,
   parseAnswerValues,
+  visiblePhotoSlotCounts,
   visiblePhotoSlots,
   type AnswerReader,
 } from "./validate";
@@ -173,7 +175,7 @@ describe("evaluateInspection", () => {
 });
 
 describe("visiblePhotoSlots", () => {
-  it("adds the damage photo slot only when damage is observed", () => {
+  it("adds the damage photo slot only when damage is observed; additional photos always", () => {
     const noDamage = parseAnswerValues(utility, readerFrom(VALID_UTILITY));
     const withDamage = parseAnswerValues(
       utility,
@@ -182,7 +184,87 @@ describe("visiblePhotoSlots", () => {
     const ids = (t: InspectionTemplate, v: ReturnType<typeof parseAnswerValues>) =>
       visiblePhotoSlots(t, v).map((f) => f.id);
     expect(ids(utility, noDamage)).not.toContain("damage_photos");
+    expect(ids(utility, noDamage)).toContain("additional_photos");
     expect(ids(utility, withDamage)).toContain("damage_photos");
+    expect(ids(utility, withDamage)).toContain("additional_photos");
+  });
+});
+
+// Client-side gate for opening the Review stage (Phase 1A.1). Uses plain client `values` maps
+// (attestation is "yes"/"" here, not "on"/parsed) and a fileCounts map keyed by photo-slot id.
+describe("firstInspectionError", () => {
+  const OVERVIEW_FC = { front_hitch_photo: 1, deck_photo: 1 };
+  const baseValues: Record<string, string> = {
+    tires_wheels: "pass",
+    lights_wiring: "pass",
+    ramps_gate: "yes",
+    coupler: "pass",
+    safety_chains: "pass",
+    jack: "pass",
+    body_fenders: "pass",
+    damage_observed: "no",
+    attestation: "yes",
+  };
+
+  it("returns null for a complete submission (damage=no, additional photos optional)", () => {
+    expect(firstInspectionError(utility, baseValues, OVERVIEW_FC)).toBeNull();
+    // Additional photos absent is fine (optional slot).
+    expect(firstInspectionError(utility, baseValues, OVERVIEW_FC)?.fieldId).toBeUndefined();
+  });
+
+  it("flags a missing required field by id", () => {
+    const err = firstInspectionError(
+      utility,
+      { ...baseValues, tires_wheels: "" },
+      OVERVIEW_FC
+    );
+    expect(err?.fieldId).toBe("tires_wheels");
+  });
+
+  it("flags a missing required overview photo by slot id", () => {
+    const err = firstInspectionError(utility, baseValues, { front_hitch_photo: 1 });
+    expect(err?.fieldId).toBe("deck_photo");
+  });
+
+  it("requires damage details, then a damage photo, when damage=yes", () => {
+    const dmg = { ...baseValues, damage_observed: "yes" };
+    // Details missing → first damage field.
+    expect(firstInspectionError(utility, dmg, OVERVIEW_FC)?.fieldId).toBe("damage_location");
+    // Details filled but no damage photo → the damage photo slot.
+    const withDetails = {
+      ...dmg,
+      damage_location: "left fender",
+      damage_severity: "minor",
+      damage_description: "scratch",
+    };
+    expect(firstInspectionError(utility, withDetails, OVERVIEW_FC)?.fieldId).toBe("damage_photos");
+    // With a damage photo → clears.
+    expect(
+      firstInspectionError(utility, withDetails, { ...OVERVIEW_FC, damage_photos: 1 })
+    ).toBeNull();
+  });
+
+  it("never requires the optional additional-photos slot", () => {
+    expect(
+      firstInspectionError(utility, baseValues, { ...OVERVIEW_FC, additional_photos: 0 })
+    ).toBeNull();
+  });
+});
+
+describe("visiblePhotoSlotCounts", () => {
+  it("reports counts per currently-visible photo slot", () => {
+    const values = parseAnswerValues(utility, readerFrom(VALID_UTILITY));
+    const counts = visiblePhotoSlotCounts(utility, values, {
+      front_hitch_photo: 2,
+      deck_photo: 1,
+      additional_photos: 3,
+    });
+    const byId = Object.fromEntries(counts.map((c) => [c.id, c.count]));
+    expect(byId.front_hitch_photo).toBe(2);
+    expect(byId.deck_photo).toBe(1);
+    expect(byId.additional_photos).toBe(3);
+    // Damage slot is hidden here (damage=no) → not counted.
+    expect(byId).not.toHaveProperty("damage_photos");
   });
 });
 

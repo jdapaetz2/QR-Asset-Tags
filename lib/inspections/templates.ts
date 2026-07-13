@@ -112,6 +112,26 @@ const DAMAGE_DETAILS_SECTION: InspectionSection = {
   ],
 };
 
+/** Stable slot id for the always-visible optional "Additional photos" area (Phase 1A.1). */
+export const ADDITIONAL_PHOTOS_SLOT_ID = "additional_photos";
+
+/**
+ * Optional catch-all photos, always available regardless of the damage answer. Renders near the end of
+ * the single-page inspection (after damage details, before confirmation). minPhotos 0 → never required.
+ */
+const ADDITIONAL_PHOTOS_SECTION: InspectionSection = {
+  id: "additional_photos",
+  title: "Additional photos",
+  fields: [
+    photoSlot(ADDITIONAL_PHOTOS_SLOT_ID, "Additional photos", {
+      required: false,
+      min: 0,
+      max: 6,
+      help: "Add any other photos that may help the rental company review the equipment’s return condition.",
+    }),
+  ],
+};
+
 const CONFIRMATION_SECTION: InspectionSection = {
   id: "confirmation",
   title: "Confirmation",
@@ -147,6 +167,7 @@ function buildTemplate(
       },
       { id: "accessories", title: "Accessories", fields: [sections.accessories] },
       DAMAGE_DETAILS_SECTION,
+      ADDITIONAL_PHOTOS_SECTION,
       CONFIRMATION_SECTION,
     ],
   };

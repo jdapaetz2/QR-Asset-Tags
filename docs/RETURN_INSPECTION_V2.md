@@ -52,6 +52,24 @@ by `submission_data_json.schema_version` (2 = V2). No `mark_return_and_resolve` 
 (1B/2), form builder / drag-and-drop editor, e-signatures, yard-worker mode + outbound baseline /
 comparison (3), video, offline, autosave, storage-quota billing, CMMS, rental booking.
 
+### Phase 1A.1 — mobile flow correction (presentation only)
+Follow-up wave after mobile testing. **No** change to the data/security model, migrations, template
+assignment/resolution, snapshot mechanism, media limits, admin summary semantics, or V1 support.
+- **Two stages, not ~5 screens.** The public form (`components/public/return-inspection-form.tsx`) is now
+  **Inspection** (one vertically scrollable page of section cards) → **Review & submit**, with a single
+  final POST. Both stages stay mounted (hidden) so Back never clears answers or selected files. Opening
+  Review is gated by the pure `firstInspectionError` (`lib/inspections/validate.ts`), which scrolls/focuses
+  the first invalid field; the server stays authoritative.
+- **Inline damage.** The conditional Damage-details card (incl. its required photo) mounts inline directly
+  under "Damage observed? = Yes" and unmounts on "No" — so hidden damage files are discarded, never
+  uploaded. There is no separate photo screen.
+- **Always-available Additional photos.** A new **optional** system slot `additional_photos` (stable id,
+  `minPhotos:0`, in every template after damage details / before confirmation) lets renters attach extra
+  photos regardless of the damage answer. It flows through the unchanged server collector + global 8-file
+  / 40 MB caps and is grouped under **Additional photos** in the admin summary automatically.
+- **Confirmation button.** The shared `FormThanks` now shows a prominent full-width **Return to equipment
+  page** button (`/t/[shortCode]`) — applied to the return, damage, and support confirmation pages alike.
+
 ---
 
 ## Goal

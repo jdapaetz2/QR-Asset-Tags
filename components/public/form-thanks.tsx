@@ -76,9 +76,9 @@ export function FormThanks({
 
         <Link
           href={`/t/${shortCode}`}
-          className="mt-4 text-sm font-medium underline-offset-4 hover:underline"
+          className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
-          ← Back to equipment page
+          Return to equipment page
         </Link>
       </div>
 
