@@ -33,6 +33,9 @@ export type ImportState = {
   /** Set when the import was blocked pending new-category confirmation. */
   needsCategoryConfirm?: boolean;
   newCategories?: string[];
+  /** Set when one or more rows fall back to the Generic return inspection. */
+  needsGenericReturnConfirm?: boolean;
+  genericReturnCount?: number;
 };
 
 const MAX_QR_ATTEMPTS = 5;
@@ -107,6 +110,22 @@ export async function importAssets(
     };
   }
 
+  // Server-side gate: rows with no matching return inspection fall back to Generic.
+  // Require an explicit decision (Proceed / Review assignments) before importing.
+  // (Mirrors the same pure resolver used by the client preview — never trust the UI.)
+  const genericReturnCount = validRows.filter(
+    (r) => r.flags!.returnInspectionSource === "generic"
+  ).length;
+  const confirmGenericReturn = formData.get("confirm_generic_return") === "true";
+  if (genericReturnCount > 0 && !confirmGenericReturn) {
+    return {
+      needsGenericReturnConfirm: true,
+      genericReturnCount,
+      error:
+        "Some rows have no matching return inspection and will use the Generic template. Confirm to proceed, or set a return_inspection_template_key.",
+    };
+  }
+
   const summary: ImportSummary = {
     created: 0,
     skipped: 0,
@@ -134,6 +153,7 @@ export async function importAssets(
         support_phone_override: asset.support_phone_override,
         support_email_override: asset.support_email_override,
         cover_image_url: asset.cover_image_url,
+        return_inspection_template_key: flags.returnInspectionTemplateKey,
         public_status: flags.publishAsset ? "public" : "private",
         organization_id: organizationId,
       })

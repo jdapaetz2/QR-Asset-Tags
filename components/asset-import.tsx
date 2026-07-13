@@ -105,6 +105,21 @@ export function AssetImport({
   });
   const hasNewCategories = newCategories.length > 0;
 
+  // Rows that fall back to the Generic return inspection — these gate the import
+  // just like new categories do (same pure resolver runs on the server).
+  const genericReturnRows = validRows.filter(
+    (r) => r.flags?.returnInspectionSource === "generic"
+  );
+  const hasGenericReturn = genericReturnRows.length > 0;
+  const returnStatusLabel = (source?: "assigned" | "suggested" | "generic") =>
+    source === "assigned"
+      ? "Assigned"
+      : source === "suggested"
+        ? "Suggested"
+        : source === "generic"
+          ? "Review recommended"
+          : "—";
+
   return (
     <div className="flex flex-col gap-4">
       <label className="flex flex-col gap-1 text-sm">
@@ -140,7 +155,9 @@ export function AssetImport({
                   <th className="px-3 py-2 font-medium">Row</th>
                   <th className="px-3 py-2 font-medium">Code</th>
                   <th className="px-3 py-2 font-medium">Name</th>
+                  <th className="px-3 py-2 font-medium">Category</th>
                   <th className="px-3 py-2 font-medium">Template</th>
+                  <th className="px-3 py-2 font-medium">Return inspection</th>
                   <th className="px-3 py-2 font-medium">QR</th>
                   <th className="px-3 py-2 font-medium">Publish</th>
                   <th className="px-3 py-2 font-medium">Status</th>
@@ -153,7 +170,28 @@ export function AssetImport({
                     <td className="px-3 py-2 font-medium">{row.assetCode || "—"}</td>
                     <td className="px-3 py-2">{row.asset?.asset_name ?? "—"}</td>
                     <td className="px-3 py-2 text-muted-foreground">
+                      {row.asset?.category ?? "—"}
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">
                       {row.flags?.templateKey ?? "—"}
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {row.flags ? (
+                        <>
+                          {row.flags.returnInspectionTemplateKey}
+                          <span
+                            className={
+                              row.flags.returnInspectionSource === "generic"
+                                ? "block text-xs text-warning"
+                                : "block text-xs"
+                            }
+                          >
+                            {returnStatusLabel(row.flags.returnInspectionSource)}
+                          </span>
+                        </>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">
                       {row.flags?.createQrLink ? "yes" : "—"}
@@ -191,40 +229,67 @@ export function AssetImport({
         </p>
       ) : null}
 
-      {parsed && validCount > 0 && hasNewCategories ? (
-        // New categories detected → require an explicit decision before importing.
+      {parsed && validCount > 0 && (hasNewCategories || hasGenericReturn) ? (
+        // New categories and/or Generic return-inspection fallbacks → require an
+        // explicit decision before importing. Both are confirmed together.
         <div className="flex flex-col gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
-          <div>
-            <h3 className="text-sm font-medium text-foreground">
-              New categories detected
-            </h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              These categories are new for this organization. Proceeding will add
-              assets using these categories. Choose <strong>Change Categories</strong>{" "}
-              if these are typos or should match an existing category.
-            </p>
-            <ul className="mt-2 list-disc pl-5 text-sm text-muted-foreground">
-              {newCategoryRows.map(({ category, rows }) => (
-                <li key={category}>
-                  <span className="font-medium text-foreground">{category}</span>
-                  {rows.length > 0 ? ` (row${rows.length === 1 ? "" : "s"} ${rows.join(", ")})` : ""}
-                </li>
-              ))}
-            </ul>
-          </div>
+          {hasNewCategories ? (
+            <div>
+              <h3 className="text-sm font-medium text-foreground">
+                New categories detected
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                These categories are new for this organization. Proceeding will add
+                assets using these categories. Choose <strong>Review assignments</strong>{" "}
+                if these are typos or should match an existing category.
+              </p>
+              <ul className="mt-2 list-disc pl-5 text-sm text-muted-foreground">
+                {newCategoryRows.map(({ category, rows }) => (
+                  <li key={category}>
+                    <span className="font-medium text-foreground">{category}</span>
+                    {rows.length > 0 ? ` (row${rows.length === 1 ? "" : "s"} ${rows.join(", ")})` : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {hasGenericReturn ? (
+            <div>
+              <h3 className="text-sm font-medium text-foreground">
+                Generic return inspection
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {genericReturnRows.length} row
+                {genericReturnRows.length === 1 ? "" : "s"} have no matching return
+                inspection and will use the <strong>Generic</strong> template. To assign a
+                specific inspection instead, set a <code>return_inspection_template_key</code>{" "}
+                and upload again.
+              </p>
+              <ul className="mt-2 list-disc pl-5 text-sm text-muted-foreground">
+                {genericReturnRows.map((r) => (
+                  <li key={r.index}>
+                    Row {r.index}
+                    {r.assetCode ? ` (${r.assetCode})` : ""}
+                    {r.asset?.category ? ` · ${r.asset.category}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           {wantChange ? (
             <p className="text-sm text-muted-foreground">
-              No assets have been imported. Update your CSV categories and upload
-              again.
+              No assets have been imported. Update your CSV and upload again.
             </p>
           ) : (
             <div className="flex flex-wrap items-center gap-3">
               <form action={formAction}>
                 <input type="hidden" name="csv" value={csvText} />
                 <input type="hidden" name="confirm_new_categories" value="true" />
+                <input type="hidden" name="confirm_generic_return" value="true" />
                 <Button type="submit" disabled={pending}>
-                  {pending ? "Importing…" : "Proceed with Import"}
+                  {pending ? "Importing…" : "Proceed with import"}
                 </Button>
               </form>
               <Button
@@ -232,7 +297,7 @@ export function AssetImport({
                 variant="outline"
                 onClick={() => setWantChange(true)}
               >
-                Change Categories
+                Review assignments
               </Button>
             </div>
           )}

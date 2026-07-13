@@ -4,6 +4,8 @@
  * profile in the server action, never from user input. See lib/assets/actions.ts.
  */
 
+import { isReturnTemplateKey } from "@/lib/inspections/templates";
+
 export type AssetInput = {
   asset_code: string;
   asset_name: string;
@@ -16,6 +18,7 @@ export type AssetInput = {
   support_email_override: string | null;
   cover_image_url: string | null;
   internal_notes: string | null;
+  return_inspection_template_key: string | null;
 };
 
 export type NormalizeResult =
@@ -80,6 +83,16 @@ export function normalizeAssetForm(raw: RawAssetForm): NormalizeResult {
     };
   }
 
+  // Explicit return-inspection template assignment: must be a known system key when supplied.
+  // (Null is allowed here; the create action fills a category suggestion / generic default.)
+  const return_inspection_template_key = clean(raw.return_inspection_template_key);
+  if (
+    return_inspection_template_key &&
+    !isReturnTemplateKey(return_inspection_template_key)
+  ) {
+    return { error: "Choose a valid return inspection template." };
+  }
+
   return {
     value: {
       asset_code,
@@ -93,6 +106,7 @@ export function normalizeAssetForm(raw: RawAssetForm): NormalizeResult {
       support_email_override,
       cover_image_url,
       internal_notes: clean(raw.internal_notes),
+      return_inspection_template_key,
     },
   };
 }

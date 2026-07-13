@@ -1,10 +1,58 @@
 # Return Inspection V2 — Design of Record
 
-> **Status: Design approved — not yet built.** This is the product + technical design for turning the
-> MVP return checklist into a guided, category-aware return inspection. Phase 1 is a future build wave.
+> **Status: Phase 1A BUILT (ships behind migration `0024`, unapplied until `supabase db push`).** The
+> rest of this document remains the broader design of record; **Phase 1A as implemented is authoritative
+> where it differs from the design below** (see the reconciliation section immediately following). Phases
+> 1B / 2 / 3 are still future waves.
 > Related: [`YARD_STAFF_SCANNER_MODE.md`](YARD_STAFF_SCANNER_MODE.md), [`ROADMAP_DEFERRED.md`](ROADMAP_DEFERRED.md),
 > [`STORAGE_MEDIA_LIFECYCLE.md`](STORAGE_MEDIA_LIFECYCLE.md), [`NON_GOALS.md`](NON_GOALS.md),
 > [`DATA_MODEL.md`](DATA_MODEL.md).
+
+---
+
+## Phase 1A — as built (authoritative)
+
+This section records what actually shipped in Phase 1A. Where it differs from the design narrative later
+in this document, **this section wins**.
+
+**Templates (system, in code).** Six curated system templates live in `lib/inspections/templates.ts`
+(`utility_trailer`, `mini_excavator_skid_steer`, `portable_generator`, `plate_compactor`,
+`electrical_test_equipment`, `generic`), each version-stamped and deep-snapshotted into the submission at
+submit time. No template DB table, no org customization, no form builder, no e-signatures (attestation
+checkbox only). Closed field model in `lib/inspections/types.ts` (10 field types; single-equality
+`visible_when` / `required_when`).
+
+**Explicit asset-level assignment.** `assets.return_inspection_template_key` (migration `0024`, anon
+column grant) is the source of truth. Assignment is chosen in the asset create/edit form and CSV import,
+resolved by the single pure resolver `resolveReturnTemplateKey({assignmentKey, category})`:
+valid explicit assignment → **conservative exact-alias** category suggestion → `generic`.
+
+**No broad category normalization / fuzzy matching.** Category → template is an **exact-alias** lookup
+only (trim + case-fold + collapse internal whitespace) in `lib/inspections/resolve.ts`. No substring,
+similarity, or renaming. A suggestion only preselects/resolves — it **never** overwrites a stored explicit
+key when the category later changes (the UI surfaces an inconsistency note instead).
+
+**Media caps: 8 images / 40 MB total** (not the 12 / 60 MB floated in the design), images only, ≤10 MB
+each, per-slot min/max, required damage photo when damage is observed. Enforced in
+`lib/forms/media.ts` (`validateInspectionFiles`) + `lib/inspections/submit.ts`. The 40 MB cap fits under
+the existing `serverActions.bodySizeLimit` (52 MB) — **the global limit was not raised** for more media.
+
+**No browser autosave.** The guided form keeps every step mounted (hidden via the `hidden` attribute) and
+submits once; there are no per-step server calls and no local-storage autosave.
+
+**Server-authoritative + DB-enforced session integrity.** The browser sends only contact + `answer:*` +
+`photo:*` + honeypot. The server derives org/asset/`form_type`/`status`/flags/template/snapshot. A
+`BEFORE INSERT` trigger (`set_return_submission_session`, SECURITY DEFINER, `search_path=public`)
+authoritatively sets `form_submissions.rental_session_id` from the asset's `active_rental_session_id`
+(matching org+asset), overwriting any client-supplied value — so a public submission can never associate
+itself with an unrelated rental session. `form_type` stays `return_checklist`; V1 vs V2 is discriminated
+by `submission_data_json.schema_version` (2 = V2). No `mark_return_and_resolve` (0022) change, no backfill.
+
+**Deferred (NOT built in 1A):** org category-default management + org-customized inspection content
+(1B/2), form builder / drag-and-drop editor, e-signatures, yard-worker mode + outbound baseline /
+comparison (3), video, offline, autosave, storage-quota billing, CMMS, rental booking.
+
+---
 
 ## Goal
 Turn the flat public Return checklist (name/contact, condition notes, fuel/charge, cleaned y/n,

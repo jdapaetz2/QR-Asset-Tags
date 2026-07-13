@@ -15,11 +15,20 @@ export const ALLOWED_IMAGE_TYPES = [
 export const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
 export const MAX_FILES = 5;
 
+// Guided return inspections allow more photos (overview + angles + damage), but with a hard total-byte
+// cap so a submission stays well under the server-action body limit (next.config.ts) and storage cost
+// stays bounded. Per-file size + allowed types are unchanged.
+export const INSPECTION_MAX_FILES = 8;
+export const INSPECTION_MAX_TOTAL_BYTES = 40 * 1024 * 1024; // 40 MB
+
 const EXT_BY_MIME: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
 };
+
+/** Extensions that legitimately accompany the allowed image MIME types. */
+const ALLOWED_IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "webp"]);
 
 export function isAllowedImageType(type: string): boolean {
   return (ALLOWED_IMAGE_TYPES as readonly string[]).includes(type);
@@ -27,6 +36,45 @@ export function isAllowedImageType(type: string): boolean {
 
 export function extForMime(type: string): string {
   return EXT_BY_MIME[type] ?? "bin";
+}
+
+/** Lowercased extension from a filename, or "" when absent. */
+export function extFromName(name: string | undefined | null): string {
+  if (!name) return "";
+  const dot = name.lastIndexOf(".");
+  return dot >= 0 ? name.slice(dot + 1).toLowerCase() : "";
+}
+
+/**
+ * Validate return-inspection media: images only, ≤10 MB each, ≤8 files, ≤40 MB total, and (when a
+ * filename is present) an image extension consistent with the MIME allow-list. Returns an error
+ * message or null. Zero files is valid here (per-slot minimums are enforced separately against the
+ * template's required photo slots).
+ */
+export function validateInspectionFiles(
+  files: { type: string; size: number; name?: string }[]
+): string | null {
+  if (files.length > INSPECTION_MAX_FILES) {
+    return `Attach at most ${INSPECTION_MAX_FILES} photos.`;
+  }
+  let total = 0;
+  for (const file of files) {
+    if (!isAllowedImageType(file.type)) {
+      return "Only JPG, PNG, or WebP images are allowed.";
+    }
+    const ext = extFromName(file.name);
+    if (ext && !ALLOWED_IMAGE_EXTS.has(ext)) {
+      return "Only JPG, PNG, or WebP images are allowed.";
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      return "Each photo must be 10 MB or smaller.";
+    }
+    total += file.size;
+  }
+  if (total > INSPECTION_MAX_TOTAL_BYTES) {
+    return "Photos total more than 40 MB — remove some and try again.";
+  }
+  return null;
 }
 
 /**

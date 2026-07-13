@@ -18,9 +18,13 @@ export function canQuickResolveReturn(input: {
 }
 
 /**
- * Whether a return checklist reports damage or missing items, read from the untyped
- * `submission_data_json`. Keys are `damage_observed` / `accessories_returned` with
- * "yes" | "no" | null values; anything that isn't the exact string is treated as absent.
+ * Whether a return submission reports damage or missing items, read from the untyped
+ * `submission_data_json`. Supports both shapes:
+ *   - V2 guided inspection (schema_version 2): canonical `flags.damage_observed` ("yes"|"no") +
+ *     `flags.accessories_missing` (boolean).
+ *   - V1 flat checklist: `damage_observed` ("yes") + `accessories_returned` ("no").
+ * Anything that isn't the exact value is treated as absent, so both keep the dashboard attention
+ * queue + list badges working.
  */
 export function returnChecklistFlags(data: unknown): {
   damage: boolean;
@@ -29,6 +33,17 @@ export function returnChecklistFlags(data: unknown): {
 } {
   const obj =
     data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+
+  const flags =
+    obj.flags && typeof obj.flags === "object"
+      ? (obj.flags as Record<string, unknown>)
+      : null;
+  if (flags) {
+    const damage = flags.damage_observed === "yes";
+    const missing = flags.accessories_missing === true;
+    return { damage, missing, flagged: damage || missing };
+  }
+
   const damage = obj.damage_observed === "yes";
   const missing = obj.accessories_returned === "no";
   return { damage, missing, flagged: damage || missing };

@@ -5,6 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
 import { saveEquipmentPage } from "@/lib/assets/equipment-actions";
 import { toPreviewDocuments, type DocRow } from "@/lib/public/documents";
+import {
+  resolveReturnTemplateKey,
+  returnTemplateName,
+} from "@/lib/inspections/resolve";
 import { EquipmentPageForm } from "@/components/equipment-page-form";
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 
@@ -23,11 +27,19 @@ export default async function EquipmentPageEditor({
   const { data: asset } = await supabase
     .from("assets")
     .select(
-      "id, asset_code, asset_name, category, cover_image_url, public_status, support_phone_override, support_email_override"
+      "id, asset_code, asset_name, category, cover_image_url, public_status, support_phone_override, support_email_override, return_inspection_template_key"
     )
     .eq("id", assetId)
     .maybeSingle();
   if (!asset) notFound();
+
+  // Read-only display of the resolved return-inspection template (managed on asset details).
+  const returnTemplateLabel = returnTemplateName(
+    resolveReturnTemplateKey({
+      assignmentKey: asset.return_inspection_template_key as string | null,
+      category: asset.category as string | null,
+    }).key
+  );
 
   // Org branding/support for the preview (own org via RLS).
   const { data: org } = await supabase
@@ -86,6 +98,8 @@ export default async function EquipmentPageEditor({
         action={saveEquipmentPage.bind(null, assetId)}
         page={page ?? undefined}
         cancelHref={`/dashboard/assets/${assetId}`}
+        assetId={assetId}
+        returnTemplateName={returnTemplateLabel}
         org={{
           name: org?.name ?? null,
           logo_url: org?.logo_url ?? null,

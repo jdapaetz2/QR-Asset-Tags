@@ -12,6 +12,8 @@ import {
 } from "@/lib/assets/actions";
 import { deleteEligibility } from "@/lib/assets/list";
 import { getOrgCategories } from "@/lib/assets/categories";
+import { resolveReturnTemplateKey } from "@/lib/inspections/resolve";
+import { RETURN_TEMPLATE_PICKER } from "@/lib/inspections/templates";
 import { UNRESOLVED_STATUSES } from "@/lib/submissions/inbox";
 import { AssetForm } from "@/components/asset-form";
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
@@ -50,7 +52,7 @@ export default async function EditAssetPage({
   const { data: asset } = await supabase
     .from("assets")
     .select(
-      "asset_code, asset_name, category, make, model, serial_number, year, support_phone_override, support_email_override, cover_image_url, internal_notes, public_status, archived_at"
+      "asset_code, asset_name, category, make, model, serial_number, year, support_phone_override, support_email_override, cover_image_url, internal_notes, public_status, archived_at, return_inspection_template_key"
     )
     .eq("id", assetId)
     .maybeSingle();
@@ -58,6 +60,16 @@ export default async function EditAssetPage({
   if (!asset) notFound();
 
   const categories = await getOrgCategories(supabase);
+
+  // Resolve the effective return-inspection template for the summary section (assignment → suggestion
+  // → generic). This is display-only; the authoritative assignment lives on the asset.
+  const returnResolution = resolveReturnTemplateKey({
+    assignmentKey: asset.return_inspection_template_key as string | null,
+    category: asset.category as string | null,
+  });
+  const returnTemplate = RETURN_TEMPLATE_PICKER.find(
+    (t) => t.key === returnResolution.key
+  );
 
   // RLS-scoped reads for status + QR management.
   const { data: page } = await supabase
@@ -228,6 +240,33 @@ export default async function EditAssetPage({
             Manage documents
           </Link>
         </Button>
+      </section>
+
+      {/* Return inspection template */}
+      <section className="rounded-lg border bg-card p-4 text-sm">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h2 className="font-medium">Return inspection</h2>
+            <p className="text-muted-foreground">
+              {returnTemplate?.name}
+              {returnResolution.source === "assigned"
+                ? " · assigned"
+                : returnResolution.source === "suggested"
+                  ? " · suggested from category"
+                  : " · generic fallback"}
+            </p>
+          </div>
+          <Button asChild variant="outline">
+            <Link href="#return_inspection_template_key">Change template</Link>
+          </Button>
+        </div>
+        {returnResolution.source !== "assigned" ? (
+          <p className="mt-2 text-xs text-warning">
+            {returnResolution.source === "generic"
+              ? "No specific template matched this category — using the generic inspection. Review recommended."
+              : "Suggested from the asset category. Save the asset to make it the explicit assignment."}
+          </p>
+        ) : null}
       </section>
 
       {/* QR link management */}

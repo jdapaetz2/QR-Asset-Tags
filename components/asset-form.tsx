@@ -7,6 +7,11 @@ import { Button } from "@/components/ui/button";
 import type { AssetFormState } from "@/lib/assets/actions";
 import type { AssetInput } from "@/lib/assets/validate";
 import { COVER_ALLOWED_TYPES } from "@/lib/assets/cover";
+import {
+  GENERIC_TEMPLATE_KEY,
+  RETURN_TEMPLATE_PICKER,
+} from "@/lib/inspections/templates";
+import { suggestTemplateKeyFromCategory } from "@/lib/inspections/resolve";
 
 const inputClass =
   "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring";
@@ -83,6 +88,27 @@ export function AssetForm({
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Category + return-inspection template are chosen together. The template follows the category
+  // suggestion until the admin picks one explicitly (then it is preserved even if the category
+  // changes — we only surface an inconsistency warning, never silently overwrite).
+  const [category, setCategory] = useState(asset?.category ?? "");
+  const [templateKey, setTemplateKey] = useState(
+    asset?.return_inspection_template_key ?? ""
+  );
+  const [templateTouched, setTemplateTouched] = useState(
+    Boolean(asset?.return_inspection_template_key)
+  );
+  const suggestion = suggestTemplateKeyFromCategory(category);
+  const effectiveTemplateKey = templateTouched
+    ? templateKey || GENERIC_TEMPLATE_KEY
+    : suggestion ?? GENERIC_TEMPLATE_KEY;
+  const templateFor = (key: string) =>
+    RETURN_TEMPLATE_PICKER.find((t) => t.key === key);
+  const inconsistent =
+    templateTouched && suggestion != null && suggestion !== effectiveTemplateKey;
+  const isGenericFallback =
+    effectiveTemplateKey === GENERIC_TEMPLATE_KEY && suggestion == null;
+
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     setFilePreview((prev) => {
@@ -123,7 +149,8 @@ export function AssetForm({
           <input
             name="category"
             list="asset-categories"
-            defaultValue={asset?.category ?? undefined}
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
             className={inputClass}
           />
           <datalist id="asset-categories">
@@ -135,6 +162,42 @@ export function AssetForm({
             Choose an existing category or type a new one.
           </span>
         </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">Return inspection template</span>
+          <select
+            id="return_inspection_template_key"
+            name="return_inspection_template_key"
+            value={effectiveTemplateKey}
+            onChange={(e) => {
+              setTemplateKey(e.target.value);
+              setTemplateTouched(true);
+            }}
+            className={inputClass}
+          >
+            {RETURN_TEMPLATE_PICKER.map((t) => (
+              <option key={t.key} value={t.key}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+          <span className="text-xs text-muted-foreground">
+            {templateFor(effectiveTemplateKey)?.description}
+          </span>
+          {inconsistent ? (
+            <span className="text-xs text-warning">
+              Category suggests “{templateFor(suggestion!)?.name}”, but this asset is assigned “
+              {templateFor(effectiveTemplateKey)?.name}”.
+            </span>
+          ) : !templateTouched && suggestion ? (
+            <span className="text-xs text-muted-foreground">Suggested from category.</span>
+          ) : isGenericFallback ? (
+            <span className="text-xs text-warning">Generic fallback — review recommended.</span>
+          ) : (
+            <span className="text-xs text-muted-foreground">Assigned.</span>
+          )}
+        </label>
+
         <Field name="make" label="Make" defaultValue={asset?.make} />
         <Field name="model" label="Model" defaultValue={asset?.model} />
         <Field name="serial_number" label="Serial number" defaultValue={asset?.serial_number} />

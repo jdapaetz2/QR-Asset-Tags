@@ -57,6 +57,8 @@ export function EquipmentPageForm({
   documents,
   shortCode,
   hasActiveQr,
+  assetId,
+  returnTemplateName,
 }: {
   action: EquipmentFormAction;
   page?: PageDefaults;
@@ -66,6 +68,9 @@ export function EquipmentPageForm({
   documents: PublicDocument[];
   shortCode: string | null;
   hasActiveQr: boolean;
+  /** For the read-only return-inspection line (managed on asset details). */
+  assetId?: string;
+  returnTemplateName?: string;
 }) {
   const [state, formAction, pending] = useActionState<EquipmentFormState, FormData>(
     action,
@@ -124,6 +129,23 @@ export function EquipmentPageForm({
             />
           </label>
         ))}
+
+        {returnTemplateName ? (
+          <p className="text-xs text-muted-foreground">
+            Return inspection: <span className="font-medium">{returnTemplateName}</span>
+            {assetId ? (
+              <>
+                {" · "}
+                <Link
+                  href={`/dashboard/assets/${assetId}#return_inspection_template_key`}
+                  className="underline-offset-4 hover:underline"
+                >
+                  Manage on asset details
+                </Link>
+              </>
+            ) : null}
+          </p>
+        ) : null}
 
         <label className="flex items-center gap-2 text-sm">
           <input

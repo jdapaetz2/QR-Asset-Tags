@@ -10,6 +10,8 @@ import { parseCsv } from "@/lib/csv/parse";
 import { normalizeAssetForm, type AssetInput } from "@/lib/assets/validate";
 import { csvField } from "@/lib/submissions/csv";
 import { isTemplateKey } from "@/lib/onboarding/templates";
+import { isReturnTemplateKey } from "@/lib/inspections/templates";
+import { resolveReturnTemplateKey } from "@/lib/inspections/resolve";
 
 export const IMPORT_COLUMNS = [
   "asset_code",
@@ -26,6 +28,7 @@ export const IMPORT_COLUMNS = [
   "create_qr_link",
   "publish_asset",
   "publish_equipment_page",
+  "return_inspection_template_key",
 ] as const;
 
 export type ImportColumn = (typeof IMPORT_COLUMNS)[number];
@@ -36,6 +39,10 @@ export type ImportRowFlags = {
   createQrLink: boolean;
   publishAsset: boolean;
   publishEquipmentPage: boolean;
+  /** Resolved return-inspection template key (always set for valid rows). */
+  returnInspectionTemplateKey: string;
+  /** How the return template was chosen (drives the preview status). */
+  returnInspectionSource: "assigned" | "suggested" | "generic";
 };
 
 export type ImportRow = {
@@ -148,11 +155,31 @@ export function parseImportRows(
       }
       return parsed.value;
     };
+    // Return-inspection template: an explicit key must be a known system key (else a ROW ERROR);
+    // otherwise resolve the conservative exact-category suggestion, else generic (a warning).
+    const returnKeyRaw = (get("return_inspection_template_key") ?? "").trim();
+    if (returnKeyRaw && !isReturnTemplateKey(returnKeyRaw)) {
+      errors.push(
+        `Unknown return_inspection_template_key "${returnKeyRaw}".`
+      );
+    }
+    const returnResolution = resolveReturnTemplateKey({
+      assignmentKey: returnKeyRaw && isReturnTemplateKey(returnKeyRaw) ? returnKeyRaw : null,
+      category: assetResult.value?.category ?? null,
+    });
+    if (returnResolution.source === "generic") {
+      warnings.push(
+        "No specific return inspection matched the category — using Generic. Review recommended."
+      );
+    }
+
     const flags: ImportRowFlags = {
       templateKey: null,
       createQrLink: readBool("create_qr_link"),
       publishAsset: readBool("publish_asset"),
       publishEquipmentPage: readBool("publish_equipment_page"),
+      returnInspectionTemplateKey: returnResolution.key,
+      returnInspectionSource: returnResolution.source,
     };
 
     // Template key: a built-in system key or one of this org's custom keys.
@@ -200,6 +227,7 @@ export function buildImportTemplateCsv(): string {
       "false",
       "false",
       "false",
+      "mini_excavator_skid_steer",
     ],
     [
       "METER-204",
@@ -216,6 +244,7 @@ export function buildImportTemplateCsv(): string {
       "false",
       "false",
       "false",
+      "electrical_test_equipment",
     ],
   ];
   const lines = [header, ...examples.map((row) => row.map(csvField).join(","))];

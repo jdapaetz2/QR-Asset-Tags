@@ -28,6 +28,10 @@ export type ResolvedPublicEquipment = {
   qrLinkId: string;
   /** Opaque id of the asset's active rental session, or null. Drives the ack prompt. */
   activeRentalSessionId: string | null;
+  /** Free-text category — drives the return-template category suggestion. */
+  category: string | null;
+  /** Explicit return-inspection template assignment (anon-readable, non-sensitive), or null. */
+  returnInspectionTemplateKey: string | null;
   asset: PublicAsset;
   page: PublicPage;
   org: PublicOrgRecord;
@@ -50,10 +54,16 @@ export async function resolvePublicEquipment(
   const { data: asset } = await supabase
     .from("assets")
     .select(
-      "asset_code, asset_name, category, make, model, cover_image_url, support_phone_override, support_email_override, active_rental_session_id"
+      "asset_code, asset_name, category, make, model, cover_image_url, support_phone_override, support_email_override, active_rental_session_id, return_inspection_template_key"
     )
     .eq("id", link.asset_id)
-    .maybeSingle<PublicAsset & { active_rental_session_id: string | null }>();
+    .maybeSingle<
+      PublicAsset & {
+        category: string | null;
+        active_rental_session_id: string | null;
+        return_inspection_template_key: string | null;
+      }
+    >();
   if (!asset) return null;
 
   // Published equipment page (anon RLS shows only is_published=true of a public asset).
@@ -81,6 +91,8 @@ export async function resolvePublicEquipment(
     assetId: link.asset_id,
     qrLinkId: link.id,
     activeRentalSessionId: asset.active_rental_session_id ?? null,
+    category: asset.category ?? null,
+    returnInspectionTemplateKey: asset.return_inspection_template_key ?? null,
     asset,
     page,
     org,

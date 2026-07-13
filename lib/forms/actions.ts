@@ -7,9 +7,9 @@ import {
 } from "@/lib/forms/submit";
 import {
   validateDamageReport,
-  validateReturnChecklist,
   validateSupportRequest,
 } from "@/lib/forms/validate";
+import { submitReturnInspectionCore } from "@/lib/inspections/submit";
 
 /** Public damage-report intake. */
 export async function submitDamageReport(
@@ -59,41 +59,15 @@ export async function submitSupportRequest(
   });
 }
 
-/** Public return-checklist intake (contact optional). */
-export async function submitReturnChecklist(
+/**
+ * Public guided return INSPECTION intake (contact optional). Replaces the flat return checklist:
+ * the template + snapshot + flags + rental session are all derived server-side (Return Inspection V2,
+ * Phase 1A). Still writes `form_type='return_checklist'` so the RPC / inbox / mark-resolve are unchanged.
+ */
+export async function submitReturnInspection(
   shortCode: string,
   _prev: PublicFormState,
   formData: FormData
 ): Promise<PublicFormState> {
-  const name = readString(formData, "name");
-  const email = readString(formData, "email");
-  const phone = readString(formData, "phone");
-  const condition_notes = readString(formData, "condition_notes");
-  const fuel_or_charge_level = readString(formData, "fuel_or_charge_level");
-  const cleaned = readString(formData, "cleaned");
-  const accessories_returned = readString(formData, "accessories_returned");
-  const damage_observed = readString(formData, "damage_observed");
-
-  return submitPublicForm(shortCode, formData, {
-    formType: "return_checklist",
-    thanksSlug: "return",
-    fieldError: validateReturnChecklist({
-      name,
-      email,
-      phone,
-      condition_notes,
-      fuel_or_charge_level,
-      cleaned,
-      accessories_returned,
-      damage_observed,
-    }),
-    submittedBy: { name, email, phone },
-    dataJson: {
-      condition_notes,
-      fuel_or_charge_level,
-      cleaned: cleaned ?? null,
-      accessories_returned: accessories_returned ?? null,
-      damage_observed: damage_observed ?? null,
-    },
-  });
+  return submitReturnInspectionCore(shortCode, formData);
 }

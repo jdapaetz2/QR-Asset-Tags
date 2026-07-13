@@ -20,6 +20,10 @@ import { SubmissionStatusForm } from "@/components/submission-status-form";
 import { MarkReturnedResolveButton } from "@/components/mark-returned-resolve-button";
 import { ReturnDoneNotice } from "@/components/return-done-notice";
 import { canQuickResolveReturn } from "@/lib/submissions/returns";
+import {
+  ReturnInspectionSummary,
+  isReturnInspectionV2,
+} from "@/components/submissions/return-inspection-summary";
 
 const SUBMISSIONS_BUCKET = "submissions";
 
@@ -92,6 +96,12 @@ export default async function SubmissionDetailPage({
     })
   );
   const attachmentCount = mediaCount(submission.media_urls);
+
+  // V2 guided return inspection → structured summary (photos grouped by slot); V1 → flat renderer.
+  const v2Data = isReturnInspectionV2(submission.submission_data_json)
+    ? submission.submission_data_json
+    : null;
+  const signedByPath = new Map(media.map((m) => [m.path, m.url]));
 
   // Unresolved (new/reviewed) submissions on this asset — includes this one if still open.
   // RLS-scoped; a small count query for the asset-context block.
@@ -241,56 +251,63 @@ export default async function SubmissionDetailPage({
         </dl>
       </section>
 
-      {/* Form-specific fields */}
-      <section className="rounded-lg border bg-card p-4 text-sm">
-        <h2 className="mb-3 font-medium">Details</h2>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-muted-foreground">
-          {fields.map((field) => (
-            <div key={field.label} className="contents">
-              <dt>{field.label}</dt>
-              <dd className="whitespace-pre-line text-foreground">{field.value}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
+      {v2Data ? (
+        /* V2 guided return inspection — structured summary + photos grouped by slot. */
+        <ReturnInspectionSummary data={v2Data} signedByPath={signedByPath} />
+      ) : (
+        <>
+          {/* Form-specific fields (V1 flat renderer) */}
+          <section className="rounded-lg border bg-card p-4 text-sm">
+            <h2 className="mb-3 font-medium">Details</h2>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-muted-foreground">
+              {fields.map((field) => (
+                <div key={field.label} className="contents">
+                  <dt>{field.label}</dt>
+                  <dd className="whitespace-pre-line text-foreground">{field.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
 
-      {/* Media */}
-      <section className="rounded-lg border bg-card p-4 text-sm">
-        <h2 className="mb-3 font-medium">
-          Attachments{media.length ? ` (${media.length})` : ""}
-        </h2>
-        {media.length === 0 ? (
-          <p className="text-muted-foreground">No attachments.</p>
-        ) : (
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {media.map((item, i) =>
-              item.url ? (
-                <li key={item.path} className="flex flex-col gap-1">
-                  <a href={item.url} target="_blank" rel="noopener noreferrer">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={item.url}
-                      alt={`Attachment ${i + 1}`}
-                      className="aspect-square w-full rounded-md border object-cover"
-                    />
-                  </a>
-                  <a
-                    href={item.url}
-                    download
-                    className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-                  >
-                    Download
-                  </a>
-                </li>
-              ) : (
-                <li key={item.path} className="text-xs text-muted-foreground">
-                  Attachment unavailable
-                </li>
-              )
+          {/* Media */}
+          <section className="rounded-lg border bg-card p-4 text-sm">
+            <h2 className="mb-3 font-medium">
+              Attachments{media.length ? ` (${media.length})` : ""}
+            </h2>
+            {media.length === 0 ? (
+              <p className="text-muted-foreground">No attachments.</p>
+            ) : (
+              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {media.map((item, i) =>
+                  item.url ? (
+                    <li key={item.path} className="flex flex-col gap-1">
+                      <a href={item.url} target="_blank" rel="noopener noreferrer">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={item.url}
+                          alt={`Attachment ${i + 1}`}
+                          className="aspect-square w-full rounded-md border object-cover"
+                        />
+                      </a>
+                      <a
+                        href={item.url}
+                        download
+                        className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                      >
+                        Download
+                      </a>
+                    </li>
+                  ) : (
+                    <li key={item.path} className="text-xs text-muted-foreground">
+                      Attachment unavailable
+                    </li>
+                  )
+                )}
+              </ul>
             )}
-          </ul>
-        )}
-      </section>
+          </section>
+        </>
+      )}
     </div>
   );
 }

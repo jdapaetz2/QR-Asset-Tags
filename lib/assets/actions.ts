@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth/session";
 import { normalizeAssetForm, type RawAssetForm } from "@/lib/assets/validate";
 import { deleteEligibility } from "@/lib/assets/list";
+import { resolveReturnTemplateKey } from "@/lib/inspections/resolve";
 import {
   COVER_BUCKET,
   coverObjectName,
@@ -42,6 +43,7 @@ const FIELDS = [
   "support_email_override",
   "cover_image_url",
   "internal_notes",
+  "return_inspection_template_key",
 ] as const;
 
 function readForm(formData: FormData): RawAssetForm {
@@ -66,13 +68,23 @@ export async function createAsset(
   const result = normalizeAssetForm(readForm(formData));
   if (!result.value) return { error: result.error };
 
+  // Always store an explicit return-inspection template. If the form didn't supply one, default to
+  // the conservative category suggestion, else generic — so every new asset has a resolved template.
+  const return_inspection_template_key =
+    result.value.return_inspection_template_key ??
+    resolveReturnTemplateKey({ assignmentKey: null, category: result.value.category }).key;
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("assets")
     // organization_id comes from the profile, never from user input. RLS also
     // rejects any other org via the policy's WITH CHECK. public_status defaults
     // to 'private' (safe/unpublished) at the database level.
-    .insert({ ...result.value, organization_id: profile.organization_id })
+    .insert({
+      ...result.value,
+      return_inspection_template_key,
+      organization_id: profile.organization_id,
+    })
     .select("id")
     .single();
 

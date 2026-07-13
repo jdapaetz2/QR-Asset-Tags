@@ -56,6 +56,44 @@ describe("returnChecklistFlags", () => {
     expect(returnChecklistFlags("nope").flagged).toBe(false);
     expect(returnChecklistFlags({ damage_observed: null }).flagged).toBe(false);
   });
+
+  // --- V2 guided inspection (schema_version 2) reads canonical top-level flags ---
+
+  it("reads V2 canonical flags for damage and missing accessories", () => {
+    expect(
+      returnChecklistFlags({
+        schema_version: 2,
+        flags: { damage_observed: "yes", accessories_missing: false },
+      })
+    ).toEqual({ damage: true, missing: false, flagged: true });
+
+    expect(
+      returnChecklistFlags({
+        schema_version: 2,
+        flags: { damage_observed: "no", accessories_missing: true },
+      })
+    ).toEqual({ damage: false, missing: true, flagged: true });
+  });
+
+  it("does not flag a clean V2 return", () => {
+    expect(
+      returnChecklistFlags({
+        schema_version: 2,
+        flags: { damage_observed: "no", accessories_missing: false },
+      })
+    ).toEqual({ damage: false, missing: false, flagged: false });
+  });
+
+  it("prefers V2 flags over any legacy top-level keys when flags is present", () => {
+    // A V2 payload's canonical flags win even if stale flat keys coexist.
+    expect(
+      returnChecklistFlags({
+        damage_observed: "yes",
+        accessories_returned: "no",
+        flags: { damage_observed: "no", accessories_missing: false },
+      })
+    ).toEqual({ damage: false, missing: false, flagged: false });
+  });
 });
 
 describe("returnActionOutcome", () => {
