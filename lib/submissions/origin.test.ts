@@ -1,11 +1,22 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  formTypeTone,
   normalizeOrigin,
   oppositeOrigin,
   submissionSourceBadge,
   submissionTypeLabel,
 } from "./origin";
+
+describe("formTypeTone", () => {
+  it("maps each form type to a distinct tone; unknown → neutral", () => {
+    expect(formTypeTone("damage_report")).toBe("danger");
+    expect(formTypeTone("support_request")).toBe("info");
+    expect(formTypeTone("return_checklist")).toBe("success");
+    expect(formTypeTone("pre_use_inspection")).toBe("neutral");
+    expect(formTypeTone("mystery")).toBe("neutral");
+  });
+});
 
 describe("normalizeOrigin / oppositeOrigin", () => {
   it("treats only 'staff' as staff; everything else is public", () => {

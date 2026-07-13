@@ -22,6 +22,12 @@ import {
   countUnresolvedByAsset,
 } from "@/lib/submissions/inbox";
 import {
+  OPEN_DAMAGE_COLUMNS,
+  openDamageSummaryByAsset,
+  type OpenDamageRow,
+} from "@/lib/submissions/damage";
+import { OpenDamageBadge } from "@/components/assets/open-damage-badge";
+import {
   parseAssetListParams,
   sanitizeSearch,
   assetPageStatus,
@@ -144,15 +150,15 @@ export default async function AssetsPage({
     activeSessionByAsset.set(r.asset_id, r.id);
   }
 
-  // Unresolved (new/reviewed) submissions per asset — drives the pre-rent warning. One
-  // RLS-scoped query; counted in memory. Display/gate only, not enforcement.
+  // Unresolved (new/reviewed) submissions per asset — one RLS-scoped query, grouped in memory (NO N+1).
+  // The same rows drive BOTH the pre-rent warning count and the open-damage indicator.
   const { data: openSubs } = await supabase
     .from("form_submissions")
-    .select("asset_id, status")
+    .select(OPEN_DAMAGE_COLUMNS)
     .in("status", UNRESOLVED_STATUSES as readonly string[]);
-  const unresolvedByAsset = countUnresolvedByAsset(
-    (openSubs ?? []) as { asset_id: string | null; status: string }[]
-  );
+  const openRows = (openSubs ?? []) as OpenDamageRow[];
+  const unresolvedByAsset = countUnresolvedByAsset(openRows);
+  const openDamageByAsset = openDamageSummaryByAsset(openRows);
 
   // Distinct, normalized categories for the filter dropdown (own org only).
   const categories = await getOrgCategories(supabase);
@@ -417,15 +423,23 @@ export default async function AssetsPage({
                     {asset.category ?? "—"}
                   </td>
                   <td className="px-3 py-2.5">
-                    <AssetStatusCell
-                      status={deriveAssetStatus({
-                        rented: Boolean(activeSessionId),
-                        publicStatus: asset.public_status,
-                        qrStatus: hasActiveQr ? "active" : hasQr ? "disabled" : null,
-                        pageStatus,
-                        archivedAt: asset.archived_at,
-                      })}
-                    />
+                    <div className="flex flex-col items-start gap-1.5">
+                      <AssetStatusCell
+                        status={deriveAssetStatus({
+                          rented: Boolean(activeSessionId),
+                          publicStatus: asset.public_status,
+                          qrStatus: hasActiveQr ? "active" : hasQr ? "disabled" : null,
+                          pageStatus,
+                          archivedAt: asset.archived_at,
+                        })}
+                      />
+                      {openDamageByAsset.has(asset.id) ? (
+                        <OpenDamageBadge
+                          assetId={asset.id}
+                          count={openDamageByAsset.get(asset.id)!.count}
+                        />
+                      ) : null}
+                    </div>
                   </td>
                   <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">
                     <RelativeTime value={asset.created_at} />

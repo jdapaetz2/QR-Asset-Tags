@@ -1,9 +1,10 @@
 # Yard Staff Outbound/Return Scanner Mode
 
-> **Status: Phase 3A + 3A.1 + 3B BUILT** — outbound baseline, protected atomic staff return, and the
+> **Status: Phase 3A + 3A.1 + 3B + 3C BUILT** — outbound baseline, protected atomic staff return, the
 > connected condition story (baseline-aware return, structured comparison, renter-report reconciliation,
-> session evidence view). Ships behind migrations `0027`, `0028`, `0029`, unapplied until
-> `npx.cmd supabase db push`.
+> session evidence view), and unified condition-history presentation + open-damage surfacing. DB migrations
+> `0027`, `0028`, `0029` ship unapplied until `npx.cmd supabase db push`; **Phase 3C adds no schema change**
+> (presentation + queries only).
 
 ## Phase 3A — as built (authoritative)
 Authenticated staff (customer_admin / customer_staff) scan the tag and run an **outbound (pre-use)
@@ -82,6 +83,29 @@ story per rental session — all linked by `rental_session_id` only.
   detail, and asset timeline.
 - **NOT built (still deferred):** damage billing, fault attribution, work orders, maintenance scheduling,
   AI image comparison, renter signatures, GPS, offline, video.
+
+## Phase 3C — as built (authoritative)
+Unifies condition-history presentation and makes unresolved damage impossible to miss before re-renting. No
+schema change (presentation + queries only).
+- **One open-damage definition (`lib/submissions/damage.ts`, pure):** `isOpenDamageRow` = status new/reviewed
+  AND (`damage_report` OR `return_checklist` with canonical `damage_observed=yes`, V1/V2, renter or staff).
+  Excludes resolved/archived, the outbound baseline, and support requests. Plus `damageSeverityLabel`,
+  `openDamageSummaryByAsset` (count + latest), and `openDamageHref` (the one filtered link).
+- **No N+1:** the Assets list widens its existing single unresolved-submissions query
+  (`OPEN_DAMAGE_COLUMNS`) and groups in memory; single-asset surfaces use one filtered query
+  (`getOpenDamageForAsset`). No service-role.
+- **Surfaces:** a clickable danger badge (`Open damage` / `Damage · N`) in the Assets-list Status cell, and a
+  prominent above-the-fold `OpenDamageAlert` on asset detail (count + latest type · severity · time + Review
+  damage / View asset history). Both self-clear when all damage resolves. The `attention=damage` submissions
+  filter (asset + unresolved) narrows to open-damage rows only — never undamaged returns.
+- **Shared presentation:** `SubmissionBadges` (type + Renter/Staff source + status + Damage/Missing chips,
+  reusing `origin.ts`) is used by BOTH the submissions inbox row and the asset-timeline card. `FORM_TYPE_TONE`
+  moved to `origin.ts#formTypeTone`. Timeline submission events now carry reference/origin/status/damage/
+  missing and render as compact cards matching the inbox (relative time, no raw UTC); still read-time
+  derived, newest-first, one event per row (no stored events, no duplication).
+- **Cross-links:** damage-related submission details link to "Other open damage for this asset".
+- **NOT built (still deferred):** maintenance work orders, repair scheduling, out-of-service workflow,
+  automated damage billing, GPS, a stored event-log table, any new public functionality.
 
 ---
 

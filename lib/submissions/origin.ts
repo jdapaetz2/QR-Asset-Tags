@@ -9,6 +9,18 @@ import { formTypeLabel } from "@/lib/submissions/display";
 
 export type SubmissionOrigin = "public" | "staff";
 
+/** Distinct badge tone per form type so damage/support/return read at a glance (shared inbox + timeline). */
+const FORM_TYPE_TONE: Record<string, BadgeTone> = {
+  damage_report: "danger",
+  support_request: "info",
+  return_checklist: "success",
+  pre_use_inspection: "neutral",
+};
+
+export function formTypeTone(formType: string): BadgeTone {
+  return FORM_TYPE_TONE[formType] ?? "neutral";
+}
+
 /** Coerce an untyped value to a known origin (anything but "staff" is treated as public). */
 export function normalizeOrigin(value: unknown): SubmissionOrigin {
   return value === "staff" ? "staff" : "public";

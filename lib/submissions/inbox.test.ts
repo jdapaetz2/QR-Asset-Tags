@@ -80,6 +80,7 @@ describe("parseSubmissionFilters", () => {
       assetId: "asset-1",
       hasMedia: true,
       q: "jane",
+      attention: "",
     });
   });
 
@@ -87,6 +88,12 @@ describe("parseSubmissionFilters", () => {
     expect(parseSubmissionFilters({ form_type: "pre_use_inspection" }).formType).toBe(
       "pre_use_inspection"
     );
+  });
+
+  it("accepts attention=damage and drops any other attention value", () => {
+    expect(parseSubmissionFilters({ attention: "damage" }).attention).toBe("damage");
+    expect(parseSubmissionFilters({ attention: "whatever" }).attention).toBe("");
+    expect(parseSubmissionFilters({}).attention).toBe("");
   });
 
   it("drops unknown form types and statuses to empty (no URL injection)", () => {
@@ -98,6 +105,7 @@ describe("parseSubmissionFilters", () => {
       assetId: "",
       hasMedia: false,
       q: "",
+      attention: "",
     });
   });
 
@@ -134,6 +142,7 @@ describe("activeQuickFilterKey", () => {
     assetId: "",
     hasMedia: false,
     q: "",
+    attention: "" as const,
   };
 
   it("defaults to the Unresolved chip when nothing is set", () => {

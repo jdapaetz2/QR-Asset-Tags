@@ -148,12 +148,16 @@ export function resolveStatusFilter(status: StatusFilterValue): StatusFilter {
   return { mode: "single", status };
 }
 
+/** Cross-form-type attention view. "damage" narrows to OPEN damage rows (see lib/submissions/damage). */
+export type AttentionFilter = "" | "damage";
+
 export type SubmissionFilters = {
   formType: FilterFormType | "";
   status: StatusFilterValue;
   assetId: string;
   hasMedia: boolean;
   q: string;
+  attention: AttentionFilter;
 };
 
 /** Minimal row shape the in-memory search matches against. */
@@ -207,6 +211,7 @@ export function parseSubmissionFilters(
   const formTypeRaw = firstString(raw.form_type);
   const statusRaw = firstString(raw.status);
   const media = firstString(raw.media);
+  const attentionRaw = firstString(raw.attention);
   return {
     formType: isFilterFormType(formTypeRaw) ? formTypeRaw : "",
     status: isSubmissionStatus(statusRaw)
@@ -219,6 +224,7 @@ export function parseSubmissionFilters(
     assetId: firstString(raw.asset_id),
     hasMedia: media === "1" || media === "true",
     q: firstString(raw.q).trim(),
+    attention: attentionRaw === "damage" ? "damage" : "",
   };
 }
 
@@ -232,6 +238,7 @@ export function submissionFilterQuery(
   if (filters.assetId) params.set("asset_id", filters.assetId);
   if (filters.hasMedia) params.set("media", "1");
   if (filters.q) params.set("q", filters.q);
+  if (filters.attention) params.set("attention", filters.attention);
   return params.toString();
 }
 
@@ -291,7 +298,8 @@ export function activeQuickFilterKey(filters: SubmissionFilters): string | null 
       (p.formType ?? "") === filters.formType &&
       Boolean(p.hasMedia) === filters.hasMedia &&
       (p.assetId ?? "") === filters.assetId &&
-      !filters.q;
+      !filters.q &&
+      !filters.attention;
     if (matches) return chip.key;
   }
   return null;

@@ -118,6 +118,33 @@ describe("buildAssetTimeline", () => {
     expect(renter[0].title).toBe("Renter return");
   });
 
+  it("enriches a damaged return submission event with reference, origin, and the damage flag", () => {
+    const [event] = buildAssetTimeline({
+      ...base,
+      assetCreatedAt: null,
+      submissions: [
+        {
+          id: "a1b2c3d4-0000-0000-0000-000000000000",
+          form_type: "return_checklist",
+          status: "new",
+          created_at: "2026-05-01T00:00:00Z",
+          submitted_by_name: "Sam (staff)",
+          attachmentCount: 1,
+          origin: "staff",
+          damage: true,
+          missing: false,
+        },
+      ],
+    });
+    expect(event.kind).toBe("submission");
+    expect(event.title).toBe("Staff return inspection");
+    expect(event.reference).toBe("SUB-2026-A1B2C3");
+    expect(event.origin).toBe("staff");
+    expect(event.status).toBe("new");
+    expect(event.damage).toBe(true);
+    expect(event.href).toBe("/dashboard/submissions/a1b2c3d4-0000-0000-0000-000000000000");
+  });
+
   it("carries the acknowledgement name, contact, and statement as a record", () => {
     const [ack] = buildAssetTimeline({
       ...base,

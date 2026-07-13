@@ -12,6 +12,7 @@ import {
 } from "@/lib/submissions/origin";
 import { returnChecklistFlags } from "@/lib/submissions/returns";
 import { rentalEvidenceHref } from "@/lib/rentals/evidence";
+import { openDamageHref } from "@/lib/submissions/damage";
 import {
   UNRESOLVED_STATUSES,
   mediaCount,
@@ -128,6 +129,10 @@ export default async function SubmissionDetailPage({
   const origin = normalizeOrigin(submission.submission_origin);
   const isStaff = origin === "staff";
   const source = submissionSourceBadge(submission.form_type, submission.submission_origin);
+  const isDamageRelated =
+    submission.form_type === "damage_report" ||
+    (submission.form_type === "return_checklist" &&
+      returnChecklistFlags(submission.submission_data_json).damage);
 
   // Related records from the SAME rental session but the OPPOSITE workflow (staff return <-> renter return).
   // RLS-scoped (own org); never exposed publicly; same-session only (no cross-session links).
@@ -229,6 +234,14 @@ export default async function SubmissionDetailPage({
                     className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
                   >
                     Session evidence →
+                  </Link>
+                ) : null}
+                {isDamageRelated ? (
+                  <Link
+                    href={openDamageHref(submission.asset_id)}
+                    className="rounded-md border border-destructive/40 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10"
+                  >
+                    Other open damage for this asset →
                   </Link>
                 ) : null}
               </div>

@@ -6,6 +6,7 @@
  */
 
 import { submissionTypeLabel } from "@/lib/submissions/origin";
+import { submissionReference } from "@/lib/submissions/inbox";
 import { tagRequestStatusLabel } from "@/lib/tags/tag-requests";
 
 export type TimelineKind =
@@ -31,6 +32,13 @@ export type TimelineEvent = {
   href?: string;
   /** Number of private attachments (admins open them via `href`). */
   attachmentCount?: number;
+  /** Submission presentation fields (Phase 3C) — let the timeline card match the inbox row. */
+  formType?: string;
+  origin?: string | null;
+  reference?: string;
+  status?: string;
+  damage?: boolean;
+  missing?: boolean;
 };
 
 export type TimelineInput = {
@@ -45,6 +53,9 @@ export type TimelineInput = {
     attachmentCount: number;
     /** 'public' (renter) | 'staff' — distinguishes staff vs renter returns in the title. */
     origin?: string | null;
+    /** Canonical open-damage / missing-items flags (Phase 3C) — derived by the caller. */
+    damage?: boolean;
+    missing?: boolean;
   }[];
   acknowledgements: {
     id: string;
@@ -81,6 +92,12 @@ export function buildAssetTimeline(input: TimelineInput): TimelineEvent[] {
       badge: s.status,
       href: `/dashboard/submissions/${s.id}`,
       attachmentCount: s.attachmentCount,
+      formType: s.form_type,
+      origin: s.origin ?? null,
+      reference: submissionReference(s.id, s.created_at),
+      status: s.status,
+      damage: s.damage ?? false,
+      missing: s.missing ?? false,
     });
   }
 

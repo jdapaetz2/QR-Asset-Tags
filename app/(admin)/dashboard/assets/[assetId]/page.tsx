@@ -24,6 +24,8 @@ import {
 } from "@/lib/inspections/org-templates-data";
 import { RETURN_TEMPLATE_PICKER } from "@/lib/inspections/templates";
 import { rentalEvidenceHref } from "@/lib/rentals/evidence";
+import { getOpenDamageForAsset } from "@/lib/submissions/damage-query";
+import { OpenDamageAlert } from "@/components/assets/open-damage-alert";
 import { UNRESOLVED_STATUSES } from "@/lib/submissions/inbox";
 import { AssetForm } from "@/components/asset-form";
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
@@ -163,6 +165,9 @@ export default async function EditAssetPage({
     page: page ? 1 : 0,
   });
 
+  // Open (unresolved) damage for this asset — one RLS-scoped filtered query (not per-asset N+1).
+  const openDamage = await getOpenDamageForAsset(supabase, assetId);
+
   return (
     <div className="flex flex-col gap-6">
       <section>
@@ -185,6 +190,9 @@ export default async function EditAssetPage({
           <span>{asset.public_status}</span>
         </div>
       </section>
+
+      {/* Open-damage alert — above the fold, only when unresolved damage exists (Phase 3C). */}
+      {openDamage ? <OpenDamageAlert assetId={assetId} summary={openDamage} /> : null}
 
       {/* Activity timeline */}
       <Link

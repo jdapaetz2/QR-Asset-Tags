@@ -7,10 +7,8 @@ import {
   SUBMISSION_STATUSES,
   FORM_TYPE_LABELS,
 } from "@/lib/submissions/display";
-import {
-  submissionSourceBadge,
-  submissionTypeLabel,
-} from "@/lib/submissions/origin";
+import { SubmissionBadges } from "@/components/submissions/submission-badges";
+import { isOpenDamageRow } from "@/lib/submissions/damage";
 import {
   FILTER_FORM_TYPES,
   QUICK_FILTERS,
@@ -33,8 +31,11 @@ import { PageHeader } from "@/components/ui/page-header";
 import { RefreshControls } from "@/components/refresh-controls";
 import { MarkReturnedResolveButton } from "@/components/mark-returned-resolve-button";
 import { ReturnDoneNotice } from "@/components/return-done-notice";
-import { canQuickResolveReturn } from "@/lib/submissions/returns";
-import { submissionStatusTone, type BadgeTone } from "@/lib/ui/status";
+import {
+  canQuickResolveReturn,
+  returnChecklistFlags,
+} from "@/lib/submissions/returns";
+import { submissionStatusTone } from "@/lib/ui/status";
 import { submissionStatusLabel } from "@/lib/ui/status-labels";
 
 const SUBMISSIONS_BUCKET = "submissions";
@@ -44,14 +45,6 @@ function titleCase(value: string): string {
 }
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
-
-// Distinct tone per form type so damage/support/return read at a glance.
-const FORM_TYPE_TONE: Record<string, BadgeTone> = {
-  damage_report: "danger",
-  support_request: "info",
-  return_checklist: "success",
-  pre_use_inspection: "neutral",
-};
 
 type SubmissionRow = {
   id: string;
@@ -116,6 +109,9 @@ export default async function SubmissionsPage({
   // SQL filter can't; jsonb-array length (media) is also awkward in PostgREST.
   if (filters.q) rows = rows.filter((r) => matchesSearch(r, filters.q));
   if (filters.hasMedia) rows = rows.filter((r) => hasMedia(r.media_urls));
+  // attention=damage narrows to OPEN damage rows only (damage reports + damaged returns), never
+  // broadened to undamaged returns. Applied in memory over the already-RLS-scoped rows.
+  if (filters.attention === "damage") rows = rows.filter((r) => isOpenDamageRow(r));
 
   // Signed image thumbnails for the VISIBLE rows only (post-filter) — never for the
   // whole org. Private bucket; the storage SELECT policy scopes these to the caller's
@@ -338,10 +334,11 @@ export default async function SubmissionsPage({
                   row.form_type,
                   row.submission_data_json
                 );
-                const source = submissionSourceBadge(
-                  row.form_type,
-                  row.submission_origin
-                );
+                const flags =
+                  row.form_type === "return_checklist"
+                    ? returnChecklistFlags(row.submission_data_json)
+                    : { damage: false, missing: false };
+                const rowDamage = row.form_type === "damage_report" ? true : flags.damage;
                 const submitter =
                   row.submitted_by_name ??
                   row.submitted_by_email ??
@@ -390,10 +387,14 @@ export default async function SubmissionsPage({
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <Badge tone={FORM_TYPE_TONE[row.form_type] ?? "neutral"}>
-                          {submissionTypeLabel(row.form_type, row.submission_origin)}
-                        </Badge>
-                        {source ? <Badge tone={source.tone}>{source.label}</Badge> : null}
+                        <SubmissionBadges
+                          formType={row.form_type}
+                          origin={row.submission_origin}
+                          status={row.status}
+                          damage={rowDamage}
+                          missing={flags.missing}
+                          showStatus={false}
+                        />
                         {urgency ? (
                           <Badge tone={urgencyTone(urgency)}>
                             {titleCase(urgency)}

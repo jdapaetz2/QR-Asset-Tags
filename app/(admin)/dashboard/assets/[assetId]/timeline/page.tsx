@@ -5,17 +5,13 @@ import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
 import { buildAssetTimeline, type TimelineEvent } from "@/lib/timeline/timeline";
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { RelativeTime } from "@/components/relative-time";
+import { SubmissionBadges } from "@/components/submissions/submission-badges";
+import { returnChecklistFlags } from "@/lib/submissions/returns";
 import { rentalEvidenceHref } from "@/lib/rentals/evidence";
 
 // Read-only, auth-scoped per request; never cache.
 export const dynamic = "force-dynamic";
-
-function formatDateTime(value: string): string {
-  const d = new Date(value);
-  return Number.isNaN(d.getTime())
-    ? "—"
-    : d.toISOString().slice(0, 16).replace("T", " ");
-}
 
 const KIND_LABELS: Record<TimelineEvent["kind"], string> = {
   created: "Created",
@@ -51,7 +47,9 @@ export default async function AssetTimelinePage({
     await Promise.all([
       supabase
         .from("form_submissions")
-        .select("id, form_type, status, created_at, submitted_by_name, submission_origin, media_urls")
+        .select(
+          "id, form_type, status, created_at, submitted_by_name, submission_origin, submission_data_json, media_urls"
+        )
         .eq("asset_id", assetId),
       supabase
         .from("asset_acknowledgements")
@@ -87,16 +85,25 @@ export default async function AssetTimelinePage({
       created_at: string;
       submitted_by_name: string | null;
       submission_origin: string | null;
+      submission_data_json: unknown;
       media_urls: unknown;
-    }[]).map((s) => ({
-      id: s.id,
-      form_type: s.form_type,
-      status: s.status,
-      created_at: s.created_at,
-      submitted_by_name: s.submitted_by_name,
-      attachmentCount: Array.isArray(s.media_urls) ? s.media_urls.length : 0,
-      origin: s.submission_origin,
-    })),
+    }[]).map((s) => {
+      const flags =
+        s.form_type === "return_checklist"
+          ? returnChecklistFlags(s.submission_data_json)
+          : { damage: false, missing: false };
+      return {
+        id: s.id,
+        form_type: s.form_type,
+        status: s.status,
+        created_at: s.created_at,
+        submitted_by_name: s.submitted_by_name,
+        attachmentCount: Array.isArray(s.media_urls) ? s.media_urls.length : 0,
+        origin: s.submission_origin,
+        damage: s.form_type === "damage_report" ? true : flags.damage,
+        missing: flags.missing,
+      };
+    }),
     acknowledgements: (acks ?? []) as {
       id: string;
       name: string | null;
@@ -160,29 +167,43 @@ export default async function AssetTimelinePage({
               className="rounded-lg border bg-card p-4"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
-                    {KIND_LABELS[e.kind]}
-                  </span>
-                  <span className="text-sm font-medium">{e.title}</span>
-                  {e.badge ? (
-                    <span className="rounded-full border px-2 py-0.5 text-xs">
-                      {e.badge}
+                {e.kind === "submission" && e.formType ? (
+                  // Submission events read exactly like an inbox row (shared SubmissionBadges).
+                  <SubmissionBadges
+                    formType={e.formType}
+                    origin={e.origin ?? null}
+                    status={e.status ?? ""}
+                    damage={e.damage}
+                    missing={e.missing}
+                  />
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+                      {KIND_LABELS[e.kind]}
                     </span>
-                  ) : null}
-                </div>
+                    <span className="text-sm font-medium">{e.title}</span>
+                    {e.badge ? (
+                      <span className="rounded-full border px-2 py-0.5 text-xs">
+                        {e.badge}
+                      </span>
+                    ) : null}
+                  </div>
+                )}
                 <span className="text-xs text-muted-foreground">
-                  {formatDateTime(e.at)}
+                  <RelativeTime value={e.at} />
                 </span>
               </div>
 
-              {e.detail || e.contact || e.attachmentCount || e.href ? (
+              {e.reference || e.detail || e.contact || e.attachmentCount || e.href ? (
                 <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                  {e.reference ? (
+                    <span className="font-mono text-xs text-muted-foreground/80">{e.reference}</span>
+                  ) : null}
                   {e.detail ? <span>{e.detail}</span> : null}
                   {e.contact ? <span>{e.contact}</span> : null}
                   {e.attachmentCount ? (
                     <span>
-                      {e.attachmentCount} attachment
+                      📎 {e.attachmentCount} attachment
                       {e.attachmentCount === 1 ? "" : "s"}
                     </span>
                   ) : null}
