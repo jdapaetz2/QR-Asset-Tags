@@ -1,9 +1,11 @@
 # Return Inspection V2 — Design of Record
 
-> **Status: Phase 1A BUILT (ships behind migration `0024`, unapplied until `supabase db push`).** The
-> rest of this document remains the broader design of record; **Phase 1A as implemented is authoritative
-> where it differs from the design below** (see the reconciliation section immediately following). Phases
-> 1B / 2 / 3 are still future waves.
+> **Status: Phase 1 BUILT & CLOSED — ready to merge pending `db push`.** Phase 1 covers 1A (guided
+> inspections), 1A.1 (mobile two-stage flow + conditional photos), and 1B (organization category defaults
+> + template catalog). It ships behind migrations `0024` **and** `0025`, both **unapplied until the
+> operator runs `npx.cmd supabase db push`**. The rest of this document remains the broader design of
+> record; **the "as built" sections below are authoritative where they differ from the design** (see the
+> reconciliation section immediately following). Phases 2 / 3 are still future waves.
 > Related: [`YARD_STAFF_SCANNER_MODE.md`](YARD_STAFF_SCANNER_MODE.md), [`ROADMAP_DEFERRED.md`](ROADMAP_DEFERRED.md),
 > [`STORAGE_MEDIA_LIFECYCLE.md`](STORAGE_MEDIA_LIFECYCLE.md), [`NON_GOALS.md`](NON_GOALS.md),
 > [`DATA_MODEL.md`](DATA_MODEL.md).
