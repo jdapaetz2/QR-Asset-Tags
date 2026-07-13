@@ -12,6 +12,7 @@ import {
 import { notifySubmission } from "@/lib/notifications/notify";
 import { submissionReference } from "@/lib/submissions/inbox";
 import { resolveReturnTemplate } from "@/lib/inspections/resolve";
+import { getAssetReturnTemplate } from "@/lib/inspections/org-templates-data";
 import {
   buildAnswers,
   deriveFlags,
@@ -55,11 +56,19 @@ export async function submitReturnInspectionCore(
   const resolved = await resolvePublicEquipment(supabase, shortCode);
   if (!resolved) return { error: "This form is no longer available." };
 
-  // Template resolved server-side from the asset's explicit assignment + category (never client input).
-  const template = resolveReturnTemplate({
-    assignmentKey: resolved.returnInspectionTemplateKey,
-    category: resolved.category,
-  });
+  // Template resolved server-side (never client input). A published custom org template assigned to the
+  // asset wins (loaded via the SECURITY DEFINER RPC — published-only, org-scoped); otherwise fall back to
+  // the code resolver on the asset's system key + category. The public path never reads the category
+  // defaults or the inspection_templates table directly.
+  const custom = resolved.returnInspectionTemplateId
+    ? await getAssetReturnTemplate(supabase, resolved.assetId)
+    : null;
+  const template =
+    custom?.definition ??
+    resolveReturnTemplate({
+      assignmentKey: resolved.returnInspectionTemplateKey,
+      category: resolved.category,
+    });
 
   // Contact (optional) + answers.
   const name = readStr(formData, "name");

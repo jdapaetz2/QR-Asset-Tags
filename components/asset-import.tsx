@@ -116,9 +116,9 @@ export function AssetImport({
   );
   const hasGenericReturn = genericReturnRows.length > 0;
   const returnStatusLabel = (
-    source?: "assigned" | "category_default" | "suggested" | "generic"
+    source?: "custom_assigned" | "assigned" | "category_default" | "suggested" | "generic"
   ) =>
-    source === "assigned"
+    source === "assigned" || source === "custom_assigned"
       ? "Assigned"
       : source === "category_default"
         ? "Category default"

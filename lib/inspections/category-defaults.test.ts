@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   assetsToApplyDefault,
   buildCategoryDefaultLookup,
+  buildCategoryDefaultTargetLookup,
   categoryDefaultForCategory,
+  categoryDefaultTargetForCategory,
   classifyReviewAssets,
   validateCategoryDefaultInput,
   type AssetForDefault,
@@ -82,6 +84,43 @@ describe("assetsToApplyDefault", () => {
       { id: "a1", key: "utility_trailer" },
       { id: "a4", key: "utility_trailer" },
     ]);
+  });
+});
+
+describe("category-default target lookup (Phase 2 custom targets)", () => {
+  it("prefers a published custom template id over the system key and drops unknown keys", () => {
+    const lookup = buildCategoryDefaultTargetLookup([
+      { category_value: "Utility Trailer", return_template_key: "utility_trailer", return_template_id: "tmpl-1" },
+      { category_value: "Generator", return_template_key: "portable_generator", return_template_id: null },
+      { category_value: "Widget", return_template_key: "nope", return_template_id: null },
+    ]);
+    expect(lookup["utility trailer"]).toEqual({ templateId: "tmpl-1" });
+    expect(lookup["generator"]).toEqual({ templateKey: "portable_generator" });
+    expect(lookup).not.toHaveProperty("widget");
+    expect(categoryDefaultTargetForCategory("  utility  trailer ", lookup)).toEqual({
+      templateId: "tmpl-1",
+    });
+    expect(categoryDefaultTargetForCategory("nothing", lookup)).toBeNull();
+  });
+});
+
+describe("Phase 2 — a custom template assignment counts as assigned", () => {
+  const lookup = buildCategoryDefaultLookup([
+    { category_value: "Utility Trailer", return_template_key: "utility_trailer" },
+  ]);
+  const assets: AssetForDefault[] = [
+    { id: "c", category: "Utility Trailer", return_inspection_template_key: null, return_inspection_template_id: "tmpl-9" },
+    { id: "n", category: "Utility Trailer", return_inspection_template_key: null },
+  ];
+
+  it("never re-applies a default to a custom-assigned asset", () => {
+    expect(assetsToApplyDefault(assets, lookup).map((t) => t.id)).toEqual(["n"]);
+  });
+
+  it("does not flag a custom-assigned asset for review (retired-custom is handled server-side)", () => {
+    const flagged = classifyReviewAssets(assets, lookup).map((r) => r.id);
+    expect(flagged).toEqual(["n"]); // only the unassigned one
+    expect(flagged).not.toContain("c");
   });
 });
 

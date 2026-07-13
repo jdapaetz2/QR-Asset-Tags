@@ -8,10 +8,10 @@ import { normalizeCategoryKey } from "@/lib/assets/categories";
 import { isReturnTemplateKey } from "@/lib/inspections/templates";
 import {
   assetsToApplyDefault,
-  validateCategoryDefaultInput,
   type CategoryDefaultLookup,
 } from "@/lib/inspections/category-defaults";
 import { getOrgCategoryDefaults } from "@/lib/inspections/category-defaults-data";
+import { getOrgTemplate } from "@/lib/inspections/org-templates-data";
 
 export type CategoryDefaultFormState = { error?: string };
 
@@ -32,22 +32,42 @@ export async function saveCategoryDefault(
     return { error: "Your account is not attached to an organization." };
   }
 
-  const result = validateCategoryDefaultInput({
-    category: typeof formData.get("category") === "string" ? (formData.get("category") as string) : "",
-    templateKey:
-      typeof formData.get("return_template_key") === "string"
-        ? (formData.get("return_template_key") as string)
-        : "",
-  });
-  if ("error" in result) return { error: result.error };
+  const category = ((formData.get("category") as string) ?? "").trim();
+  const normalized = normalizeCategoryKey(category);
+  if (!normalized) return { error: "Enter a category." };
 
+  // The target is either a system key or a published custom template. A custom target still stores a
+  // system key (the custom's source) so the mapping degrades gracefully if the custom version is later
+  // removed (the FK `on delete set null` clears the id and the key takes over).
+  const target = ((formData.get("return_target") as string) ?? "").trim();
   const supabase = await createClient();
+
+  let return_template_key: string;
+  let return_template_id: string | null = null;
+
+  if (target.startsWith("custom:")) {
+    const templateId = target.slice("custom:".length);
+    const tmpl = await getOrgTemplate(supabase, templateId);
+    if (!tmpl) return { error: "Custom template not found." };
+    if (tmpl.status !== "published") return { error: "Choose a published custom template." };
+    if (!isReturnTemplateKey(tmpl.source_system_template_key)) {
+      return { error: "This custom template has an unknown base template." };
+    }
+    return_template_key = tmpl.source_system_template_key;
+    return_template_id = templateId;
+  } else {
+    const key = target.startsWith("system:") ? target.slice("system:".length) : target;
+    if (!isReturnTemplateKey(key)) return { error: "Choose a valid return inspection template." };
+    return_template_key = key;
+  }
+
   const { error } = await supabase.from("inspection_category_defaults").upsert(
     {
       organization_id: profile.organization_id,
-      category_value: result.value.category_value,
-      normalized_category_value: result.value.normalized_category_value,
-      return_template_key: result.value.return_template_key,
+      category_value: category,
+      normalized_category_value: normalized,
+      return_template_key,
+      return_template_id,
     },
     { onConflict: "organization_id,normalized_category_value" }
   );

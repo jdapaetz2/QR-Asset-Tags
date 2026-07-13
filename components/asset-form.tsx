@@ -13,9 +13,11 @@ import {
 } from "@/lib/inspections/templates";
 import { suggestTemplateKeyFromCategory } from "@/lib/inspections/resolve";
 import {
-  categoryDefaultForCategory,
-  type CategoryDefaultLookup,
+  categoryDefaultTargetForCategory,
+  type CategoryDefaultTargetLookup,
 } from "@/lib/inspections/category-defaults";
+
+export type OrgTemplateOption = { id: string; name: string; version: number };
 
 const inputClass =
   "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring";
@@ -74,7 +76,8 @@ export function AssetForm({
   asset,
   assetId,
   categories = [],
-  orgCategoryDefaults = {},
+  orgTemplates = [],
+  orgCategoryTargets = {},
   submitLabel,
 }: {
   action: AssetFormAction;
@@ -83,8 +86,10 @@ export function AssetForm({
   assetId?: string;
   /** Existing org categories offered as datalist suggestions. */
   categories?: string[];
-  /** Organization category → default return template map (drives the live suggestion + source label). */
-  orgCategoryDefaults?: CategoryDefaultLookup;
+  /** This org's assignable (published) custom return templates. */
+  orgTemplates?: OrgTemplateOption[];
+  /** Category → default target (custom id or system key) — drives the live suggestion + source label. */
+  orgCategoryTargets?: CategoryDefaultTargetLookup;
   submitLabel: string;
 }) {
   const [state, formAction, pending] = useActionState<AssetFormState, FormData>(
@@ -95,30 +100,48 @@ export function AssetForm({
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Category + return-inspection template are chosen together. The template follows the category
-  // suggestion until the admin picks one explicitly (then it is preserved even if the category
-  // changes — we only surface an inconsistency warning, never silently overwrite).
+  // Category + return template are chosen together. The assignment follows the category suggestion until
+  // the admin picks one explicitly. An assignment is either a system template (`system:<key>`) or a
+  // published custom org template (`custom:<id>`); exactly one of the two hidden fields is posted.
   const [category, setCategory] = useState(asset?.category ?? "");
-  const [templateKey, setTemplateKey] = useState(
-    asset?.return_inspection_template_key ?? ""
-  );
-  const [templateTouched, setTemplateTouched] = useState(
-    Boolean(asset?.return_inspection_template_key)
-  );
-  // Suggestion precedence: organization category default → conservative system alias. An org default
-  // (Phase 1B) wins over the built-in suggestion but never over an explicit selection.
+  const initialAssignment = asset?.return_inspection_template_id
+    ? `custom:${asset.return_inspection_template_id}`
+    : asset?.return_inspection_template_key
+      ? `system:${asset.return_inspection_template_key}`
+      : "";
+  const [assignment, setAssignment] = useState(initialAssignment);
+  const [assignmentTouched, setAssignmentTouched] = useState(Boolean(initialAssignment));
+
+  // Suggestion precedence (untouched): org category default (custom id or system key) → system alias →
+  // generic. An explicit selection is never overwritten.
   const systemSuggestion = suggestTemplateKeyFromCategory(category);
-  const orgDefaultKey = categoryDefaultForCategory(category, orgCategoryDefaults);
-  const preferredSuggestion = orgDefaultKey ?? systemSuggestion;
-  const effectiveTemplateKey = templateTouched
-    ? templateKey || GENERIC_TEMPLATE_KEY
-    : preferredSuggestion ?? GENERIC_TEMPLATE_KEY;
-  const templateFor = (key: string) =>
-    RETURN_TEMPLATE_PICKER.find((t) => t.key === key);
-  const inconsistent =
-    templateTouched &&
-    preferredSuggestion != null &&
-    preferredSuggestion !== effectiveTemplateKey;
+  const target = categoryDefaultTargetForCategory(category, orgCategoryTargets);
+  const defaultAssignment = target?.templateId
+    ? `custom:${target.templateId}`
+    : target?.templateKey
+      ? `system:${target.templateKey}`
+      : systemSuggestion
+        ? `system:${systemSuggestion}`
+        : `system:${GENERIC_TEMPLATE_KEY}`;
+  const effectiveAssignment = assignmentTouched ? assignment || defaultAssignment : defaultAssignment;
+
+  const isCustom = effectiveAssignment.startsWith("custom:");
+  const effectiveTemplateId = isCustom ? effectiveAssignment.slice("custom:".length) : "";
+  const effectiveTemplateKey = !isCustom ? effectiveAssignment.slice("system:".length) : "";
+  const systemDescription = RETURN_TEMPLATE_PICKER.find(
+    (t) => t.key === effectiveTemplateKey
+  )?.description;
+  const sourceLabel = assignmentTouched
+    ? isCustom
+      ? "Explicit assignment (custom template)."
+      : "Explicit assignment."
+    : target?.templateId
+      ? "Organization category default (custom template)."
+      : target?.templateKey
+        ? "Organization category default."
+        : systemSuggestion
+          ? "System suggestion."
+          : "Generic fallback — review recommended.";
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -177,38 +200,46 @@ export function AssetForm({
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Return inspection template</span>
           <select
-            id="return_inspection_template_key"
-            name="return_inspection_template_key"
-            value={effectiveTemplateKey}
+            id="return_inspection_template"
+            value={effectiveAssignment}
             onChange={(e) => {
-              setTemplateKey(e.target.value);
-              setTemplateTouched(true);
+              setAssignment(e.target.value);
+              setAssignmentTouched(true);
             }}
             className={inputClass}
           >
-            {RETURN_TEMPLATE_PICKER.map((t) => (
-              <option key={t.key} value={t.key}>
-                {t.name}
-              </option>
-            ))}
+            <optgroup label="System templates">
+              {RETURN_TEMPLATE_PICKER.map((t) => (
+                <option key={t.key} value={`system:${t.key}`}>
+                  {t.name}
+                </option>
+              ))}
+            </optgroup>
+            {orgTemplates.length > 0 ? (
+              <optgroup label="Your published templates">
+                {orgTemplates.map((t) => (
+                  <option key={t.id} value={`custom:${t.id}`}>
+                    {t.name} · v{t.version}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
           </select>
+          {/* Exactly one of these is non-empty; the server stores it (custom id wins over system key). */}
+          <input type="hidden" name="return_inspection_template_key" value={effectiveTemplateKey} />
+          <input type="hidden" name="return_inspection_template_id" value={effectiveTemplateId} />
           <span className="text-xs text-muted-foreground">
-            {templateFor(effectiveTemplateKey)?.description}
+            {isCustom ? "Your organization's custom template." : systemDescription}
           </span>
-          {inconsistent ? (
-            <span className="text-xs text-warning">
-              The category suggests “{templateFor(preferredSuggestion!)?.name}”, but this asset is
-              assigned “{templateFor(effectiveTemplateKey)?.name}”.
-            </span>
-          ) : templateTouched ? (
-            <span className="text-xs text-muted-foreground">Explicit assignment.</span>
-          ) : orgDefaultKey ? (
-            <span className="text-xs text-muted-foreground">Organization category default.</span>
-          ) : systemSuggestion ? (
-            <span className="text-xs text-muted-foreground">System suggestion.</span>
-          ) : (
-            <span className="text-xs text-warning">Generic fallback — review recommended.</span>
-          )}
+          <span
+            className={
+              sourceLabel.includes("Generic")
+                ? "text-xs text-warning"
+                : "text-xs text-muted-foreground"
+            }
+          >
+            {sourceLabel}
+          </span>
         </label>
 
         <Field name="make" label="Make" defaultValue={asset?.make} />

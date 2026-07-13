@@ -14,6 +14,11 @@ import {
   removeCategoryDefault,
   applyCategoryDefaultToUnassigned,
 } from "@/lib/inspections/category-defaults-actions";
+import { copySystemTemplate } from "@/lib/inspections/org-templates-actions";
+import {
+  getOrgTemplates,
+  latestPublishedPerFamily,
+} from "@/lib/inspections/org-templates-data";
 import { RETURN_TEMPLATES, RETURN_TEMPLATE_KEYS } from "@/lib/inspections/templates";
 import { returnTemplateName } from "@/lib/inspections/resolve";
 import type { InspectionField } from "@/lib/inspections/types";
@@ -47,17 +52,33 @@ export default async function ReturnInspectionsPage({
   await requireOrgId();
   const sp = await searchParams;
   const applied = typeof sp.applied === "string" ? Number(sp.applied) : null;
+  const moved = typeof sp.moved === "string" ? Number(sp.moved) : null;
 
   const supabase = await createClient();
 
   // One assets query + one defaults query, reduced into Maps (no N+1).
   const { data: assetRows } = await supabase
     .from("assets")
-    .select("id, asset_code, asset_name, category, return_inspection_template_key")
+    .select(
+      "id, asset_code, asset_name, category, return_inspection_template_key, return_inspection_template_id"
+    )
     .is("archived_at", null);
   const assets = (assetRows ?? []) as AssetRow[];
   const defaults = await getOrgCategoryDefaults(supabase);
   const categories = await getOrgCategories(supabase);
+  const orgTemplates = await getOrgTemplates(supabase);
+  const assignable = latestPublishedPerFamily(orgTemplates);
+
+  // Group org templates by family for the "Your return templates" list.
+  const familyMap = new Map<string, typeof orgTemplates>();
+  for (const t of orgTemplates) {
+    const list = familyMap.get(t.family_key) ?? [];
+    list.push(t);
+    familyMap.set(t.family_key, list);
+  }
+  const families = Array.from(familyMap.values())
+    .map((versions) => versions.slice().sort((a, b) => b.version - a.version))
+    .sort((a, b) => a[0].name.toLowerCase().localeCompare(b[0].name.toLowerCase()));
 
   const lookup = buildCategoryDefaultLookup(defaults);
   const reviewIds = new Set(classifyReviewAssets(assets, lookup).map((r) => r.id));
@@ -94,7 +115,9 @@ export default async function ReturnInspectionsPage({
         (a) => a.category && normalizeCategoryKey(a.category) === norm
       );
       const mapping = defaultByNorm.get(norm) ?? null;
-      const assigned = inCat.filter((a) => a.return_inspection_template_key).length;
+      const assigned = inCat.filter(
+        (a) => a.return_inspection_template_key || a.return_inspection_template_id
+      ).length;
       const review = inCat.filter((a) => reviewIds.has(a.id)).length;
       const applyTargets = mapping ? assetsToApplyDefault(inCat, lookup).length : 0;
       return { norm, display, assetCount: inCat.length, mapping, assigned, review, applyTargets };
@@ -128,6 +151,11 @@ export default async function ReturnInspectionsPage({
       {applied != null ? (
         <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-muted-foreground">
           Applied the default to {applied} unassigned asset{applied === 1 ? "" : "s"}.
+        </p>
+      ) : null}
+      {moved != null ? (
+        <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-muted-foreground">
+          Moved {moved} asset{moved === 1 ? "" : "s"} to the new version.
         </p>
       ) : null}
 
@@ -177,17 +205,69 @@ export default async function ReturnInspectionsPage({
                     <dd>Damage details + at least one photo appear when damage is reported.</dd>
                   </div>
                 </dl>
-                <details className="mt-3">
-                  <summary className="cursor-pointer text-sm font-medium text-foreground underline-offset-4 hover:underline">
-                    Preview inspection
-                  </summary>
-                  <ReturnTemplatePreview template={template} />
-                </details>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <details className="flex-1">
+                    <summary className="cursor-pointer text-sm font-medium text-foreground underline-offset-4 hover:underline">
+                      Preview inspection
+                    </summary>
+                    <ReturnTemplatePreview template={template} />
+                  </details>
+                  <ActionButton action={copySystemTemplate.bind(null, key)} variant="outline">
+                    Copy &amp; customize
+                  </ActionButton>
+                </div>
               </div>
             );
           })}
         </div>
       </section>
+
+      {/* Your custom templates (versioned) */}
+      {families.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <div>
+            <h2 className="text-lg font-medium">Your return templates</h2>
+            <p className="text-sm text-muted-foreground">
+              Copied from a system template and customized. Only published versions can be assigned to
+              assets; editing a published version creates a new draft version.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3">
+            {families.map((versions) => {
+              const head = versions[0];
+              return (
+                <div key={head.family_key} className="rounded-lg border bg-card p-4">
+                  <h3 className="font-medium">{head.name}</h3>
+                  <p className="text-sm text-muted-foreground">{head.description}</p>
+                  <ul className="mt-3 flex flex-col gap-1">
+                    {versions.map((v) => (
+                      <li key={v.id} className="flex flex-wrap items-center gap-2 text-sm">
+                        <Badge
+                          tone={
+                            v.status === "published"
+                              ? "success"
+                              : v.status === "retired"
+                                ? "neutral"
+                                : "info"
+                          }
+                        >
+                          v{v.version} · {v.status}
+                        </Badge>
+                        <Link
+                          href={`/dashboard/templates/return-inspections/custom/${v.id}`}
+                          className="underline-offset-4 hover:underline"
+                        >
+                          {v.status === "draft" ? "Edit" : "View"}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
       {/* 2. Organization category defaults */}
       <section className="flex flex-col gap-3">
@@ -202,7 +282,7 @@ export default async function ReturnInspectionsPage({
 
         <div className="rounded-lg border bg-card p-4">
           <h3 className="mb-3 text-sm font-medium">Add or change a mapping</h3>
-          <CategoryDefaultForm categories={categories} />
+          <CategoryDefaultForm categories={categories} orgTemplates={assignable} />
         </div>
 
         <div className="overflow-x-auto rounded-lg border">

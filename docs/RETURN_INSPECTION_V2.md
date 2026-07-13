@@ -92,8 +92,37 @@ renaming. The final resolved key is still stored on each asset.
   never touched; count-confirmed), and an "assets needing review" list (unassigned / generic /
   differs-from-default = "review recommended", not errors).
 - Changing or removing a mapping only affects future resolution — it never rewrites existing assets.
-- **Not built (still deferred):** custom template-content editor, form builder, "apply to selected"
-  / "overwrite all in category", outbound inspections, yard-worker mode.
+
+### Phase 2 — versioned organization templates (constrained editor)
+An organization may **copy** a curated system template and customize it within strict boundaries. NOT a
+form builder: system templates stay in TypeScript/read-only; org templates live in the DB, are versioned,
+and are **immutable once published**.
+- **Migration `0026`** `inspection_templates` (`organization_id`, `inspection_type`, `family_key` [version
+  lineage], `version` int, `status` draft/published/retired, `name`, `description`,
+  `source_system_template_key`, `definition_json`; `unique(org, family_key, version)` + a partial unique
+  **one-draft-per-family** index; `for all` RLS; **no anon grant**). A `enforce_inspection_template_lifecycle`
+  trigger makes published versions immutable (published → only → retired; retired frozen; draft free).
+  Adds `assets.return_inspection_template_id` (anon-readable) with a cross-org guard trigger, and
+  `inspection_category_defaults.return_template_id`. **Public read** is only via the SECURITY DEFINER
+  `get_asset_return_template(asset_id)` RPC — returns a **published** definition for a **public** asset in
+  the **same org**, nothing else (no drafts, no lists, no cross-org).
+- **Definition = `InspectionTemplate`.** `validateOrgTemplateDefinition` (server-authoritative) REBUILDS
+  the definition from an allow-list + the closed field-type set, forbids multi-condition rules, and
+  requires the attestation to remain — so no arbitrary HTML/CSS/script or unsupported types can be stored.
+- **Resolution order** is now **asset custom published template → asset system key → org category default
+  (custom id or system key) → system suggestion → generic.** The custom tier is a server pre-step
+  (published-ness is a DB fact); a retired/absent custom falls through and the asset is flagged for review
+  (never auto-switched).
+- **Snapshot unchanged:** the resolved (custom or system) definition is frozen into each submission, so old
+  submissions always render from their stored snapshot even after new versions publish.
+- **Editor** at `.../return-inspections/custom/[id]`: rename, description, per-field label/help/required,
+  add-field (closed set), reorder, select options, photo slots, single-equality conditions, enable/disable
+  sections, inert preview, publish, create-new-version, retire, discard-draft, and a count-confirmed
+  **Move assigned assets to new version**.
+- **Not built (still deferred):** blank-canvas creation, drag-and-drop layout, arbitrary rules/JS, nested
+  conditions, e-signatures, template marketplace, AI-generated safety content, outbound inspections,
+  before/after comparison, yard-worker mode, and (this wave) assigning **custom** template ids via CSV
+  import (import still resolves to a system key).
 
 ---
 

@@ -19,12 +19,13 @@ const inputClass =
  */
 export function CategoryDefaultForm({
   categories = [],
+  orgTemplates = [],
   defaultCategory = "",
-  defaultTemplateKey = "",
 }: {
   categories?: string[];
+  /** Assignable (published) custom org templates offered alongside system templates. */
+  orgTemplates?: { id: string; name: string; version: number }[];
   defaultCategory?: string;
-  defaultTemplateKey?: string;
 }) {
   const [state, formAction, pending] = useActionState<CategoryDefaultFormState, FormData>(
     saveCategoryDefault,
@@ -66,18 +67,24 @@ export function CategoryDefaultForm({
 
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Default return template</span>
-          <select
-            name="return_template_key"
-            defaultValue={defaultTemplateKey}
-            required
-            className={inputClass}
-          >
+          <select name="return_target" defaultValue="" required className={inputClass}>
             <option value="">— select —</option>
-            {RETURN_TEMPLATE_PICKER.map((t) => (
-              <option key={t.key} value={t.key}>
-                {t.name}
-              </option>
-            ))}
+            <optgroup label="System templates">
+              {RETURN_TEMPLATE_PICKER.map((t) => (
+                <option key={t.key} value={`system:${t.key}`}>
+                  {t.name}
+                </option>
+              ))}
+            </optgroup>
+            {orgTemplates.length > 0 ? (
+              <optgroup label="Your published templates">
+                {orgTemplates.map((t) => (
+                  <option key={t.id} value={`custom:${t.id}`}>
+                    {t.name} · v{t.version}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
           </select>
         </label>
       </div>

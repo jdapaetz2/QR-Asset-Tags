@@ -19,6 +19,8 @@ export type AssetInput = {
   cover_image_url: string | null;
   internal_notes: string | null;
   return_inspection_template_key: string | null;
+  /** Phase 2: assigned custom (org) template version id. Mutually exclusive with the system key. */
+  return_inspection_template_id: string | null;
 };
 
 export type NormalizeResult =
@@ -83,13 +85,14 @@ export function normalizeAssetForm(raw: RawAssetForm): NormalizeResult {
     };
   }
 
-  // Explicit return-inspection template assignment: must be a known system key when supplied.
-  // (Null is allowed here; the create action fills a category suggestion / generic default.)
-  const return_inspection_template_key = clean(raw.return_inspection_template_key);
-  if (
-    return_inspection_template_key &&
-    !isReturnTemplateKey(return_inspection_template_key)
-  ) {
+  // Explicit return-inspection template assignment. A custom (org) template id wins over the system key
+  // (mutually exclusive). When an id is present the system key is cleared. A supplied system key must be a
+  // known code registry key. The id's existence + same-org constraint is enforced by the DB (FK + trigger).
+  const return_inspection_template_id = clean(raw.return_inspection_template_id);
+  let return_inspection_template_key = clean(raw.return_inspection_template_key);
+  if (return_inspection_template_id) {
+    return_inspection_template_key = null;
+  } else if (return_inspection_template_key && !isReturnTemplateKey(return_inspection_template_key)) {
     return { error: "Choose a valid return inspection template." };
   }
 
@@ -107,6 +110,7 @@ export function normalizeAssetForm(raw: RawAssetForm): NormalizeResult {
       cover_image_url,
       internal_notes: clean(raw.internal_notes),
       return_inspection_template_key,
+      return_inspection_template_id,
     },
   };
 }

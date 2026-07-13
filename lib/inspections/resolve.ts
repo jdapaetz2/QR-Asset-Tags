@@ -54,9 +54,21 @@ export function suggestTemplateKeyFromCategory(
   return CATEGORY_ALIASES[normalized] ?? null;
 }
 
+/**
+ * Where a resolved return template came from. `custom_assigned` is a published organization template
+ * assigned to the asset (Phase 2); it is decided server-side (published-ness is a DB fact) and never by
+ * this pure code path — it appears only in admin display/source labels.
+ */
+export type TemplateSource =
+  | "custom_assigned"
+  | "assigned"
+  | "category_default"
+  | "suggested"
+  | "generic";
+
 export type TemplateResolution = {
   key: ReturnTemplateKey;
-  source: "assigned" | "category_default" | "suggested" | "generic";
+  source: TemplateSource;
 };
 
 export type ResolveReturnTemplateInput = {

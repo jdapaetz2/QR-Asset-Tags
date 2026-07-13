@@ -20,7 +20,17 @@ export type CategoryDefaultRow = {
   category_value: string;
   return_template_key: string;
   normalized_category_value?: string;
+  /** Phase 2: an optional published custom-template target (wins over the system key when present). */
+  return_template_id?: string | null;
 };
+
+/** A category-default target: a published custom template id, or a system template key. */
+export type CategoryDefaultTarget =
+  | { templateId: string; templateKey?: undefined }
+  | { templateKey: ReturnTemplateKey; templateId?: undefined };
+
+/** Normalized-category → target (custom id preferred, else system key). */
+export type CategoryDefaultTargetLookup = Record<string, CategoryDefaultTarget>;
 
 /** Normalized-category → template key. Only valid, known template keys are kept. */
 export type CategoryDefaultLookup = Record<string, ReturnTemplateKey>;
@@ -48,6 +58,37 @@ export function categoryDefaultForCategory(
   category: string | null | undefined,
   lookup: CategoryDefaultLookup
 ): ReturnTemplateKey | null {
+  if (typeof category !== "string") return null;
+  const key = normalizeCategoryKey(category);
+  if (!key) return null;
+  return lookup[key] ?? null;
+}
+
+/**
+ * Build a target lookup that prefers a published custom template id over the system key (Phase 2). Used by
+ * admin write flows (asset create + bulk-apply); the public route never consults it.
+ */
+export function buildCategoryDefaultTargetLookup(
+  rows: readonly CategoryDefaultRow[]
+): CategoryDefaultTargetLookup {
+  const out: CategoryDefaultTargetLookup = {};
+  for (const row of rows) {
+    const key = normalizeCategoryKey(row.category_value ?? "");
+    if (!key) continue;
+    if (row.return_template_id) {
+      out[key] = { templateId: row.return_template_id };
+    } else if (isReturnTemplateKey(row.return_template_key)) {
+      out[key] = { templateKey: row.return_template_key };
+    }
+  }
+  return out;
+}
+
+/** Exact org-default target for a category (custom id preferred), or null when unmapped. */
+export function categoryDefaultTargetForCategory(
+  category: string | null | undefined,
+  lookup: CategoryDefaultTargetLookup
+): CategoryDefaultTarget | null {
   if (typeof category !== "string") return null;
   const key = normalizeCategoryKey(category);
   if (!key) return null;
@@ -86,11 +127,18 @@ export type AssetForDefault = {
   id: string;
   category: string | null;
   return_inspection_template_key: string | null;
+  /** Phase 2: a custom-template assignment also counts as "explicitly assigned". */
+  return_inspection_template_id?: string | null;
 };
 
+/** An asset is unassigned only when it has neither a system key nor a custom template id. */
+function isUnassigned(asset: AssetForDefault): boolean {
+  return !asset.return_inspection_template_key && !asset.return_inspection_template_id;
+}
+
 /**
- * Which assets a category-default apply would touch: ONLY assets with no explicit assignment whose
- * normalized category maps to a default. Explicit assignments are never included (never overwritten).
+ * Which assets a category-default apply would touch: ONLY unassigned assets whose normalized category maps
+ * to a default. Explicit assignments (system key OR custom id) are never included (never overwritten).
  */
 export function assetsToApplyDefault(
   assets: readonly AssetForDefault[],
@@ -98,7 +146,7 @@ export function assetsToApplyDefault(
 ): { id: string; key: ReturnTemplateKey }[] {
   const out: { id: string; key: ReturnTemplateKey }[] = [];
   for (const asset of assets) {
-    if (asset.return_inspection_template_key) continue; // explicit assignment preserved
+    if (!isUnassigned(asset)) continue; // explicit assignment preserved
     const key = categoryDefaultForCategory(asset.category, lookup);
     if (key) out.push({ id: asset.id, key });
   }
@@ -126,6 +174,9 @@ export function classifyReviewAssets(
 ): ReviewAsset[] {
   const out: ReviewAsset[] = [];
   for (const asset of assets) {
+    // A custom-template assignment is explicit; retired-custom review is computed server-side (needs the
+    // template's status), not here.
+    if (asset.return_inspection_template_id) continue;
     const currentKey = asset.return_inspection_template_key ?? null;
     const defaultKey = categoryDefaultForCategory(asset.category, lookup);
     const base = { id: asset.id, category: asset.category, currentKey, defaultKey };

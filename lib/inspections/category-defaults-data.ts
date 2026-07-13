@@ -15,6 +15,8 @@ export type CategoryDefaultRecord = {
   category_value: string;
   normalized_category_value: string;
   return_template_key: string;
+  /** Phase 2: optional published custom-template target (wins over the system key). */
+  return_template_id: string | null;
   updated_at: string;
 };
 
@@ -24,7 +26,9 @@ export async function getOrgCategoryDefaults(
 ): Promise<CategoryDefaultRecord[]> {
   const { data } = await supabase
     .from("inspection_category_defaults")
-    .select("id, category_value, normalized_category_value, return_template_key, updated_at")
+    .select(
+      "id, category_value, normalized_category_value, return_template_key, return_template_id, updated_at"
+    )
     .order("category_value", { ascending: true });
   return (data ?? []) as CategoryDefaultRecord[];
 }

@@ -4,14 +4,19 @@ import { requireOrgId } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { createAsset } from "@/lib/assets/actions";
 import { getOrgCategories } from "@/lib/assets/categories";
-import { getOrgCategoryDefaultLookup } from "@/lib/inspections/category-defaults-data";
+import { getOrgCategoryDefaults } from "@/lib/inspections/category-defaults-data";
+import { buildCategoryDefaultTargetLookup } from "@/lib/inspections/category-defaults";
+import { getAssignableOrgTemplates } from "@/lib/inspections/org-templates-data";
 import { AssetForm } from "@/components/asset-form";
 
 export default async function NewAssetPage() {
   await requireOrgId();
   const supabase = await createClient();
   const categories = await getOrgCategories(supabase);
-  const orgCategoryDefaults = await getOrgCategoryDefaultLookup(supabase);
+  const orgCategoryTargets = buildCategoryDefaultTargetLookup(
+    await getOrgCategoryDefaults(supabase)
+  );
+  const orgTemplates = await getAssignableOrgTemplates(supabase);
 
   return (
     <div className="flex flex-col gap-6">
@@ -31,7 +36,8 @@ export default async function NewAssetPage() {
       <AssetForm
         action={createAsset}
         categories={categories}
-        orgCategoryDefaults={orgCategoryDefaults}
+        orgTemplates={orgTemplates}
+        orgCategoryTargets={orgCategoryTargets}
         submitLabel="Create asset"
       />
     </div>

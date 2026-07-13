@@ -8,7 +8,11 @@ import { requireProfile } from "@/lib/auth/session";
 import { normalizeAssetForm, type RawAssetForm } from "@/lib/assets/validate";
 import { deleteEligibility } from "@/lib/assets/list";
 import { resolveReturnTemplateKey } from "@/lib/inspections/resolve";
-import { getOrgCategoryDefaultLookup } from "@/lib/inspections/category-defaults-data";
+import { getOrgCategoryDefaults } from "@/lib/inspections/category-defaults-data";
+import {
+  buildCategoryDefaultTargetLookup,
+  categoryDefaultTargetForCategory,
+} from "@/lib/inspections/category-defaults";
 import {
   COVER_BUCKET,
   coverObjectName,
@@ -45,6 +49,7 @@ const FIELDS = [
   "cover_image_url",
   "internal_notes",
   "return_inspection_template_key",
+  "return_inspection_template_id",
 ] as const;
 
 function readForm(formData: FormData): RawAssetForm {
@@ -71,17 +76,23 @@ export async function createAsset(
 
   const supabase = await createClient();
 
-  // Always store an explicit return-inspection template. If the form didn't supply one, resolve
-  // organization category default → conservative system suggestion → generic — so every new asset has a
-  // resolved template stored on the row (the public route never consults the defaults table).
-  const categoryDefaults = await getOrgCategoryDefaultLookup(supabase);
-  const return_inspection_template_key =
-    result.value.return_inspection_template_key ??
-    resolveReturnTemplateKey({
-      assignmentKey: null,
-      category: result.value.category,
-      categoryDefaults,
-    }).key;
+  // Resolve the stored assignment. An explicit form choice (custom id or system key) wins. Otherwise apply
+  // the org category default — which may target a published CUSTOM template (id) or a system key — then a
+  // conservative system suggestion, then generic. Every new asset ends up with exactly one of
+  // {template_id, template_key} stored; the public route never consults the defaults table.
+  let return_inspection_template_id = result.value.return_inspection_template_id;
+  let return_inspection_template_key = result.value.return_inspection_template_key;
+  if (!return_inspection_template_id && !return_inspection_template_key) {
+    const targets = buildCategoryDefaultTargetLookup(await getOrgCategoryDefaults(supabase));
+    const target = categoryDefaultTargetForCategory(result.value.category, targets);
+    if (target?.templateId) {
+      return_inspection_template_id = target.templateId;
+    } else {
+      return_inspection_template_key =
+        target?.templateKey ??
+        resolveReturnTemplateKey({ assignmentKey: null, category: result.value.category }).key;
+    }
+  }
 
   const { data, error } = await supabase
     .from("assets")
@@ -91,6 +102,7 @@ export async function createAsset(
     .insert({
       ...result.value,
       return_inspection_template_key,
+      return_inspection_template_id,
       organization_id: profile.organization_id,
     })
     .select("id")

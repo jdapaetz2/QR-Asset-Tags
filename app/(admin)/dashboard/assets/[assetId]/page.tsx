@@ -13,7 +13,15 @@ import {
 import { deleteEligibility } from "@/lib/assets/list";
 import { getOrgCategories } from "@/lib/assets/categories";
 import { resolveReturnTemplateKey } from "@/lib/inspections/resolve";
-import { getOrgCategoryDefaultLookup } from "@/lib/inspections/category-defaults-data";
+import { getOrgCategoryDefaults } from "@/lib/inspections/category-defaults-data";
+import {
+  buildCategoryDefaultLookup,
+  buildCategoryDefaultTargetLookup,
+} from "@/lib/inspections/category-defaults";
+import {
+  getAssignableOrgTemplates,
+  getOrgTemplate,
+} from "@/lib/inspections/org-templates-data";
 import { RETURN_TEMPLATE_PICKER } from "@/lib/inspections/templates";
 import { UNRESOLVED_STATUSES } from "@/lib/submissions/inbox";
 import { AssetForm } from "@/components/asset-form";
@@ -53,7 +61,7 @@ export default async function EditAssetPage({
   const { data: asset } = await supabase
     .from("assets")
     .select(
-      "asset_code, asset_name, category, make, model, serial_number, year, support_phone_override, support_email_override, cover_image_url, internal_notes, public_status, archived_at, return_inspection_template_key"
+      "asset_code, asset_name, category, make, model, serial_number, year, support_phone_override, support_email_override, cover_image_url, internal_notes, public_status, archived_at, return_inspection_template_key, return_inspection_template_id"
     )
     .eq("id", assetId)
     .maybeSingle();
@@ -61,10 +69,18 @@ export default async function EditAssetPage({
   if (!asset) notFound();
 
   const categories = await getOrgCategories(supabase);
-  const orgCategoryDefaults = await getOrgCategoryDefaultLookup(supabase);
+  const orgCategoryTargets = buildCategoryDefaultTargetLookup(
+    await getOrgCategoryDefaults(supabase)
+  );
+  const orgTemplates = await getAssignableOrgTemplates(supabase);
 
-  // Resolve the effective return-inspection template for the summary section (assignment → org category
-  // default → system suggestion → generic). Display-only; the authoritative assignment lives on the asset.
+  // Resolve the return-inspection summary. A custom (org) template assignment is shown from the DB row
+  // (with its version + status); otherwise the code resolver (system key → org default → suggestion →
+  // generic). Display-only; the authoritative assignment lives on the asset.
+  const customTemplate = asset.return_inspection_template_id
+    ? await getOrgTemplate(supabase, asset.return_inspection_template_id as string)
+    : null;
+  const orgCategoryDefaults = buildCategoryDefaultLookup(await getOrgCategoryDefaults(supabase));
   const returnResolution = resolveReturnTemplateKey({
     assignmentKey: asset.return_inspection_template_key as string | null,
     category: asset.category as string | null,
@@ -250,22 +266,36 @@ export default async function EditAssetPage({
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <h2 className="font-medium">Return inspection</h2>
-            <p className="text-muted-foreground">
-              {returnTemplate?.name}
-              {returnResolution.source === "assigned"
-                ? " · assigned"
-                : returnResolution.source === "category_default"
-                  ? " · organization category default"
-                  : returnResolution.source === "suggested"
-                    ? " · suggested from category"
-                    : " · generic fallback"}
-            </p>
+            {customTemplate ? (
+              <p className="text-muted-foreground">
+                {customTemplate.name} · v{customTemplate.version} ·{" "}
+                {customTemplate.status === "published"
+                  ? "custom (published)"
+                  : `custom (${customTemplate.status})`}
+              </p>
+            ) : (
+              <p className="text-muted-foreground">
+                {returnTemplate?.name}
+                {returnResolution.source === "assigned"
+                  ? " · assigned"
+                  : returnResolution.source === "category_default"
+                    ? " · organization category default"
+                    : returnResolution.source === "suggested"
+                      ? " · suggested from category"
+                      : " · generic fallback"}
+              </p>
+            )}
           </div>
           <Button asChild variant="outline">
-            <Link href="#return_inspection_template_key">Change template</Link>
+            <Link href="#return_inspection_template">Change template</Link>
           </Button>
         </div>
-        {returnResolution.source !== "assigned" ? (
+        {customTemplate && customTemplate.status !== "published" ? (
+          <p className="mt-2 text-xs text-warning">
+            This custom template version is {customTemplate.status}. Review this asset — reassign it to a
+            published template or a system template.
+          </p>
+        ) : !customTemplate && returnResolution.source !== "assigned" ? (
           <p className="mt-2 text-xs text-warning">
             {returnResolution.source === "generic"
               ? "No specific template matched this category — using the generic inspection. Review recommended."
@@ -285,7 +315,8 @@ export default async function EditAssetPage({
         asset={asset}
         assetId={assetId}
         categories={categories}
-        orgCategoryDefaults={orgCategoryDefaults}
+        orgTemplates={orgTemplates}
+        orgCategoryTargets={orgCategoryTargets}
         submitLabel="Save changes"
       />
 

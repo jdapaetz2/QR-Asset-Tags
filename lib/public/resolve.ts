@@ -32,6 +32,8 @@ export type ResolvedPublicEquipment = {
   category: string | null;
   /** Explicit return-inspection template assignment (anon-readable, non-sensitive), or null. */
   returnInspectionTemplateKey: string | null;
+  /** Assigned custom (org) template version id, or null. Resolved to a published definition via RPC. */
+  returnInspectionTemplateId: string | null;
   asset: PublicAsset;
   page: PublicPage;
   org: PublicOrgRecord;
@@ -54,7 +56,7 @@ export async function resolvePublicEquipment(
   const { data: asset } = await supabase
     .from("assets")
     .select(
-      "asset_code, asset_name, category, make, model, cover_image_url, support_phone_override, support_email_override, active_rental_session_id, return_inspection_template_key"
+      "asset_code, asset_name, category, make, model, cover_image_url, support_phone_override, support_email_override, active_rental_session_id, return_inspection_template_key, return_inspection_template_id"
     )
     .eq("id", link.asset_id)
     .maybeSingle<
@@ -62,6 +64,7 @@ export async function resolvePublicEquipment(
         category: string | null;
         active_rental_session_id: string | null;
         return_inspection_template_key: string | null;
+        return_inspection_template_id: string | null;
       }
     >();
   if (!asset) return null;
@@ -93,6 +96,7 @@ export async function resolvePublicEquipment(
     activeRentalSessionId: asset.active_rental_session_id ?? null,
     category: asset.category ?? null,
     returnInspectionTemplateKey: asset.return_inspection_template_key ?? null,
+    returnInspectionTemplateId: asset.return_inspection_template_id ?? null,
     asset,
     page,
     org,

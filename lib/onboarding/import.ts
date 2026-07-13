@@ -11,7 +11,7 @@ import { normalizeAssetForm, type AssetInput } from "@/lib/assets/validate";
 import { csvField } from "@/lib/submissions/csv";
 import { isTemplateKey } from "@/lib/onboarding/templates";
 import { isReturnTemplateKey } from "@/lib/inspections/templates";
-import { resolveReturnTemplateKey } from "@/lib/inspections/resolve";
+import { resolveReturnTemplateKey, type TemplateSource } from "@/lib/inspections/resolve";
 import type { CategoryDefaultLookup } from "@/lib/inspections/category-defaults";
 
 export const IMPORT_COLUMNS = [
@@ -43,7 +43,7 @@ export type ImportRowFlags = {
   /** Resolved return-inspection template key (always set for valid rows). */
   returnInspectionTemplateKey: string;
   /** How the return template was chosen (drives the preview status). */
-  returnInspectionSource: "assigned" | "category_default" | "suggested" | "generic";
+  returnInspectionSource: TemplateSource;
 };
 
 export type ImportRow = {
