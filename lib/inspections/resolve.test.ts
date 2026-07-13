@@ -98,6 +98,62 @@ describe("resolveReturnTemplateKey", () => {
   });
 });
 
+// Phase 1B — organization category defaults tier (assigned → category_default → suggested → generic).
+describe("resolveReturnTemplateKey with organization category defaults", () => {
+  // A category the built-in aliases would NOT match, mapped by the org to plate_compactor.
+  const categoryDefaults = { "widget cart": "plate_compactor" as const };
+
+  it("uses the org category default when there is no explicit assignment", () => {
+    expect(
+      resolveReturnTemplateKey({ assignmentKey: null, category: "Widget Cart", categoryDefaults })
+    ).toEqual({ key: "plate_compactor", source: "category_default" });
+  });
+
+  it("lets an explicit assignment win over the category default", () => {
+    expect(
+      resolveReturnTemplateKey({
+        assignmentKey: "utility_trailer",
+        category: "Widget Cart",
+        categoryDefaults,
+      })
+    ).toEqual({ key: "utility_trailer", source: "assigned" });
+  });
+
+  it("prefers the org default over the built-in system suggestion", () => {
+    // "Dump Trailer" aliases to utility_trailer, but the org remaps it to plate_compactor.
+    expect(
+      resolveReturnTemplateKey({
+        assignmentKey: null,
+        category: "Dump Trailer",
+        categoryDefaults: { "dump trailer": "plate_compactor" },
+      })
+    ).toEqual({ key: "plate_compactor", source: "category_default" });
+  });
+
+  it("falls back to the system suggestion, then generic, when no default matches", () => {
+    expect(
+      resolveReturnTemplateKey({ assignmentKey: null, category: "Dump Trailer", categoryDefaults })
+    ).toEqual({ key: "utility_trailer", source: "suggested" });
+    expect(
+      resolveReturnTemplateKey({ assignmentKey: null, category: "Nothing", categoryDefaults })
+    ).toEqual({ key: GENERIC_TEMPLATE_KEY, source: "generic" });
+  });
+
+  it("only affects future resolution — omitting the lookup reverts to Phase 1A behavior", () => {
+    const withDefault = resolveReturnTemplateKey({
+      assignmentKey: null,
+      category: "Widget Cart",
+      categoryDefaults,
+    });
+    const withoutDefault = resolveReturnTemplateKey({
+      assignmentKey: null,
+      category: "Widget Cart",
+    });
+    expect(withDefault.key).toBe("plate_compactor");
+    expect(withoutDefault).toEqual({ key: GENERIC_TEMPLATE_KEY, source: "generic" });
+  });
+});
+
 describe("resolveReturnTemplate / returnTemplateName", () => {
   it("returns the full template for a resolved key", () => {
     const tpl = resolveReturnTemplate({ assignmentKey: "utility_trailer", category: null });

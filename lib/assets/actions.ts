@@ -8,6 +8,7 @@ import { requireProfile } from "@/lib/auth/session";
 import { normalizeAssetForm, type RawAssetForm } from "@/lib/assets/validate";
 import { deleteEligibility } from "@/lib/assets/list";
 import { resolveReturnTemplateKey } from "@/lib/inspections/resolve";
+import { getOrgCategoryDefaultLookup } from "@/lib/inspections/category-defaults-data";
 import {
   COVER_BUCKET,
   coverObjectName,
@@ -68,13 +69,20 @@ export async function createAsset(
   const result = normalizeAssetForm(readForm(formData));
   if (!result.value) return { error: result.error };
 
-  // Always store an explicit return-inspection template. If the form didn't supply one, default to
-  // the conservative category suggestion, else generic — so every new asset has a resolved template.
+  const supabase = await createClient();
+
+  // Always store an explicit return-inspection template. If the form didn't supply one, resolve
+  // organization category default → conservative system suggestion → generic — so every new asset has a
+  // resolved template stored on the row (the public route never consults the defaults table).
+  const categoryDefaults = await getOrgCategoryDefaultLookup(supabase);
   const return_inspection_template_key =
     result.value.return_inspection_template_key ??
-    resolveReturnTemplateKey({ assignmentKey: null, category: result.value.category }).key;
+    resolveReturnTemplateKey({
+      assignmentKey: null,
+      category: result.value.category,
+      categoryDefaults,
+    }).key;
 
-  const supabase = await createClient();
   const { data, error } = await supabase
     .from("assets")
     // organization_id comes from the profile, never from user input. RLS also

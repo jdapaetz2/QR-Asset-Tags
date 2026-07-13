@@ -70,6 +70,29 @@ assignment/resolution, snapshot mechanism, media limits, admin summary semantics
 - **Confirmation button.** The shared `FormThanks` now shows a prominent full-width **Return to equipment
   page** button (`/t/[shortCode]`) — applied to the return, damage, and support confirmation pages alike.
 
+### Phase 1B — organization category defaults + template catalog
+Lets an organization map its OWN exact category values to a default system return template, and adds a
+read-only catalog. **No** custom template-content editing, form builder, fuzzy matching, or category
+renaming. The final resolved key is still stored on each asset.
+- **Migration `0025`** `inspection_category_defaults` (`organization_id`, `category_value`,
+  `normalized_category_value`, `return_template_key`; unique `(organization_id,
+  normalized_category_value)`; `for all` RLS `is_platform_owner() or organization_id = current_org_id()`;
+  `authenticated`-only grant, **no anon**; no key CHECK — app-validated).
+- **Resolution order** is now **explicit assignment → organization category default → conservative system
+  suggestion → generic** (`resolveReturnTemplateKey` takes an optional `categoryDefaults` lookup;
+  `source` gains `category_default`). Matching is exact-normalized (`normalizeCategoryKey`), never fuzzy.
+- **Public route unchanged / never reads the table.** `app/forms/[shortCode]/return/page.tsx` and
+  `lib/inspections/submit.ts` resolve purely from the asset's stored key and do **not** pass or fetch
+  `categoryDefaults` — the mapping table is admin-time only (create/edit asset, import, bulk-apply).
+- **Templates → Return inspections** page: read-only system catalog with an inert
+  `ReturnTemplatePreview`, per-category mapping management (create/change via upsert, remove), a
+  deliberate **Apply to unassigned** action (null-key assets in that category only; explicit assignments
+  never touched; count-confirmed), and an "assets needing review" list (unassigned / generic /
+  differs-from-default = "review recommended", not errors).
+- Changing or removing a mapping only affects future resolution — it never rewrites existing assets.
+- **Not built (still deferred):** custom template-content editor, form builder, "apply to selected"
+  / "overwrite all in category", outbound inspections, yard-worker mode.
+
 ---
 
 ## Goal

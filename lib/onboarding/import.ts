@@ -12,6 +12,7 @@ import { csvField } from "@/lib/submissions/csv";
 import { isTemplateKey } from "@/lib/onboarding/templates";
 import { isReturnTemplateKey } from "@/lib/inspections/templates";
 import { resolveReturnTemplateKey } from "@/lib/inspections/resolve";
+import type { CategoryDefaultLookup } from "@/lib/inspections/category-defaults";
 
 export const IMPORT_COLUMNS = [
   "asset_code",
@@ -42,7 +43,7 @@ export type ImportRowFlags = {
   /** Resolved return-inspection template key (always set for valid rows). */
   returnInspectionTemplateKey: string;
   /** How the return template was chosen (drives the preview status). */
-  returnInspectionSource: "assigned" | "suggested" | "generic";
+  returnInspectionSource: "assigned" | "category_default" | "suggested" | "generic";
 };
 
 export type ImportRow = {
@@ -78,7 +79,8 @@ export function parseImportBool(
 
 export function parseImportRows(
   text: string,
-  extraKeys: ReadonlySet<string> = new Set()
+  extraKeys: ReadonlySet<string> = new Set(),
+  categoryDefaults: CategoryDefaultLookup = {}
 ): ParsedImport {
   const table = parseCsv(text);
   const fileWarnings: string[] = [];
@@ -156,7 +158,8 @@ export function parseImportRows(
       return parsed.value;
     };
     // Return-inspection template: an explicit key must be a known system key (else a ROW ERROR);
-    // otherwise resolve the conservative exact-category suggestion, else generic (a warning).
+    // otherwise resolve organization category default → conservative system suggestion → generic
+    // (generic is a non-blocking warning). Same pure resolver the server import uses.
     const returnKeyRaw = (get("return_inspection_template_key") ?? "").trim();
     if (returnKeyRaw && !isReturnTemplateKey(returnKeyRaw)) {
       errors.push(
@@ -166,6 +169,7 @@ export function parseImportRows(
     const returnResolution = resolveReturnTemplateKey({
       assignmentKey: returnKeyRaw && isReturnTemplateKey(returnKeyRaw) ? returnKeyRaw : null,
       category: assetResult.value?.category ?? null,
+      categoryDefaults,
     });
     if (returnResolution.source === "generic") {
       warnings.push(

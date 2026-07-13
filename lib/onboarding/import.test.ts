@@ -216,6 +216,36 @@ describe("parseImportRows", () => {
     // An error row carries no flags (nothing is imported for it).
     expect(rows[0].flags).toBeUndefined();
   });
+
+  // Phase 1B — organization category defaults feed the same resolver.
+  it("resolves an unassigned row via the organization category default", () => {
+    const { rows } = parseImportRows(
+      csv(row({ asset_code: "W-1", asset_name: "Widget", category: "Widget Cart" })),
+      new Set(),
+      { "widget cart": "plate_compactor" }
+    );
+    expect(rows[0].errors).toEqual([]);
+    expect(rows[0].warnings).toEqual([]);
+    expect(rows[0].flags?.returnInspectionTemplateKey).toBe("plate_compactor");
+    expect(rows[0].flags?.returnInspectionSource).toBe("category_default");
+  });
+
+  it("lets an explicit CSV key win over the organization category default", () => {
+    const { rows } = parseImportRows(
+      csv(
+        row({
+          asset_code: "W-1",
+          asset_name: "Widget",
+          category: "Widget Cart",
+          return_inspection_template_key: "utility_trailer",
+        })
+      ),
+      new Set(),
+      { "widget cart": "plate_compactor" }
+    );
+    expect(rows[0].flags?.returnInspectionTemplateKey).toBe("utility_trailer");
+    expect(rows[0].flags?.returnInspectionSource).toBe("assigned");
+  });
 });
 
 describe("buildImportTemplateCsv", () => {

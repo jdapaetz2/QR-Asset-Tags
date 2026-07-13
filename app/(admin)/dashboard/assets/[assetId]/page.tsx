@@ -13,6 +13,7 @@ import {
 import { deleteEligibility } from "@/lib/assets/list";
 import { getOrgCategories } from "@/lib/assets/categories";
 import { resolveReturnTemplateKey } from "@/lib/inspections/resolve";
+import { getOrgCategoryDefaultLookup } from "@/lib/inspections/category-defaults-data";
 import { RETURN_TEMPLATE_PICKER } from "@/lib/inspections/templates";
 import { UNRESOLVED_STATUSES } from "@/lib/submissions/inbox";
 import { AssetForm } from "@/components/asset-form";
@@ -60,12 +61,14 @@ export default async function EditAssetPage({
   if (!asset) notFound();
 
   const categories = await getOrgCategories(supabase);
+  const orgCategoryDefaults = await getOrgCategoryDefaultLookup(supabase);
 
-  // Resolve the effective return-inspection template for the summary section (assignment → suggestion
-  // → generic). This is display-only; the authoritative assignment lives on the asset.
+  // Resolve the effective return-inspection template for the summary section (assignment → org category
+  // default → system suggestion → generic). Display-only; the authoritative assignment lives on the asset.
   const returnResolution = resolveReturnTemplateKey({
     assignmentKey: asset.return_inspection_template_key as string | null,
     category: asset.category as string | null,
+    categoryDefaults: orgCategoryDefaults,
   });
   const returnTemplate = RETURN_TEMPLATE_PICKER.find(
     (t) => t.key === returnResolution.key
@@ -251,9 +254,11 @@ export default async function EditAssetPage({
               {returnTemplate?.name}
               {returnResolution.source === "assigned"
                 ? " · assigned"
-                : returnResolution.source === "suggested"
-                  ? " · suggested from category"
-                  : " · generic fallback"}
+                : returnResolution.source === "category_default"
+                  ? " · organization category default"
+                  : returnResolution.source === "suggested"
+                    ? " · suggested from category"
+                    : " · generic fallback"}
             </p>
           </div>
           <Button asChild variant="outline">
@@ -264,7 +269,9 @@ export default async function EditAssetPage({
           <p className="mt-2 text-xs text-warning">
             {returnResolution.source === "generic"
               ? "No specific template matched this category — using the generic inspection. Review recommended."
-              : "Suggested from the asset category. Save the asset to make it the explicit assignment."}
+              : returnResolution.source === "category_default"
+                ? "Using your organization category default. Save the asset to make it the explicit assignment."
+                : "Suggested from the asset category. Save the asset to make it the explicit assignment."}
           </p>
         ) : null}
       </section>
@@ -278,6 +285,7 @@ export default async function EditAssetPage({
         asset={asset}
         assetId={assetId}
         categories={categories}
+        orgCategoryDefaults={orgCategoryDefaults}
         submitLabel="Save changes"
       />
 

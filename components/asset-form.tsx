@@ -12,6 +12,10 @@ import {
   RETURN_TEMPLATE_PICKER,
 } from "@/lib/inspections/templates";
 import { suggestTemplateKeyFromCategory } from "@/lib/inspections/resolve";
+import {
+  categoryDefaultForCategory,
+  type CategoryDefaultLookup,
+} from "@/lib/inspections/category-defaults";
 
 const inputClass =
   "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring";
@@ -70,6 +74,7 @@ export function AssetForm({
   asset,
   assetId,
   categories = [],
+  orgCategoryDefaults = {},
   submitLabel,
 }: {
   action: AssetFormAction;
@@ -78,6 +83,8 @@ export function AssetForm({
   assetId?: string;
   /** Existing org categories offered as datalist suggestions. */
   categories?: string[];
+  /** Organization category → default return template map (drives the live suggestion + source label). */
+  orgCategoryDefaults?: CategoryDefaultLookup;
   submitLabel: string;
 }) {
   const [state, formAction, pending] = useActionState<AssetFormState, FormData>(
@@ -98,16 +105,20 @@ export function AssetForm({
   const [templateTouched, setTemplateTouched] = useState(
     Boolean(asset?.return_inspection_template_key)
   );
-  const suggestion = suggestTemplateKeyFromCategory(category);
+  // Suggestion precedence: organization category default → conservative system alias. An org default
+  // (Phase 1B) wins over the built-in suggestion but never over an explicit selection.
+  const systemSuggestion = suggestTemplateKeyFromCategory(category);
+  const orgDefaultKey = categoryDefaultForCategory(category, orgCategoryDefaults);
+  const preferredSuggestion = orgDefaultKey ?? systemSuggestion;
   const effectiveTemplateKey = templateTouched
     ? templateKey || GENERIC_TEMPLATE_KEY
-    : suggestion ?? GENERIC_TEMPLATE_KEY;
+    : preferredSuggestion ?? GENERIC_TEMPLATE_KEY;
   const templateFor = (key: string) =>
     RETURN_TEMPLATE_PICKER.find((t) => t.key === key);
   const inconsistent =
-    templateTouched && suggestion != null && suggestion !== effectiveTemplateKey;
-  const isGenericFallback =
-    effectiveTemplateKey === GENERIC_TEMPLATE_KEY && suggestion == null;
+    templateTouched &&
+    preferredSuggestion != null &&
+    preferredSuggestion !== effectiveTemplateKey;
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -186,15 +197,17 @@ export function AssetForm({
           </span>
           {inconsistent ? (
             <span className="text-xs text-warning">
-              Category suggests “{templateFor(suggestion!)?.name}”, but this asset is assigned “
-              {templateFor(effectiveTemplateKey)?.name}”.
+              The category suggests “{templateFor(preferredSuggestion!)?.name}”, but this asset is
+              assigned “{templateFor(effectiveTemplateKey)?.name}”.
             </span>
-          ) : !templateTouched && suggestion ? (
-            <span className="text-xs text-muted-foreground">Suggested from category.</span>
-          ) : isGenericFallback ? (
-            <span className="text-xs text-warning">Generic fallback — review recommended.</span>
+          ) : templateTouched ? (
+            <span className="text-xs text-muted-foreground">Explicit assignment.</span>
+          ) : orgDefaultKey ? (
+            <span className="text-xs text-muted-foreground">Organization category default.</span>
+          ) : systemSuggestion ? (
+            <span className="text-xs text-muted-foreground">System suggestion.</span>
           ) : (
-            <span className="text-xs text-muted-foreground">Assigned.</span>
+            <span className="text-xs text-warning">Generic fallback — review recommended.</span>
           )}
         </label>
 

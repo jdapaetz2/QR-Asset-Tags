@@ -4,6 +4,7 @@ import { requireOrgId } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { AssetImport } from "@/components/asset-import";
 import { getOrgCategories } from "@/lib/assets/categories";
+import { getOrgCategoryDefaultLookup } from "@/lib/inspections/category-defaults-data";
 import { TEMPLATE_KEYS, TEMPLATE_VERIFY_NOTE } from "@/lib/onboarding/templates";
 
 export default async function ImportAssetsPage() {
@@ -17,6 +18,8 @@ export default async function ImportAssetsPage() {
     .eq("is_active", true);
   const orgTemplateKeys = (orgTemplates ?? []).map((t) => t.key as string);
   const orgCategories = await getOrgCategories(supabase);
+  // Category → default return template map, so the preview matches server import resolution.
+  const orgCategoryDefaults = await getOrgCategoryDefaultLookup(supabase);
 
   return (
     <div className="flex flex-col gap-6">
@@ -102,6 +105,7 @@ export default async function ImportAssetsPage() {
         <AssetImport
           orgTemplateKeys={orgTemplateKeys}
           orgCategories={orgCategories}
+          orgCategoryDefaults={orgCategoryDefaults}
         />
       </section>
     </div>

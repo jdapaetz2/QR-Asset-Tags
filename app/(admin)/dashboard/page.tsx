@@ -563,6 +563,12 @@ export default async function DashboardPage({
         >
           Page templates
         </Link>
+        <Link
+          href="/dashboard/templates/return-inspections"
+          className="underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Return inspections
+        </Link>
         {org?.customer_exports_enabled ? (
           <Link
             href="/dashboard/export"

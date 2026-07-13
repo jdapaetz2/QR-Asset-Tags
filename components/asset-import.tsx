@@ -10,15 +10,19 @@ import {
   detectNewCategories,
   normalizeCategoryKey,
 } from "@/lib/assets/categories";
+import type { CategoryDefaultLookup } from "@/lib/inspections/category-defaults";
 
 export function AssetImport({
   orgTemplateKeys = [],
   orgCategories = [],
+  orgCategoryDefaults = {},
 }: {
   /** This org's custom template keys, so the preview matches server resolution. */
   orgTemplateKeys?: string[];
   /** This org's existing categories, to warn about new ones in the upload. */
   orgCategories?: string[];
+  /** Category → default return template map, so preview resolution matches server import. */
+  orgCategoryDefaults?: CategoryDefaultLookup;
 }) {
   const [state, formAction, pending] = useActionState<ImportState, FormData>(
     importAssets,
@@ -40,7 +44,7 @@ export function AssetImport({
     }
     const text = await file.text();
     setCsvText(text);
-    setParsed(parseImportRows(text, new Set(orgTemplateKeys)));
+    setParsed(parseImportRows(text, new Set(orgTemplateKeys), orgCategoryDefaults));
     setFileName(file.name);
   }
 
@@ -111,14 +115,18 @@ export function AssetImport({
     (r) => r.flags?.returnInspectionSource === "generic"
   );
   const hasGenericReturn = genericReturnRows.length > 0;
-  const returnStatusLabel = (source?: "assigned" | "suggested" | "generic") =>
+  const returnStatusLabel = (
+    source?: "assigned" | "category_default" | "suggested" | "generic"
+  ) =>
     source === "assigned"
       ? "Assigned"
-      : source === "suggested"
-        ? "Suggested"
-        : source === "generic"
-          ? "Review recommended"
-          : "—";
+      : source === "category_default"
+        ? "Category default"
+        : source === "suggested"
+          ? "Suggested"
+          : source === "generic"
+            ? "Review required"
+            : "—";
 
   return (
     <div className="flex flex-col gap-4">

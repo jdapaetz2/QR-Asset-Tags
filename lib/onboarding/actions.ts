@@ -17,6 +17,7 @@ import {
   resolveImportTemplate,
   type TemplateContent,
 } from "@/lib/onboarding/org-templates";
+import { getOrgCategoryDefaultLookup } from "@/lib/inspections/category-defaults-data";
 
 export type ImportSummary = {
   created: number;
@@ -85,7 +86,9 @@ export async function importAssets(
     });
   }
 
-  const { rows } = parseImportRows(csvText, new Set(orgByKey.keys()));
+  // Organization category defaults feed the same pure resolver the browser preview uses.
+  const categoryDefaults = await getOrgCategoryDefaultLookup(supabase);
+  const { rows } = parseImportRows(csvText, new Set(orgByKey.keys()), categoryDefaults);
   const validRows = rows.filter((r) => r.errors.length === 0 && r.asset && r.flags);
   if (validRows.length === 0) {
     return { error: "No valid rows to import. Fix the highlighted errors first." };

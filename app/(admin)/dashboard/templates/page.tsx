@@ -51,6 +51,22 @@ export default async function TemplatesPage() {
         {TEMPLATE_VERIFY_NOTE}
       </p>
 
+      {/* Return inspections (system templates + category defaults) */}
+      <Link
+        href="/dashboard/templates/return-inspections"
+        className="flex items-center justify-between gap-3 rounded-lg border bg-card p-4 hover:bg-accent hover:text-accent-foreground"
+      >
+        <div>
+          <h2 className="font-medium">Return inspections</h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Preview the built-in return-inspection templates and map your categories to a default.
+          </p>
+        </div>
+        <span aria-hidden className="text-muted-foreground">
+          →
+        </span>
+      </Link>
+
       {/* Org custom templates */}
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">
