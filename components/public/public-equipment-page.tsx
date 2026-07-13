@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { safeBrandColor } from "@/lib/public/brand";
 import { resolveSupportContact } from "@/lib/public/equipment";
 import type { PublicDocument } from "@/lib/public/documents";
@@ -27,6 +29,7 @@ export function PublicEquipmentPage({
   page,
   org,
   documents,
+  isStaffViewer = false,
 }: {
   shortCode: string;
   asset: PublicAsset;
@@ -35,9 +38,23 @@ export function PublicEquipmentPage({
   page: PublicPage;
   org: PublicOrg;
   documents: PublicDocument[];
+  /** True only for an authenticated member of this asset's org — shows the staff-workflow link. */
+  isStaffViewer?: boolean;
 }) {
   return (
     <main className="mx-auto min-h-dvh max-w-md px-4 pb-28 pt-6 sm:pb-6">
+      {isStaffViewer ? (
+        <Link
+          href={`/staff/t/${shortCode}`}
+          className="mb-4 flex items-center justify-between gap-2 rounded-md border border-dashed px-3 py-2 text-sm hover:bg-accent"
+        >
+          <span className="font-medium">Open staff workflow</span>
+          <span aria-hidden className="text-muted-foreground">
+            →
+          </span>
+        </Link>
+      ) : null}
+
       <PublicScannerView
         mode="public"
         shortCode={shortCode}

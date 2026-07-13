@@ -2,6 +2,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { recordScan } from "@/lib/scan/record";
 import { resolvePublicEquipment } from "@/lib/public/resolve";
 import { getPublicDocuments } from "@/lib/public/documents";
+import { getProfile } from "@/lib/auth/session";
 import { PublicEquipmentPage } from "@/components/public/public-equipment-page";
 import { UnavailableNotice } from "@/components/public/unavailable-notice";
 
@@ -29,6 +30,11 @@ export default async function PublicScanPage({
   // Public documents (RLS restricts to public docs of this public asset).
   const documents = await getPublicDocuments(supabase, resolved.assetId);
 
+  // Show the staff workflow link ONLY to an authenticated member of this asset's organization.
+  // getProfile() uses the cookie-scoped client; anon visitors resolve to null (no link, no leak).
+  const profile = await getProfile();
+  const isStaffViewer = !!profile && profile.organization_id === resolved.organizationId;
+
   return (
     <PublicEquipmentPage
       shortCode={shortCode}
@@ -38,6 +44,7 @@ export default async function PublicScanPage({
       page={resolved.page}
       org={resolved.org}
       documents={documents}
+      isStaffViewer={isStaffViewer}
     />
   );
 }

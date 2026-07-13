@@ -12,11 +12,12 @@ import {
   type SubmissionStatus,
 } from "@/lib/submissions/display";
 
-/** Form types the inbox filters on (matches the three public forms). */
+/** Form types the inbox filters on (the three public forms + the staff outbound baseline). */
 export const FILTER_FORM_TYPES = [
   "damage_report",
   "support_request",
   "return_checklist",
+  "pre_use_inspection",
 ] as const;
 export type FilterFormType = (typeof FILTER_FORM_TYPES)[number];
 
@@ -265,6 +266,12 @@ export const QUICK_FILTERS: QuickFilter[] = [
     key: "return",
     label: "Return checklists",
     params: { formType: "return_checklist" },
+  },
+  {
+    // Outbound baselines are staff-created records (status 'resolved'); show all statuses.
+    key: "outbound",
+    label: "Pre-use inspections",
+    params: { formType: "pre_use_inspection", status: "all_active" },
   },
   { key: "media", label: "Has attachments", params: { hasMedia: true } },
   { key: "archived", label: "Archived", params: { status: "archived" } },

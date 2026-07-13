@@ -46,6 +46,42 @@ describe("buildAssetTimeline", () => {
     ]);
   });
 
+  it("emits an outbound baseline (pre_use_inspection) + rental-started as two distinct events", () => {
+    const events = buildAssetTimeline({
+      ...base,
+      assetCreatedAt: null,
+      submissions: [
+        {
+          id: "ob1",
+          form_type: "pre_use_inspection",
+          status: "resolved",
+          created_at: "2026-05-01T00:00:01Z",
+          submitted_by_name: "Sam (staff)",
+          attachmentCount: 3,
+        },
+      ],
+      rentalSessions: [
+        {
+          id: "r1",
+          status: "active",
+          rental_reference: "PO-42",
+          renter_label: "Acme",
+          started_at: "2026-05-01T00:00:00Z",
+          returned_at: null,
+        },
+      ],
+    });
+    const kinds = events.map((e) => e.kind);
+    expect(kinds).toContain("submission");
+    expect(kinds).toContain("rental_started");
+    // Active session with no return → no rental_ended.
+    expect(kinds).not.toContain("rental_ended");
+    const outbound = events.find((e) => e.kind === "submission");
+    expect(outbound?.title).toBe("Pre-use inspection");
+    expect(outbound?.detail).toBe("Sam (staff)");
+    expect(outbound?.attachmentCount).toBe(3);
+  });
+
   it("carries the acknowledgement name, contact, and statement as a record", () => {
     const [ack] = buildAssetTimeline({
       ...base,

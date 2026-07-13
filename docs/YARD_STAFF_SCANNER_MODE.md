@@ -1,8 +1,37 @@
 # Yard Staff Outbound/Return Scanner Mode
 
-> **Status: Deferred — not built in this wave.** This documents a future wave so it can be
-> scoped without re-discovery. No schema, routes, actions, or UI exist for it yet. See
-> [`ROADMAP_DEFERRED.md`](ROADMAP_DEFERRED.md).
+> **Status: Phase 3A BUILT (outbound scan + condition baseline); return-side + comparison still
+> deferred.** Ships behind migration `0027`, unapplied until `npx.cmd supabase db push`.
+
+## Phase 3A — as built (authoritative)
+Authenticated staff (customer_admin / customer_staff) scan the tag and run an **outbound (pre-use)
+inspection** that records baseline condition/accessories/meters/photos and marks the asset **rented**.
+- **Route:** `/staff/t/[shortCode]` (new `(staff)` route group, webfont-free, no AppShell). The public
+  `/t/[shortCode]` shows an "Open staff workflow" link **only** to an authenticated member of the asset's
+  org (`getProfile()` membership check). `lib/staff/guard.ts` resolves the short code via the RLS server
+  client → a cross-org/unknown code is `notFound()`; unauthenticated → `/login?next=/staff/t/…`.
+- **Engine reuse:** an `inspection_type = "outbound"` variant (`lib/inspections/outbound-templates.ts`,
+  keys mirroring the return templates) built on the SAME field builders + validate/snapshot/media pipeline.
+  The public inspection form is parametrized (action/copy/context slot) — no second forms engine.
+- **Atomicity (migration `0027`):** the `start_outbound_rental` RPC (security invoker, org-scoped)
+  creates the active session + sets `assets.active_rental_session_id` + inserts the `pre_use_inspection`
+  baseline in ONE transaction. The `set_return_submission_session` trigger is extended to bind the baseline
+  to the session. Staged flow: validate → upload media → RPC; the session is never created before valid
+  answers + media, and media are cleaned up if the RPC doesn't return `started`. The partial-unique index
+  blocks a second active session.
+- **Mark rented / timeline / public:** marking rented sets the session pointer, which re-arms the public
+  first-rental Quick Start + acknowledgement prompt. The timeline shows `Rental started` + a `Pre-use
+  inspection` event (no duplicates). Admin visibility: the submission renders through the same schema-v2
+  summary (heading "Outbound inspection"), a "Pre-use inspections" inbox chip, and a baseline link on the
+  asset detail + staff summary. Baseline submissions are `status='resolved'` (kept out of the attention
+  queue). Media stay private; the action is auditable via `created_by_profile_id` + `submitted_by_name`.
+- **NOT built (still deferred):** the return-side staff flow (Phase 3B), outbound-vs-return comparison, a
+  dedicated `yard_worker` role, reservations/booking/billing/dispatch/CMMS/GPS/signatures, offline, video.
+
+---
+
+> **Original design (future scope beyond 3A).** This documents the broader wave so it can be
+> scoped without re-discovery. See [`ROADMAP_DEFERRED.md`](ROADMAP_DEFERRED.md).
 
 ## Goal
 

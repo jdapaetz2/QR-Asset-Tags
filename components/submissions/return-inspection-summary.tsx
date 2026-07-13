@@ -51,12 +51,14 @@ export function ReturnInspectionSummary({
 
   const damaged = flags.damage_observed === "yes";
   const missing = flags.accessories_missing === true;
+  const heading =
+    template.inspection_type === "outbound" ? "Outbound inspection" : "Return inspection";
 
   return (
     <section className="flex flex-col gap-4 rounded-lg border bg-card p-4 text-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="font-medium">Return inspection</h2>
+          <h2 className="font-medium">{heading}</h2>
           <p className="text-xs text-muted-foreground">
             {template.name} · v{data.template_version}
           </p>

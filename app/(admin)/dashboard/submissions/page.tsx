@@ -47,6 +47,7 @@ const FORM_TYPE_TONE: Record<string, BadgeTone> = {
   damage_report: "danger",
   support_request: "info",
   return_checklist: "success",
+  pre_use_inspection: "neutral",
 };
 
 type SubmissionRow = {

@@ -78,11 +78,14 @@ export type InspectionSection = {
   fields: InspectionField[];
 };
 
+/** Inspection variants. "return" = renter drop-off checklist; "outbound" = staff pre-use baseline. */
+export type InspectionType = "return" | "outbound";
+
 export type InspectionTemplate = {
   key: string;
   /** Immutable version stamp frozen into each submission snapshot. */
   version: string;
-  inspection_type: "return";
+  inspection_type: InspectionType;
   name: string;
   description: string;
   /** Human equipment types this preset suits (display/help only). */

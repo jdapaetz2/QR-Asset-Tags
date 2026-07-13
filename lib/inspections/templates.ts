@@ -11,6 +11,18 @@ import type {
   InspectionSection,
   InspectionTemplate,
 } from "@/lib/inspections/types";
+import {
+  accessories,
+  accessoriesReturned,
+  fuel,
+  longText,
+  meter,
+  passFail,
+  photoSlot,
+  select,
+  shortText,
+  yesNo,
+} from "@/lib/inspections/field-builders";
 
 /** Shared version stamp for this initial release. Bump per-template when a template changes. */
 const V = "2026-07-1";
@@ -20,76 +32,6 @@ const SEVERITY_OPTIONS = [
   { value: "moderate", label: "Moderate" },
   { value: "severe", label: "Severe" },
 ];
-
-// ---------------------------------------------------------------------------
-// Field builders (keep the templates below terse + consistent).
-// ---------------------------------------------------------------------------
-function photoSlot(
-  id: string,
-  label: string,
-  opts: { required?: boolean; min?: number; max?: number; help?: string } = {}
-): InspectionField {
-  const required = opts.required ?? true;
-  return {
-    id,
-    type: "photo_slot",
-    label,
-    help: opts.help,
-    required,
-    photo: { minPhotos: opts.min ?? (required ? 1 : 0), maxPhotos: opts.max ?? 6 },
-  };
-}
-function passFail(id: string, label: string): InspectionField {
-  return { id, type: "pass_fail_na", label, required: true };
-}
-function yesNo(
-  id: string,
-  label: string,
-  opts: { required?: boolean; flag?: "damage_observed" | "accessories" } = {}
-): InspectionField {
-  return { id, type: "yes_no", label, required: opts.required ?? true, flag: opts.flag };
-}
-function meter(
-  id: string,
-  label: string,
-  opts: { unit?: string; required?: boolean; min?: number; max?: number } = {}
-): InspectionField {
-  return {
-    id,
-    type: "numeric_meter",
-    label,
-    required: opts.required ?? false,
-    unit: opts.unit ?? "hours",
-    min: opts.min ?? 0,
-    max: opts.max,
-  };
-}
-function fuel(id = "fuel_or_charge_level", label = "Fuel / charge level"): InspectionField {
-  return { id, type: "fuel_charge_level", label, required: false };
-}
-function shortText(id: string, label: string, required = false): InspectionField {
-  return { id, type: "short_text", label, required };
-}
-function longText(id: string, label: string, required = false): InspectionField {
-  return { id, type: "long_text", label, required };
-}
-function select(
-  id: string,
-  label: string,
-  options: { value: string; label: string }[],
-  required = true
-): InspectionField {
-  return { id, type: "select", label, options, required };
-}
-function accessories(
-  id: string,
-  items: { id: string; label: string }[]
-): InspectionField {
-  return { id, type: "accessory_checklist", label: "Accessories", items, flag: "accessories" };
-}
-function accessoriesReturned(): InspectionField {
-  return yesNo("accessories_returned", "Accessories returned?", { flag: "accessories" });
-}
 
 const DAMAGE_OBSERVED = yesNo("damage_observed", "Damage observed?", {
   flag: "damage_observed",

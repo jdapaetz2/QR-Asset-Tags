@@ -118,6 +118,20 @@ export default async function EditAssetPage({
     .eq("asset_id", assetId)
     .in("status", UNRESOLVED_STATUSES as readonly string[]);
 
+  // Baseline (outbound) inspection for the active rental session, if any (Phase 3A).
+  let baselineSubmissionId: string | null = null;
+  if (rentalSession?.id) {
+    const { data: baseline } = await supabase
+      .from("form_submissions")
+      .select("id")
+      .eq("rental_session_id", rentalSession.id)
+      .eq("form_type", "pre_use_inspection")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ id: string }>();
+    baselineSubmissionId = baseline?.id ?? null;
+  }
+
   const links = (qrData ?? []) as QrLinkRow[];
   const isPublic = asset.public_status === "public";
   const isArchived = Boolean(asset.archived_at);
@@ -232,6 +246,15 @@ export default async function EditAssetPage({
         session={rentalSession ?? null}
         unresolvedCount={unresolvedCount ?? 0}
       />
+
+      {baselineSubmissionId ? (
+        <Link
+          href={`/dashboard/submissions/${baselineSubmissionId}`}
+          className="-mt-2 text-sm text-muted-foreground underline-offset-4 hover:underline"
+        >
+          View outbound baseline inspection →
+        </Link>
+      ) : null}
 
       {/* Equipment page */}
       <section className="flex items-center justify-between rounded-lg border bg-card p-4">

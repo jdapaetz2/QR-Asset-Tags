@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -65,12 +65,29 @@ function displayValue(field: InspectionField, value: string | Record<string, str
 export function ReturnInspectionForm({
   template,
   shortCode,
+  action,
+  disclaimer = "Return information submitted for rental-company review. This is not a certified inspection or a statement that no damage exists.",
+  reviewCta = "Review return inspection",
+  submitCta = "Submit return inspection",
+  submittingCta = "Submitting…",
+  contextTitle = "Contact (optional)",
+  contextFields,
 }: {
   template: InspectionTemplate;
   shortCode: string;
+  /** The bound submit action. Defaults to the public return-inspection action. */
+  action?: (state: PublicFormState, formData: FormData) => Promise<PublicFormState>;
+  disclaimer?: string;
+  reviewCta?: string;
+  submitCta?: string;
+  submittingCta?: string;
+  /** Review-step context section title (e.g. "Contact (optional)" or "Rental details (optional)"). */
+  contextTitle?: string;
+  /** Review-step context inputs. When provided, replaces the default public contact fields. */
+  contextFields?: ReactNode;
 }) {
   const [state, formAction, pending] = useActionState<PublicFormState, FormData>(
-    submitReturnInspection.bind(null, shortCode),
+    action ?? submitReturnInspection.bind(null, shortCode),
     {}
   );
   const [values, setValues] = useState<Values>({});
@@ -120,8 +137,7 @@ export function ReturnInspectionForm({
   return (
     <form action={formAction} className="flex flex-col gap-5 pb-8">
       <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-        Return information submitted for rental-company review. This is not a certified inspection or a
-        statement that no damage exists.
+        {disclaimer}
       </p>
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -175,22 +191,26 @@ export function ReturnInspectionForm({
       <div hidden={!onReview} className="flex flex-col gap-4">
         <ReviewSummary template={template} values={values} fileCounts={fileCounts} />
         <div className="flex flex-col gap-3 rounded-lg border bg-card p-4">
-          <p className="text-sm font-medium">Contact (optional)</p>
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Your name</span>
-            <input className={fieldClass} name="name" autoComplete="name" />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Email</span>
-            <input className={fieldClass} type="email" name="email" autoComplete="email" />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Phone</span>
-            <input className={fieldClass} type="tel" name="phone" autoComplete="tel" />
-          </label>
-          <p className="text-xs text-muted-foreground">
-            Optional — add it if you&apos;d like a follow-up.
-          </p>
+          <p className="text-sm font-medium">{contextTitle}</p>
+          {contextFields ?? (
+            <>
+              <label className="flex flex-col gap-1 text-sm">
+                <span>Your name</span>
+                <input className={fieldClass} name="name" autoComplete="name" />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                <span>Email</span>
+                <input className={fieldClass} type="email" name="email" autoComplete="email" />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                <span>Phone</span>
+                <input className={fieldClass} type="tel" name="phone" autoComplete="tel" />
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Optional — add it if you&apos;d like a follow-up.
+              </p>
+            </>
+          )}
         </div>
       </div>
 
@@ -219,12 +239,12 @@ export function ReturnInspectionForm({
             Back
           </button>
           <Button type="submit" disabled={pending} className="h-11 flex-1">
-            {pending ? "Submitting…" : "Submit return inspection"}
+            {pending ? submittingCta : submitCta}
           </Button>
         </div>
       ) : (
         <Button type="button" onClick={goReview} className="h-11 w-full">
-          Review return inspection
+          {reviewCta}
         </Button>
       )}
     </form>

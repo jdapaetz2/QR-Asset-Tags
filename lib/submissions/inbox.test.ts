@@ -83,6 +83,12 @@ describe("parseSubmissionFilters", () => {
     });
   });
 
+  it("accepts the outbound (pre_use_inspection) form type", () => {
+    expect(parseSubmissionFilters({ form_type: "pre_use_inspection" }).formType).toBe(
+      "pre_use_inspection"
+    );
+  });
+
   it("drops unknown form types and statuses to empty (no URL injection)", () => {
     expect(
       parseSubmissionFilters({ form_type: "evil_form", status: "deleted" })

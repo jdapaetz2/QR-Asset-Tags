@@ -10,6 +10,7 @@ import {
   validateSupportRequest,
 } from "@/lib/forms/validate";
 import { submitReturnInspectionCore } from "@/lib/inspections/submit";
+import { submitOutboundInspectionCore } from "@/lib/inspections/outbound-submit";
 
 /** Public damage-report intake. */
 export async function submitDamageReport(
@@ -70,4 +71,16 @@ export async function submitReturnInspection(
   formData: FormData
 ): Promise<PublicFormState> {
   return submitReturnInspectionCore(shortCode, formData);
+}
+
+/**
+ * Authenticated STAFF outbound (pre-use) inspection intake (Phase 3A). Records the baseline condition and
+ * marks the asset rented atomically. Guarded to the caller's own organization by the staff guard.
+ */
+export async function submitOutboundInspection(
+  shortCode: string,
+  _prev: PublicFormState,
+  formData: FormData
+): Promise<PublicFormState> {
+  return submitOutboundInspectionCore(shortCode, formData);
 }
