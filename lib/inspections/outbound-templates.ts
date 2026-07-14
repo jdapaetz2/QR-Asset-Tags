@@ -18,20 +18,38 @@ import {
   longText,
   meter,
   passFail,
-  photoSlot,
+  photoSlot as basePhotoSlot,
   yesNo,
 } from "@/lib/inspections/field-builders";
+import { DAMAGE_PHOTOS_SLOT_ID } from "@/lib/inspections/templates";
 import { suggestTemplateKeyFromCategory } from "@/lib/inspections/resolve";
 
-// 2026-07-5 (Phase 3C.5): accessories now record issued/not_issued (outbound vocabulary) instead of the
-// return-oriented returned/missing. Legacy 2026-07-1 snapshots still render via accessory normalization.
-const V = "2026-07-5";
+// Outbound photos are strongly expected but NON-BLOCKING (Phase 3C.6). Force every outbound photo slot soft
+// (required:false, min:0) so no slot is a hard prerequisite; slots still vary max/help. This shadows the shared
+// builder for THIS file only — the return templates keep their own definitions.
+const photoSlot: typeof basePhotoSlot = (id, label, opts = {}) =>
+  basePhotoSlot(id, label, { ...opts, required: false, min: 0 });
+
+// 2026-08-1 (Phase 3C.6): photo slots are now soft (non-blocking) and a conditional existing-damage photo slot
+// was added. 2026-07-5 (3C.5): accessories record issued/not_issued. Legacy snapshots render via compat.
+const V = "2026-08-1";
 
 /** Shared "existing damage" flag (drives the canonical damage_observed flag on the baseline). */
 const EXISTING_DAMAGE = yesNo("existing_damage", "Any existing damage?", {
   flag: "damage_observed",
 });
 const EXISTING_CONDITION = longText("condition_notes", "Existing condition notes");
+
+// Conditional existing-damage photos (Phase 3C.6): shown only when existing damage is reported. Soft — strongly
+// expected but non-blocking; omission is confirmed + recorded like the return damage photos. Uses the shared
+// DAMAGE_PHOTOS_SLOT_ID so the soft-evidence resolver reads its count. `condition_notes` above documents the
+// damage description (the lightweight outbound baseline keeps a free-text note, not separate location/severity).
+const EXISTING_DAMAGE_PHOTOS_SECTION: InspectionSection = {
+  id: "damage_details",
+  title: "Existing damage",
+  visible_when: { field: "existing_damage", equals: "yes" },
+  fields: [photoSlot(DAMAGE_PHOTOS_SLOT_ID, "Existing damage photos")],
+};
 
 const ADDITIONAL_PHOTOS_SECTION: InspectionSection = {
   id: "additional_photos",
@@ -80,6 +98,7 @@ function buildOutboundTemplate(
         title: "Condition",
         fields: [...sections.condition, EXISTING_CONDITION, EXISTING_DAMAGE],
       },
+      EXISTING_DAMAGE_PHOTOS_SECTION,
       { id: "accessories", title: "Accessories issued", fields: [sections.accessories] },
       ADDITIONAL_PHOTOS_SECTION,
       STAFF_CONFIRMATION_SECTION,

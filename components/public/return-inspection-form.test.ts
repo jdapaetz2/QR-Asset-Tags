@@ -19,9 +19,9 @@ describe("return-inspection-form photo guidance copy", () => {
 
   it("sources photo guidance from the shared copy module", () => {
     expect(src).toContain('from "@/lib/inspections/photo-copy"');
-    expect(src).toContain("photoSlotHelp(field.id)");
-    expect(src).toContain("REVIEW_NO_PHOTOS");
-    expect(src).toContain("REVIEW_DAMAGE_NO_PHOTO");
+    expect(src).toContain("photoSlotHelp(field.id, isOutbound)");
+    expect(src).toContain("reviewNoPhotos(isOutbound)");
+    expect(src).toContain("reviewDamageNoPhoto(isOutbound)");
   });
 });
 
@@ -56,6 +56,18 @@ describe("return-inspection-form outbound terminology (Phase 3C.5)", () => {
   it("uses a workflow-specific review step label", () => {
     expect(src).toContain('"Review & start rental"');
     expect(src).toContain('"Review & submit"');
+  });
+
+  it("detects damage via the flagged field (works for outbound existing_damage) (Phase 3C.6)", () => {
+    expect(src).toContain('find((f) => f.flag === "damage_observed")');
+    expect(src).not.toContain('values["damage_observed"] === "yes"');
+  });
+
+  it("selects outbound vs return photo copy for help + warnings + dialog", () => {
+    expect(src).toContain("photoSlotHelp(field.id, isOutbound)");
+    expect(src).toContain("reviewNoPhotos(isOutbound)");
+    expect(src).toContain("reviewDamageNoPhoto(isOutbound)");
+    expect(src).toContain("omissionDialogTitle(");
   });
 });
 

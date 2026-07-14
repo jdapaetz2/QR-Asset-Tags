@@ -242,6 +242,42 @@ DB/RLS/storage/auth/session change; media limits unchanged.
   tiles open the signed image in a new tab; Download + private signed URLs preserved. `PrintEvidenceButton` opens every
   disclosure before `window.print()` (restored after) + an `@media print` block so the printed record is complete + compact.
 
+### Phase 3C.6 — session continuity + inspection evidence completeness (migration 0030, ships UNAPPLIED)
+- **Photos with each inspection.** The evidence page renders each inspection's own deduped photo grid inside its
+  disclosure (`PhotoTileGrid` + `tilesForSource`) AND keeps the aggregate "Photos by source" (`galleryBySource`) — both
+  reuse the page's single `signedByPath`, so no path is signed twice. The disclosure summary shows the inspection's photo
+  count. The aggregate section is `data-evidence-aggregate` and hidden in print (per-inspection photos still print) to
+  avoid duplicate pages.
+- **Outbound photos are soft.** Every outbound `photoSlot` is now `required:false, min:0` (aliased soft builder in
+  `outbound-templates.ts`); `outbound-submit.ts` drops the `count < min` gate and adopts the return soft-evidence model
+  (`resolvePhotoEvidence` + `readOmissionAck`) storing `flags.condition_photos_missing`/`damage_photos_missing` +
+  `photo_omission_acknowledged`. A conditional existing-damage photo slot (`damage_photos`, visible when
+  `existing_damage=yes`) enables the damage-photo omission dialog; the form detects damage via the `damage_observed` FLAG
+  (not a hardcoded field id) so it works for outbound `existing_damage`. Outbound-specific photo copy + omission dialog
+  ("Start rental without baseline/damage photos?"). **Outbound template version 2026-07-5 → 2026-08-1** (historical
+  snapshots unchanged).
+- **Staff-aware acknowledgement.** The `/t/[shortCode]` route already computes `isStaffViewer` via the optional
+  `getProfile()`; it's now threaded to `AckPrompt` as `viewerIsAuthorizedStaff` → authorized same-org staff see NO renter
+  prompt (no modal, no record, no key). Dismissal is now **non-persistent**: `dismissForNow` closes the prompt for the
+  current mount only (no localStorage), so it reappears on the next scan/load; only `completeAndHide` (real acknowledgement)
+  writes `ackPrompt:<asset>:<session>`. The "I'm staff — dismiss…" control is replaced by "Dismiss for now" + helper copy.
+  Quick Start (independent key) unchanged.
+- **Mark rented captures rental details.** A new shared `RentalDetailsFields` (renter_label / rental_reference) is used by
+  the outbound page, the asset-detail start form, and a reworked `MarkRentedButton` — now an accessible `<dialog>` (fixing
+  the `w-56` popover overflow: warning text/link/actions wrap with `min-w-0`/`break-words`/`flex-wrap`). `startRentalSession`
+  now `revalidatePath`s the Assets list + detail + dashboard layout.
+- **Outbound may attach to an active session (migration 0030).** A new partial unique index
+  `form_submissions_one_outbound_per_session_idx` prevents a second `pre_use_inspection` per session; `start_outbound_rental`
+  is rewritten to **create** a session when none exists (`session_created`) or **attach** the baseline to the existing
+  active session (`attached_to_existing_session`) — filling only-blank rental details via `coalesce` (never overwriting
+  non-empty), never touching `started_at`/status/pointer; a session that already has a baseline returns
+  `baseline_already_exists`. `outbound-submit.ts` drops the active-session pre-guard and maps the codes (`?started=` vs
+  `?attached=`). The outbound page branches on `outboundSessionMode`: create → form; attach → `OutboundSessionGate`
+  (elapsed time + existing details + "Continue with this rental session / Cancel") then the form (details prefilled);
+  blocked → "already recorded" card with View-inspection / View-evidence links. Timeline is unchanged (rental-started
+  derives from session rows, so an attached baseline adds only a submission event — no duplicate rental-start). **Ships
+  unapplied — operator runs `npx.cmd supabase db push`.**
+
 ---
 
 > **Original design (future scope beyond 3A).** This documents the broader wave so it can be

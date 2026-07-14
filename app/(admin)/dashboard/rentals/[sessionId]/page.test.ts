@@ -27,10 +27,19 @@ describe("session-evidence page — collapsed disclosures", () => {
     }
   });
 
-  it("renders photos once via the deduped gallery, hiding per-source summary photos", () => {
+  it("shows photos with each inspection AND keeps the aggregate gallery (Phase 3C.6)", () => {
+    // Per-inspection deduped grid...
+    expect(src).toContain("PhotoTileGrid");
+    expect(src).toContain("tilesForSource(photoGroups, source)");
+    // ...plus the aggregate gallery, hidden in print to avoid duplicate pages.
     expect(src).toContain("EvidencePhotoGallery");
-    expect(src).toContain("galleryBySource(photoGroups)");
-    expect(src).toContain("hidePhotos");
+    expect(src).toContain("data-evidence-aggregate");
+  });
+
+  it("surfaces each inspection's photo count in its disclosure summary", () => {
+    expect(src).toContain("withPhotos");
+    expect(src).toContain("outboundPhotoCount");
+    expect(src).toContain("staffPhotoCount");
   });
 
   it("uses the print button that expands collapsed sections", () => {

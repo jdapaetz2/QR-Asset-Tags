@@ -1,10 +1,23 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth/session";
 import { isCloseStatus, normalizeRentalStart } from "@/lib/rentals/rentals";
+
+/**
+ * Refresh every surface whose rental state just changed (Phase 3C.6): the Assets list + this asset's detail,
+ * and the shared dashboard layout (nav) — so a started/closed session shows without a manual reload. Redirect
+ * still lands on a fresh server render; this additionally busts the list/nav which the redirect target doesn't
+ * cover. No polling, no loop.
+ */
+function revalidateRentalSurfaces(assetId: string): void {
+  revalidatePath("/dashboard/assets");
+  revalidatePath(`/dashboard/assets/${assetId}`);
+  revalidatePath("/dashboard", "layout");
+}
 
 export type RentalActionState = { error?: string };
 
@@ -72,6 +85,7 @@ export async function startRentalSession(
     .update({ active_rental_session_id: session.id })
     .eq("id", assetId);
 
+  revalidateRentalSurfaces(assetId);
   redirect(safeRedirect(redirectTo, assetId));
 }
 
@@ -111,5 +125,6 @@ export async function closeRentalSession(
     .update({ active_rental_session_id: null })
     .eq("id", assetId);
 
+  revalidateRentalSurfaces(assetId);
   redirect(safeRedirect(redirectTo, assetId));
 }

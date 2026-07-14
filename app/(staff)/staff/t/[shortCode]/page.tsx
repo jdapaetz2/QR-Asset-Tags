@@ -16,6 +16,7 @@ export default async function StaffAssetPage({
   const { shortCode } = await params;
   const sp = await searchParams;
   const started = typeof sp.started === "string" ? sp.started : null;
+  const attached = typeof sp.attached === "string" ? sp.attached : null;
 
   const { asset } = await requireStaffAssetByShortCode(shortCode);
   const rented = Boolean(asset.active_rental_session_id);
@@ -57,6 +58,11 @@ export default async function StaffAssetPage({
         <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-muted-foreground">
           Outbound inspection completed — asset is now rented, rental session started. Reference{" "}
           <span className="font-mono">{started}</span>.
+        </p>
+      ) : attached ? (
+        <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-muted-foreground">
+          Outbound inspection added to active rental — existing rental session preserved, asset remains rented.
+          Reference <span className="font-mono">{attached}</span>.
         </p>
       ) : null}
 

@@ -79,6 +79,7 @@ export function PublicEquipmentPage({
         assetId={assetId}
         sessionId={activeRentalSessionId}
         brand={safeBrandColor(org?.primary_color)}
+        viewerIsAuthorizedStaff={isStaffViewer}
       />
     </main>
   );

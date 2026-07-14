@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { galleryBySource, galleryPhotoCount } from "./photo-gallery";
+import { galleryBySource, galleryPhotoCount, tilesForSource } from "./photo-gallery";
 import type { PhotoSlotGroup } from "./session-comparison";
 
 const groups: PhotoSlotGroup[] = [
@@ -38,5 +38,29 @@ describe("galleryBySource", () => {
   it("omits sources with no photos and returns [] for no groups", () => {
     expect(galleryBySource([])).toEqual([]);
     expect(galleryPhotoCount([])).toBe(0);
+  });
+});
+
+describe("tilesForSource — per-inspection deduped tiles (Phase 3C.6)", () => {
+  it("returns only the given source's tiles, deduped, with merged labels", () => {
+    const outbound = tilesForSource(groups, "outbound");
+    expect(outbound.map((t) => t.path)).toEqual(["a.jpg", "b.jpg"]);
+    expect(outbound.find((t) => t.path === "a.jpg")!.labels).toEqual(["Front / hitch", "Deck"]);
+  });
+
+  it("dedupes a path repeated within one slot", () => {
+    expect(tilesForSource(groups, "staff")).toEqual([{ path: "c.jpg", labels: ["Damage photos"] }]);
+  });
+
+  it("returns [] for a source with no photos", () => {
+    expect(tilesForSource([], "renter")).toEqual([]);
+  });
+
+  it("reuses the same paths the aggregate gallery shows (same signed URLs upstream)", () => {
+    const perSourcePaths = (["outbound", "renter", "staff"] as const).flatMap((s) =>
+      tilesForSource(groups, s).map((t) => t.path)
+    );
+    const aggregatePaths = galleryBySource(groups).flatMap((g) => g.tiles.map((t) => t.path));
+    expect([...perSourcePaths].sort()).toEqual([...aggregatePaths].sort());
   });
 });

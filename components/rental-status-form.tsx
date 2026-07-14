@@ -7,14 +7,12 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { ActionButton } from "@/components/action-button";
 import { RelativeTime } from "@/components/relative-time";
+import { RentalDetailsFields } from "@/components/rental-details-fields";
 import {
   startRentalSession,
   closeRentalSession,
   type RentalActionState,
 } from "@/lib/rentals/actions";
-
-const inputClass =
-  "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring";
 
 export type ActiveRentalSession = {
   id: string;
@@ -104,14 +102,8 @@ export function RentalStatusForm({
           </p>
         ) : null}
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Rental reference (optional)</span>
-            <input name="rental_reference" className={inputClass} placeholder="e.g. RA-1042" />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Renter label (optional)</span>
-            <input name="renter_label" className={inputClass} placeholder="e.g. Acme Crew B" />
-          </label>
+          {/* Shared rental-details definition (Phase 3C.6) — identical names/semantics to outbound + mark rented. */}
+          <RentalDetailsFields idPrefix={`start-${assetId}`} />
         </div>
 
         {warn && confirming ? (

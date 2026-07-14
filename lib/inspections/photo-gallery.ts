@@ -44,3 +44,21 @@ export function galleryBySource(groups: PhotoSlotGroup[]): GallerySource[] {
 export function galleryPhotoCount(sources: GallerySource[]): number {
   return sources.reduce((n, s) => n + s.tiles.length, 0);
 }
+
+/**
+ * Deduped tiles for a SINGLE source (Phase 3C.6) — used to render each inspection's own photo grid inside its
+ * evidence disclosure, reusing the same signed URLs as the aggregate gallery (no extra signing/query). Merges
+ * every slot label for a repeated path so one image shows once with all its captions.
+ */
+export function tilesForSource(groups: PhotoSlotGroup[], source: PhotoSource): GalleryTile[] {
+  const pathLabels = new Map<string, string[]>();
+  for (const group of groups) {
+    if (group.source !== source) continue;
+    for (const path of group.paths) {
+      const labels = pathLabels.get(path) ?? [];
+      if (!labels.includes(group.label)) labels.push(group.label);
+      pathLabels.set(path, labels);
+    }
+  }
+  return [...pathLabels.entries()].map(([path, labels]) => ({ path, labels }));
+}

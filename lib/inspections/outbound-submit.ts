@@ -11,14 +11,21 @@ import {
 import { submissionReference } from "@/lib/submissions/inbox";
 import { normalizeRentalStart } from "@/lib/rentals/rentals";
 import { resolveOutboundTemplate } from "@/lib/inspections/outbound-templates";
+import { DAMAGE_PHOTOS_SLOT_ID } from "@/lib/inspections/templates";
 import {
   buildAnswers,
   deriveFlags,
   evaluateInspection,
   parseAnswerValues,
+  readOmissionAck,
+  resolvePhotoEvidence,
   visiblePhotoSlots,
 } from "@/lib/inspections/validate";
 import { buildReturnSubmissionData } from "@/lib/inspections/snapshot";
+import {
+  outboundResultError,
+  outboundSuccessFlag,
+} from "@/lib/inspections/outbound-session";
 import type { PhotoAnswer } from "@/lib/inspections/types";
 import type { PublicFormState } from "@/lib/forms/submit";
 
@@ -54,12 +61,11 @@ export async function submitOutboundInspectionCore(
   shortCode: string,
   formData: FormData
 ): Promise<PublicFormState> {
-  // Auth + own-org asset (cross-org/unknown short code → notFound via the guard).
-  const { profile, organizationId, asset } = await requireStaffAssetByShortCode(shortCode);
+  // Auth + own-org asset (cross-org/unknown short code → notFound via the guard). An active rental session is
+  // NO LONGER a hard block (Phase 3C.6): the RPC either creates a session or attaches this baseline to the
+  // existing one; it returns baseline_already_exists if that session already has a baseline.
 
-  if (asset.active_rental_session_id) {
-    return { error: "This asset already has an active rental session." };
-  }
+  const { profile, organizationId, asset } = await requireStaffAssetByShortCode(shortCode);
 
   // Outbound template resolved server-side from the asset's system key + category (never client input).
   const template = resolveOutboundTemplate({
@@ -93,13 +99,11 @@ export async function submitOutboundInspectionCore(
   );
   if (mediaError) return { error: mediaError };
 
+  // Per-slot MAXIMUM only (Phase 3C.6): outbound photos are strongly expected but non-blocking, matching the
+  // return soft-evidence model — no `count < min` hard prerequisite. Omission is confirmed + recorded below.
   for (const slot of slots) {
     const count = filesBySlot.get(slot.id)?.length ?? 0;
-    const min = slot.photo?.minPhotos ?? 0;
     const max = slot.photo?.maxPhotos ?? 6;
-    if (count < min) {
-      return { error: `Add at least ${min} photo${min === 1 ? "" : "s"} for "${slot.label}".` };
-    }
     if (count > max) return { error: `"${slot.label}" allows at most ${max} photos.` };
   }
 
@@ -129,18 +133,42 @@ export async function submitOutboundInspectionCore(
   }
 
   const flags = deriveFlags(template, values);
-  const data = buildReturnSubmissionData({
-    template,
-    answers: buildAnswers(values, photos),
-    flags,
+  // Soft photo evidence (Phase 3C.6): server-authoritative counts + explicit omission ack (existing-damage
+  // photo priority). Photos are never a hard prerequisite; omission is recorded on the baseline.
+  const totalPhotoCount = Object.values(photos).reduce((n, list) => n + list.length, 0);
+  const evidence = resolvePhotoEvidence({
+    damage: flags.damage_observed === "yes",
+    damagePhotoCount: photos[DAMAGE_PHOTOS_SLOT_ID]?.length ?? 0,
+    totalPhotoCount,
+    hasPhotoSlots: slots.length > 0,
+    acknowledged: readOmissionAck(formData),
   });
+  if (evidence.error) {
+    await cleanupMedia(supabase, mediaPaths); // omission not acknowledged → nothing committed, drop uploads
+    return { error: evidence.error };
+  }
+  flags.damage_photos_missing = evidence.damagePhotosMissing;
+  flags.condition_photos_missing = evidence.conditionPhotosMissing;
+
+  const missingSlots = slots
+    .filter((slot) => (photos[slot.id]?.length ?? 0) === 0)
+    .map((slot) => slot.id);
+
+  const data = {
+    ...buildReturnSubmissionData({ template, answers: buildAnswers(values, photos), flags }),
+    ...(missingSlots.length > 0 ? { missing_recommended_photo_slots: missingSlots } : {}),
+    ...(evidence.damagePhotosMissing || evidence.conditionPhotosMissing
+      ? { photo_omission_acknowledged: true }
+      : {}),
+  };
 
   const { rental_reference, renter_label } = normalizeRentalStart({
     rental_reference: readStr(formData, "rental_reference"),
     renter_label: readStr(formData, "renter_label"),
   });
 
-  // Atomic: create the active session, mark the asset rented, and store the baseline (all-or-nothing).
+  // Atomic: create a session (+ mark rented) OR attach this baseline to the existing active session — the RPC
+  // decides based on the asset's server-side state (never a client-provided session id).
   const { data: code, error: rpcError } = await supabase.rpc("start_outbound_rental", {
     p_asset_id: asset.id,
     p_submission_id: submissionId,
@@ -154,15 +182,12 @@ export async function submitOutboundInspectionCore(
     p_template_version: template.version,
   });
 
-  if (rpcError || code !== "started") {
+  const flag = rpcError ? null : outboundSuccessFlag(String(code ?? ""));
+  if (rpcError || !flag) {
     await cleanupMedia(supabase, mediaPaths); // nothing was committed → don't orphan media
-    if (code === "already_active") {
-      return { error: "This asset already has an active rental session." };
-    }
-    if (code === "not_found") return { error: "Asset not found." };
-    return { error: "Could not start the outbound rental. Please try again." };
+    return { error: outboundResultError(String(code ?? "")) };
   }
 
   const reference = submissionReference(submissionId, createdAt);
-  redirect(`/staff/t/${shortCode}?started=${reference}`);
+  redirect(`/staff/t/${shortCode}?${flag}=${reference}`);
 }

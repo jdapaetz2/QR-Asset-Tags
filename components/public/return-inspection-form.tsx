@@ -18,8 +18,9 @@ import { sectionStage } from "@/lib/inspections/stages";
 import { DAMAGE_PHOTOS_SLOT_ID } from "@/lib/inspections/templates";
 import {
   photoSlotHelp,
-  REVIEW_DAMAGE_NO_PHOTO,
-  REVIEW_NO_PHOTOS,
+  reviewDamageNoPhoto,
+  reviewNoPhotos,
+  omissionDialogTitle,
 } from "@/lib/inspections/photo-copy";
 import type {
   InspectionField,
@@ -168,7 +169,13 @@ export function ReturnInspectionForm({
   const sectionsFor = (stageKey: InspectionStage) =>
     activeSections.filter((s) => sectionStage(s) === stageKey);
 
-  const damageShown = values["damage_observed"] === "yes";
+  // Damage is detected via the field carrying the canonical damage_observed FLAG, not a hardcoded field id —
+  // return templates use `damage_observed`, outbound uses `existing_damage` (Phase 3C.6).
+  const damageFieldId = useMemo(
+    () => template.sections.flatMap((s) => s.fields).find((f) => f.flag === "damage_observed")?.id,
+    [template.sections]
+  );
+  const damageShown = damageFieldId ? values[damageFieldId] === "yes" : false;
 
   // Photo counts over the currently-VISIBLE slots (Phase 3C.1.1) — drives the consolidated omission dialog
   // and the Review warnings. Hidden/stale slots (e.g. damage photos when damage=no) are excluded.
@@ -340,6 +347,7 @@ export function ReturnInspectionForm({
               error={error}
               baseline={baseline}
               accessoryOptions={accessoryOptions}
+              isOutbound={isOutbound}
               onText={setVal}
               onItem={setItem}
               onFiles={(id, n) => setFileCounts((p) => ({ ...p, [id]: n }))}
@@ -359,11 +367,11 @@ export function ReturnInspectionForm({
         {/* One consolidated evidence note (priority: damage → no photos → some recommended missing). */}
         {damageWithoutPhoto ? (
           <div role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
-            <p className="text-muted-foreground">{REVIEW_DAMAGE_NO_PHOTO}</p>
+            <p className="text-muted-foreground">{reviewDamageNoPhoto(isOutbound)}</p>
           </div>
         ) : noPhotosAtAll ? (
           <div role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
-            <p className="text-muted-foreground">{REVIEW_NO_PHOTOS}</p>
+            <p className="text-muted-foreground">{reviewNoPhotos(isOutbound)}</p>
           </div>
         ) : someRecommendedMissing ? (
           <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
@@ -451,12 +459,10 @@ export function ReturnInspectionForm({
         className="m-auto w-[min(92vw,26rem)] rounded-lg border bg-card p-5 text-foreground backdrop:bg-black/40"
       >
         <h2 id="omission-title" className="text-lg font-semibold">
-          {omissionKind === "damage"
-            ? "Submit damage report without photos?"
-            : "Submit without condition photos?"}
+          {omissionDialogTitle(omissionKind === "damage" ? "damage" : "none", isOutbound)}
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          {omissionKind === "damage" ? REVIEW_DAMAGE_NO_PHOTO : REVIEW_NO_PHOTOS}
+          {omissionKind === "damage" ? reviewDamageNoPhoto(isOutbound) : reviewNoPhotos(isOutbound)}
         </p>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row-reverse">
           <Button
@@ -497,6 +503,7 @@ function SectionFieldset({
   error,
   baseline,
   accessoryOptions,
+  isOutbound,
   onText,
   onItem,
   onFiles,
@@ -506,6 +513,7 @@ function SectionFieldset({
   error: { fieldId: string; message: string } | null;
   baseline?: Record<string, string>;
   accessoryOptions: AccessoryOption[];
+  isOutbound: boolean;
   onText: (id: string, v: string) => void;
   onItem: (fieldId: string, itemId: string, v: string) => void;
   onFiles: (id: string, n: number) => void;
@@ -523,6 +531,7 @@ function SectionFieldset({
               value={values[field.id]}
               error={error?.fieldId === field.id ? error.message : null}
               accessoryOptions={accessoryOptions}
+              isOutbound={isOutbound}
               onText={(v) => onText(field.id, v)}
               onItem={(itemId, v) => onItem(field.id, itemId, v)}
               onFiles={(n) => onFiles(field.id, n)}
@@ -544,6 +553,7 @@ function FieldControl({
   value,
   error,
   accessoryOptions,
+  isOutbound,
   onText,
   onItem,
   onFiles,
@@ -552,6 +562,7 @@ function FieldControl({
   value: string | Record<string, string> | undefined;
   error: string | null;
   accessoryOptions: AccessoryOption[];
+  isOutbound: boolean;
   onText: (v: string) => void;
   onItem: (itemId: string, v: string) => void;
   onFiles: (n: number) => void;
@@ -660,7 +671,7 @@ function FieldControl({
         <label className="flex flex-col gap-1 text-sm" htmlFor={domId}>
           <span className="font-medium">{field.label}</span>
           <span className="text-xs text-muted-foreground">
-            {photoSlotHelp(field.id)}
+            {photoSlotHelp(field.id, isOutbound)}
           </span>
           <input
             id={domId}

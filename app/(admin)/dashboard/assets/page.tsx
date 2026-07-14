@@ -458,6 +458,8 @@ export default async function AssetsPage({
                       ) : (
                         <MarkRentedButton
                           assetId={asset.id}
+                          assetName={asset.asset_name}
+                          assetCode={asset.asset_code}
                           unresolvedCount={unresolvedByAsset.get(asset.id) ?? 0}
                           redirectTo={listHref}
                         />

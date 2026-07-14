@@ -168,4 +168,9 @@
   .evidence-gallery-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
+  /* Each inspection prints its own photos (Phase 3C.6), so the aggregate "Photos by source" appendix is hidden
+     in print to avoid duplicate pages. On screen it stays. */
+  [data-evidence-aggregate] {
+    display: none;
+  }
 }

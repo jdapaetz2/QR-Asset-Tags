@@ -7,7 +7,11 @@ import {
   REVIEW_DAMAGE_NO_PHOTO,
   REVIEW_NO_PHOTOS,
   photoSlotHelp,
+  reviewDamageNoPhoto,
+  reviewNoPhotos,
+  omissionDialogTitle,
 } from "./photo-copy";
+import { DAMAGE_PHOTOS_SLOT_ID as DMG } from "./templates";
 import { ADDITIONAL_PHOTOS_SLOT_ID, DAMAGE_PHOTOS_SLOT_ID } from "./templates";
 
 const ALL_COPY = [
@@ -70,6 +74,42 @@ describe("photoSlotHelp — per-slot routing", () => {
 
   it("falls back to the general condition copy for unknown slots", () => {
     expect(photoSlotHelp("overview_photos")).toBe(PHOTO_HELP_GENERAL);
-    expect(photoSlotHelp("overall_photo")).toBe(PHOTO_HELP_GENERAL);
+  });
+});
+
+describe("outbound photo copy (Phase 3C.6)", () => {
+  const OUTBOUND_STRINGS = [
+    photoSlotHelp("overview_photos", true),
+    photoSlotHelp("deck_photo", true),
+    photoSlotHelp(DMG, true),
+    photoSlotHelp("additional_photos", true),
+    reviewNoPhotos(true),
+    reviewDamageNoPhoto(true),
+    omissionDialogTitle("damage", true),
+    omissionDialogTitle("none", true),
+  ];
+
+  it("frames photos as a departure BASELINE and never hedges", () => {
+    expect(photoSlotHelp("overview_photos", true)).toContain("before it leaves the yard");
+    expect(photoSlotHelp("deck_photo", true)).toBe(
+      "Add a photo showing the deck before the equipment leaves the yard."
+    );
+    expect(photoSlotHelp(DMG, true)).toContain("existing damage");
+    for (const s of OUTBOUND_STRINGS) {
+      for (const hedged of ["if possible", "if you can", "where practical", "strongly recommended"]) {
+        expect(s).not.toContain(hedged);
+      }
+    }
+  });
+
+  it("uses outbound-specific review + dialog copy (start rental, not submit/return)", () => {
+    expect(reviewNoPhotos(true)).toContain("No baseline photos were added");
+    expect(reviewDamageNoPhoto(true)).toContain("Existing damage was recorded");
+    expect(omissionDialogTitle("none", true)).toBe("Start rental without baseline photos?");
+    expect(omissionDialogTitle("damage", true)).toBe("Start rental without damage photos?");
+    // Return path unchanged.
+    expect(reviewNoPhotos(false)).toBe(REVIEW_NO_PHOTOS);
+    expect(reviewDamageNoPhoto(false)).toBe(REVIEW_DAMAGE_NO_PHOTO);
+    expect(omissionDialogTitle("none", false)).toBe("Submit without condition photos?");
   });
 });

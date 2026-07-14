@@ -35,8 +35,27 @@ describe("outbound templates", () => {
     expect(last.fields.some((f) => f.type === "acknowledgement" && f.required)).toBe(true);
   });
 
-  it("are version-bumped for the accessory-vocabulary change (Phase 3C.5)", () => {
-    for (const t of Object.values(OUTBOUND_TEMPLATES)) expect(t.version).toBe("2026-07-5");
+  it("are version-bumped for the soft-photos + accessory change (Phase 3C.6)", () => {
+    for (const t of Object.values(OUTBOUND_TEMPLATES)) expect(t.version).toBe("2026-08-1");
+  });
+
+  it("every photo slot is SOFT — non-blocking (required:false, min:0) (Phase 3C.6)", () => {
+    for (const t of Object.values(OUTBOUND_TEMPLATES)) {
+      for (const field of t.sections.flatMap((s) => s.fields)) {
+        if (field.type !== "photo_slot") continue;
+        expect(field.required).toBe(false);
+        expect(field.photo?.minPhotos ?? 0).toBe(0);
+      }
+    }
+  });
+
+  it("adds a conditional existing-damage photo section shown only when damage is reported", () => {
+    for (const t of Object.values(OUTBOUND_TEMPLATES)) {
+      const damage = t.sections.find((s) => s.id === "damage_details");
+      expect(damage).toBeDefined();
+      expect(damage!.visible_when).toEqual({ field: "existing_damage", equals: "yes" });
+      expect(damage!.fields.some((f) => f.type === "photo_slot" && f.id === "damage_photos")).toBe(true);
+    }
   });
 
   it("captures meter/hours + fuel on powered equipment", () => {

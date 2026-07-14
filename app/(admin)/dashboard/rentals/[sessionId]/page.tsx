@@ -17,14 +17,24 @@ import type { BadgeTone } from "@/lib/ui/status";
 import { RelativeTime } from "@/components/relative-time";
 import { PrintEvidenceButton } from "@/components/print-evidence-button";
 import { EvidencePhotoGallery } from "@/components/submissions/evidence-photo-gallery";
+import { PhotoTileGrid } from "@/components/submissions/photo-tile-grid";
 import { submissionReference } from "@/lib/submissions/inbox";
 import { returnChecklistFlags } from "@/lib/submissions/returns";
 import {
   ReturnInspectionSummary,
   isReturnInspectionV2,
 } from "@/components/submissions/return-inspection-summary";
-import { buildSessionComparison, photoSlotsBySource } from "@/lib/inspections/session-comparison";
-import { galleryBySource, galleryPhotoCount } from "@/lib/inspections/photo-gallery";
+import {
+  buildSessionComparison,
+  photoSlotsBySource,
+  type PhotoSlotGroup,
+  type PhotoSource,
+} from "@/lib/inspections/session-comparison";
+import {
+  galleryBySource,
+  galleryPhotoCount,
+  tilesForSource,
+} from "@/lib/inspections/photo-gallery";
 import type { ReturnInspectionData } from "@/lib/inspections/types";
 
 export const dynamic = "force-dynamic";
@@ -143,6 +153,12 @@ export default async function RentalEvidencePage({
       : staffFlags?.missing
         ? "warning"
         : "success";
+
+  // Per-inspection photo counts (Phase 3C.6) — surfaced in the disclosure summary + each inspection's own grid.
+  const outboundPhotoCount = tilesForSource(photoGroups, "outbound").length;
+  const renterPhotoCount = tilesForSource(photoGroups, "renter").length;
+  const staffPhotoCount = tilesForSource(photoGroups, "staff").length;
+  const withPhotos = (label: string, n: number) => `${label} · ${n} photo${n === 1 ? "" : "s"}`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -270,10 +286,15 @@ export default async function RentalEvidencePage({
       </EvidenceDisclosure>
 
       {/* 2 · Outbound baseline */}
-      <EvidenceDisclosure title="Outbound baseline" meta={outbound ? "Recorded" : "Not recorded"}>
+      <EvidenceDisclosure
+        title="Outbound baseline"
+        meta={outbound ? withPhotos("Recorded", outboundPhotoCount) : "Not recorded"}
+      >
         <EvidenceBody
           row={outbound}
           empty="No outbound baseline recorded for this rental."
+          source="outbound"
+          photoGroups={photoGroups}
           signedByPath={signedByPath}
         />
       </EvidenceDisclosure>
@@ -281,7 +302,14 @@ export default async function RentalEvidencePage({
       {/* 3 · Renter return report(s) */}
       <EvidenceDisclosure
         title="Renter return report"
-        meta={renterReports.length === 0 ? "No renter report" : `${renterReports.length} report${renterReports.length === 1 ? "" : "s"}`}
+        meta={
+          renterReports.length === 0
+            ? "No renter report"
+            : withPhotos(
+                `${renterReports.length} report${renterReports.length === 1 ? "" : "s"}`,
+                renterPhotoCount
+              )
+        }
       >
         {renterReports.length === 0 ? (
           <p className="text-muted-foreground">No renter return report for this rental.</p>
@@ -292,6 +320,8 @@ export default async function RentalEvidencePage({
                 key={r.id}
                 row={r}
                 empty="Renter report has no structured data."
+                source="renter"
+                photoGroups={photoGroups}
                 signedByPath={signedByPath}
               />
             ))}
@@ -300,39 +330,53 @@ export default async function RentalEvidencePage({
       </EvidenceDisclosure>
 
       {/* 4 · Staff return inspection */}
-      <EvidenceDisclosure title="Staff return inspection" meta={staffMeta} tone={staffTone}>
+      <EvidenceDisclosure
+        title="Staff return inspection"
+        meta={staff ? withPhotos(staffMeta, staffPhotoCount) : staffMeta}
+        tone={staffTone}
+      >
         <EvidenceBody
           row={staff}
           empty="The staff return inspection has not been completed yet."
+          source="staff"
+          photoGroups={photoGroups}
           signedByPath={signedByPath}
         />
       </EvidenceDisclosure>
 
-      {/* 5 · Photos by source — one deduped, responsive tiled gallery. */}
-      <EvidenceDisclosure
-        title="Photos by source"
-        meta={`${photoCount} photo${photoCount === 1 ? "" : "s"}`}
-      >
-        <EvidencePhotoGallery sources={gallerySources} signedByPath={signedByPath} />
-      </EvidenceDisclosure>
+      {/* 5 · Photos by source — the deduped aggregate gallery (hidden in print to avoid duplicate pages, since
+          each inspection above already prints its own photos). */}
+      <div data-evidence-aggregate>
+        <EvidenceDisclosure
+          title="Photos by source"
+          meta={`${photoCount} photo${photoCount === 1 ? "" : "s"}`}
+        >
+          <EvidencePhotoGallery sources={gallerySources} signedByPath={signedByPath} />
+        </EvidenceDisclosure>
+      </div>
     </div>
   );
 }
 
-/** One evidence source's body inside a disclosure: submission link + structured summary (photos hidden — the
- *  gallery renders them once). Empty state text when the source is absent. */
+/** One evidence source's body inside a disclosure: submission link + structured summary + THAT inspection's own
+ *  deduped photo grid (Phase 3C.6). Photos reuse the page's single `signedByPath`. Empty state when absent. */
 function EvidenceBody({
   row,
   empty,
+  source,
+  photoGroups,
   signedByPath,
 }: {
   row: SubRow | null;
   empty: string;
+  source: PhotoSource;
+  photoGroups: PhotoSlotGroup[];
   signedByPath: Map<string, string | null>;
 }) {
   const data = row ? asData(row.submission_data_json) : null;
+  const tiles = data ? tilesForSource(photoGroups, source) : [];
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       {row ? (
         <Link
           href={`/dashboard/submissions/${row.id}`}
@@ -343,7 +387,18 @@ function EvidenceBody({
         </Link>
       ) : null}
       {data ? (
-        <ReturnInspectionSummary data={data} signedByPath={signedByPath} hidePhotos />
+        <>
+          {/* Structured answers (photos hidden here — rendered as their own grid just below). */}
+          <ReturnInspectionSummary data={data} signedByPath={signedByPath} hidePhotos />
+          <div className="flex flex-col gap-1.5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Photos</p>
+            <PhotoTileGrid
+              tiles={tiles}
+              signedByPath={signedByPath}
+              emptyText="No photos in this inspection."
+            />
+          </div>
+        </>
       ) : (
         <p className="text-muted-foreground">{empty}</p>
       )}
