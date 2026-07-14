@@ -7,13 +7,24 @@
  */
 import { isUnresolvedStatus } from "@/lib/submissions/inbox";
 
-/** The quick action applies only to an unresolved (new/reviewed) return checklist. */
+/**
+ * Whether to offer "Mark returned & resolve" (Phase 3C.2 — authoritative, not label-based). It applies ONLY
+ * to a PUBLIC/renter return checklist that is still unresolved AND whose asset still has an active rental
+ * session (i.e. is still Rented). A STAFF return already returned the asset + closed the session, so it never
+ * qualifies; a renter return whose rental was already closed (e.g. by a staff return) is resolved through the
+ * normal status form instead, not this misleading action.
+ */
 export function canQuickResolveReturn(input: {
   formType: string;
   status: string;
+  origin?: string | null;
+  assetRented?: boolean;
 }): boolean {
   return (
-    input.formType === "return_checklist" && isUnresolvedStatus(input.status)
+    input.formType === "return_checklist" &&
+    input.origin !== "staff" &&
+    isUnresolvedStatus(input.status) &&
+    input.assetRented === true
   );
 }
 

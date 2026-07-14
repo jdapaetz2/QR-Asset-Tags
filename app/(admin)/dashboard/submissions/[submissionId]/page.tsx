@@ -7,7 +7,6 @@ import { submissionFields } from "@/lib/submissions/display";
 import {
   normalizeOrigin,
   oppositeOrigin,
-  submissionSourceBadge,
   submissionTypeLabel,
 } from "@/lib/submissions/origin";
 import { returnChecklistFlags } from "@/lib/submissions/returns";
@@ -126,9 +125,20 @@ export default async function SubmissionDetailPage({
     assetUnresolved = count ?? 0;
   }
 
+  // Whether the asset still has an active rental session (Phase 3C.2) — authoritative for the renter
+  // quick action. One small RLS-scoped count query.
+  let assetRented = false;
+  if (submission.asset_id) {
+    const { count } = await supabase
+      .from("asset_rental_sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("asset_id", submission.asset_id)
+      .eq("status", "active");
+    assetRented = (count ?? 0) > 0;
+  }
+
   const origin = normalizeOrigin(submission.submission_origin);
   const isStaff = origin === "staff";
-  const source = submissionSourceBadge(submission.form_type, submission.submission_origin);
   const isDamageRelated =
     submission.form_type === "damage_report" ||
     (submission.form_type === "return_checklist" &&
@@ -172,7 +182,6 @@ export default async function SubmissionDetailPage({
           <h1 className="text-2xl font-semibold tracking-tight">
             {submissionTypeLabel(submission.form_type, submission.submission_origin)}
           </h1>
-          {source ? <Badge tone={source.tone}>{source.label}</Badge> : null}
           <Badge tone={submissionStatusTone(submission.status)}>
             {submissionStatusLabel(submission.status)}
           </Badge>
@@ -264,6 +273,8 @@ export default async function SubmissionDetailPage({
           {canQuickResolveReturn({
             formType: submission.form_type,
             status: submission.status,
+            origin: submission.submission_origin,
+            assetRented,
           }) ? (
             <MarkReturnedResolveButton
               submissionId={submission.id}

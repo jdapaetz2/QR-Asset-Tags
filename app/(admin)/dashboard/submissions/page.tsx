@@ -57,6 +57,7 @@ type SubmissionRow = {
   submitted_by_phone: string | null;
   submission_data_json: unknown;
   media_urls: unknown;
+  asset_id: string | null;
   asset: { asset_code: string; asset_name: string } | null;
 };
 
@@ -86,7 +87,7 @@ export default async function SubmissionsPage({
   let query = supabase
     .from("form_submissions")
     .select(
-      "id, created_at, form_type, status, submission_origin, submitted_by_name, submitted_by_email, submitted_by_phone, submission_data_json, media_urls, asset:assets(asset_code, asset_name)"
+      "id, created_at, form_type, status, submission_origin, submitted_by_name, submitted_by_email, submitted_by_phone, submission_data_json, media_urls, asset_id, asset:assets(asset_code, asset_name)"
     )
     .order("created_at", { ascending: false });
 
@@ -112,6 +113,18 @@ export default async function SubmissionsPage({
   // attention=damage narrows to OPEN damage rows only (damage reports + damaged returns), never
   // broadened to undamaged returns. Applied in memory over the already-RLS-scoped rows.
   if (filters.attention === "damage") rows = rows.filter((r) => isOpenDamageRow(r));
+
+  // Assets that still have an ACTIVE rental session (Phase 3C.2) — one batched RLS-scoped query, no N+1.
+  // Drives authoritative "Mark returned & resolve" eligibility (renter return + still Rented only).
+  const { data: activeSessions } = await supabase
+    .from("asset_rental_sessions")
+    .select("asset_id")
+    .eq("status", "active");
+  const rentedAssetIds = new Set(
+    ((activeSessions ?? []) as { asset_id: string | null }[])
+      .map((s) => s.asset_id)
+      .filter((id): id is string => Boolean(id))
+  );
 
   // Signed image thumbnails for the VISIBLE rows only (post-filter) — never for the
   // whole org. Private bucket; the storage SELECT policy scopes these to the caller's
@@ -358,12 +371,12 @@ export default async function SubmissionsPage({
                     {/* Media: image thumbnail (first image) or attachment count */}
                     <td className="px-3 py-2">
                       {thumb ? (
-                        <div className="relative size-12">
+                        <div className="relative size-10">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={thumb}
                             alt={`Attachment for ${reference}`}
-                            className="size-12 rounded-md border object-cover"
+                            className="size-10 rounded-md border object-cover"
                           />
                           {count > 1 ? (
                             <span className="absolute -right-1 -top-1 rounded-full border bg-background px-1 text-[10px] font-medium text-muted-foreground">
@@ -373,14 +386,14 @@ export default async function SubmissionsPage({
                         </div>
                       ) : count > 0 ? (
                         <span
-                          className="inline-flex size-12 items-center justify-center gap-1 rounded-md border text-xs text-muted-foreground"
+                          className="inline-flex size-10 items-center justify-center gap-1 rounded-md border text-xs text-muted-foreground"
                           title={`${count} attachment${count === 1 ? "" : "s"}`}
                         >
                           <span aria-hidden>📎</span>
                           {count}
                         </span>
                       ) : (
-                        <span className="inline-flex size-12 items-center justify-center rounded-md border border-dashed text-muted-foreground/50">
+                        <span className="inline-flex size-10 items-center justify-center rounded-md border border-dashed text-muted-foreground/50">
                           —
                         </span>
                       )}
@@ -441,6 +454,8 @@ export default async function SubmissionsPage({
                         {canQuickResolveReturn({
                           formType: row.form_type,
                           status: row.status,
+                          origin: row.submission_origin,
+                          assetRented: row.asset_id ? rentedAssetIds.has(row.asset_id) : false,
                         }) ? (
                           <MarkReturnedResolveButton
                             submissionId={row.id}

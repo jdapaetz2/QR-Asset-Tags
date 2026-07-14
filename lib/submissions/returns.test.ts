@@ -16,23 +16,35 @@ describe("staffReturnStatus", () => {
   });
 });
 
-describe("canQuickResolveReturn", () => {
-  it("is true only for an unresolved return checklist", () => {
-    expect(canQuickResolveReturn({ formType: "return_checklist", status: "new" })).toBe(true);
+describe("canQuickResolveReturn (Phase 3C.2 — origin + rental authoritative)", () => {
+  const active = { origin: "public", assetRented: true } as const;
+
+  it("is true only for an unresolved public return while the asset is still rented", () => {
+    expect(canQuickResolveReturn({ formType: "return_checklist", status: "new", ...active })).toBe(true);
+    expect(canQuickResolveReturn({ formType: "return_checklist", status: "reviewed", ...active })).toBe(true);
+    // Null origin (legacy V1 renter) counts as renter/public.
     expect(
-      canQuickResolveReturn({ formType: "return_checklist", status: "reviewed" })
+      canQuickResolveReturn({ formType: "return_checklist", status: "new", origin: null, assetRented: true })
     ).toBe(true);
   });
 
+  it("never offers the action for a STAFF return (already returned + session closed)", () => {
+    expect(
+      canQuickResolveReturn({ formType: "return_checklist", status: "new", origin: "staff", assetRented: true })
+    ).toBe(false);
+  });
+
+  it("hides the action for a renter return once the rental is closed (asset available)", () => {
+    expect(
+      canQuickResolveReturn({ formType: "return_checklist", status: "new", origin: "public", assetRented: false })
+    ).toBe(false);
+  });
+
   it("is false for a resolved/archived return or the wrong form type", () => {
-    expect(
-      canQuickResolveReturn({ formType: "return_checklist", status: "resolved" })
-    ).toBe(false);
-    expect(
-      canQuickResolveReturn({ formType: "return_checklist", status: "archived" })
-    ).toBe(false);
-    expect(canQuickResolveReturn({ formType: "damage_report", status: "new" })).toBe(false);
-    expect(canQuickResolveReturn({ formType: "support_request", status: "new" })).toBe(false);
+    expect(canQuickResolveReturn({ formType: "return_checklist", status: "resolved", ...active })).toBe(false);
+    expect(canQuickResolveReturn({ formType: "return_checklist", status: "archived", ...active })).toBe(false);
+    expect(canQuickResolveReturn({ formType: "damage_report", status: "new", ...active })).toBe(false);
+    expect(canQuickResolveReturn({ formType: "support_request", status: "new", ...active })).toBe(false);
   });
 });
 

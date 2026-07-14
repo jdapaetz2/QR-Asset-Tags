@@ -10,7 +10,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { AssetThumb } from "@/components/asset-thumb";
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { AssetStatusCell } from "@/components/ui/asset-status-cell";
-import { RelativeTime } from "@/components/relative-time";
 import { deriveAssetStatus } from "@/lib/ui/status-view";
 import { PlanUsage } from "@/components/plan-usage";
 import { getCoveredCount } from "@/lib/plans/coverage-query";
@@ -39,7 +38,7 @@ import {
   PAGE_FILTERS,
   LIFECYCLE_FILTERS,
   RENTAL_FILTERS,
-  ASSET_SORTS,
+  VISIBLE_ASSET_SORTS,
 } from "@/lib/assets/list";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
@@ -354,7 +353,7 @@ export default async function AssetsPage({
             <label className="flex flex-col gap-1">
               <span className={labelClass}>Sort</span>
               <select name="sort" defaultValue={params.sort} className={`${selectClass} w-full`}>
-                {ASSET_SORTS.map((v) => (
+                {VISIBLE_ASSET_SORTS.map((v) => (
                   <option key={v} value={v}>
                     {SORT_LABELS[v]}
                   </option>
@@ -399,7 +398,6 @@ export default async function AssetsPage({
                 <th className="px-3 py-2.5 font-medium">Name</th>
                 <th className="px-3 py-2.5 font-medium">Category</th>
                 <th className="px-3 py-2.5 font-medium">Status</th>
-                <th className="whitespace-nowrap px-3 py-2.5 font-medium">Created</th>
                 <th className="px-3 py-2.5 font-medium sr-only">Actions</th>
               </tr>
             </thead>
@@ -440,9 +438,6 @@ export default async function AssetsPage({
                         />
                       ) : null}
                     </div>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">
-                    <RelativeTime value={asset.created_at} />
                   </td>
                   <td className="whitespace-nowrap px-3 py-2.5 text-right">
                     <div className="flex items-center justify-end gap-3">

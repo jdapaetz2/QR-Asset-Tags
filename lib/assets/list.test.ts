@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  VISIBLE_ASSET_SORTS,
   assetPageStatus,
   deleteEligibility,
   matchesPageFilter,
@@ -9,6 +10,21 @@ import {
   parseAssetListParams,
   sanitizeSearch,
 } from "./list";
+
+describe("asset sort options (Phase 3C.2)", () => {
+  it("hides created_at from the visible sort selector", () => {
+    expect(VISIBLE_ASSET_SORTS).not.toContain("created_at");
+    expect(VISIBLE_ASSET_SORTS).toContain("asset_code");
+    expect(VISIBLE_ASSET_SORTS).toContain("asset_name");
+    expect(VISIBLE_ASSET_SORTS).toContain("category");
+  });
+
+  it("still accepts an old ?sort=created_at deep link (backward compatible)", () => {
+    expect(parseAssetListParams({ sort: "created_at" }).sort).toBe("created_at");
+    // Unknown sort falls back to the default.
+    expect(parseAssetListParams({ sort: "nonsense" }).sort).toBe("asset_code");
+  });
+});
 
 describe("parseAssetListParams", () => {
   it("defaults to active lifecycle, asset_code sort, and 'all' filters", () => {

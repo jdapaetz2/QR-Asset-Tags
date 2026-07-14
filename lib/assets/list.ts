@@ -17,6 +17,13 @@ export const ASSET_SORTS = [
   "category",
 ] as const;
 
+/**
+ * Sort options shown in the Assets list UI (Phase 3C.2). `created_at` ("Newest added") is intentionally
+ * omitted — the Created column was removed as low-value operational data — but it stays in `ASSET_SORTS`
+ * so an old `?sort=created_at` deep link remains backward-compatible (still orders, just not a visible option).
+ */
+export const VISIBLE_ASSET_SORTS = ASSET_SORTS.filter((s) => s !== "created_at");
+
 export type PublicStatusFilter = (typeof PUBLIC_STATUS_FILTERS)[number];
 export type QrFilter = (typeof QR_FILTERS)[number];
 export type PageFilter = (typeof PAGE_FILTERS)[number];

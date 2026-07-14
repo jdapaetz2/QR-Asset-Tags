@@ -147,6 +147,23 @@ DB/RLS/storage/auth/session change; media limits unchanged.
   `data.missing_recommended_photo_slots` (all from validated uploads). Admin shows one concise **Evidence**
   note. No-photo damage still counts as open damage. Media limits unchanged.
 
+### Phase 3C.2 — admin cleanup (presentation/routing only)
+- **Compact submission rows + single label:** `SubmissionBadges` no longer renders a separate Renter/Staff
+  source badge — the `submissionTypeLabel` ("Renter return" / "Staff return inspection" / "Outbound
+  inspection") is the one primary label (inbox + timeline). Media thumbnail shrunk to `size-10`; the detail
+  header drops the redundant source badge (origin stays in the Performed-by/Submitted-by block).
+- **Authoritative quick action:** `canQuickResolveReturn({formType,status,origin,assetRented})` — "Mark
+  returned & resolve" shows ONLY for a public/renter `return_checklist` that is new/reviewed AND whose asset
+  still has an active rental session. Staff returns never show it; a renter return hides it once a staff
+  return has closed the session. One batched active-session query in the inbox (no N+1); one count query on
+  the detail page.
+- **Session evidence:** canonical route stays `/dashboard/rentals/[sessionId]` (registered + RLS-scoped +
+  works after close). `rentalEvidenceHref` guards a falsy id; the staff completion page falls back to the
+  asset's most-recent session so the link always resolves.
+- **Assets list:** the low-value **Created** column + its Sort option are removed (`VISIBLE_ASSET_SORTS`),
+  reclaiming width for status / open-damage / rental action / View-edit; `?sort=created_at` stays
+  backward-compatible in the parser. No return/session business logic changed.
+
 ---
 
 > **Original design (future scope beyond 3A).** This documents the broader wave so it can be

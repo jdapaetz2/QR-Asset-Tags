@@ -60,6 +60,20 @@ export default async function StaffReturnCompletePage({
   const flags = returnChecklistFlags(data.submission_data_json);
   const result = conditionResult(flags, data.status);
 
+  // Session-evidence target (Phase 3C.2): prefer the submission's bound session; if unexpectedly null, fall
+  // back to the asset's most-recent session so "View session evidence" always resolves to a real session.
+  let evidenceSessionId = data.rental_session_id;
+  if (!evidenceSessionId) {
+    const { data: latestSession } = await supabase
+      .from("asset_rental_sessions")
+      .select("id")
+      .eq("asset_id", asset.id)
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ id: string }>();
+    evidenceSessionId = latestSession?.id ?? null;
+  }
+
   // Count related renter (public) return reports for the same rental session.
   let relatedRenter = 0;
   if (data.rental_session_id) {
@@ -140,9 +154,9 @@ export default async function StaffReturnCompletePage({
         >
           View inspection
         </Link>
-        {data.rental_session_id ? (
+        {evidenceSessionId ? (
           <Link
-            href={rentalEvidenceHref(data.rental_session_id)}
+            href={rentalEvidenceHref(evidenceSessionId)}
             className="inline-flex min-h-11 w-full items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
           >
             View session evidence
