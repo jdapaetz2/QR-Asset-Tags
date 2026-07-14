@@ -39,11 +39,22 @@ const YES_NO_OPTIONS = [
   { value: "yes", label: "Yes" },
   { value: "no", label: "No" },
 ];
-const ACCESSORY_OPTIONS = [
+// Accessory options are context-specific (Phase 3C.5): a RETURN records what came back, an OUTBOUND baseline
+// records what was issued. New outbound answers store `issued`/`not_issued` (return keeps `returned`/`missing`);
+// both are accepted by ACCESSORY_STATES + normalized for display/comparison in lib/inspections/accessories.ts.
+const RETURN_ACCESSORY_OPTIONS = [
   { value: "returned", label: "Returned" },
   { value: "missing", label: "Missing" },
   { value: "na", label: "N/A" },
 ];
+const OUTBOUND_ACCESSORY_OPTIONS = [
+  { value: "issued", label: "Issued" },
+  { value: "not_issued", label: "Not issued" },
+  { value: "na", label: "N/A" },
+];
+function accessoryOptionsFor(isOutbound: boolean) {
+  return isOutbound ? OUTBOUND_ACCESSORY_OPTIONS : RETURN_ACCESSORY_OPTIONS;
+}
 // Preset fuel/charge choices rendered as buttons (free of a dropdown). "Other" keeps a text fallback.
 const FUEL_OPTIONS = [
   { value: "Full", label: "Full" },
@@ -56,9 +67,11 @@ const FUEL_OPTIONS = [
 ];
 
 const STAGE_ORDER: InspectionStage[] = ["condition", "return_details"];
-const STAGE_TITLES: Record<InspectionStage, string> = {
-  condition: "Condition",
-  return_details: "Return details",
+// Stage 2 is named for the workflow (Phase 3C.5): an outbound inspection records what is being ISSUED, so its
+// second stage is "Outbound details", not "Return details".
+const STAGE_TITLES: Record<"return" | "outbound", Record<InspectionStage, string>> = {
+  return: { condition: "Condition", return_details: "Return details" },
+  outbound: { condition: "Condition", return_details: "Outbound details" },
 };
 
 const fieldDomId = (id: string) => `field-${id}`;
@@ -139,6 +152,14 @@ export function ReturnInspectionForm({
   const pendingFocusRef = useRef<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
+
+  // Workflow-aware labels + accessory vocabulary (Phase 3C.5). An outbound inspection describes equipment
+  // leaving the yard, so stage 2 is "Outbound details", the final step is "Review & start rental", and
+  // accessories read Issued/Not issued/N/A.
+  const isOutbound = template.inspection_type === "outbound";
+  const stageTitles = STAGE_TITLES[isOutbound ? "outbound" : "return"];
+  const reviewStepLabel = isOutbound ? "Review & start rental" : "Review & submit";
+  const accessoryOptions = accessoryOptionsFor(isOutbound);
 
   const activeSections = useMemo(
     () => template.sections.filter((s) => isConditionMet(s.visible_when, values)),
@@ -286,7 +307,7 @@ export function ReturnInspectionForm({
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span className="font-medium">
-          Step {stepIndex} of 3 · {onReview ? "Review & submit" : STAGE_TITLES[stage]}
+          Step {stepIndex} of 3 · {onReview ? reviewStepLabel : stageTitles[stage]}
         </span>
         <span aria-hidden>{template.name}</span>
       </div>
@@ -318,6 +339,7 @@ export function ReturnInspectionForm({
               values={values}
               error={error}
               baseline={baseline}
+              accessoryOptions={accessoryOptions}
               onText={setVal}
               onItem={setItem}
               onFiles={(id, n) => setFileCounts((p) => ({ ...p, [id]: n }))}
@@ -328,7 +350,12 @@ export function ReturnInspectionForm({
 
       {/* Stage 3 — Review & submit */}
       <div hidden={!onReview} className="flex flex-col gap-4">
-        <ReviewSummary template={template} values={values} fileCounts={fileCounts} />
+        <ReviewSummary
+          template={template}
+          values={values}
+          fileCounts={fileCounts}
+          accessoryOptions={accessoryOptions}
+        />
         {/* One consolidated evidence note (priority: damage → no photos → some recommended missing). */}
         {damageWithoutPhoto ? (
           <div role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
@@ -340,7 +367,7 @@ export function ReturnInspectionForm({
           </div>
         ) : someRecommendedMissing ? (
           <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-            Some photos weren&apos;t added. You can add more in Return details.
+            Some photos weren&apos;t added. You can add more in {stageTitles.return_details}.
           </p>
         ) : null}
         <div className="flex flex-col gap-3 rounded-lg border bg-card p-4">
@@ -462,11 +489,14 @@ export function ReturnInspectionForm({
   );
 }
 
+type AccessoryOption = { value: string; label: string };
+
 function SectionFieldset({
   section,
   values,
   error,
   baseline,
+  accessoryOptions,
   onText,
   onItem,
   onFiles,
@@ -475,6 +505,7 @@ function SectionFieldset({
   values: Values;
   error: { fieldId: string; message: string } | null;
   baseline?: Record<string, string>;
+  accessoryOptions: AccessoryOption[];
   onText: (id: string, v: string) => void;
   onItem: (fieldId: string, itemId: string, v: string) => void;
   onFiles: (id: string, n: number) => void;
@@ -491,6 +522,7 @@ function SectionFieldset({
               field={field}
               value={values[field.id]}
               error={error?.fieldId === field.id ? error.message : null}
+              accessoryOptions={accessoryOptions}
               onText={(v) => onText(field.id, v)}
               onItem={(itemId, v) => onItem(field.id, itemId, v)}
               onFiles={(n) => onFiles(field.id, n)}
@@ -511,6 +543,7 @@ function FieldControl({
   field,
   value,
   error,
+  accessoryOptions,
   onText,
   onItem,
   onFiles,
@@ -518,6 +551,7 @@ function FieldControl({
   field: InspectionField;
   value: string | Record<string, string> | undefined;
   error: string | null;
+  accessoryOptions: AccessoryOption[];
   onText: (v: string) => void;
   onItem: (itemId: string, v: string) => void;
   onFiles: (n: number) => void;
@@ -612,7 +646,7 @@ function FieldControl({
                 name={`answer:${field.id}:${item.id}`}
                 value={itemVal}
                 onChange={(v) => onItem(item.id, v)}
-                options={ACCESSORY_OPTIONS}
+                options={accessoryOptions}
               />
             );
           })}
@@ -646,11 +680,15 @@ function FieldControl({
       );
     case "acknowledgement":
       return (
+        // Canonical submitted value from client state (Phase 3C.5), mirroring the ChoiceButtons pattern. The
+        // visible checkbox is UI-only (no `answer:` name) — the hidden input is the single source of the POSTed
+        // value, so what the server receives always equals `values[field.id]` (what Review + client validation
+        // read). This eliminates the outbound "attestation confirmed but still errors" divergence.
         <label className="flex items-start gap-2 text-sm">
+          <input type="hidden" name={name} value={strVal === "yes" ? "yes" : "no"} />
           <input
             id={domId}
             type="checkbox"
-            name={name}
             className="mt-1 size-4"
             checked={strVal === "yes"}
             onChange={(e) => onText(e.target.checked ? "yes" : "")}
@@ -777,10 +815,12 @@ function ReviewSummary({
   template,
   values,
   fileCounts,
+  accessoryOptions,
 }: {
   template: InspectionTemplate;
   values: Values;
   fileCounts: Record<string, number>;
+  accessoryOptions: AccessoryOption[];
 }) {
   const activeSections = template.sections.filter((s) => isConditionMet(s.visible_when, values));
   const photoCounts = visiblePhotoSlotCounts(template, values, fileCounts);
@@ -819,7 +859,11 @@ function ReviewSummary({
                   <dt className="text-muted-foreground">{field.label}</dt>
                   <dd className="whitespace-pre-line break-words font-medium">
                     {field.type === "accessory_checklist" ? (
-                      <AccessorySummary field={field} value={values[field.id]} />
+                      <AccessorySummary
+                        field={field}
+                        value={values[field.id]}
+                        accessoryOptions={accessoryOptions}
+                      />
                     ) : (
                       displayValue(field, values[field.id])
                     )}
@@ -837,12 +881,14 @@ function ReviewSummary({
 function AccessorySummary({
   field,
   value,
+  accessoryOptions,
 }: {
   field: InspectionField;
   value: string | Record<string, string> | undefined;
+  accessoryOptions: AccessoryOption[];
 }) {
   const map = (value as Record<string, string>) ?? {};
-  const label = (v: string) => ACCESSORY_OPTIONS.find((o) => o.value === v)?.label ?? "—";
+  const label = (v: string) => accessoryOptions.find((o) => o.value === v)?.label ?? "—";
   return (
     <ul className="flex flex-col gap-0.5">
       {(field.items ?? []).map((item) => (

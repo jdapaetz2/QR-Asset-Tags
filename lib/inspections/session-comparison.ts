@@ -9,6 +9,7 @@
  */
 import type { InspectionField, ReturnInspectionData } from "@/lib/inspections/types";
 import { returnChecklistFlags } from "@/lib/submissions/returns";
+import { accessoryLabel, accessoryPresence } from "@/lib/inspections/accessories";
 
 export type ComparisonNote =
   | "Difference recorded"
@@ -65,8 +66,16 @@ function passFailLabel(v: string): string {
   return v === "na" ? "N/A" : v.charAt(0).toUpperCase() + v.slice(1);
 }
 
-/** Human display of a single field's value from a values map (null when unanswered). */
-function fieldDisplay(field: InspectionField, raw: unknown): string | null {
+/**
+ * Human display of a single field's value from a values map (null when unanswered). `inspectionType` selects the
+ * accessory vocabulary (outbound: Issued/Not issued; return: Returned/Missing) so each column reads correctly and
+ * legacy outbound values normalize (Phase 3C.5).
+ */
+function fieldDisplay(
+  field: InspectionField,
+  raw: unknown,
+  inspectionType?: string
+): string | null {
   if (raw === undefined || raw === null || raw === "") {
     if (field.type !== "accessory_checklist") return null;
   }
@@ -85,7 +94,9 @@ function fieldDisplay(field: InspectionField, raw: unknown): string | null {
       return typeof raw === "string" && raw.trim() ? raw.trim() : null;
     case "accessory_checklist": {
       const map = (raw as Record<string, string>) ?? {};
-      const parts = (field.items ?? []).map((it) => `${it.label}: ${map[it.id] ?? "—"}`);
+      const parts = (field.items ?? []).map(
+        (it) => `${it.label}: ${accessoryLabel(map[it.id], inspectionType)}`
+      );
       return parts.length ? parts.join(" · ") : null;
     }
     default:
@@ -146,10 +157,12 @@ export function buildSessionComparison(input: {
         const staffRaw = staffValues[field.id];
         if (outRaw === undefined && staffRaw === undefined) continue;
 
-        const outDisp = fieldDisplay(field, outRaw);
-        const staffDisp = fieldDisplay(field, staffRaw);
+        // Each column labels accessories in its own vocabulary (outbound Issued/Not issued vs return
+        // Returned/Missing); presence comparison below is vocabulary-agnostic.
+        const outDisp = fieldDisplay(field, outRaw, "outbound");
+        const staffDisp = fieldDisplay(field, staffRaw, "return");
         const renterDisp =
-          field.id in renterValues ? fieldDisplay(field, renterValues[field.id]) : null;
+          field.id in renterValues ? fieldDisplay(field, renterValues[field.id], "return") : null;
 
         let delta: string | null = null;
         let changed = false;
@@ -169,10 +182,12 @@ export function buildSessionComparison(input: {
           if (outRaw === "pass" && staffRaw === "fail") note = "Review recommended";
           else if (changed) note = "Difference recorded";
         } else if (field.type === "accessory_checklist") {
+          // Vocabulary-agnostic: an accessory the staff return marks absent (missing / not-returned) is the
+          // review signal, regardless of whether the row stored legacy or current values.
           const map = (staffRaw as Record<string, string>) ?? {};
-          const anyMissing = Object.values(map).includes("missing");
-          changed = anyMissing;
-          if (anyMissing) note = "Review recommended";
+          const anyAbsent = Object.values(map).some((v) => accessoryPresence(v) === "absent");
+          changed = anyAbsent;
+          if (anyAbsent) note = "Review recommended";
         } else {
           changed = outDisp !== null && staffDisp !== null && outDisp !== staffDisp;
           if (changed) note = "Difference recorded";

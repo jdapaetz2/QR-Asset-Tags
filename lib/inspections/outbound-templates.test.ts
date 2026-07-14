@@ -35,6 +35,10 @@ describe("outbound templates", () => {
     expect(last.fields.some((f) => f.type === "acknowledgement" && f.required)).toBe(true);
   });
 
+  it("are version-bumped for the accessory-vocabulary change (Phase 3C.5)", () => {
+    for (const t of Object.values(OUTBOUND_TEMPLATES)) expect(t.version).toBe("2026-07-5");
+  });
+
   it("captures meter/hours + fuel on powered equipment", () => {
     const excavator = OUTBOUND_TEMPLATES.mini_excavator_skid_steer.sections.flatMap((s) => s.fields);
     expect(excavator.some((f) => f.type === "numeric_meter")).toBe(true);

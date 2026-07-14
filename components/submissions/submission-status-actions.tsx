@@ -6,15 +6,8 @@ import {
   setSubmissionStatus,
   type SubmissionActionState,
 } from "@/lib/submissions/actions";
-import { nextStatusActions, type StatusAction } from "@/lib/submissions/status-actions";
-
-const BASE =
-  "inline-flex min-h-9 items-center justify-center rounded-md border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50";
-const TONE: Record<StatusAction["tone"], string> = {
-  default: `${BASE} hover:bg-accent hover:text-accent-foreground`,
-  reopen: `${BASE} text-muted-foreground hover:bg-accent hover:text-accent-foreground`,
-  archive: `${BASE} text-muted-foreground hover:bg-accent hover:text-accent-foreground`,
-};
+import { nextStatusActions } from "@/lib/submissions/status-actions";
+import { submissionStatusActionClasses } from "@/lib/ui/status";
 
 /**
  * Direct, state-aware status buttons (Phase 3C.4) — replaces the status <select>. One form, one shared action
@@ -61,7 +54,7 @@ export function SubmissionStatusActions({
                   }
                 : undefined
             }
-            className={TONE[a.tone]}
+            className={submissionStatusActionClasses(a.status)}
           >
             {a.label}
           </button>

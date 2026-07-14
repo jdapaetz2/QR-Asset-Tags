@@ -9,20 +9,22 @@ import {
   getRentalSessionEvidence,
   type SubRow,
 } from "@/lib/rentals/session-evidence";
+import type { ReactNode } from "react";
+
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { Badge } from "@/components/ui/badge";
+import type { BadgeTone } from "@/lib/ui/status";
 import { RelativeTime } from "@/components/relative-time";
-import { PrintButton } from "@/components/print-button";
+import { PrintEvidenceButton } from "@/components/print-evidence-button";
+import { EvidencePhotoGallery } from "@/components/submissions/evidence-photo-gallery";
 import { submissionReference } from "@/lib/submissions/inbox";
+import { returnChecklistFlags } from "@/lib/submissions/returns";
 import {
   ReturnInspectionSummary,
   isReturnInspectionV2,
 } from "@/components/submissions/return-inspection-summary";
-import {
-  buildSessionComparison,
-  photoSlotsBySource,
-  type PhotoSource,
-} from "@/lib/inspections/session-comparison";
+import { buildSessionComparison, photoSlotsBySource } from "@/lib/inspections/session-comparison";
+import { galleryBySource, galleryPhotoCount } from "@/lib/inspections/photo-gallery";
 import type { ReturnInspectionData } from "@/lib/inspections/types";
 
 export const dynamic = "force-dynamic";
@@ -32,11 +34,34 @@ const SUBMISSIONS_BUCKET = "submissions";
 const asData = (json: unknown): ReturnInspectionData | null =>
   isReturnInspectionV2(json) ? json : null;
 
-const SOURCE_LABEL: Record<PhotoSource, string> = {
-  outbound: "Outbound baseline",
-  renter: "Renter return report",
-  staff: "Staff return inspection",
-};
+/** A collapsed evidence section (Phase 3C.5): a native <details> disclosure with a ≥44px summary that carries a
+ *  short context (count / status) so the record is scannable without expanding. Print reveals all of them. */
+function EvidenceDisclosure({
+  title,
+  meta,
+  tone,
+  children,
+}: {
+  title: string;
+  meta: string;
+  tone?: BadgeTone;
+  children: ReactNode;
+}) {
+  return (
+    <details data-evidence-section className="group rounded-lg border bg-card">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-2 [&::-webkit-details-marker]:hidden">
+        <span className="font-medium">{title}</span>
+        <span className="flex items-center gap-2 text-sm text-muted-foreground">
+          {tone ? <Badge tone={tone}>{meta}</Badge> : <span>{meta}</span>}
+          <span aria-hidden className="text-xs transition-transform group-open:rotate-180">
+            ▾
+          </span>
+        </span>
+      </summary>
+      <div className="border-t px-4 py-4 text-sm">{children}</div>
+    </details>
+  );
+}
 
 export default async function RentalEvidencePage({
   params,
@@ -96,6 +121,29 @@ export default async function RentalEvidencePage({
 
   const sessionRef = submissionReference(session.id, session.started_at).replace("SUB", "RNT");
 
+  // Disclosure summaries (Phase 3C.5) — scannable context without expanding.
+  const gallerySources = galleryBySource(photoGroups);
+  const photoCount = galleryPhotoCount(gallerySources);
+  const staffFlags = staff ? returnChecklistFlags(staff.submission_data_json) : null;
+  const diffMeta =
+    comparison.followUps.length > 0
+      ? `${comparison.followUps.length} open follow-up item${comparison.followUps.length === 1 ? "" : "s"}`
+      : "No recorded differences";
+  const staffMeta = !staff
+    ? "Not completed"
+    : staffFlags?.damage
+      ? "Damage reported"
+      : staffFlags?.missing
+        ? "Accessories missing"
+        : "No issues reported";
+  const staffTone: BadgeTone = !staff
+    ? "neutral"
+    : staffFlags?.damage
+      ? "danger"
+      : staffFlags?.missing
+        ? "warning"
+        : "success";
+
   return (
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-3 rounded-lg border bg-card p-5">
@@ -110,7 +158,7 @@ export default async function RentalEvidencePage({
           ) : (
             <span />
           )}
-          <PrintButton label="Print evidence" />
+          <PrintEvidenceButton label="Print evidence" />
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-tight">Rental session condition</h1>
@@ -150,9 +198,15 @@ export default async function RentalEvidencePage({
         </dl>
       </section>
 
-      {/* Differences (Part D). Never asserts causation — records differences + flags review only. */}
-      <section className="rounded-lg border bg-card p-4 text-sm">
-        <h2 className="mb-3 font-medium">Differences</h2>
+      {/* All evidence groups are collapsed disclosures (Phase 3C.5) — the summary above stays visible; each
+          section shows scannable context and expands on demand. Print reveals every section. */}
+
+      {/* 1 · Differences. Never asserts causation — records differences + flags review only. */}
+      <EvidenceDisclosure
+        title="Differences"
+        meta={diffMeta}
+        tone={comparison.followUps.length > 0 ? "warning" : undefined}
+      >
         {!comparison.hasOutbound ? (
           <p className="text-muted-foreground">
             No outbound baseline recorded — no baseline comparison for this rental.
@@ -213,115 +267,86 @@ export default async function RentalEvidencePage({
             </ul>
           </div>
         ) : null}
-      </section>
+      </EvidenceDisclosure>
 
-      {/* The three sources, in order. */}
-      <EvidenceSource
-        title="1 · Outbound baseline"
-        empty="No outbound baseline recorded for this rental."
-        row={outbound}
-        signedByPath={signedByPath}
-      />
-      {renterReports.length === 0 ? (
-        <SourceEmpty title="2 · Renter return report" text="No renter return report for this rental." />
-      ) : (
-        renterReports.map((r, i) => (
-          <EvidenceSource
-            key={r.id}
-            title={`2 · Renter return report${renterReports.length > 1 ? ` (${i + 1})` : ""}`}
-            empty="Renter report has no structured data."
-            row={r}
-            signedByPath={signedByPath}
-          />
-        ))
-      )}
-      <EvidenceSource
-        title="3 · Staff return inspection"
-        empty="The staff return inspection has not been completed yet."
-        row={staff}
-        signedByPath={signedByPath}
-      />
+      {/* 2 · Outbound baseline */}
+      <EvidenceDisclosure title="Outbound baseline" meta={outbound ? "Recorded" : "Not recorded"}>
+        <EvidenceBody
+          row={outbound}
+          empty="No outbound baseline recorded for this rental."
+          signedByPath={signedByPath}
+        />
+      </EvidenceDisclosure>
 
-      {/* Photos grouped by source and slot. */}
-      {photoGroups.length > 0 ? (
-        <section className="rounded-lg border bg-card p-4 text-sm">
-          <h2 className="mb-3 font-medium">Photos by source</h2>
+      {/* 3 · Renter return report(s) */}
+      <EvidenceDisclosure
+        title="Renter return report"
+        meta={renterReports.length === 0 ? "No renter report" : `${renterReports.length} report${renterReports.length === 1 ? "" : "s"}`}
+      >
+        {renterReports.length === 0 ? (
+          <p className="text-muted-foreground">No renter return report for this rental.</p>
+        ) : (
           <div className="flex flex-col gap-4">
-            {photoGroups.map((g) => (
-              <div key={`${g.source}-${g.slotId}`} className="flex flex-col gap-1.5">
-                <p className="text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">{SOURCE_LABEL[g.source]}</span> · {g.label}
-                </p>
-                <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {g.paths.map((path, i) => {
-                    const url = signedByPath.get(path) ?? null;
-                    return url ? (
-                      <li key={path}>
-                        <a href={url} target="_blank" rel="noopener noreferrer">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={url}
-                            alt={`${SOURCE_LABEL[g.source]} ${g.label} ${i + 1}`}
-                            className="aspect-square w-full rounded-md border object-cover"
-                          />
-                        </a>
-                      </li>
-                    ) : (
-                      <li key={path} className="text-xs text-muted-foreground">
-                        Photo unavailable
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
+            {renterReports.map((r) => (
+              <EvidenceBody
+                key={r.id}
+                row={r}
+                empty="Renter report has no structured data."
+                signedByPath={signedByPath}
+              />
             ))}
           </div>
-        </section>
-      ) : null}
+        )}
+      </EvidenceDisclosure>
+
+      {/* 4 · Staff return inspection */}
+      <EvidenceDisclosure title="Staff return inspection" meta={staffMeta} tone={staffTone}>
+        <EvidenceBody
+          row={staff}
+          empty="The staff return inspection has not been completed yet."
+          signedByPath={signedByPath}
+        />
+      </EvidenceDisclosure>
+
+      {/* 5 · Photos by source — one deduped, responsive tiled gallery. */}
+      <EvidenceDisclosure
+        title="Photos by source"
+        meta={`${photoCount} photo${photoCount === 1 ? "" : "s"}`}
+      >
+        <EvidencePhotoGallery sources={gallerySources} signedByPath={signedByPath} />
+      </EvidenceDisclosure>
     </div>
   );
 }
 
-function SourceEmpty({ title, text }: { title: string; text: string }) {
-  return (
-    <section className="rounded-lg border bg-card p-4 text-sm">
-      <h2 className="mb-1 font-medium">{title}</h2>
-      <p className="text-muted-foreground">{text}</p>
-    </section>
-  );
-}
-
-function EvidenceSource({
-  title,
-  empty,
+/** One evidence source's body inside a disclosure: submission link + structured summary (photos hidden — the
+ *  gallery renders them once). Empty state text when the source is absent. */
+function EvidenceBody({
   row,
+  empty,
   signedByPath,
 }: {
-  title: string;
-  empty: string;
   row: SubRow | null;
+  empty: string;
   signedByPath: Map<string, string | null>;
 }) {
   const data = row ? asData(row.submission_data_json) : null;
   return (
-    <section className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">{title}</h2>
-        {row ? (
-          <Link
-            href={`/dashboard/submissions/${row.id}`}
-            className="text-xs underline-offset-4 hover:underline"
-          >
-            {submissionReference(row.id, row.created_at)} ·{" "}
-            {row.submitted_by_name ?? "—"} · <RelativeTime value={row.created_at} />
-          </Link>
-        ) : null}
-      </div>
+    <div className="flex flex-col gap-2">
+      {row ? (
+        <Link
+          href={`/dashboard/submissions/${row.id}`}
+          className="text-xs underline-offset-4 hover:underline"
+        >
+          {submissionReference(row.id, row.created_at)} ·{" "}
+          {row.submitted_by_name ?? "—"} · <RelativeTime value={row.created_at} />
+        </Link>
+      ) : null}
       {data ? (
-        <ReturnInspectionSummary data={data} signedByPath={signedByPath} />
+        <ReturnInspectionSummary data={data} signedByPath={signedByPath} hidePhotos />
       ) : (
-        <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">{empty}</p>
+        <p className="text-muted-foreground">{empty}</p>
       )}
-    </section>
+    </div>
   );
 }

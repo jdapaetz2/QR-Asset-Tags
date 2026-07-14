@@ -216,6 +216,32 @@ DB/RLS/storage/auth/session change; media limits unchanged.
   `partitionBulkResolve` — active renter returns are skipped with a clear banner ("N renter return(s) … skipped because
   … rental is still active"); staff returns + damage/support resolve normally. Bulk Archive confirms with the count.
 
+### Phase 3C.5 — status-action colors + outbound attestation/terminology + evidence presentation
+- **Status-action colors track their target status.** One pure `submissionStatusActionClasses(targetStatus)` (`lib/ui/status.ts`)
+  keyed on the TARGET state, matching the badge tone families — `resolved`→emerald, `new`→sky, `reviewed`/`archived`→neutral
+  (Archive stays neutral, not destructive-red — the Archived badge is neutral). Used by `SubmissionStatusActions`, the bulk
+  toolbar, and `MarkReturnedResolveButton` (emerald, its resolve target). Labels + focus/disabled affordances retained.
+- **Outbound attestation false error — root cause = the acknowledgement was the ONLY field posting its value from the live
+  checkbox DOM (`"on"`) instead of a hidden input mirroring React `values`** (the 3C.1.1 canonical pattern every choice field
+  uses). That decoupled the POSTed attestation from `values.attestation="yes"` (Review + client gate), so the server saw
+  `attestation !== "yes"` and rejected a confirmed attestation. Fix: the acknowledgement now renders a UI-only checkbox + a
+  canonical hidden `answer:attestation` input sourced from state, so POST ≡ Review ≡ client gate ≡ server. `validate.ts`
+  semantics + the explicit-submit gate are unchanged (one rental start per confirmed submit).
+- **Outbound terminology + accessories** (shared form, keyed by `template.inspection_type`): stage 2 is "Outbound details",
+  the final step "Review & start rental", the submit CTA "Complete inspection & mark rented", the completion banner "Outbound
+  inspection completed — asset is now rented, rental session started". Accessories read **Issued / Not issued / N/A** and store
+  `issued`/`not_issued` (return keeps `returned`/`missing`); `ACCESSORY_STATES` accepts both. `lib/inspections/accessories.ts`
+  (`accessoryPresence` / `accessoryLabel`) normalizes for display + comparison, so LEGACY outbound rows (stored
+  `returned`/`missing`) still render as Issued/Not issued — no JSON rewrite, no backfill. Outbound template version bumped
+  `2026-07-1` → `2026-07-5`; return templates + wording unchanged.
+- **Session evidence as collapsed disclosures.** Every group (Differences / Outbound baseline / Renter return report(s) /
+  Staff return inspection / Photos by source) is a native `<details data-evidence-section>` (all collapsed by default; ≥44px
+  summary with a count/status; multiple-open; opening fetches nothing; empty → concise text, never 404). Photos render ONCE
+  (`ReturnInspectionSummary` gains `hidePhotos`) in a responsive tiled **gallery** (`EvidencePhotoGallery` +
+  `galleryBySource`, `grid-cols-2 → sm:3 → lg:4`) that dedupes exact repeated storage paths and merges their slot captions;
+  tiles open the signed image in a new tab; Download + private signed URLs preserved. `PrintEvidenceButton` opens every
+  disclosure before `window.print()` (restored after) + an `@media print` block so the printed record is complete + compact.
+
 ---
 
 > **Original design (future scope beyond 3A).** This documents the broader wave so it can be

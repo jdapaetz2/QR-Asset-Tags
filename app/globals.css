@@ -150,3 +150,22 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Session-evidence print (Phase 3C.5). Disclosure sections are collapsed on screen; the Print button opens each
+   `details[data-evidence-section]` before printing, and this keeps the printed record clean: hide the chevron,
+   drop the summary affordance, keep each section together, and print photos as a compact grid. */
+@media print {
+  details[data-evidence-section] {
+    break-inside: avoid;
+  }
+  details[data-evidence-section] > summary {
+    list-style: none;
+    cursor: default;
+  }
+  details[data-evidence-section] > summary [aria-hidden="true"] {
+    display: none;
+  }
+  .evidence-gallery-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}

@@ -49,8 +49,8 @@ export default async function StaffOutboundPage({
         action={submitOutboundInspection.bind(null, shortCode)}
         disclaimer="Outbound (pre-use) inspection — a baseline record of the equipment's condition and accessories as it leaves the yard."
         reviewCta="Review outbound inspection"
-        submitCta="Mark rented & save baseline"
-        submittingCta="Saving…"
+        submitCta="Complete inspection & mark rented"
+        submittingCta="Starting rental…"
         contextTitle="Rental details (optional)"
         contextFields={
           <>

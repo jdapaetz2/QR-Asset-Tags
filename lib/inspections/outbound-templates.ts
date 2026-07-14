@@ -23,7 +23,9 @@ import {
 } from "@/lib/inspections/field-builders";
 import { suggestTemplateKeyFromCategory } from "@/lib/inspections/resolve";
 
-const V = "2026-07-1";
+// 2026-07-5 (Phase 3C.5): accessories now record issued/not_issued (outbound vocabulary) instead of the
+// return-oriented returned/missing. Legacy 2026-07-1 snapshots still render via accessory normalization.
+const V = "2026-07-5";
 
 /** Shared "existing damage" flag (drives the canonical damage_observed flag on the baseline). */
 const EXISTING_DAMAGE = yesNo("existing_damage", "Any existing damage?", {

@@ -25,6 +25,40 @@ describe("return-inspection-form photo guidance copy", () => {
   });
 });
 
+describe("return-inspection-form attestation payload (Phase 3C.5)", () => {
+  it("submits the acknowledgement via a canonical hidden input sourced from state", () => {
+    // A hidden input carries the answer:<id> value from `strVal` (the client `values` state)…
+    expect(src).toMatch(
+      /<input type="hidden" name=\{name\} value=\{strVal === "yes" \? "yes" : "no"\} \/>/
+    );
+  });
+
+  it("the visible acknowledgement checkbox is UI-only (no answer:* name)", () => {
+    // …and the checkbox itself no longer carries the `name` (so the DOM checkbox can't diverge from state).
+    const ackBlock = src.slice(src.indexOf('case "acknowledgement":'), src.indexOf('case "acknowledgement":') + 700);
+    expect(ackBlock).toContain('type="checkbox"');
+    expect(ackBlock).not.toMatch(/type="checkbox"[\s\S]*?name=\{name\}/);
+  });
+});
+
+describe("return-inspection-form outbound terminology (Phase 3C.5)", () => {
+  it("names stage 2 by workflow — Outbound details for outbound, Return details for return", () => {
+    expect(src).toContain('outbound: { condition: "Condition", return_details: "Outbound details" }');
+    expect(src).toContain('return: { condition: "Condition", return_details: "Return details" }');
+    expect(src).toContain("template.inspection_type === \"outbound\"");
+  });
+
+  it("outbound accessories read Issued / Not issued / N/A (not Returned/Missing)", () => {
+    expect(src).toContain('{ value: "issued", label: "Issued" }');
+    expect(src).toContain('{ value: "not_issued", label: "Not issued" }');
+  });
+
+  it("uses a workflow-specific review step label", () => {
+    expect(src).toContain('"Review & start rental"');
+    expect(src).toContain('"Review & submit"');
+  });
+});
+
 describe("return-inspection-form explicit-submit gate", () => {
   it("gates the form action behind allowSubmitRef via onSubmit", () => {
     expect(src).toContain("allowSubmitRef");

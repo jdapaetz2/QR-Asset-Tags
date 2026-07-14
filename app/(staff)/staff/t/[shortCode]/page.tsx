@@ -55,7 +55,7 @@ export default async function StaffAssetPage({
 
       {started ? (
         <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-muted-foreground">
-          Marked rented — baseline recorded. Reference{" "}
+          Outbound inspection completed — asset is now rented, rental session started. Reference{" "}
           <span className="font-mono">{started}</span>.
         </p>
       ) : null}

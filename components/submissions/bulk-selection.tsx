@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { bulkSetSubmissionStatus } from "@/lib/submissions/actions";
+import { submissionStatusActionClasses } from "@/lib/ui/status";
 
 type SelectionContextValue = {
   selected: Set<string>;
@@ -151,20 +152,35 @@ function BulkToolbar() {
         <span className="text-sm font-medium">{count} selected</span>
         <span className="flex-1" />
         {viewingArchived ? (
-          <button type="button" className={TOOLBAR_BTN} disabled={pending} onClick={() => run("reviewed")}>
+          <button
+            type="button"
+            className={submissionStatusActionClasses("reviewed")}
+            disabled={pending}
+            onClick={() => run("reviewed")}
+          >
             Restore as reviewed
           </button>
         ) : (
           <>
-            <button type="button" className={TOOLBAR_BTN} disabled={pending} onClick={() => run("reviewed")}>
+            <button
+              type="button"
+              className={submissionStatusActionClasses("reviewed")}
+              disabled={pending}
+              onClick={() => run("reviewed")}
+            >
               Mark reviewed
             </button>
-            <button type="button" className={TOOLBAR_BTN} disabled={pending} onClick={() => run("resolved")}>
+            <button
+              type="button"
+              className={submissionStatusActionClasses("resolved")}
+              disabled={pending}
+              onClick={() => run("resolved")}
+            >
               Resolve
             </button>
             <button
               type="button"
-              className={TOOLBAR_BTN}
+              className={submissionStatusActionClasses("archived")}
               disabled={pending}
               onClick={() =>
                 run(

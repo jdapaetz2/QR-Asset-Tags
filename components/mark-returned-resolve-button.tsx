@@ -6,6 +6,7 @@ import {
   markReturnAndResolve,
   type SubmissionActionState,
 } from "@/lib/submissions/actions";
+import { submissionStatusActionClasses } from "@/lib/ui/status";
 
 /**
  * "Mark returned & resolve" — the single admin action that completes a return checklist.
@@ -48,10 +49,8 @@ export function MarkReturnedResolveButton({
       <button
         type="submit"
         disabled={pending}
-        className={
-          className ??
-          "inline-flex h-[30px] items-center rounded-[7px] border border-iron-200 px-3 text-[13px] transition-colors hover:bg-accent disabled:opacity-50"
-        }
+        // Target is "resolved" → track the Resolved (emerald/success) status vocabulary (Phase 3C.5).
+        className={className ?? submissionStatusActionClasses("resolved")}
       >
         {pending ? "Marking returned…" : "Mark returned & resolve"}
       </button>

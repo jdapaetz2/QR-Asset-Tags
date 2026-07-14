@@ -27,7 +27,10 @@ export type PassFailNa = (typeof PASS_FAIL_NA)[number];
 export const YES_NO = ["yes", "no"] as const;
 export type YesNo = (typeof YES_NO)[number];
 
-export const ACCESSORY_STATES = ["returned", "missing", "na"] as const;
+// Accessory answer values. Return inspections record returned/missing; outbound (pre-use) inspections record
+// issued/not_issued (Phase 3C.5). Server validation accepts both vocabularies; display + comparison normalize
+// via lib/inspections/accessories.ts (legacy outbound rows stored returned/missing and still render correctly).
+export const ACCESSORY_STATES = ["returned", "missing", "na", "issued", "not_issued"] as const;
 export type AccessoryState = (typeof ACCESSORY_STATES)[number];
 
 /** A single equality condition against another field's answer in the same submission. */

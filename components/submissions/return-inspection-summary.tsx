@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { accessoryLabel } from "@/lib/inspections/accessories";
 import type {
   InspectionField,
   ReturnInspectionData,
@@ -40,9 +41,13 @@ function formatValue(field: InspectionField, value: unknown): string {
 export function ReturnInspectionSummary({
   data,
   signedByPath,
+  hidePhotos = false,
 }: {
   data: ReturnInspectionData;
   signedByPath: Map<string, string | null>;
+  /** Omit the per-slot photo grid (Phase 3C.5). The session-evidence page renders photos once in its
+   * consolidated "Photos by source" gallery, so the per-source summaries there set this to avoid duplication. */
+  hidePhotos?: boolean;
 }) {
   const template = data.template_snapshot;
   const values = data.answers?.values ?? {};
@@ -135,7 +140,9 @@ export function ReturnInspectionSummary({
                       <dt className="text-muted-foreground">{field.label}</dt>
                       <dd className="text-foreground">
                         {(field.items ?? [])
-                          .map((i) => `${i.label}: ${map[i.id] ?? "—"}`)
+                          // Context labels (Issued/Not issued for outbound; Returned/Missing for return), with
+                          // legacy outbound values normalized so old snapshots read correctly (Phase 3C.5).
+                          .map((i) => `${i.label}: ${accessoryLabel(map[i.id], template.inspection_type)}`)
                           .join(" · ")}
                       </dd>
                     </div>
@@ -156,7 +163,7 @@ export function ReturnInspectionSummary({
       })}
 
       {/* Photos grouped by slot. */}
-      {Object.keys(photos).length > 0 ? (
+      {!hidePhotos && Object.keys(photos).length > 0 ? (
         <div className="flex flex-col gap-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Photos
