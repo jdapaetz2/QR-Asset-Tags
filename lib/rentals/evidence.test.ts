@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { buildSessionEvidenceHref, rentalEvidenceHref } from "./evidence";
+import { buildSessionEvidenceHref, isLikelyUuid, rentalEvidenceHref } from "./evidence";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "../..");
@@ -22,6 +22,21 @@ describe("buildSessionEvidenceHref", () => {
   it("keeps rentalEvidenceHref as a back-compat alias of the same helper", () => {
     expect(rentalEvidenceHref).toBe(buildSessionEvidenceHref);
     expect(rentalEvidenceHref("sess-123")).toBe("/dashboard/rentals/sess-123");
+  });
+});
+
+describe("isLikelyUuid (Phase 3C.4 — reject malformed session ids before the DB)", () => {
+  it("accepts a canonical UUID (any case)", () => {
+    expect(isLikelyUuid("11111111-1111-1111-1111-111111111111")).toBe(true);
+    expect(isLikelyUuid("A1B2C3D4-e5f6-7890-ABCD-ef1234567890")).toBe(true);
+  });
+
+  it("rejects non-UUID input", () => {
+    expect(isLikelyUuid("not-a-uuid")).toBe(false);
+    expect(isLikelyUuid("11111111-1111-1111-1111")).toBe(false);
+    expect(isLikelyUuid("")).toBe(false);
+    expect(isLikelyUuid(null)).toBe(false);
+    expect(isLikelyUuid(undefined)).toBe(false);
   });
 });
 

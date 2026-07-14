@@ -5,6 +5,7 @@ import { navForRole } from "@/lib/auth/nav";
 import { ROLES } from "@/lib/auth/roles";
 import type { Profile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { countNewSubmissions } from "@/lib/submissions/counts";
 import { NavLinks } from "@/components/nav-links";
 import { AccountMenu } from "@/components/account-menu";
 import { BrandLockup } from "@/components/brand/brand";
@@ -26,15 +27,12 @@ export async function AppShell({
   const nav = navForRole(profile.role);
   const home = profile.role === ROLES.PLATFORM_OWNER ? "/owner" : "/dashboard";
 
-  // Live "new submissions" count for the nav badge (customer roles only; RLS-scoped).
+  // Live "new submissions" count for the nav badge (customer roles only; RLS-scoped). Shared helper so the badge
+  // and the inbox "X new" pill can never disagree; invalidated by revalidateSubmissionSurfaces on every mutation.
   let submissionsNew = 0;
   if (profile.role !== ROLES.PLATFORM_OWNER && profile.organization_id) {
     const supabase = await createClient();
-    const { count } = await supabase
-      .from("form_submissions")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "new");
-    submissionsNew = count ?? 0;
+    submissionsNew = await countNewSubmissions(supabase);
   }
 
   return (

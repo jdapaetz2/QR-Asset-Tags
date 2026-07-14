@@ -188,6 +188,34 @@ DB/RLS/storage/auth/session change; media limits unchanged.
   client stage only (no insert, no upload, no session close); the ref is consumed per submit so a double-click / Enter
   replay submits once. Review-first is preserved for the public renter form too.
 
+### Phase 3C.4 — evidence loader repair + direct photo copy + count sync + above-fold status + bulk triage
+- **Session-evidence 404 — final root cause = a swallowed DB error from an ambiguous embedded relationship.**
+  `asset_rental_sessions` has TWO foreign keys to `assets` (`asset_id → assets.id` AND
+  `assets.active_rental_session_id → asset_rental_sessions.id`), so the old `.select("… asset:assets(…)")` embed was
+  ambiguous (PostgREST **PGRST201**); the page discarded the error and treated `data = null` as `notFound()`, so every
+  session 404'd. **Not** RLS, not a wrong id, not active-session filtering. Fix: `getRentalSessionEvidence`
+  (`lib/rentals/session-evidence.ts`) loads the session **by id, no embed**, captures `error`, **throws + logs
+  `[session-evidence]`** on an unexpected DB error, returns `null` only for a missing / cross-org-hidden session, and
+  loads asset + submissions separately (missing related records → empty states, never 404). `isLikelyUuid` rejects a
+  malformed param up front. **No migration** — the `for all` org-scoped RLS already reads closed sessions.
+- **Direct photo copy** (`lib/inspections/photo-copy.ts`, renderer-only — templates/snapshots untouched): expectation-
+  setting, never hedged ("Add a photo showing the equipment's condition…", damage/additional/named-slot variants) +
+  reworded review/dialog warnings; still optional, omission dialog unchanged. No "if possible/if you can/where
+  practical/strongly recommended/Photo's".
+- **One count, no stale badge:** `countNewSubmissions` (`status='new'`) feeds both the nav badge (`app-shell`) and the
+  inbox "X new" pill. `revalidateSubmissionSurfaces()` (`revalidatePath("/dashboard","layout")` + the inbox) runs after
+  every status mutation (single, mark-returned, staff completion, bulk, public submit) so the layout-hosted badge
+  refreshes without a manual reload — no polling, no `router.refresh` loop.
+- **Above-the-fold status actions:** direct state-aware buttons in the detail header (`nextStatusActions` +
+  `SubmissionStatusActions`) replace the lower Status card + `<select>`. Archive confirms; reopen/restore explicit; the
+  current status is never offered. An active renter return shows **Mark returned & resolve** and hides ordinary Resolve;
+  a server guard in `setSubmissionStatus` rejects resolving an active renter return so no path bypasses physical return.
+- **Inbox multi-select + safe bulk toolbar:** `BulkSelectionProvider` (client, keyed by filter signature → selection
+  clears on any filter change) adds a checkbox column + select-all-visible; `bulkSetSubmissionStatus` (RLS client, no
+  service role, UUID-validated, cap 100) updates in one request. Bulk **Resolve** is partitioned by
+  `partitionBulkResolve` — active renter returns are skipped with a clear banner ("N renter return(s) … skipped because
+  … rental is still active"); staff returns + damage/support resolve normally. Bulk Archive confirms with the count.
+
 ---
 
 > **Original design (future scope beyond 3A).** This documents the broader wave so it can be

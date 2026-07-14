@@ -11,6 +11,7 @@ import {
 } from "@/lib/forms/media";
 import { notifySubmission } from "@/lib/notifications/notify";
 import { submissionReference } from "@/lib/submissions/inbox";
+import { revalidateSubmissionSurfaces } from "@/lib/submissions/revalidate";
 
 /**
  * Shared server-side core for all public form submissions (damage / support /
@@ -147,6 +148,10 @@ export async function submitPublicForm(
     submissionId,
     reference,
   });
+
+  // A new public submission is `status='new'`, so mark the authenticated submission surfaces stale — the next
+  // admin navigation recomputes a fresh nav badge / inbox count without a manual refresh (no polling, no loop).
+  revalidateSubmissionSurfaces();
 
   // Pass the canonical reference to the thanks page for a display-only confirmation
   // number — the same string the rental company sees in the admin inbox. Anon cannot

@@ -10,6 +10,7 @@ import {
 } from "@/lib/forms/media";
 import { resolveStaffReturnTemplate } from "@/lib/inspections/staff-return-templates";
 import { staffReturnStatus } from "@/lib/submissions/returns";
+import { revalidateSubmissionSurfaces } from "@/lib/submissions/revalidate";
 import {
   buildAnswers,
   deriveFlags,
@@ -174,6 +175,10 @@ export async function submitStaffReturnInspectionCore(
   const code = (result as { result?: string; submission_id?: string } | null) ?? null;
   const outcome = rpcError ? null : code?.result;
 
+  if (outcome === "completed" || outcome === "already_completed") {
+    // A staff return closes the session + may leave the submission "new" (flagged) → refresh the nav badge.
+    revalidateSubmissionSurfaces();
+  }
   if (outcome === "completed") {
     redirect(`/staff/t/${shortCode}/return/complete?sub=${submissionId}`);
   }

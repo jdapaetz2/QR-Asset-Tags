@@ -2,12 +2,18 @@ import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
+import { countNewSubmissions } from "@/lib/submissions/counts";
 import { RelativeTime } from "@/components/relative-time";
 import {
   SUBMISSION_STATUSES,
   FORM_TYPE_LABELS,
 } from "@/lib/submissions/display";
 import { SubmissionBadges } from "@/components/submissions/submission-badges";
+import {
+  BulkSelectionProvider,
+  SelectAllCheckbox,
+  SelectCheckbox,
+} from "@/components/submissions/bulk-selection";
 import { isOpenDamageRow } from "@/lib/submissions/damage";
 import {
   FILTER_FORM_TYPES,
@@ -141,11 +147,8 @@ export default async function SubmissionsPage({
     })
   );
 
-  // Cheap RLS-scoped cue: how many submissions are still "new" (own org).
-  const { count: newCount } = await supabase
-    .from("form_submissions")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "new");
+  // Same shared helper as the nav badge, so the "X new" pill and the badge can never disagree (Phase 3C.4).
+  const newCount = await countNewSubmissions(supabase);
 
   // Total submissions for the org (any status) → distinguishes "nothing yet" from
   // "nothing matches the current filters" for the empty state.
@@ -169,6 +172,19 @@ export default async function SubmissionsPage({
   }`;
 
   const activeChip = activeQuickFilterKey(filters);
+
+  // Multi-select (Phase 3C.4): "select all" spans only the currently-rendered rows. The filter signature keys
+  // the provider so any filter change remounts it and clears selection. Archived view swaps in Restore.
+  const visibleIds = rows.map((r) => r.id);
+  const viewingArchived = filters.status === "archived";
+  const filterSignature = JSON.stringify([
+    filters.q,
+    filters.formType,
+    filters.status,
+    filters.assetId,
+    filters.hasMedia,
+    filters.attention,
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -293,10 +309,19 @@ export default async function SubmissionsPage({
         </Link>
       </form>
 
+      <BulkSelectionProvider
+        key={filterSignature}
+        visibleIds={visibleIds}
+        viewingArchived={viewingArchived}
+      >
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/50 text-left text-muted-foreground">
             <tr>
+              <th className="px-3 py-2 font-medium">
+                <SelectAllCheckbox />
+                <span className="sr-only">Select</span>
+              </th>
               <th className="px-3 py-2 font-medium">Media</th>
               <th className="px-4 py-2 font-medium">Type</th>
               <th className="px-4 py-2 font-medium">Asset</th>
@@ -309,7 +334,7 @@ export default async function SubmissionsPage({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-6">
+                <td colSpan={8} className="px-4 py-6">
                   {hasAnySubmissions ? (
                     <EmptyState
                       title="No submissions match"
@@ -368,6 +393,9 @@ export default async function SubmissionsPage({
                         : "border-b last:border-0"
                     }
                   >
+                    <td className="px-3 py-2 align-top">
+                      <SelectCheckbox id={row.id} />
+                    </td>
                     {/* Media: image thumbnail (first image) or attachment count */}
                     <td className="px-3 py-2">
                       {thumb ? (
@@ -471,6 +499,7 @@ export default async function SubmissionsPage({
           </tbody>
         </table>
       </div>
+      </BulkSelectionProvider>
     </div>
   );
 }

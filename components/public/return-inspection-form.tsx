@@ -15,7 +15,12 @@ import {
   visiblePhotoSlotCounts,
 } from "@/lib/inspections/validate";
 import { sectionStage } from "@/lib/inspections/stages";
-import { ADDITIONAL_PHOTOS_SLOT_ID, DAMAGE_PHOTOS_SLOT_ID } from "@/lib/inspections/templates";
+import { DAMAGE_PHOTOS_SLOT_ID } from "@/lib/inspections/templates";
+import {
+  photoSlotHelp,
+  REVIEW_DAMAGE_NO_PHOTO,
+  REVIEW_NO_PHOTOS,
+} from "@/lib/inspections/photo-copy";
 import type {
   InspectionField,
   InspectionSection,
@@ -49,25 +54,6 @@ const FUEL_OPTIONS = [
   { value: "Fully charged", label: "Fully charged" },
   { value: "Partial charge", label: "Partial charge" },
 ];
-
-// Approved renter-facing photo guidance (Phase 3C.3). Friendly, context-specific, never legal/mandatory.
-// Overridden in the renderer by slot so the copy is consistent regardless of the template's stored `help`.
-const GENERAL_PHOTO_HELP =
-  "Add a photo if you can. It helps the rental team understand the equipment's condition and can reduce follow-up questions.";
-const PHOTO_SLOT_HELP: Record<string, string> = {
-  [DAMAGE_PHOTOS_SLOT_ID]:
-    "If possible, add a clear photo of the damage so the rental team can review it faster.",
-  [ADDITIONAL_PHOTOS_SLOT_ID]: "Add any other photos that help show the equipment's condition.",
-};
-function photoSlotHelp(fieldId: string): string {
-  return PHOTO_SLOT_HELP[fieldId] ?? GENERAL_PHOTO_HELP;
-}
-
-// Approved review-step warnings (soft, non-blocking).
-const REVIEW_NO_PHOTOS =
-  "No photos were added. You can still submit, but photos make it easier for the rental team to confirm the equipment's condition.";
-const REVIEW_DAMAGE_NO_PHOTO =
-  "Damage was reported without a photo. You can still submit, but a photo can help the rental team review it faster.";
 
 const STAGE_ORDER: InspectionStage[] = ["condition", "return_details"];
 const STAGE_TITLES: Record<InspectionStage, string> = {

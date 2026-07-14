@@ -24,7 +24,7 @@ import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { RelativeTime } from "@/components/relative-time";
 import { submissionStatusTone } from "@/lib/ui/status";
 import { submissionStatusLabel } from "@/lib/ui/status-labels";
-import { SubmissionStatusForm } from "@/components/submission-status-form";
+import { SubmissionStatusActions } from "@/components/submissions/submission-status-actions";
 import { MarkReturnedResolveButton } from "@/components/mark-returned-resolve-button";
 import { ReturnDoneNotice } from "@/components/return-done-notice";
 import { canQuickResolveReturn } from "@/lib/submissions/returns";
@@ -173,6 +173,30 @@ export default async function SubmissionDetailPage({
   const isInspection = isInspectionFormType(submission.form_type);
   const sessionEvidenceAvailable = Boolean(submission.rental_session_id) && isInspection;
 
+  // Above-the-fold status controls (Phase 3C.4): direct buttons in the header, not a lower Status card. An
+  // unresolved renter return whose asset is still Rented offers "Mark returned & resolve" and hides the ordinary
+  // Resolve (that path must complete the physical return); staff returns use ordinary actions.
+  const quickResolve = canQuickResolveReturn({
+    formType: submission.form_type,
+    status: submission.status,
+    origin: submission.submission_origin,
+    assetRented,
+  });
+  const detailHref = `/dashboard/submissions/${submission.id}`;
+  const statusActions = (
+    <div className="flex flex-col gap-2 sm:items-end">
+      {quickResolve ? (
+        <MarkReturnedResolveButton submissionId={submission.id} redirectTo={detailHref} />
+      ) : null}
+      <SubmissionStatusActions
+        submissionId={submission.id}
+        status={submission.status}
+        hideResolve={quickResolve}
+        redirectTo={detailHref}
+      />
+    </div>
+  );
+
   const headerBlock = (
     <section className="flex flex-col gap-3 rounded-lg border bg-card p-5">
       <Link
@@ -181,26 +205,31 @@ export default async function SubmissionDetailPage({
       >
         ← Submissions
       </Link>
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {submissionTypeLabel(submission.form_type, submission.submission_origin)}
-        </h1>
-        <Badge tone={submissionStatusTone(submission.status)}>
-          {submissionStatusLabel(submission.status)}
-        </Badge>
-        {urgency ? (
-          <Badge tone={urgencyTone(urgency)}>{titleCase(urgency)} urgency</Badge>
-        ) : null}
-        {attachmentCount > 0 ? (
-          <Badge tone="neutral">
-            📎 {attachmentCount} attachment{attachmentCount === 1 ? "" : "s"}
-          </Badge>
-        ) : null}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {submissionTypeLabel(submission.form_type, submission.submission_origin)}
+            </h1>
+            <Badge tone={submissionStatusTone(submission.status)}>
+              {submissionStatusLabel(submission.status)}
+            </Badge>
+            {urgency ? (
+              <Badge tone={urgencyTone(urgency)}>{titleCase(urgency)} urgency</Badge>
+            ) : null}
+            {attachmentCount > 0 ? (
+              <Badge tone="neutral">
+                📎 {attachmentCount} attachment{attachmentCount === 1 ? "" : "s"}
+              </Badge>
+            ) : null}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-mono">{reference}</span> ·{" "}
+            <RelativeTime value={submission.created_at} />
+          </p>
+        </div>
+        {statusActions}
       </div>
-      <p className="text-sm text-muted-foreground">
-        <span className="font-mono">{reference}</span> ·{" "}
-        <RelativeTime value={submission.created_at} />
-      </p>
     </section>
   );
 
@@ -313,34 +342,6 @@ export default async function SubmissionDetailPage({
       ) : (
         <p className="text-muted-foreground">No linked asset.</p>
       )}
-    </section>
-  );
-
-  const statusBlock = (
-    <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4">
-      <div className="text-sm">
-        <h2 className="font-medium">Status</h2>
-        <p className="text-muted-foreground">
-          Set the workflow state as this submission is triaged and resolved.
-        </p>
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
-        {canQuickResolveReturn({
-          formType: submission.form_type,
-          status: submission.status,
-          origin: submission.submission_origin,
-          assetRented,
-        }) ? (
-          <MarkReturnedResolveButton
-            submissionId={submission.id}
-            redirectTo={`/dashboard/submissions/${submission.id}`}
-          />
-        ) : null}
-        <SubmissionStatusForm
-          submissionId={submission.id}
-          current={submission.status}
-        />
-      </div>
     </section>
   );
 
@@ -506,12 +507,11 @@ export default async function SubmissionDetailPage({
     <div className="flex flex-col gap-6">
       <ReturnDoneNotice done={sp.done} />
       {isInspection ? (
-        // Compact header → compact asset strip → report → status → submitter → related.
+        // Header (with status actions) → compact asset strip → report → submitter → related.
         <>
           {headerBlock}
           {assetStrip}
           {reportBlock}
-          {statusBlock}
           {submitterBlock}
           {relatedBlock}
         </>
@@ -520,7 +520,6 @@ export default async function SubmissionDetailPage({
         <>
           {headerBlock}
           {assetCard}
-          {statusBlock}
           {submitterBlock}
           {relatedBlock}
           {reportBlock}

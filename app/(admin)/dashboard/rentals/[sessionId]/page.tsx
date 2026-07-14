@@ -3,6 +3,12 @@ import { notFound } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
+import { isLikelyUuid } from "@/lib/rentals/evidence";
+import {
+  createEvidenceQueryClient,
+  getRentalSessionEvidence,
+  type SubRow,
+} from "@/lib/rentals/session-evidence";
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { Badge } from "@/components/ui/badge";
 import { RelativeTime } from "@/components/relative-time";
@@ -23,28 +29,6 @@ export const dynamic = "force-dynamic";
 
 const SUBMISSIONS_BUCKET = "submissions";
 
-type SessionRow = {
-  id: string;
-  asset_id: string | null;
-  status: string;
-  rental_reference: string | null;
-  renter_label: string | null;
-  started_at: string;
-  returned_at: string | null;
-  asset: { asset_code: string; asset_name: string } | null;
-};
-
-type SubRow = {
-  id: string;
-  created_at: string;
-  form_type: string;
-  submission_origin: string | null;
-  status: string;
-  submitted_by_name: string | null;
-  submission_data_json: unknown;
-  media_urls: unknown;
-};
-
 const asData = (json: unknown): ReturnInspectionData | null =>
   isReturnInspectionV2(json) ? json : null;
 
@@ -61,29 +45,21 @@ export default async function RentalEvidencePage({
 }) {
   await requireOrgId();
   const { sessionId } = await params;
+  // Reject a malformed id up front so an obviously-bad param 404s deterministically and never reaches the DB.
+  if (!isLikelyUuid(sessionId)) notFound();
 
   const supabase = await createClient();
 
-  // RLS-scoped: a session from another org isn't returned → 404 (cross-org isolation).
-  const { data: sessionData } = await supabase
-    .from("asset_rental_sessions")
-    .select(
-      "id, asset_id, status, rental_reference, renter_label, started_at, returned_at, asset:assets(asset_code, asset_name)"
-    )
-    .eq("id", sessionId)
-    .maybeSingle();
-  if (!sessionData) notFound();
-  const session = sessionData as unknown as SessionRow;
-
-  // All condition records for THIS session (same-session only). RLS-scoped to the caller's org.
-  const { data: subData } = await supabase
-    .from("form_submissions")
-    .select(
-      "id, created_at, form_type, submission_origin, status, submitted_by_name, submission_data_json, media_urls"
-    )
-    .eq("rental_session_id", sessionId)
-    .order("created_at", { ascending: true });
-  const subs = (subData ?? []) as unknown as SubRow[];
+  // Load the session by id with NO embedded relation, then its asset + submissions SEPARATELY. The old embedded
+  // `asset:assets(...)` select was ambiguous (two FKs between the tables → PGRST201) and its swallowed error
+  // 404'd every session. The loader surfaces real DB errors (throws + logs) and returns null only for a genuinely
+  // missing / cross-org-hidden (RLS) session. Missing related records render empty states, never a 404.
+  const evidence = await getRentalSessionEvidence(
+    createEvidenceQueryClient(supabase),
+    sessionId
+  );
+  if (!evidence) notFound();
+  const { session, asset, submissions: subs } = evidence;
 
   const outbound = subs.find((s) => s.form_type === "pre_use_inspection") ?? null;
   const staff =
@@ -142,10 +118,10 @@ export default async function RentalEvidencePage({
             {session.status === "active" ? "Active" : "Returned"}
           </Badge>
         </div>
-        {session.asset ? (
+        {asset ? (
           <div className="flex flex-col items-start gap-1.5">
-            <AssetTagChip code={session.asset.asset_code} />
-            <span className="font-medium">{session.asset.asset_name}</span>
+            <AssetTagChip code={asset.asset_code} />
+            <span className="font-medium">{asset.asset_name}</span>
           </div>
         ) : null}
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm text-muted-foreground">
