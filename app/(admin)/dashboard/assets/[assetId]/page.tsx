@@ -23,7 +23,7 @@ import {
   getOrgTemplate,
 } from "@/lib/inspections/org-templates-data";
 import { RETURN_TEMPLATE_PICKER } from "@/lib/inspections/templates";
-import { rentalEvidenceHref } from "@/lib/rentals/evidence";
+import { buildSessionEvidenceHref } from "@/lib/rentals/evidence";
 import { getOpenDamageForAsset } from "@/lib/submissions/damage-query";
 import { OpenDamageAlert } from "@/components/assets/open-damage-alert";
 import { UNRESOLVED_STATUSES } from "@/lib/submissions/inbox";
@@ -267,7 +267,7 @@ export default async function EditAssetPage({
 
       {rentalSession?.id ? (
         <Link
-          href={rentalEvidenceHref(rentalSession.id)}
+          href={buildSessionEvidenceHref(rentalSession.id)}
           className="-mt-2 text-sm text-muted-foreground underline-offset-4 hover:underline"
         >
           View rental session evidence →

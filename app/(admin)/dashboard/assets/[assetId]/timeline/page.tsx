@@ -8,7 +8,7 @@ import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { RelativeTime } from "@/components/relative-time";
 import { SubmissionBadges } from "@/components/submissions/submission-badges";
 import { returnChecklistFlags } from "@/lib/submissions/returns";
-import { rentalEvidenceHref } from "@/lib/rentals/evidence";
+import { buildSessionEvidenceHref } from "@/lib/rentals/evidence";
 
 // Read-only, auth-scoped per request; never cache.
 export const dynamic = "force-dynamic";
@@ -146,7 +146,7 @@ export default async function AssetTimelinePage({
           </span>
           {latestSessionId ? (
             <Link
-              href={rentalEvidenceHref(latestSessionId)}
+              href={buildSessionEvidenceHref(latestSessionId)}
               className="rounded-md border px-2 py-0.5 text-xs text-foreground underline-offset-4 hover:bg-accent"
             >
               Latest rental evidence →

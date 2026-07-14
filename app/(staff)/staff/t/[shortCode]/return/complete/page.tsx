@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireStaffAssetByShortCode } from "@/lib/staff/guard";
 import { submissionReference } from "@/lib/submissions/inbox";
 import { returnChecklistFlags } from "@/lib/submissions/returns";
-import { rentalEvidenceHref } from "@/lib/rentals/evidence";
+import { buildSessionEvidenceHref } from "@/lib/rentals/evidence";
 
 export const dynamic = "force-dynamic";
 
@@ -156,7 +156,7 @@ export default async function StaffReturnCompletePage({
         </Link>
         {evidenceSessionId ? (
           <Link
-            href={rentalEvidenceHref(evidenceSessionId)}
+            href={buildSessionEvidenceHref(evidenceSessionId)}
             className="inline-flex min-h-11 w-full items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
           >
             View session evidence

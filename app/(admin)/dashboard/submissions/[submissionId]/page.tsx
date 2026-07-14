@@ -9,8 +9,8 @@ import {
   oppositeOrigin,
   submissionTypeLabel,
 } from "@/lib/submissions/origin";
-import { returnChecklistFlags } from "@/lib/submissions/returns";
-import { rentalEvidenceHref } from "@/lib/rentals/evidence";
+import { isInspectionFormType, returnChecklistFlags } from "@/lib/submissions/returns";
+import { buildSessionEvidenceHref } from "@/lib/rentals/evidence";
 import { openDamageHref } from "@/lib/submissions/damage";
 import {
   UNRESOLVED_STATUSES,
@@ -167,285 +167,363 @@ export default async function SubmissionDetailPage({
   }
   const relatedHeading = isStaff ? "Related renter return reports" : "Related staff return inspection";
 
-  return (
-    <div className="flex flex-col gap-6">
-      <ReturnDoneNotice done={sp.done} />
-      {/* Header */}
-      <section className="flex flex-col gap-3 rounded-lg border bg-card p-5">
-        <Link
-          href="/dashboard/submissions"
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          ← Submissions
-        </Link>
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {submissionTypeLabel(submission.form_type, submission.submission_origin)}
-          </h1>
-          <Badge tone={submissionStatusTone(submission.status)}>
-            {submissionStatusLabel(submission.status)}
-          </Badge>
-          {urgency ? (
-            <Badge tone={urgencyTone(urgency)}>{titleCase(urgency)} urgency</Badge>
-          ) : null}
-          {attachmentCount > 0 ? (
-            <Badge tone="neutral">
-              📎 {attachmentCount} attachment{attachmentCount === 1 ? "" : "s"}
-            </Badge>
-          ) : null}
-        </div>
-        <p className="text-sm text-muted-foreground">
-          <span className="font-mono">{reference}</span> ·{" "}
-          <RelativeTime value={submission.created_at} />
-        </p>
-      </section>
+  // Inspection-style submissions (staff/renter return + outbound) lead with the structured report, so on a
+  // phone the primary content sits right under a compact header + asset strip instead of below tall
+  // asset/status/submitter cards (Phase 3C.3). Damage/support keep their existing top-down order.
+  const isInspection = isInspectionFormType(submission.form_type);
+  const sessionEvidenceAvailable = Boolean(submission.rental_session_id) && isInspection;
 
-      {/* Asset */}
-      <section className="rounded-lg border bg-card p-4 text-sm">
-        <h2 className="mb-3 font-medium">Asset</h2>
-        {submission.asset ? (
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex flex-col items-start gap-1.5">
-              <AssetTagChip code={submission.asset.asset_code} />
-              <span className="font-medium">{submission.asset.asset_name}</span>
-              {submission.asset_id ? (
-                <span className="text-xs text-muted-foreground">
-                  {assetUnresolved} unresolved submission
-                  {assetUnresolved === 1 ? "" : "s"} on this asset
-                </span>
-              ) : null}
-            </div>
+  const headerBlock = (
+    <section className="flex flex-col gap-3 rounded-lg border bg-card p-5">
+      <Link
+        href="/dashboard/submissions"
+        className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+      >
+        ← Submissions
+      </Link>
+      <div className="flex flex-wrap items-center gap-2">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {submissionTypeLabel(submission.form_type, submission.submission_origin)}
+        </h1>
+        <Badge tone={submissionStatusTone(submission.status)}>
+          {submissionStatusLabel(submission.status)}
+        </Badge>
+        {urgency ? (
+          <Badge tone={urgencyTone(urgency)}>{titleCase(urgency)} urgency</Badge>
+        ) : null}
+        {attachmentCount > 0 ? (
+          <Badge tone="neutral">
+            📎 {attachmentCount} attachment{attachmentCount === 1 ? "" : "s"}
+          </Badge>
+        ) : null}
+      </div>
+      <p className="text-sm text-muted-foreground">
+        <span className="font-mono">{reference}</span> ·{" "}
+        <RelativeTime value={submission.created_at} />
+      </p>
+    </section>
+  );
+
+  // Full (tall) asset card — default order for damage/support.
+  const assetCard = (
+    <section className="rounded-lg border bg-card p-4 text-sm">
+      <h2 className="mb-3 font-medium">Asset</h2>
+      {submission.asset ? (
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-col items-start gap-1.5">
+            <AssetTagChip code={submission.asset.asset_code} />
+            <span className="font-medium">{submission.asset.asset_name}</span>
             {submission.asset_id ? (
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  href={`/dashboard/submissions?asset_id=${submission.asset_id}`}
-                  className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
-                >
-                  This asset&apos;s submissions →
-                </Link>
-                <Link
-                  href={`/dashboard/assets/${submission.asset_id}`}
-                  className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
-                >
-                  Asset detail →
-                </Link>
-                <Link
-                  href={`/dashboard/assets/${submission.asset_id}/timeline`}
-                  className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
-                >
-                  Asset timeline →
-                </Link>
-                {submission.rental_session_id &&
-                (submission.form_type === "return_checklist" ||
-                  submission.form_type === "pre_use_inspection") ? (
-                  <Link
-                    href={rentalEvidenceHref(submission.rental_session_id)}
-                    className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
-                  >
-                    Session evidence →
-                  </Link>
-                ) : null}
-                {isDamageRelated ? (
-                  <Link
-                    href={openDamageHref(submission.asset_id)}
-                    className="rounded-md border border-destructive/40 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10"
-                  >
-                    Other open damage for this asset →
-                  </Link>
-                ) : null}
-              </div>
+              <span className="text-xs text-muted-foreground">
+                {assetUnresolved} unresolved submission
+                {assetUnresolved === 1 ? "" : "s"} on this asset
+              </span>
             ) : null}
           </div>
-        ) : (
-          <p className="text-muted-foreground">No linked asset.</p>
-        )}
-      </section>
-
-      {/* Status */}
-      <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4">
-        <div className="text-sm">
-          <h2 className="font-medium">Status</h2>
-          <p className="text-muted-foreground">
-            Set the workflow state as this submission is triaged and resolved.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {canQuickResolveReturn({
-            formType: submission.form_type,
-            status: submission.status,
-            origin: submission.submission_origin,
-            assetRented,
-          }) ? (
-            <MarkReturnedResolveButton
-              submissionId={submission.id}
-              redirectTo={`/dashboard/submissions/${submission.id}`}
-            />
+          {submission.asset_id ? (
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href={`/dashboard/submissions?asset_id=${submission.asset_id}`}
+                className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
+              >
+                This asset&apos;s submissions →
+              </Link>
+              <Link
+                href={`/dashboard/assets/${submission.asset_id}`}
+                className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
+              >
+                Asset detail →
+              </Link>
+              <Link
+                href={`/dashboard/assets/${submission.asset_id}/timeline`}
+                className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
+              >
+                Asset timeline →
+              </Link>
+              {isDamageRelated ? (
+                <Link
+                  href={openDamageHref(submission.asset_id)}
+                  className="rounded-md border border-destructive/40 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10"
+                >
+                  Other open damage for this asset →
+                </Link>
+              ) : null}
+            </div>
           ) : null}
-          <SubmissionStatusForm
-            submissionId={submission.id}
-            current={submission.status}
-          />
         </div>
-      </section>
-
-      {/* Submitter / performer */}
-      {isStaff ? (
-        <section className="rounded-lg border bg-card p-4 text-sm">
-          <h2 className="mb-3 font-medium">Performed by</h2>
-          <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-muted-foreground">
-            <dt>Staff</dt>
-            <dd className="text-foreground">{submission.submitted_by_name ?? "Staff"}</dd>
-            {submission.submitted_by_email ? (
-              <>
-                <dt>Email</dt>
-                <dd className="text-foreground">
-                  <a
-                    href={`mailto:${submission.submitted_by_email}`}
-                    className="underline-offset-4 hover:underline"
-                  >
-                    {submission.submitted_by_email}
-                  </a>
-                </dd>
-              </>
-            ) : null}
-          </dl>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Recorded from the authenticated staff account.
-          </p>
-        </section>
       ) : (
-      <section className="rounded-lg border bg-card p-4 text-sm">
-        <h2 className="mb-3 font-medium">Submitted by</h2>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-muted-foreground">
-          <dt>Name</dt>
-          <dd className="text-foreground">{submission.submitted_by_name ?? "—"}</dd>
-          <dt>Email</dt>
-          <dd className="text-foreground">
-            {submission.submitted_by_email ? (
+        <p className="text-muted-foreground">No linked asset.</p>
+      )}
+    </section>
+  );
+
+  // Compact asset/action strip — inspection order, kept short so the report stays near the fold on mobile.
+  const assetStrip = (
+    <section className="flex flex-col gap-2 rounded-lg border bg-card p-3 text-sm">
+      {submission.asset ? (
+        <>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <AssetTagChip code={submission.asset.asset_code} />
+            <span className="font-medium">{submission.asset.asset_name}</span>
+            {submission.asset_id ? (
+              <span className="text-xs text-muted-foreground">
+                {assetUnresolved} unresolved on this asset
+              </span>
+            ) : null}
+          </div>
+          {submission.asset_id ? (
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href={`/dashboard/assets/${submission.asset_id}`}
+                className="rounded-md border px-2.5 py-1 text-xs hover:bg-accent hover:text-accent-foreground"
+              >
+                Asset detail →
+              </Link>
+              <Link
+                href={`/dashboard/assets/${submission.asset_id}/timeline`}
+                className="rounded-md border px-2.5 py-1 text-xs hover:bg-accent hover:text-accent-foreground"
+              >
+                Asset timeline →
+              </Link>
+              {sessionEvidenceAvailable ? (
+                <Link
+                  href={buildSessionEvidenceHref(submission.rental_session_id)}
+                  className="rounded-md border px-2.5 py-1 text-xs hover:bg-accent hover:text-accent-foreground"
+                >
+                  Session evidence →
+                </Link>
+              ) : null}
+              <Link
+                href={`/dashboard/submissions?asset_id=${submission.asset_id}`}
+                className="rounded-md border px-2.5 py-1 text-xs hover:bg-accent hover:text-accent-foreground"
+              >
+                This asset&apos;s submissions →
+              </Link>
+              {isDamageRelated ? (
+                <Link
+                  href={openDamageHref(submission.asset_id)}
+                  className="rounded-md border border-destructive/40 px-2.5 py-1 text-xs text-destructive hover:bg-destructive/10"
+                >
+                  Other open damage →
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <p className="text-muted-foreground">No linked asset.</p>
+      )}
+    </section>
+  );
+
+  const statusBlock = (
+    <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4">
+      <div className="text-sm">
+        <h2 className="font-medium">Status</h2>
+        <p className="text-muted-foreground">
+          Set the workflow state as this submission is triaged and resolved.
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        {canQuickResolveReturn({
+          formType: submission.form_type,
+          status: submission.status,
+          origin: submission.submission_origin,
+          assetRented,
+        }) ? (
+          <MarkReturnedResolveButton
+            submissionId={submission.id}
+            redirectTo={`/dashboard/submissions/${submission.id}`}
+          />
+        ) : null}
+        <SubmissionStatusForm
+          submissionId={submission.id}
+          current={submission.status}
+        />
+      </div>
+    </section>
+  );
+
+  const submitterBlock = isStaff ? (
+    <section className="rounded-lg border bg-card p-4 text-sm">
+      <h2 className="mb-3 font-medium">Performed by</h2>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-muted-foreground">
+        <dt>Staff</dt>
+        <dd className="text-foreground">{submission.submitted_by_name ?? "Staff"}</dd>
+        {submission.submitted_by_email ? (
+          <>
+            <dt>Email</dt>
+            <dd className="text-foreground">
               <a
                 href={`mailto:${submission.submitted_by_email}`}
                 className="underline-offset-4 hover:underline"
               >
                 {submission.submitted_by_email}
               </a>
-            ) : (
-              "—"
-            )}
-          </dd>
-          <dt>Phone</dt>
-          <dd className="text-foreground">
-            {submission.submitted_by_phone ? (
-              <a
-                href={`tel:${submission.submitted_by_phone}`}
-                className="underline-offset-4 hover:underline"
-              >
-                {submission.submitted_by_phone}
-              </a>
-            ) : (
-              "—"
-            )}
-          </dd>
+            </dd>
+          </>
+        ) : null}
+      </dl>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Recorded from the authenticated staff account.
+      </p>
+    </section>
+  ) : (
+    <section className="rounded-lg border bg-card p-4 text-sm">
+      <h2 className="mb-3 font-medium">Submitted by</h2>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-muted-foreground">
+        <dt>Name</dt>
+        <dd className="text-foreground">{submission.submitted_by_name ?? "—"}</dd>
+        <dt>Email</dt>
+        <dd className="text-foreground">
+          {submission.submitted_by_email ? (
+            <a
+              href={`mailto:${submission.submitted_by_email}`}
+              className="underline-offset-4 hover:underline"
+            >
+              {submission.submitted_by_email}
+            </a>
+          ) : (
+            "—"
+          )}
+        </dd>
+        <dt>Phone</dt>
+        <dd className="text-foreground">
+          {submission.submitted_by_phone ? (
+            <a
+              href={`tel:${submission.submitted_by_phone}`}
+              className="underline-offset-4 hover:underline"
+            >
+              {submission.submitted_by_phone}
+            </a>
+          ) : (
+            "—"
+          )}
+        </dd>
+      </dl>
+    </section>
+  );
+
+  const relatedBlock =
+    submission.form_type === "return_checklist" && submission.rental_session_id ? (
+      <section className="rounded-lg border bg-card p-4 text-sm">
+        <h2 className="mb-3 font-medium">{relatedHeading}</h2>
+        {related.length === 0 ? (
+          <p className="text-muted-foreground">
+            No {isStaff ? "renter return reports" : "staff return inspection"} for this rental.
+          </p>
+        ) : (
+          <ul className="flex flex-col divide-y">
+            {related.map((r) => {
+              const flags = returnChecklistFlags(r.submission_data_json);
+              return (
+                <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <div className="flex flex-col">
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {submissionReference(r.id, r.created_at)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      <RelativeTime value={r.created_at} />
+                      {r.submitted_by_name ? ` · ${r.submitted_by_name}` : ""}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {flags.damage ? <Badge tone="danger">Damage</Badge> : null}
+                    {flags.missing ? <Badge tone="warning">Missing</Badge> : null}
+                    {!flags.flagged ? <Badge tone="success">No issues</Badge> : null}
+                    <Link
+                      href={`/dashboard/submissions/${r.id}`}
+                      className="text-sm underline-offset-4 hover:underline"
+                    >
+                      Open {isStaff ? "report" : "inspection"} →
+                    </Link>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    ) : null;
+
+  // The structured report (rendered ONCE). V2 → guided summary + photos by slot; V1 → flat details + media.
+  const reportBlock = v2Data ? (
+    <ReturnInspectionSummary data={v2Data} signedByPath={signedByPath} />
+  ) : (
+    <>
+      <section className="rounded-lg border bg-card p-4 text-sm">
+        <h2 className="mb-3 font-medium">Details</h2>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-muted-foreground">
+          {fields.map((field) => (
+            <div key={field.label} className="contents">
+              <dt>{field.label}</dt>
+              <dd className="whitespace-pre-line text-foreground">{field.value}</dd>
+            </div>
+          ))}
         </dl>
       </section>
-      )}
 
-      {/* Related same-session records from the opposite workflow (staff <-> renter). */}
-      {submission.form_type === "return_checklist" && submission.rental_session_id ? (
-        <section className="rounded-lg border bg-card p-4 text-sm">
-          <h2 className="mb-3 font-medium">{relatedHeading}</h2>
-          {related.length === 0 ? (
-            <p className="text-muted-foreground">
-              No {isStaff ? "renter return reports" : "staff return inspection"} for this rental.
-            </p>
-          ) : (
-            <ul className="flex flex-col divide-y">
-              {related.map((r) => {
-                const flags = returnChecklistFlags(r.submission_data_json);
-                return (
-                  <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                    <div className="flex flex-col">
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {submissionReference(r.id, r.created_at)}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        <RelativeTime value={r.created_at} />
-                        {r.submitted_by_name ? ` · ${r.submitted_by_name}` : ""}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {flags.damage ? <Badge tone="danger">Damage</Badge> : null}
-                      {flags.missing ? <Badge tone="warning">Missing</Badge> : null}
-                      {!flags.flagged ? <Badge tone="success">No issues</Badge> : null}
-                      <Link
-                        href={`/dashboard/submissions/${r.id}`}
-                        className="text-sm underline-offset-4 hover:underline"
-                      >
-                        Open {isStaff ? "report" : "inspection"} →
-                      </Link>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-      ) : null}
-
-      {v2Data ? (
-        /* V2 guided return inspection — structured summary + photos grouped by slot. */
-        <ReturnInspectionSummary data={v2Data} signedByPath={signedByPath} />
-      ) : (
-        <>
-          {/* Form-specific fields (V1 flat renderer) */}
-          <section className="rounded-lg border bg-card p-4 text-sm">
-            <h2 className="mb-3 font-medium">Details</h2>
-            <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-muted-foreground">
-              {fields.map((field) => (
-                <div key={field.label} className="contents">
-                  <dt>{field.label}</dt>
-                  <dd className="whitespace-pre-line text-foreground">{field.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </section>
-
-          {/* Media */}
-          <section className="rounded-lg border bg-card p-4 text-sm">
-            <h2 className="mb-3 font-medium">
-              Attachments{media.length ? ` (${media.length})` : ""}
-            </h2>
-            {media.length === 0 ? (
-              <p className="text-muted-foreground">No attachments.</p>
-            ) : (
-              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {media.map((item, i) =>
-                  item.url ? (
-                    <li key={item.path} className="flex flex-col gap-1">
-                      <a href={item.url} target="_blank" rel="noopener noreferrer">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={item.url}
-                          alt={`Attachment ${i + 1}`}
-                          className="aspect-square w-full rounded-md border object-cover"
-                        />
-                      </a>
-                      <a
-                        href={item.url}
-                        download
-                        className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-                      >
-                        Download
-                      </a>
-                    </li>
-                  ) : (
-                    <li key={item.path} className="text-xs text-muted-foreground">
-                      Attachment unavailable
-                    </li>
-                  )
-                )}
-              </ul>
+      <section className="rounded-lg border bg-card p-4 text-sm">
+        <h2 className="mb-3 font-medium">
+          Attachments{media.length ? ` (${media.length})` : ""}
+        </h2>
+        {media.length === 0 ? (
+          <p className="text-muted-foreground">No attachments.</p>
+        ) : (
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {media.map((item, i) =>
+              item.url ? (
+                <li key={item.path} className="flex flex-col gap-1">
+                  <a href={item.url} target="_blank" rel="noopener noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={item.url}
+                      alt={`Attachment ${i + 1}`}
+                      className="aspect-square w-full rounded-md border object-cover"
+                    />
+                  </a>
+                  <a
+                    href={item.url}
+                    download
+                    className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                  >
+                    Download
+                  </a>
+                </li>
+              ) : (
+                <li key={item.path} className="text-xs text-muted-foreground">
+                  Attachment unavailable
+                </li>
+              )
             )}
-          </section>
+          </ul>
+        )}
+      </section>
+    </>
+  );
+
+  return (
+    <div className="flex flex-col gap-6">
+      <ReturnDoneNotice done={sp.done} />
+      {isInspection ? (
+        // Compact header → compact asset strip → report → status → submitter → related.
+        <>
+          {headerBlock}
+          {assetStrip}
+          {reportBlock}
+          {statusBlock}
+          {submitterBlock}
+          {relatedBlock}
+        </>
+      ) : (
+        // Damage/support keep the established order (their primary content already leads).
+        <>
+          {headerBlock}
+          {assetCard}
+          {statusBlock}
+          {submitterBlock}
+          {relatedBlock}
+          {reportBlock}
         </>
       )}
     </div>

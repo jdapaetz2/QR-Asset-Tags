@@ -15,7 +15,7 @@ import {
   visiblePhotoSlotCounts,
 } from "@/lib/inspections/validate";
 import { sectionStage } from "@/lib/inspections/stages";
-import { DAMAGE_PHOTOS_SLOT_ID } from "@/lib/inspections/templates";
+import { ADDITIONAL_PHOTOS_SLOT_ID, DAMAGE_PHOTOS_SLOT_ID } from "@/lib/inspections/templates";
 import type {
   InspectionField,
   InspectionSection,
@@ -49,6 +49,25 @@ const FUEL_OPTIONS = [
   { value: "Fully charged", label: "Fully charged" },
   { value: "Partial charge", label: "Partial charge" },
 ];
+
+// Approved renter-facing photo guidance (Phase 3C.3). Friendly, context-specific, never legal/mandatory.
+// Overridden in the renderer by slot so the copy is consistent regardless of the template's stored `help`.
+const GENERAL_PHOTO_HELP =
+  "Add a photo if you can. It helps the rental team understand the equipment's condition and can reduce follow-up questions.";
+const PHOTO_SLOT_HELP: Record<string, string> = {
+  [DAMAGE_PHOTOS_SLOT_ID]:
+    "If possible, add a clear photo of the damage so the rental team can review it faster.",
+  [ADDITIONAL_PHOTOS_SLOT_ID]: "Add any other photos that help show the equipment's condition.",
+};
+function photoSlotHelp(fieldId: string): string {
+  return PHOTO_SLOT_HELP[fieldId] ?? GENERAL_PHOTO_HELP;
+}
+
+// Approved review-step warnings (soft, non-blocking).
+const REVIEW_NO_PHOTOS =
+  "No photos were added. You can still submit, but photos make it easier for the rental team to confirm the equipment's condition.";
+const REVIEW_DAMAGE_NO_PHOTO =
+  "Damage was reported without a photo. You can still submit, but a photo can help the rental team review it faster.";
 
 const STAGE_ORDER: InspectionStage[] = ["condition", "return_details"];
 const STAGE_TITLES: Record<InspectionStage, string> = {
@@ -127,6 +146,10 @@ export function ReturnInspectionForm({
   const [omissionAck, setOmissionAck] = useState(false);
   // One-shot flags kept in refs (not state) so the effects only touch external systems (DOM focus / submit).
   const submitAfterAckRef = useRef(false);
+  // Explicit-submit gate (Phase 3C.3): the form action fires ONLY when an intended submit path sets this true
+  // — the final Submit button (no dialog needed) or the dialog's "Submit without photos". Every implicit
+  // submission (Enter in a text field, a stray untyped button, a submit outside Review) is blocked by onSubmit.
+  const allowSubmitRef = useRef(false);
   const pendingFocusRef = useRef<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -237,6 +260,7 @@ export function ReturnInspectionForm({
   useEffect(() => {
     if (omissionAck && submitAfterAckRef.current) {
       submitAfterAckRef.current = false;
+      allowSubmitRef.current = true; // confirmed omission → this requestSubmit is an intended submit.
       formRef.current?.requestSubmit();
     }
   }, [omissionAck]);
@@ -246,14 +270,30 @@ export function ReturnInspectionForm({
     if (omissionKind && !omissionAck) {
       e.preventDefault();
       dialogRef.current?.showModal();
+      return;
     }
+    // No dialog needed (or already acknowledged): this is the explicit, intended submission.
+    allowSubmitRef.current = true;
   }
 
   const onReview = stage === "review";
   const stepIndex = stage === "condition" ? 1 : stage === "return_details" ? 2 : 3;
 
   return (
-    <form action={formAction} ref={formRef} className="flex flex-col gap-5 pb-24">
+    <form
+      action={formAction}
+      ref={formRef}
+      onSubmit={(e) => {
+        // Only an intended submit path (final Submit / confirmed dialog) sets allowSubmitRef. Everything else —
+        // Enter in a field, a stray submit, entering Review — is cancelled here before the action can run.
+        if (!allowSubmitRef.current) {
+          e.preventDefault();
+          return;
+        }
+        allowSubmitRef.current = false; // consume: guarantees exactly one submission per intended press.
+      }}
+      className="flex flex-col gap-5 pb-24"
+    >
       <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
         {disclaimer}
       </p>
@@ -306,23 +346,15 @@ export function ReturnInspectionForm({
         {/* One consolidated evidence note (priority: damage → no photos → some recommended missing). */}
         {damageWithoutPhoto ? (
           <div role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
-            <p className="font-medium text-amber-700 dark:text-amber-400">
-              Damage was reported without photos.
-            </p>
-            <p className="mt-1 text-muted-foreground">
-              Photos help document condition and support follow-up. You can still add them in Return details.
-            </p>
+            <p className="text-muted-foreground">{REVIEW_DAMAGE_NO_PHOTO}</p>
           </div>
         ) : noPhotosAtAll ? (
           <div role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
-            <p className="font-medium text-amber-700 dark:text-amber-400">No condition photos attached.</p>
-            <p className="mt-1 text-muted-foreground">
-              Photos are strongly recommended — they help document the equipment&apos;s condition at return.
-            </p>
+            <p className="text-muted-foreground">{REVIEW_NO_PHOTOS}</p>
           </div>
         ) : someRecommendedMissing ? (
           <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-            Some recommended photos were not attached. You can add them in Return details.
+            Some photos weren&apos;t added. You can add more in Return details.
           </p>
         ) : null}
         <div className="flex flex-col gap-3 rounded-lg border bg-card p-4">
@@ -411,9 +443,7 @@ export function ReturnInspectionForm({
             : "Submit without condition photos?"}
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          {omissionKind === "damage"
-            ? "Damage was reported, but no damage photos were attached. Photos are strongly recommended because they help document condition and support follow-up."
-            : "No condition photos were attached. Photos are strongly recommended because they help document the equipment's condition at return."}
+          {omissionKind === "damage" ? REVIEW_DAMAGE_NO_PHOTO : REVIEW_NO_PHOTOS}
         </p>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row-reverse">
           <Button
@@ -605,11 +635,12 @@ function FieldControl({
       );
     case "photo_slot":
       return (
-        // Photos are strongly recommended, never required (Phase 3C.1.1) — no asterisk.
+        // Photos are welcome, never required (Phase 3C.1.1) — no asterisk. Approved copy overrides the
+        // template's stored `help` so guidance reads consistently for renters and staff (Phase 3C.3).
         <label className="flex flex-col gap-1 text-sm" htmlFor={domId}>
           <span className="font-medium">{field.label}</span>
           <span className="text-xs text-muted-foreground">
-            {field.help ?? "Photos are strongly recommended. They help document condition and support follow-up."}
+            {photoSlotHelp(field.id)}
           </span>
           <input
             id={domId}

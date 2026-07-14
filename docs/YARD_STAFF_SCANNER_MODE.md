@@ -164,6 +164,30 @@ DB/RLS/storage/auth/session change; media limits unchanged.
   reclaiming width for status / open-damage / rental action / View-edit; `?sort=created_at` stays
   backward-compatible in the parser. No return/session business logic changed.
 
+### Phase 3C.3 — evidence routing + mobile detail priority + renter photo copy + explicit staff submit
+- **Session evidence never 404s:** one canonical route `/dashboard/rentals/[sessionId]` (fetch-by-`rental_session_id`,
+  RLS-scoped, closed sessions OK, per-source empty states — 404 only for a missing/cross-org session) plus a new
+  index page `app/(admin)/dashboard/rentals/page.tsx` that redirects the bare `/dashboard/rentals` to the
+  submissions inbox. One pure helper, `buildSessionEvidenceHref(sessionId)` (with a deprecated `rentalEvidenceHref`
+  alias), is used at every link site (staff completion, submission detail, asset detail, asset timeline) and guards a
+  falsy id → the safe index redirect. The residual 404 was the null-session-id → bare `/dashboard/rentals` (no index)
+  case, now closed. Tests assert the helper output, both route files exist, and each caller passes a `rental_session_id`.
+- **Mobile detail leads with the report:** inspection-style detail pages (`isInspectionFormType` — renter return, staff
+  return, outbound) reorder to compact header → compact asset/action strip → **inspection report** → status/workflow →
+  submitter/inspector → related records, so on a phone the structured report sits near the fold instead of below tall
+  asset/status/submitter cards. The report renders ONCE; damage/support keep their established top-down order; desktop
+  stays readable; no horizontal overflow.
+- **Renter photo copy** (shared renderer only — no template/version/snapshot change): friendlier, context-specific
+  guidance overrides the stored `help` by slot — general ("Add a photo if you can…"), damage ("If possible, add a clear
+  photo of the damage…"), additional ("Add any other photos…"); Review/dialog warnings reworded ("No photos were
+  added…", "Damage was reported without a photo…"). No legal/liability/mandatory claims; "Photos" never "Photo's"; the
+  legacy "strongly recommended" copy is gone. Confirmation behavior unchanged (still soft, non-blocking).
+- **Explicit staff submit only:** all stage navigation is `type="button"`; only the final "Submit return inspection" is
+  `type="submit"`. An `allowSubmitRef` gate + `<form onSubmit>` cancel every implicit/stray submit — the action fires
+  ONLY from the final Submit press (no dialog needed) or the confirmed omission dialog. Entering/leaving Review changes
+  client stage only (no insert, no upload, no session close); the ref is consumed per submit so a double-click / Enter
+  replay submits once. Review-first is preserved for the public renter form too.
+
 ---
 
 > **Original design (future scope beyond 3A).** This documents the broader wave so it can be

@@ -29,6 +29,15 @@ export function canQuickResolveReturn(input: {
 }
 
 /**
+ * Whether a submission type is an inspection-style report (return checklist or outbound pre-use inspection),
+ * as opposed to a damage/support submission (Phase 3C.3). The detail page uses this to lead with the
+ * structured report on mobile — compact header + asset strip, then the report, then workflow/actor cards.
+ */
+export function isInspectionFormType(formType: string): boolean {
+  return formType === "return_checklist" || formType === "pre_use_inspection";
+}
+
+/**
  * Whether a return submission reports damage or missing items, read from the untyped
  * `submission_data_json`. Supports both shapes:
  *   - V2 guided inspection (schema_version 2): canonical `flags.damage_observed` ("yes"|"no") +

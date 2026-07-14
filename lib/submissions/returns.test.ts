@@ -2,11 +2,22 @@ import { describe, expect, it } from "vitest";
 
 import {
   canQuickResolveReturn,
+  isInspectionFormType,
   returnActionOutcome,
   returnChecklistFlags,
   returnDoneMessage,
   staffReturnStatus,
 } from "./returns";
+
+describe("isInspectionFormType (Phase 3C.3 — mobile detail lead-with-report)", () => {
+  it("is true for inspection-style reports (return + outbound), false for damage/support", () => {
+    expect(isInspectionFormType("return_checklist")).toBe(true);
+    expect(isInspectionFormType("pre_use_inspection")).toBe(true);
+    expect(isInspectionFormType("damage_report")).toBe(false);
+    expect(isInspectionFormType("support_request")).toBe(false);
+    expect(isInspectionFormType("")).toBe(false);
+  });
+});
 
 describe("staffReturnStatus", () => {
   it("a clean staff return resolves; a flagged one stays new for follow-up", () => {
