@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getRentalSessionEvidence,
+  type AckRow,
   type AssetRow,
   type EvidenceQueryClient,
   type SessionRow,
@@ -36,12 +37,23 @@ const outbound = sub({ id: "o", form_type: "pre_use_inspection", submission_orig
 const renter = sub({ id: "r", form_type: "return_checklist", submission_origin: "public" });
 const staff = sub({ id: "st", form_type: "return_checklist", submission_origin: "staff" });
 
-/** Build a fake injectable client; override any of the three reads. */
+const ack = (over: Partial<AckRow> = {}): AckRow => ({
+  id: "ack1",
+  name: "Renter",
+  email: null,
+  phone: null,
+  statement: "I acknowledge…",
+  acknowledged_at: "2026-07-01T12:00:00.000Z",
+  ...over,
+});
+
+/** Build a fake injectable client; override any of the reads. */
 function client(over: Partial<EvidenceQueryClient> = {}): EvidenceQueryClient {
   return {
     loadSession: async () => ({ data: SESSION, error: null }),
     loadAsset: async () => ({ data: ASSET, error: null }),
     loadSubmissions: async () => ({ data: [outbound, renter, staff], error: null }),
+    loadAcknowledgements: async () => ({ data: [], error: null }),
     ...over,
   };
 }
@@ -130,6 +142,39 @@ describe("getRentalSessionEvidence", () => {
     );
     expect(r).not.toBeNull();
     expect(r?.submissions).toEqual([]);
+  });
+
+  it("loads this session's acknowledgements, scoped by session id (Phase 3C.7)", async () => {
+    let scopedSessionId: string | null = null;
+    let scopedAssetId: string | null | undefined;
+    const r = await getRentalSessionEvidence(
+      client({
+        loadAcknowledgements: async (sessionId, assetId) => {
+          scopedSessionId = sessionId;
+          scopedAssetId = assetId;
+          return { data: [ack({ id: "one" })], error: null };
+        },
+      }),
+      SESSION.id
+    );
+    expect(scopedSessionId).toBe(SESSION.id); // never asset-only → sibling sessions excluded
+    expect(scopedAssetId).toBe(SESSION.asset_id);
+    expect(r?.acknowledgements).toHaveLength(1);
+    expect(r?.acknowledgements[0].id).toBe("one");
+  });
+
+  it("a session with no acknowledgements loads with an empty ack list", async () => {
+    const r = await getRentalSessionEvidence(client(), SESSION.id);
+    expect(r?.acknowledgements).toEqual([]);
+  });
+
+  it("an acknowledgements query failure throws (never a silent 404)", async () => {
+    await expect(
+      getRentalSessionEvidence(
+        client({ loadAcknowledgements: async () => ({ data: null, error: { message: "boom" } }) }),
+        SESSION.id
+      )
+    ).rejects.toThrow(/acknowledgements/);
   });
 
   it("a session with no asset_id loads without an asset query", async () => {

@@ -3,8 +3,17 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaffAssetByShortCode } from "@/lib/staff/guard";
 import { resolveOutboundTemplate } from "@/lib/inspections/outbound-templates";
+import { staffOutboundState } from "@/lib/staff/workflow-state";
+import { buildSessionEvidenceHref } from "@/lib/rentals/evidence";
+import { RelativeTime } from "@/components/relative-time";
 
 export const dynamic = "force-dynamic";
+
+// Shared action button classes (Phase 3C.7). One filled primary per state; secondaries are bordered.
+const PRIMARY_ACTION =
+  "inline-flex min-h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90";
+const SECONDARY_ACTION =
+  "inline-flex min-h-11 w-full items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground";
 
 export default async function StaffAssetPage({
   params,
@@ -25,28 +34,39 @@ export default async function StaffAssetPage({
     category: asset.category,
   });
 
-  // Active session + its baseline outbound inspection (for the admin link), when rented.
-  let session: { rental_reference: string | null; renter_label: string | null; started_at: string } | null =
-    null;
-  let baselineId: string | null = null;
-  if (asset.active_rental_session_id) {
+  // Active session + its baseline outbound inspection, when rented. Two batched reads (no N+1). The state
+  // matrix below is driven by ACTUAL session + baseline data, never inferred from the asset's rental flag.
+  const sessionId = asset.active_rental_session_id;
+  let session:
+    | { rental_reference: string | null; renter_label: string | null; started_at: string }
+    | null = null;
+  let baseline: { id: string; created_at: string; submitted_by_name: string | null } | null = null;
+  if (sessionId) {
     const supabase = await createClient();
     const { data: s } = await supabase
       .from("asset_rental_sessions")
       .select("rental_reference, renter_label, started_at")
-      .eq("id", asset.active_rental_session_id)
+      .eq("id", sessionId)
       .maybeSingle<{ rental_reference: string | null; renter_label: string | null; started_at: string }>();
     session = s ?? null;
-    const { data: baseline } = await supabase
+    const { data: b } = await supabase
       .from("form_submissions")
-      .select("id")
-      .eq("rental_session_id", asset.active_rental_session_id)
+      .select("id, created_at, submitted_by_name")
+      .eq("rental_session_id", sessionId)
       .eq("form_type", "pre_use_inspection")
       .order("created_at", { ascending: false })
       .limit(1)
-      .maybeSingle<{ id: string }>();
-    baselineId = baseline?.id ?? null;
+      .maybeSingle<{ id: string; created_at: string; submitted_by_name: string | null }>();
+    baseline = b ?? null;
   }
+  const baselineId = baseline?.id ?? null;
+
+  // available | attach | recorded | error — see lib/staff/workflow-state.ts.
+  const state = staffOutboundState({
+    rented,
+    sessionLoaded: session !== null,
+    hasBaseline: baselineId !== null,
+  });
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-5 px-5 py-8">
@@ -100,43 +120,80 @@ export default async function StaffAssetPage({
         </div>
       </dl>
 
-      {rented && session ? (
-        <div className="rounded-lg border bg-card p-3 text-sm">
-          <p className="font-medium">Currently rented</p>
-          <p className="mt-0.5 text-muted-foreground">
-            {[session.renter_label, session.rental_reference].filter(Boolean).join(" · ") ||
-              "No renter details recorded."}
+      {/* Workflow state matrix (Phase 3C.7). Each state surfaces exactly one primary action + the safe
+          secondaries for that state — driven by the real session + baseline data above. */}
+      {state === "available" ? (
+        <div className="flex flex-col gap-2">
+          <Link href={`/staff/t/${shortCode}/outbound`} className={PRIMARY_ACTION}>
+            Start outbound inspection
+          </Link>
+          <p className="text-sm text-muted-foreground">
+            Record the equipment&apos;s condition before it leaves the yard. Completing the inspection
+            starts the rental session.
           </p>
         </div>
-      ) : null}
-
-      {/* Actions */}
-      {!rented ? (
-        <Link
-          href={`/staff/t/${shortCode}/outbound`}
-          className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          Start outbound inspection
-        </Link>
-      ) : (
-        <div className="flex flex-col gap-2">
-          <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-muted-foreground">
-            This asset is out on rental — a new outbound session cannot start until it is returned.
+      ) : state === "attach" && session ? (
+        <div className="flex flex-col gap-3">
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+            <p className="font-medium">Active rental has no outbound baseline</p>
+            <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-muted-foreground">
+              <dt>Started</dt>
+              <dd className="text-foreground">
+                <RelativeTime value={session.started_at} />
+              </dd>
+              <dt>Renter</dt>
+              <dd className="text-foreground">{session.renter_label ?? "Not provided"}</dd>
+              <dt>Reference</dt>
+              <dd className="text-foreground">{session.rental_reference ?? "Not provided"}</dd>
+            </dl>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Add the outbound inspection to this active rental session. The original rental start time
+            will be preserved.
           </p>
-          {baselineId ? (
-            <Link
-              href={`/dashboard/submissions/${baselineId}`}
-              className="text-sm underline-offset-4 hover:underline"
-            >
-              View outbound baseline inspection
-            </Link>
-          ) : null}
-          <Link
-            href={`/staff/t/${shortCode}/return`}
-            className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
+          <Link href={`/staff/t/${shortCode}/outbound`} className={PRIMARY_ACTION}>
+            Add outbound inspection
+          </Link>
+          <Link href={buildSessionEvidenceHref(sessionId)} className={SECONDARY_ACTION}>
+            View session evidence
+          </Link>
+          <Link href={`/staff/t/${shortCode}/return`} className={SECONDARY_ACTION}>
             Complete return inspection
           </Link>
+        </div>
+      ) : state === "recorded" && baseline ? (
+        <div className="flex flex-col gap-3">
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm">
+            <p className="font-medium">Outbound baseline recorded</p>
+            <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-muted-foreground">
+              <dt>Recorded</dt>
+              <dd className="text-foreground">
+                <RelativeTime value={baseline.created_at} />
+              </dd>
+              <dt>Inspector</dt>
+              <dd className="text-foreground">{baseline.submitted_by_name ?? "—"}</dd>
+            </dl>
+          </div>
+          <Link href={`/staff/t/${shortCode}/return`} className={PRIMARY_ACTION}>
+            Complete return inspection
+          </Link>
+          {baselineId ? (
+            <Link href={`/dashboard/submissions/${baselineId}`} className={SECONDARY_ACTION}>
+              View outbound inspection
+            </Link>
+          ) : null}
+          <Link href={buildSessionEvidenceHref(sessionId)} className={SECONDARY_ACTION}>
+            View session evidence
+          </Link>
+        </div>
+      ) : (
+        // error: rented, but the active session row could not be loaded — never offer Start/Add here.
+        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
+          <p className="font-medium">Rental session details unavailable</p>
+          <p className="mt-0.5 text-muted-foreground">
+            This asset is marked rented, but its active rental session could not be loaded. Refresh the
+            page, or open the asset in the dashboard to continue.
+          </p>
         </div>
       )}
 

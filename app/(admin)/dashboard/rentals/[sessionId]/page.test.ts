@@ -46,3 +46,53 @@ describe("session-evidence page — collapsed disclosures", () => {
     expect(src).toContain("PrintEvidenceButton");
   });
 });
+
+describe("session-evidence page — submission navigation (Phase 3C.7, Part B)", () => {
+  it("renders the reference as a non-clickable mono chip", () => {
+    expect(src).toContain("Reference");
+    expect(src).toMatch(/font-mono[^>]*>\s*\{submissionReference\(row\.id, row\.created_at\)\}/);
+  });
+
+  it("provides a separate explicit 'Open submission' action to the canonical route", () => {
+    expect(src).toContain("Open submission");
+    expect(src).toContain("href={`/dashboard/submissions/${row.id}`}");
+  });
+
+  it("hides the Open submission action in print", () => {
+    const openAt = src.indexOf("Open submission");
+    const linkStart = src.lastIndexOf("<Link", openAt);
+    expect(src.slice(linkStart, openAt)).toContain("print:hidden");
+  });
+});
+
+describe("session-evidence page — MuleMark brand + print (Phase 3C.7, Parts C/D/G)", () => {
+  it("overrides the route title to MuleMark, never the AssetTag QR product name", () => {
+    expect(src).toContain("export const metadata");
+    expect(src).toContain("Rental session evidence");
+    expect(src).toContain("PLATFORM_NAME");
+    expect(src).not.toContain("AssetTag QR");
+  });
+
+  it("renders the print-only MuleMark masthead", () => {
+    expect(src).toContain("EvidencePrintHeader");
+  });
+
+  it("spends the one brass accent on the summary card", () => {
+    expect(src).toContain("border-l-brass-500");
+  });
+
+  it("hides the screen-only header controls in print", () => {
+    expect(src).toContain("print:hidden");
+  });
+});
+
+describe("session-evidence page — top summary + acknowledgements (Phase 3C.7, Parts D/E/F)", () => {
+  it("renders a two-column summary that stacks on mobile", () => {
+    expect(src).toContain("sm:grid-cols-2");
+  });
+
+  it("surfaces the session-scoped acknowledgement summary", () => {
+    expect(src).toContain("SessionAcknowledgements");
+    expect(src).toContain("summarizeAcknowledgements");
+  });
+});

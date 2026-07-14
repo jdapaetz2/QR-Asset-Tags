@@ -27,6 +27,16 @@ export type SessionRow = {
 
 export type AssetRow = { asset_code: string; asset_name: string };
 
+/** A renter acknowledgement scoped to one rental session (Phase 3C.7). See lib/acknowledgements/summary.ts. */
+export type AckRow = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  statement: string | null;
+  acknowledged_at: string | null;
+};
+
 export type SubRow = {
   id: string;
   created_at: string;
@@ -49,12 +59,15 @@ export interface EvidenceQueryClient {
   loadSession(sessionId: string): Promise<QueryResult<SessionRow>>;
   loadAsset(assetId: string): Promise<QueryResult<AssetRow>>;
   loadSubmissions(sessionId: string): Promise<QueryResult<SubRow[]>>;
+  /** Renter acknowledgements for THIS session only (Phase 3C.7); org-scoped by RLS. */
+  loadAcknowledgements(sessionId: string, assetId: string | null): Promise<QueryResult<AckRow[]>>;
 }
 
 export type RentalSessionEvidence = {
   session: SessionRow;
   asset: AssetRow | null;
   submissions: SubRow[];
+  acknowledgements: AckRow[];
 };
 
 /**
@@ -94,7 +107,22 @@ export async function getRentalSessionEvidence(
     throw new Error(`session-evidence: failed to load submissions (${subsResult.error.message})`);
   }
 
-  return { session, asset, submissions: subsResult.data ?? [] };
+  // Renter acknowledgements for THIS session (Phase 3C.7). Scoped by rental_session_id (NOT by asset
+  // alone) so another session's acks never bleed in; RLS scopes the org. One batched query, no N+1.
+  const ackResult = await client.loadAcknowledgements(sessionId, session.asset_id);
+  if (ackResult.error) {
+    console.error("[session-evidence] acknowledgements load failed", ackResult.error);
+    throw new Error(
+      `session-evidence: failed to load acknowledgements (${ackResult.error.message})`
+    );
+  }
+
+  return {
+    session,
+    asset,
+    submissions: subsResult.data ?? [],
+    acknowledgements: ackResult.data ?? [],
+  };
 }
 
 // Type-only import (erased at runtime) so this module stays safe to import from the node test env.
@@ -130,5 +158,17 @@ export function createEvidenceQueryClient(supabase: ServerClient): EvidenceQuery
         )
         .eq("rental_session_id", sessionId)
         .order("created_at", { ascending: true })) as unknown as QueryResult<SubRow[]>,
+    loadAcknowledgements: async (sessionId, assetId) => {
+      // rental_session_id is the primary scope (never asset-only, so sibling sessions are excluded);
+      // the asset_id filter is defense-in-depth. RLS restricts to the caller's org.
+      let query = supabase
+        .from("asset_acknowledgements")
+        .select("id, name, email, phone, statement, acknowledged_at")
+        .eq("rental_session_id", sessionId);
+      if (assetId) query = query.eq("asset_id", assetId);
+      return (await query.order("acknowledged_at", {
+        ascending: false,
+      })) as unknown as QueryResult<AckRow[]>;
+    },
   };
 }

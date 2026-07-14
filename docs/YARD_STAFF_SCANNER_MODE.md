@@ -278,6 +278,39 @@ DB/RLS/storage/auth/session change; media limits unchanged.
   derives from session rows, so an attached baseline adds only a submission event — no duplicate rental-start). **Ships
   unapplied — operator runs `npx.cmd supabase db push`.**
 
+### Phase 3C.7 — evidence navigation + branding + acknowledgements + staff state matrix (no migration)
+- **Explicit submission navigation (Part B).** Inside each evidence disclosure, the submission reference is now a
+  non-clickable mono chip (prints as text) with the submitter/time beside it, plus a SEPARATE bordered "Open submission →"
+  action (≥44px touch on mobile, focus-visible ring, `print:hidden`) linking to the canonical `/dashboard/submissions/<id>`.
+  Applied to all three sources via the shared `EvidenceBody`. The reference is no longer an ambiguous inline link.
+- **MuleMark evidence design + top summary (Parts C/D).** `/dashboard/rentals/[sessionId]` now uses the platform design
+  language (iron/brass/bone tokens, `Eyebrow`, `Badge`, `AssetTagChip`). A branded header (eyebrow "Rental session · RNT-…"
+  + title + status badge) sits above a responsive two-column summary (`sm:grid-cols-2`, stacks on mobile): left = **Rental
+  session** details (with the screen's single brass accent — a `border-l-brass-500` left rule); right = **Renter
+  acknowledgement**. Disclosures stay all-collapsed with strengthened summaries; print expansion + aggregate-hidden (3C.6)
+  preserved.
+- **Renter acknowledgements in evidence (Parts E/F).** `asset_acknowledgements` already carries `rental_session_id`
+  (migration 0014, set by the ack action) — **no migration needed.** The evidence loader adds ONE batched query scoped by
+  `rental_session_id` (not asset-only, so sibling sessions never bleed in; RLS scopes the org). New pure
+  `lib/acknowledgements/summary.ts` (`summarizeAcknowledgements`) drives the `SessionAcknowledgements` card: none → "No
+  renter acknowledgement recorded" (neutral); one → "Acknowledged by {name}" + time; multiple → "N acknowledgements
+  recorded" + latest + an expandable list (name/time/statement; email/phone ONLY inside the expanded detail). Verbatim
+  stored statement, never framed as an e-signature; included in print.
+- **Print branding = MuleMark (Part G).** The evidence route sets `metadata.title = "Rental session evidence · MuleMark"`
+  (static, no extra query) so the browser/print title no longer reads the internal product name. A new print-only
+  `EvidencePrintHeader` (`hidden print:block`) renders the canonical MuleMark wordmark artwork + document title + asset +
+  session reference. The app-shell header, disclosure chevrons, Open-submission actions, and Print button are all
+  `print:hidden`; sections print expanded. `PRODUCT_NAME` + DB columns/package names untouched.
+- **Staff workflow state matrix (Parts H/I).** The legacy "a new outbound session cannot start until it is returned" notice
+  is removed. New pure `lib/staff/workflow-state.ts` (`staffOutboundState`) derives `available | attach | recorded | error`
+  from the ACTUAL session + baseline data (baseline query extended with `created_at, submitted_by_name`), never the asset
+  flag alone: Available → "Start outbound inspection"; rented-without-baseline → "Add outbound inspection" + active-session
+  details (started/renter/reference) + "View session evidence" + "Complete return inspection"; rented-with-baseline →
+  "Outbound baseline recorded" (recorded time + inspector) + "View outbound inspection" / evidence / return (never
+  Start/Add); session-load-failure → safe attention card. One filled primary per state; all hrefs use the canonical short
+  code + `buildSessionEvidenceHref`. Outbound completion already redirects to the force-dynamic staff page, so the action
+  flips Add → View on re-render (no polling).
+
 ---
 
 > **Original design (future scope beyond 3A).** This documents the broader wave so it can be

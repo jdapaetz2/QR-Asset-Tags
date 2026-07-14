@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
@@ -13,13 +14,18 @@ import type { ReactNode } from "react";
 
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { Badge } from "@/components/ui/badge";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import type { BadgeTone } from "@/lib/ui/status";
 import { RelativeTime } from "@/components/relative-time";
 import { PrintEvidenceButton } from "@/components/print-evidence-button";
+import { EvidencePrintHeader } from "@/components/submissions/evidence-print-header";
+import { SessionAcknowledgements } from "@/components/submissions/session-acknowledgements";
 import { EvidencePhotoGallery } from "@/components/submissions/evidence-photo-gallery";
 import { PhotoTileGrid } from "@/components/submissions/photo-tile-grid";
 import { submissionReference } from "@/lib/submissions/inbox";
 import { returnChecklistFlags } from "@/lib/submissions/returns";
+import { summarizeAcknowledgements } from "@/lib/acknowledgements/summary";
+import { PLATFORM_NAME } from "@/lib/constants";
 import {
   ReturnInspectionSummary,
   isReturnInspectionV2,
@@ -38,6 +44,13 @@ import {
 import type { ReturnInspectionData } from "@/lib/inspections/types";
 
 export const dynamic = "force-dynamic";
+
+// Route title override (Phase 3C.7, Part G). The root layout sets the document <title> to the
+// internal PRODUCT_NAME, which the browser stamps into the print header. This static title
+// (no extra query) makes the printed/exported record read as the MuleMark platform brand instead.
+export const metadata: Metadata = {
+  title: `Rental session evidence · ${PLATFORM_NAME}`,
+};
 
 const SUBMISSIONS_BUCKET = "submissions";
 
@@ -58,17 +71,20 @@ function EvidenceDisclosure({
   children: ReactNode;
 }) {
   return (
-    <details data-evidence-section className="group rounded-lg border bg-card">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-2 [&::-webkit-details-marker]:hidden">
-        <span className="font-medium">{title}</span>
-        <span className="flex items-center gap-2 text-sm text-muted-foreground">
+    <details data-evidence-section className="group rounded-[10px] border border-iron-200 bg-card">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-[10px] px-4 py-2.5 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-open:rounded-b-none [&::-webkit-details-marker]:hidden">
+        <span className="font-medium text-iron-950">{title}</span>
+        <span className="flex items-center gap-2 text-sm text-iron-600">
           {tone ? <Badge tone={tone}>{meta}</Badge> : <span>{meta}</span>}
-          <span aria-hidden className="text-xs transition-transform group-open:rotate-180">
+          <span
+            aria-hidden
+            className="text-xs text-iron-600 transition-transform group-open:rotate-180"
+          >
             ▾
           </span>
         </span>
       </summary>
-      <div className="border-t px-4 py-4 text-sm">{children}</div>
+      <div className="border-t border-iron-200 px-4 py-4 text-sm">{children}</div>
     </details>
   );
 }
@@ -94,7 +110,8 @@ export default async function RentalEvidencePage({
     sessionId
   );
   if (!evidence) notFound();
-  const { session, asset, submissions: subs } = evidence;
+  const { session, asset, submissions: subs, acknowledgements } = evidence;
+  const ackSummary = summarizeAcknowledgements(acknowledgements);
 
   const outbound = subs.find((s) => s.form_type === "pre_use_inspection") ?? null;
   const staff =
@@ -130,6 +147,7 @@ export default async function RentalEvidencePage({
   });
 
   const sessionRef = submissionReference(session.id, session.started_at).replace("SUB", "RNT");
+  const statusLabel = session.status === "active" ? "Active" : "Returned";
 
   // Disclosure summaries (Phase 3C.5) — scannable context without expanding.
   const gallerySources = galleryBySource(photoGroups);
@@ -162,12 +180,22 @@ export default async function RentalEvidencePage({
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-3 rounded-lg border bg-card p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+      {/* Print-only MuleMark masthead (Phase 3C.7) — hidden on screen, self-identifies the printed record. */}
+      <EvidencePrintHeader
+        assetCode={asset?.asset_code ?? null}
+        assetName={asset?.asset_name ?? null}
+        sessionRef={sessionRef}
+        status={statusLabel}
+      />
+
+      {/* Branded page header (Phase 3C.7) — MuleMark eyebrow + title + status; interactive controls hidden in
+          print. The back link and Print button never belong on the printed record. */}
+      <header className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
           {session.asset_id ? (
             <Link
               href={`/dashboard/assets/${session.asset_id}/timeline`}
-              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+              className="text-sm text-iron-600 underline-offset-4 hover:underline"
             >
               ← Asset timeline
             </Link>
@@ -176,42 +204,57 @@ export default async function RentalEvidencePage({
           )}
           <PrintEvidenceButton label="Print evidence" />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">Rental session condition</h1>
-          <Badge tone={session.status === "active" ? "info" : "neutral"}>
-            {session.status === "active" ? "Active" : "Returned"}
-          </Badge>
-        </div>
-        {asset ? (
-          <div className="flex flex-col items-start gap-1.5">
-            <AssetTagChip code={asset.asset_code} />
-            <span className="font-medium">{asset.asset_name}</span>
+        <div className="flex flex-col gap-1">
+          <Eyebrow>Rental session · {sessionRef}</Eyebrow>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-semibold tracking-tight text-iron-950">
+              Rental session condition
+            </h1>
+            <Badge tone={session.status === "active" ? "info" : "neutral"}>{statusLabel}</Badge>
           </div>
-        ) : null}
-        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm text-muted-foreground">
-          <dt>Reference</dt>
-          <dd className="font-mono text-foreground">{sessionRef}</dd>
-          {session.renter_label || session.rental_reference ? (
-            <>
-              <dt>Renter</dt>
-              <dd className="text-foreground">
-                {[session.renter_label, session.rental_reference].filter(Boolean).join(" · ")}
-              </dd>
-            </>
+        </div>
+      </header>
+
+      {/* Top summary (Phase 3C.7, Part D) — two columns on desktop, stacked on mobile (acknowledgement second).
+          The left card carries the one brass accent for this screen (hierarchy law: spend boldness once). */}
+      <section className="grid gap-3 sm:grid-cols-2">
+        <div className="flex flex-col gap-3 rounded-[10px] border border-iron-200 border-l-2 border-l-brass-500 bg-card p-4">
+          <Eyebrow>Rental session</Eyebrow>
+          {asset ? (
+            <div className="flex flex-col items-start gap-1.5">
+              <AssetTagChip code={asset.asset_code} />
+              <span className="font-medium text-iron-950">{asset.asset_name}</span>
+            </div>
           ) : null}
-          <dt>Rented</dt>
-          <dd className="text-foreground">
-            <RelativeTime value={session.started_at} />
-          </dd>
-          {session.returned_at ? (
-            <>
-              <dt>Returned</dt>
-              <dd className="text-foreground">
-                <RelativeTime value={session.returned_at} />
-              </dd>
-            </>
-          ) : null}
-        </dl>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm text-iron-600">
+            <dt>Status</dt>
+            <dd className="text-iron-950">{statusLabel}</dd>
+            <dt>Reference</dt>
+            <dd className="font-mono text-brass-600">{sessionRef}</dd>
+            {session.renter_label || session.rental_reference ? (
+              <>
+                <dt>Renter</dt>
+                <dd className="text-iron-950">
+                  {[session.renter_label, session.rental_reference].filter(Boolean).join(" · ")}
+                </dd>
+              </>
+            ) : null}
+            <dt>Rented</dt>
+            <dd className="text-iron-950">
+              <RelativeTime value={session.started_at} />
+            </dd>
+            {session.returned_at ? (
+              <>
+                <dt>Returned</dt>
+                <dd className="text-iron-950">
+                  <RelativeTime value={session.returned_at} />
+                </dd>
+              </>
+            ) : null}
+          </dl>
+        </div>
+
+        <SessionAcknowledgements summary={ackSummary} />
       </section>
 
       {/* All evidence groups are collapsed disclosures (Phase 3C.5) — the summary above stays visible; each
@@ -378,13 +421,28 @@ function EvidenceBody({
   return (
     <div className="flex flex-col gap-3">
       {row ? (
-        <Link
-          href={`/dashboard/submissions/${row.id}`}
-          className="text-xs underline-offset-4 hover:underline"
-        >
-          {submissionReference(row.id, row.created_at)} ·{" "}
-          {row.submitted_by_name ?? "—"} · <RelativeTime value={row.created_at} />
-        </Link>
+        // Submission navigation (Phase 3C.7, Part B). The reference is a non-clickable mono chip (prints as
+        // text); a separate explicit open action (below) carries the navigation, so the reference is no
+        // longer an ambiguous inline link. The action is hidden in print (the printed record is self-contained).
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-iron-600">
+              Reference
+            </span>
+            <span className="inline-flex w-fit items-center rounded border border-brass-500/30 bg-bone-50 px-1.5 py-0.5 font-mono text-xs text-iron-950">
+              {submissionReference(row.id, row.created_at)}
+            </span>
+            <span className="text-xs text-iron-600">
+              {row.submitted_by_name ?? "—"} · <RelativeTime value={row.created_at} />
+            </span>
+          </div>
+          <Link
+            href={`/dashboard/submissions/${row.id}`}
+            className="inline-flex min-h-11 items-center gap-1 rounded-md border border-iron-200 px-3 text-xs font-medium text-iron-950 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-9 print:hidden"
+          >
+            Open submission <span aria-hidden>→</span>
+          </Link>
+        </div>
       ) : null}
       {data ? (
         <>

@@ -38,7 +38,7 @@ export async function AppShell({
   return (
     <div className={`${brandFontVars} font-sans flex min-h-full flex-col`}>
       {/* Opaque header (no translucency) so the dark nameplate band never bleeds through on scroll. */}
-      <header className="sticky top-0 z-30 border-b bg-background">
+      <header className="sticky top-0 z-30 border-b bg-background print:hidden">
         <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-2.5 sm:px-6">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
             <Link href={home} aria-label={`${PRODUCT_NAME} home`} className="flex items-center">
