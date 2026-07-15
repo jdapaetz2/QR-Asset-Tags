@@ -1,16 +1,59 @@
-import { redirect } from "next/navigation";
-
 import { requireOrgId } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
+import {
+  createSessionBrowserClient,
+  getRentalSessionsPage,
+  parseSessionFilters,
+} from "@/lib/rentals/session-browser";
+import { SessionFiltersCard } from "@/components/rentals/session-filters";
+import { SessionBrowserList } from "@/components/rentals/session-browser-list";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Protected index for the rental-session evidence area (Phase 3C.3). Session evidence is always viewed for a
- * specific session at `/dashboard/rentals/[sessionId]`; the bare path has no useful content, so it redirects
- * to the submissions inbox. This exists so a link built without a session id (the falsy-guard fallback) can
- * never 404 — it lands on a safe, authenticated redirect instead.
+ * Organization rental-session browser (Phase 3C.8, Part J). A lightweight authenticated index/search over the
+ * org's rental sessions — find one by RNT reference, browse recent sessions, open evidence directly. NOT a
+ * booking / rental-order manager. RLS scopes every read to the caller's org; cursor pagination bounds each page.
  */
-export default async function RentalsIndexPage() {
+export default async function RentalSessionsBrowserPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   await requireOrgId();
-  redirect("/dashboard/submissions");
+  const sp = await searchParams;
+  const filters = parseSessionFilters(sp, new Date());
+
+  const supabase = await createClient();
+  const page = await getRentalSessionsPage({
+    client: createSessionBrowserClient(supabase),
+    cursor: null,
+    filters,
+  });
+
+  return (
+    <div className="flex flex-col gap-6">
+      <section>
+        <h1 className="text-2xl font-semibold tracking-tight">Rental sessions</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Search by RNT reference and open a session&apos;s evidence record.
+        </p>
+      </section>
+
+      <SessionFiltersCard filters={filters} />
+
+      {page.sessions.length === 0 ? (
+        <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
+          No rental sessions found.
+        </p>
+      ) : (
+        <SessionBrowserList
+          initialSessions={page.sessions}
+          initialCursor={page.nextCursor}
+          initialHasMore={page.hasMore}
+          filters={filters}
+        />
+      )}
+    </div>
+  );
 }

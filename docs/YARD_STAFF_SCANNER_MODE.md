@@ -311,6 +311,38 @@ DB/RLS/storage/auth/session change; media limits unchanged.
   code + `buildSessionEvidenceHref`. Outbound completion already redirects to the force-dynamic staff page, so the action
   flips Add → View on re-render (no polling).
 
+### Phase 3C.8 — scalable timeline + rental-session search (migration 0031: additive indexes only)
+- **Same-org contact prefill (Part B).** The public renter return route (`app/forms/[shortCode]/return/page.tsx`, already
+  `force-dynamic`) now reads an optional authenticated viewer via `getProfile()` and passes name/email defaults to the form
+  ONLY when the pure `resolveContactPrefill` (`lib/inspections/contact-prefill.ts`) confirms the viewer is an ACTIVE,
+  SAME-ORG `customer_admin`/`customer_staff` (cross-org, incl. platform-owner-in-another-org, and anonymous → blank).
+  Applied as uncontrolled `defaultValue` (editable, survives Back/Review, user edits win); phone has no profile source so it
+  stays blank. Submission origin, the staff return route (contact-free), and the ack checkbox are unchanged. Root cause note:
+  this prefill was never wired on the return route before (3C.6 touched the `/t/` AckPrompt, not the return form) — it is a
+  new same-org convenience, not a reverted deletion.
+- **Bounded cursor timeline (Parts C–F).** The asset timeline previously ran 4 UNBOUNDED source queries + an index-keyed,
+  tie-breaker-less sort. Now `lib/timeline/timeline.ts` gives every event a stable `key`/`sourceId` and sorts
+  `(at desc, id desc)`; `lib/timeline/timeline-page.ts` (`getAssetTimelinePage`, injectable client) loads **50** events/page
+  via bounded per-source queries (each `limit pageSize+1`, ordered `<ts> desc, id desc`, STRICT keyset
+  `ts < cursorAt OR (ts = cursorAt AND id < cursorId)`) then k-way merges — proven no-dup/no-skip, ≤`51×5 + 2` rows/request,
+  no count query. Cursor = base64 `{at,id}` (`lib/timeline/cursor.ts`). The client `timeline-list.tsx` renders page one +
+  an explicit **"Load 50 more"** (server action `loadMoreAssetTimeline`; one request/click, append, pending/error/end
+  states, no observer/timer/refresh). Empty → "No recorded activity…"; filtered-empty → "No history matches these filters."
+- **Filters + reference search (Parts G/H).** `timeline-filters.tsx` is a URL-driven GET `<details>` (closed by default, open
+  when active): reference search, event-type, date preset (7/30/90d/1y/custom From-To), Apply, Clear — bookmarkable, resets
+  pagination, validated server-side (`parseTimelineFilters`; `from ≤ to`, capped `q`). RNT/SUB references are DERIVED
+  (`RNT/SUB-YYYY-` + first 6 hex of the uuid), so reference search reverses to an indexed **PRIMARY-KEY uuid range**
+  (`id BETWEEN 'xxxxxx00-…' AND 'xxxxxxff-…'`) + app-side exact re-derivation — no `%term%` scan, no new reference index.
+- **Rental rows + browser (Parts I/J).** Rental timeline rows show the RNT reference + a "View session evidence" action
+  (`buildSessionEvidenceHref`). `/dashboard/rentals` is no longer a redirect stub — it's an org-scoped session browser
+  (`lib/rentals/session-browser.ts`): 50 newest by `(started_at desc, id desc)`, cursor pagination, filters (RNT via PK
+  range, asset & renter via sanitized `ilike 'term%'` PREFIX, status, started date range, `?asset=` prefilter), Load-50-more.
+  Discoverability links (secondary style) on the timeline header, asset detail, and the dashboard Activity section.
+- **Indexes (Part L, migration 0031, ships UNAPPLIED).** Additive composite `(scope, <ts> desc, id desc)` indexes on
+  `asset_rental_sessions` (org+started, asset+started, asset+returned partial), `form_submissions` (asset+created),
+  `asset_acknowledgements` (asset+created), and `tag_request_assets (asset_id)`. No RLS/column change. **Operator runs
+  `npx.cmd supabase db push`.**
+
 ---
 
 > **Original design (future scope beyond 3A).** This documents the broader wave so it can be

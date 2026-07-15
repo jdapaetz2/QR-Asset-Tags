@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { buildAssetTimeline, type TimelineInput } from "./timeline";
+import {
+  buildAssetTimeline,
+  sortTimelineEvents,
+  rentalStartedToEvent,
+  rentalEndedToEvent,
+  type TimelineEvent,
+  type TimelineInput,
+} from "./timeline";
 
 const base: TimelineInput = {
   assetCreatedAt: "2026-01-01T00:00:00Z",
@@ -240,5 +247,71 @@ describe("buildAssetTimeline", () => {
     expect(
       buildAssetTimeline({ ...base, assetCreatedAt: null })
     ).toHaveLength(0);
+  });
+});
+
+describe("stable keys + tie-break (Phase 3C.8)", () => {
+  it("gives every event a unique, source-stable key", () => {
+    const events = buildAssetTimeline({
+      ...base,
+      submissions: [
+        {
+          id: "s1",
+          form_type: "damage_report",
+          status: "new",
+          created_at: "2026-03-01T00:00:00Z",
+          submitted_by_name: null,
+          attachmentCount: 0,
+        },
+      ],
+      rentalSessions: [
+        {
+          id: "r1",
+          status: "returned",
+          rental_reference: null,
+          renter_label: null,
+          started_at: "2026-02-01T00:00:00Z",
+          returned_at: "2026-02-10T00:00:00Z",
+        },
+      ],
+    });
+    const keys = events.map((e) => e.key);
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(keys).toContain("submission:s1");
+    expect(keys).toContain("rental_started:r1");
+    expect(keys).toContain("rental_ended:r1");
+    expect(keys).toContain("created:asset");
+  });
+
+  it("orders equal-timestamp events deterministically by source id desc", () => {
+    const at = "2026-05-01T00:00:00Z";
+    const evs: TimelineEvent[] = [
+      { key: "submission:a", sourceId: "a", kind: "submission", at, title: "a" },
+      { key: "submission:c", sourceId: "c", kind: "submission", at, title: "c" },
+      { key: "submission:b", sourceId: "b", kind: "submission", at, title: "b" },
+    ];
+    expect(sortTimelineEvents(evs).map((e) => e.key)).toEqual([
+      "submission:c",
+      "submission:b",
+      "submission:a",
+    ]);
+  });
+
+  it("rental events derive the RNT reference and evidence href", () => {
+    const r = {
+      id: "a1b2c3d4-0000-0000-0000-000000000000",
+      status: "returned",
+      rental_reference: "PO-9",
+      renter_label: "Acme",
+      started_at: "2026-05-01T00:00:00Z",
+      returned_at: "2026-05-09T00:00:00Z",
+    };
+    const started = rentalStartedToEvent(r);
+    expect(started.sessionRef).toBe("RNT-2026-A1B2C3");
+    expect(started.sessionId).toBe(r.id);
+    expect(started.sessionEvidenceHref).toBe(`/dashboard/rentals/${r.id}`);
+    const ended = rentalEndedToEvent(r);
+    expect(ended?.sessionRef).toBe("RNT-2026-A1B2C3");
+    expect(rentalEndedToEvent({ ...r, returned_at: null })).toBeNull();
   });
 });

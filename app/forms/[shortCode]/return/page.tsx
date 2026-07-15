@@ -5,7 +5,10 @@ import { getAssetReturnTemplate } from "@/lib/inspections/org-templates-data";
 import { ReturnInspectionForm } from "@/components/public/return-inspection-form";
 import { PublicFormLayout } from "@/components/public/public-form-layout";
 import { UnavailableNotice } from "@/components/public/unavailable-notice";
+import { getProfile } from "@/lib/auth/session";
+import { resolveContactPrefill } from "@/lib/inspections/contact-prefill";
 
+// Personalized (optional same-org contact prefill) → must never be shared-cached.
 export const dynamic = "force-dynamic";
 
 export default async function ReturnInspectionPage({
@@ -31,6 +34,13 @@ export default async function ReturnInspectionPage({
       category: resolved.category,
     });
 
+  // Optional convenience: a signed-in SAME-ORG admin/staff member gets their name + email pre-filled in the
+  // optional contact section (server-derived; no extra client request; fields stay editable). getProfile reads
+  // the auth cookie via the RLS client and returns null for anonymous/cross-org renters, so nothing leaks. The
+  // submission origin is unchanged — this remains a public/renter return even when a staff member is signed in.
+  const profile = await getProfile();
+  const contactDefaults = resolveContactPrefill(profile, resolved.organizationId);
+
   return (
     <PublicFormLayout
       shortCode={shortCode}
@@ -39,7 +49,11 @@ export default async function ReturnInspectionPage({
       assetName={resolved.asset.asset_name}
       assetCode={resolved.asset.asset_code}
     >
-      <ReturnInspectionForm template={template} shortCode={shortCode} />
+      <ReturnInspectionForm
+        template={template}
+        shortCode={shortCode}
+        contactDefaults={contactDefaults ?? undefined}
+      />
     </PublicFormLayout>
   );
 }

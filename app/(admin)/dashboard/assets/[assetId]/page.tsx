@@ -213,6 +213,14 @@ export default async function EditAssetPage({
         </span>
       </Link>
 
+      {/* Rental history for this asset (Phase 3C.8) — secondary link into the session browser, prefiltered. */}
+      <Link
+        href={`/dashboard/rentals?asset=${assetId}`}
+        className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+      >
+        View rental sessions for this asset →
+      </Link>
+
       {/* Readiness checklist */}
       <section className="rounded-lg border bg-card p-4">
         <h2 className="mb-3 font-medium">Public page readiness</h2>

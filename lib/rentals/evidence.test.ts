@@ -68,9 +68,10 @@ describe("every link site passes a rental_session_id (never an asset/submission 
       mustPass: "buildSessionEvidenceHref(submission.rental_session_id)",
     },
     {
-      // Asset timeline: the asset's most-recent rental session id.
-      file: "app/(admin)/dashboard/assets/[assetId]/timeline/page.tsx",
-      mustPass: "buildSessionEvidenceHref(latestSessionId)",
+      // Asset timeline (Phase 3C.8): the pure rental-session mapper builds the href from the session row id;
+      // the timeline list renders it per rental event.
+      file: "lib/timeline/timeline.ts",
+      mustPass: "buildSessionEvidenceHref(r.id)",
     },
     {
       // Asset detail: the rental session row's id.

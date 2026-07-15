@@ -111,6 +111,7 @@ export function ReturnInspectionForm({
   submittingCta = "Submitting…",
   contextTitle = "Contact (optional)",
   contextFields,
+  contactDefaults,
   baseline,
 }: {
   template: InspectionTemplate;
@@ -125,6 +126,12 @@ export function ReturnInspectionForm({
   contextTitle?: string;
   /** Review-step context inputs. When provided, replaces the default public contact fields. */
   contextFields?: ReactNode;
+  /**
+   * Optional initial values for the default contact section (Phase 3C.8). Supplied by the public route ONLY for a
+   * signed-in same-org admin/staff viewer. Applied as uncontrolled `defaultValue` so the fields stay editable,
+   * survive Back/Review, and user edits win. Ignored when `contextFields` overrides the contact block (staff route).
+   */
+  contactDefaults?: { name?: string | null; email?: string | null };
   /**
    * Optional per-field baseline hints keyed by field id (Phase 3B, staff return). When present, a compact
    * expandable "Baseline" reference renders under the matching field. Reference only — never pre-fills or
@@ -384,11 +391,22 @@ export function ReturnInspectionForm({
             <>
               <label className="flex flex-col gap-1 text-sm">
                 <span>Your name</span>
-                <input className={fieldClass} name="name" autoComplete="name" />
+                <input
+                  className={fieldClass}
+                  name="name"
+                  autoComplete="name"
+                  defaultValue={contactDefaults?.name ?? undefined}
+                />
               </label>
               <label className="flex flex-col gap-1 text-sm">
                 <span>Email</span>
-                <input className={fieldClass} type="email" name="email" autoComplete="email" />
+                <input
+                  className={fieldClass}
+                  type="email"
+                  name="email"
+                  autoComplete="email"
+                  defaultValue={contactDefaults?.email ?? undefined}
+                />
               </label>
               <label className="flex flex-col gap-1 text-sm">
                 <span>Phone</span>

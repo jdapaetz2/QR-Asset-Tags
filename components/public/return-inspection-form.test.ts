@@ -12,6 +12,14 @@ const src = readFileSync(resolve(here, "return-inspection-form.tsx"), "utf8");
 
 const HEDGED = ["if possible", "if you can", "where practical", "Photos are strongly recommended", "Photo's"];
 
+describe("return-inspection-form contact prefill (Phase 3C.8)", () => {
+  it("accepts optional contactDefaults and applies them as uncontrolled defaults", () => {
+    expect(src).toContain("contactDefaults");
+    expect(src).toContain("defaultValue={contactDefaults?.name ?? undefined}");
+    expect(src).toContain("defaultValue={contactDefaults?.email ?? undefined}");
+  });
+});
+
 describe("return-inspection-form photo guidance copy", () => {
   it("contains no hedged/legacy photo phrasing", () => {
     for (const phrase of HEDGED) expect(src).not.toContain(phrase);

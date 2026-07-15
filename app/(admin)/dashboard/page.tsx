@@ -466,9 +466,15 @@ export default async function DashboardPage({
 
       {/* Recent activity — quiet single-line feed. */}
       <section>
-        <Eyebrow as="h2" className="mb-2.5">
-          Activity
-        </Eyebrow>
+        <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+          <Eyebrow as="h2">Activity</Eyebrow>
+          <Link
+            href="/dashboard/rentals"
+            className="text-xs text-iron-600 underline-offset-4 hover:underline"
+          >
+            Browse rental sessions →
+          </Link>
+        </div>
         {activity.length === 0 ? (
           <EmptyState
             title="No recent activity yet"
