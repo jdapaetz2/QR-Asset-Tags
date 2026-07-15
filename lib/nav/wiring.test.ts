@@ -41,7 +41,10 @@ describe("asset sub-navigation (Part D)", () => {
 describe("Assets-area secondary grouping (Part C)", () => {
   const list = read("app/(admin)/dashboard/assets/page.tsx");
   it("groups Import + template catalogs + Tag requests under Assets, admin-only", () => {
-    expect(list).toContain("<SecondaryNav");
+    // Wave 3N.4.1: the plain tab strip became clear outlined secondary buttons via the shared
+    // SecondaryActionLink (buttonVariants outline), still under an "Assets tools" nav cluster.
+    expect(list).toContain("<SecondaryActionLink");
+    expect(list).toContain('aria-label="Assets tools"');
     expect(list).toContain('"/dashboard/assets/import"');
     expect(list).toContain('"/dashboard/templates"');
     expect(list).toContain('"/dashboard/templates/return-inspections"');

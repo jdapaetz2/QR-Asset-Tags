@@ -9,7 +9,7 @@ import { DocumentForm } from "@/components/document-form";
 import { ActionButton } from "@/components/action-button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 import { documentLinkTone } from "@/lib/ui/status";
 import { sanitizeReturnTo, withReturnTo } from "@/lib/nav/return-to";
 import { AssetSubnav } from "@/components/assets/asset-subnav";
@@ -93,7 +93,7 @@ export default async function DocumentsPage({
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Documents</h1>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <AssetTagChip code={asset.asset_code} />
+          <AssetCodeChip code={asset.asset_code} />
           <span>
             {documents.length} document{documents.length === 1 ? "" : "s"}
           </span>

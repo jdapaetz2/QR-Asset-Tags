@@ -29,7 +29,7 @@ const TOGGLES: { name: keyof NotificationSettings; label: string; hint: string }
   {
     name: "notify_tag_request_updates",
     label: "Tag request updates",
-    hint: "Email when AssetTag QR updates one of your tag requests.",
+    hint: "Email when Mulemark updates one of your tag requests.",
   },
 ];
 

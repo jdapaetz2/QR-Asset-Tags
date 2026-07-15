@@ -1,4 +1,4 @@
-# Code Handoff — AssetTag QR
+# Code Handoff — Mulemark
 
 Engineering handoff for building the MVP from an empty repo. Read this alongside `docs/PRD.md`, `docs/MVP_SCOPE.md`, `docs/DATA_MODEL.md`, `docs/SECURITY_MODEL.md`, and `docs/SPRINT_PLAN.md`.
 

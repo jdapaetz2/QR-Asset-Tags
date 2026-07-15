@@ -6,7 +6,7 @@ import { PublicFooter } from "@/components/public/public-footer";
 /**
  * Shared success view for public form submissions (Prompt B). A finished moment: it names the
  * tenant, shows a large, quotable reference in a quiet neutral tag-shaped chip (system mono, NOT
- * AssetTagChip, no brass), says what happens next, and offers a way back. The platform stays a
+ * AssetCodeChip, no brass), says what happens next, and offers a way back. The platform stays a
  * quiet footer mark. `reference` is display-only (derived from the submission id); it renders only
  * when present, so the honeypot/no-ref path degrades gracefully.
  */

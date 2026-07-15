@@ -1,4 +1,4 @@
-# AssetTag QR
+# Mulemark
 
 Hosted equipment-info system for equipment rental. A permanent QR tag on a piece
 of equipment resolves to a public, mobile-first page with instructions, manuals,

@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { RelativeTime } from "@/components/relative-time";
-import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 import { DailyBars } from "@/components/ui/daily-bars";
 import { AnalyticsBand } from "@/components/analytics/analytics-band";
 import { RangeControl } from "@/components/analytics/range-control";
@@ -307,7 +307,7 @@ export default async function AnalyticsPage({
                     className={`border-b border-[#EFEDE7] last:border-b-0 ${row.open > 0 ? "bg-[#FDF9F0]" : ""}`}
                   >
                     <td className="px-3 py-2.5">
-                      <AssetTagChip code={row.asset_code} />
+                      <AssetCodeChip code={row.asset_code} />
                     </td>
                     <td className="px-3 py-2.5">
                       {row.readiness.ready ? (

@@ -12,7 +12,7 @@ import {
 import { sanitizeReturnTo, withReturnTo } from "@/lib/nav/return-to";
 import { AssetSubnav } from "@/components/assets/asset-subnav";
 import { EquipmentPageForm } from "@/components/equipment-page-form";
-import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 
 export default async function EquipmentPageEditor({
   params,
@@ -96,7 +96,7 @@ export default async function EquipmentPageEditor({
           Equipment page
         </h1>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <AssetTagChip code={asset.asset_code} />
+          <AssetCodeChip code={asset.asset_code} />
           <span>{page ? (page.is_published ? "Published" : "Draft") : "Not created yet"}</span>
         </div>
       </section>

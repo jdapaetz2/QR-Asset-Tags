@@ -17,7 +17,7 @@ import { isOverCoverage } from "@/lib/plans/coverage";
 export type QrActionState = { error?: string };
 
 const OVER_LIMIT_MESSAGE =
-  "Covered asset limit reached. Contact AssetTag QR to add more covered assets.";
+  "Covered asset limit reached. Contact Mulemark to add more covered assets.";
 
 const QR_STATUSES = ["active", "disabled"] as const;
 const MAX_ATTEMPTS = 5;

@@ -62,7 +62,7 @@ const STYLE = `
   }
 `;
 
-// Printable production sheet (standalone HTML). AssetTag QR platform admin only.
+// Printable production sheet (standalone HTML). Mulemark platform admin only.
 export async function GET(request: NextRequest) {
   await requireRole(ROLES.PLATFORM_OWNER);
 

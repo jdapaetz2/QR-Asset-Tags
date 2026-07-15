@@ -80,7 +80,7 @@ export async function createTagRequest(
     if (newlyCovered > 0 && covered + newlyCovered > limit) {
       return {
         error:
-          "This request would exceed your covered asset limit. Contact AssetTag QR to add more covered assets.",
+          "This request would exceed your covered asset limit. Contact Mulemark to add more covered assets.",
       };
     }
   }

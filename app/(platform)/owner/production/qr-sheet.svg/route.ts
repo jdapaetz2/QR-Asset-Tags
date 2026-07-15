@@ -14,7 +14,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  // AssetTag QR platform admin only.
+  // Mulemark platform admin only.
   await requireRole(ROLES.PLATFORM_OWNER);
 
   const sp = request.nextUrl.searchParams;

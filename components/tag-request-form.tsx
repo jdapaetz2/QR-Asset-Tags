@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 import { createTagRequest, type TagRequestState } from "@/lib/tags/actions";
 import {
   MATERIAL_OPTIONS,
@@ -114,7 +114,7 @@ export function TagRequestForm({ assets }: { assets: SelectableAsset[] }) {
                         value={a.id}
                         className="size-4"
                       />
-                      <AssetTagChip code={a.asset_code} />
+                      <AssetCodeChip code={a.asset_code} />
                       <span className="text-muted-foreground">{a.asset_name}</span>
                       {a.category ? (
                         <span className="text-xs text-muted-foreground">

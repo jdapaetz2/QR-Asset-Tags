@@ -1,6 +1,6 @@
-# Brand assets and rules (working name: MuleMark)
+# Brand assets and rules (working name: Mulemark)
 
-Status: MuleMark is a working name pending CIPO/USPTO clearance. All brand
+Status: Mulemark is a working name pending CIPO/USPTO clearance. All brand
 strings route through lib/constants.ts; all brand artwork lives in this
 directory and is consumed as-is. A rename replaces the wordmark files and
 one constant, nothing else.
@@ -30,7 +30,7 @@ one constant, nothing else.
    where the only platform presence is the small footer mark and the
    post-submission "Delivered by" line (both gated by
    hide_platform_branding).
-4. AssetTagChip is an admin device. On public scan pages, asset codes
+4. AssetCodeChip is an admin device. On public scan pages, asset codes
    render in the SYSTEM monospace stack (ui-monospace, SF Mono, Roboto
    Mono, Consolas, monospace), without the chip and without loading any
    webfont. Monospace is a role (data voice), not a typeface commitment;

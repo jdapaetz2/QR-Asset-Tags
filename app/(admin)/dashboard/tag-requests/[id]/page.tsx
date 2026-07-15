@@ -63,7 +63,7 @@ export default async function CustomerTagRequestPage({
 
       <SectionCard
         title="Tag specification"
-        description="AssetTag QR produces the tags to these specs."
+        description="Mulemark produces the tags to these specs."
       >
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm text-muted-foreground">
           <dt>Material</dt>

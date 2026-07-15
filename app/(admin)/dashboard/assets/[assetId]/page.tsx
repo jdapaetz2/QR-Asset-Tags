@@ -30,7 +30,7 @@ import { AssetSubnav } from "@/components/assets/asset-subnav";
 import { OpenDamageAlert } from "@/components/assets/open-damage-alert";
 import { UNRESOLVED_STATUSES } from "@/lib/submissions/inbox";
 import { AssetForm } from "@/components/asset-form";
-import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 import { Button } from "@/components/ui/button";
 import { ActionButton } from "@/components/action-button";
 import { QrLinkSection, type QrLinkRow } from "@/components/qr-link-section";
@@ -192,7 +192,7 @@ export default async function EditAssetPage({
           ) : null}
         </h1>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <AssetTagChip code={asset.asset_code} />
+          <AssetCodeChip code={asset.asset_code} />
           <span>{asset.public_status}</span>
         </div>
       </section>

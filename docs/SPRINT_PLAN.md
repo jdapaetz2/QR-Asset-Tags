@@ -1,4 +1,4 @@
-# Sprint Plan — AssetTag QR (MVP)
+# Sprint Plan — Mulemark (MVP)
 
 Build in **vertical slices**, not broad unfinished layers. Each sprint must end with something demoable, and lint/typecheck/tests/build should pass after meaningful changes. Sprints below are sequenced by dependency; durations are nominal (assume ~1 week each, adjust to capacity).
 

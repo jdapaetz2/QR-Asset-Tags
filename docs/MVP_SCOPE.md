@@ -1,4 +1,4 @@
-# MVP Scope — AssetTag QR
+# MVP Scope — Mulemark
 
 This document draws a hard boundary around the MVP. The guiding principle: **build a simple, robust hosted equipment info system — nothing more.** When in doubt, leave it out and record it in `docs/OPEN_QUESTIONS.md` or `docs/NON_GOALS.md`.
 

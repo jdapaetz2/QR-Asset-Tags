@@ -24,7 +24,7 @@ function slugify(value: string): string {
   );
 }
 
-// Production CSV export. AssetTag QR platform admin only.
+// Production CSV export. Mulemark platform admin only.
 export async function GET(request: NextRequest) {
   await requireRole(ROLES.PLATFORM_OWNER);
 

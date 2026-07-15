@@ -63,7 +63,7 @@ const OUTLINE_CLS =
   "flex h-12 w-full items-center justify-center rounded-lg border-2 bg-background px-4 text-base font-medium text-foreground";
 
 const EYEBROW_CLS =
-  "text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground";
+  "text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground";
 
 /** One action affordance, rendered live (public) or inert (preview). */
 function Action({
@@ -139,7 +139,7 @@ function Accordion({ label, body }: { label: string; body: string | null }) {
         <span className={EYEBROW_CLS}>{label}</span>
         <ChevronDown />
       </summary>
-      <div className="whitespace-pre-line border-t px-4 py-3 text-lg leading-relaxed">
+      <div className="whitespace-pre-line border-t px-4 py-3 text-base leading-relaxed">
         {body}
       </div>
     </details>
@@ -233,7 +233,7 @@ export function PublicScannerView({
         </div>
       )}
 
-      {/* Asset identity — code in system mono (BRAND.md rule 4: no AssetTagChip on scan pages). */}
+      {/* Asset identity — code in system mono (BRAND.md rule 4: no AssetCodeChip on scan pages). */}
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{asset.asset_name}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -241,7 +241,9 @@ export function PublicScannerView({
           {asset.category ? ` · ${asset.category}` : ""}
           {makeModel ? ` · ${makeModel}` : ""}
         </p>
-        {page.headline ? <p className="mt-3 text-lg">{page.headline}</p> : null}
+        {page.headline ? (
+          <p className="mt-3 text-base leading-relaxed">{page.headline}</p>
+        ) : null}
       </div>
 
       {/* Actions — tenant color as an accent (Report Damage primary; the rest outline). */}

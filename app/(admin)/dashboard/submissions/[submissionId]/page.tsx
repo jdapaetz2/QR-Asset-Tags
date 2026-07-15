@@ -17,7 +17,7 @@ import {
 import { getSubmissionRecord } from "@/lib/submissions/detail-data";
 import { collectMediaPaths, signMediaPaths } from "@/lib/submissions/media";
 import { Badge } from "@/components/ui/badge";
-import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 import { RelativeTime } from "@/components/relative-time";
 import { submissionStatusTone } from "@/lib/ui/status";
 import { submissionStatusLabel } from "@/lib/ui/status-labels";
@@ -133,7 +133,7 @@ export default async function SubmissionDetailPage({
       {submission.asset ? (
         <>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <AssetTagChip code={submission.asset.asset_code} />
+            <AssetCodeChip code={submission.asset.asset_code} />
             <span className="font-medium">{submission.asset.asset_name}</span>
             {submission.asset_id ? (
               <span className="text-xs text-muted-foreground">

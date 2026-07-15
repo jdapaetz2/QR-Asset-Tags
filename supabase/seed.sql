@@ -1,4 +1,4 @@
--- seed.sql — Demo data for AssetTag QR (Northridge Rentals, a realistic pilot yard).
+-- seed.sql — Demo data for Mulemark (Northridge Rentals, a realistic pilot yard).
 --
 -- WHAT THIS SEEDS (one demo org, fully self-contained):
 --   1 organization  Northridge Rentals (Standard Yard pilot plan)
@@ -57,7 +57,7 @@ insert into public.organizations (
   '+1-555-0100',
   'support@northridge-rentals.example',
   'https://northridge-rentals.example',
-  'Powered by MuleMark',
+  'Powered by Mulemark',
   'active',
   'Standard Yard',
   0,

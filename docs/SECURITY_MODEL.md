@@ -1,4 +1,4 @@
-# Security Model — AssetTag QR (MVP)
+# Security Model — Mulemark (MVP)
 
 Security is multi-tenant from day one and enforced in the database with Supabase row-level security (RLS), not just in the UI. The UI may hide things, but the database is the boundary that actually protects data.
 

@@ -283,8 +283,8 @@ DB/RLS/storage/auth/session change; media limits unchanged.
   non-clickable mono chip (prints as text) with the submitter/time beside it, plus a SEPARATE bordered "Open submission →"
   action (≥44px touch on mobile, focus-visible ring, `print:hidden`) linking to the canonical `/dashboard/submissions/<id>`.
   Applied to all three sources via the shared `EvidenceBody`. The reference is no longer an ambiguous inline link.
-- **MuleMark evidence design + top summary (Parts C/D).** `/dashboard/rentals/[sessionId]` now uses the platform design
-  language (iron/brass/bone tokens, `Eyebrow`, `Badge`, `AssetTagChip`). A branded header (eyebrow "Rental session · RNT-…"
+- **Mulemark evidence design + top summary (Parts C/D).** `/dashboard/rentals/[sessionId]` now uses the platform design
+  language (iron/brass/bone tokens, `Eyebrow`, `Badge`, `AssetCodeChip`). A branded header (eyebrow "Rental session · RNT-…"
   + title + status badge) sits above a responsive two-column summary (`sm:grid-cols-2`, stacks on mobile): left = **Rental
   session** details (with the screen's single brass accent — a `border-l-brass-500` left rule); right = **Renter
   acknowledgement**. Disclosures stay all-collapsed with strengthened summaries; print expansion + aggregate-hidden (3C.6)
@@ -296,9 +296,9 @@ DB/RLS/storage/auth/session change; media limits unchanged.
   renter acknowledgement recorded" (neutral); one → "Acknowledged by {name}" + time; multiple → "N acknowledgements
   recorded" + latest + an expandable list (name/time/statement; email/phone ONLY inside the expanded detail). Verbatim
   stored statement, never framed as an e-signature; included in print.
-- **Print branding = MuleMark (Part G).** The evidence route sets `metadata.title = "Rental session evidence · MuleMark"`
+- **Print branding = Mulemark (Part G).** The evidence route sets `metadata.title = "Rental session evidence · Mulemark"`
   (static, no extra query) so the browser/print title no longer reads the internal product name. A new print-only
-  `EvidencePrintHeader` (`hidden print:block`) renders the canonical MuleMark wordmark artwork + document title + asset +
+  `EvidencePrintHeader` (`hidden print:block`) renders the canonical Mulemark wordmark artwork + document title + asset +
   session reference. The app-shell header, disclosure chevrons, Open-submission actions, and Print button are all
   `print:hidden`; sections print expanded. `PRODUCT_NAME` + DB columns/package names untouched.
 - **Staff workflow state matrix (Parts H/I).** The legacy "a new outbound session cannot start until it is returned" notice

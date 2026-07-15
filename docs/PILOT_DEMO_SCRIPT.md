@@ -1,4 +1,4 @@
-# Pilot Demo Script — AssetTag QR
+# Pilot Demo Script — Mulemark
 
 > **Moved.** The canonical, timed demo walkthrough now lives in
 > [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md) — it adds positioning, per-step "what the prospect

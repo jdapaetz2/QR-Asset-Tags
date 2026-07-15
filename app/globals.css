@@ -24,7 +24,7 @@
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
 
-  /* MuleMark platform palette (A1). Hex, per BRAND.md. Brass is a platform
+  /* Mulemark platform palette (A1). Hex, per BRAND.md. Brass is a platform
      accent ONLY — never on tenant scan pages. Foundation tokens: adopt
      deliberately, do not aggressively recolor. */
   --iron-950: #1a1917;
@@ -110,7 +110,7 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  /* MuleMark platform + semantic tokens → generate utilities (bg-brass-500,
+  /* Mulemark platform + semantic tokens → generate utilities (bg-brass-500,
      text-iron-600, border-iron-200, text-success, …). */
   --color-iron-950: var(--iron-950);
   --color-iron-600: var(--iron-600);

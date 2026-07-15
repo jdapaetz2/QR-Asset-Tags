@@ -3,10 +3,10 @@ import { BrandGlyph, BrandWordmark } from "@/components/brand/brand";
 
 /**
  * Shared footer for every public surface (equipment page, forms, thanks,
- * unavailable). The platform presence is the fixed MuleMark mark (BRAND.md rule 3):
+ * unavailable). The platform presence is the fixed Mulemark mark (BRAND.md rule 3):
  * the iron tag glyph + MULEMARK wordmark (authoritative pure-SVG outline artwork —
  * zero webfonts, no brass on tenant pages; the rivet hole stays transparent) with a
- * quiet "Powered by MuleMark" descriptor, then the standard disclaimer. It is a fixed
+ * quiet "Powered by Mulemark" descriptor, then the standard disclaimer. It is a fixed
  * platform mark, not a tenant-overridable string, and stays secondary to the rental
  * company's brand at the top of the page. Plain text, not a link.
  */

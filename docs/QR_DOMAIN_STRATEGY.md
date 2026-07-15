@@ -44,7 +44,7 @@ a stale placeholder host. Exports follow the same rule.
 Customer data export is a **platform-controlled** capability, not a default feature:
 
 - Self-serve customer export access is **disabled by default** for every organization.
-- AssetTag QR (platform admin) can **enable exports per organization** when a buyer-trust
+- Mulemark (platform admin) can **enable exports per organization** when a buyer-trust
   or offboarding need arises, including which export types are available.
 - The platform admin can **always** export an organization's data for support, handoff,
   or offboarding regardless of the customer toggles.

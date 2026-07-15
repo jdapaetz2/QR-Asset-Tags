@@ -1,6 +1,6 @@
-# Pilot Customer Demo — AssetTag QR
+# Pilot Customer Demo — Mulemark
 
-A repeatable script for demoing the MVP to a pilot equipment-rental customer. It walks the full core loop using the **Northridge Rentals** demo organization. Branding shown is placeholder ("AssetTag QR" / "Powered by AssetTag QR") and will be replaced.
+A repeatable script for demoing the MVP to a pilot equipment-rental customer. It walks the full core loop using the **Northridge Rentals** demo organization. Branding shown is placeholder ("Mulemark" / "Powered by Mulemark") and will be replaced.
 
 > **Companion:** for the concise click-by-click version to follow live on a call,
 > use [PILOT_DEMO_SCRIPT.md](PILOT_DEMO_SCRIPT.md). This document is the narrative
@@ -23,7 +23,7 @@ Before the demo: each asset has a published equipment page, at least one public 
 
 ## The story (≈10–15 minutes)
 
-Frame it around the rental counter's pain: repeat "how do I start this?" calls, equipment misuse, and damage that shows up with no record. AssetTag QR puts the right info on the machine and captures structured reports back.
+Frame it around the rental counter's pain: repeat "how do I start this?" calls, equipment misuse, and damage that shows up with no record. Mulemark puts the right info on the machine and captures structured reports back.
 
 ### 1. The renter experience (lead with this)
 

@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="MuleMark app icon">
-<title>MuleMark app icon</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Mulemark app icon">
+<title>Mulemark app icon</title>
 <path fill-rule="evenodd" fill="#A87B22" d="M116 0H396A116 116 0 0 1 512 116V396A116 116 0 0 1 396 512H116A116 116 0 0 1 0 396V116A116 116 0 0 1 116 0ZM150 256A38 38 0 1 1 74 256A38 38 0 1 1 150 256Z"/>
 <g transform="matrix(0.4286 0 0 -0.4286 186 406)"><path d="M504 700H660Q667 700 671.0 696.0Q675 692 675 685V15Q675 8 671.0 4.0Q667 0 660 0H502Q495 0 491.0 4.0Q487 8 487 15V378Q487 382 485.0 382.5Q483 383 481 380L413 269Q407 259 395 259H319Q307 259 301 269L233 380Q231 383 229.0 382.5Q227 382 227 378V15Q227 8 223.0 4.0Q219 0 212 0H54Q47 0 43.0 4.0Q39 8 39 15V685Q39 692 43.0 696.0Q47 700 54 700H210Q222 700 228 690L354 487Q357 481 360 487L486 690Q492 700 504 700Z" fill="#FAF9F6"/></g>
 </svg>

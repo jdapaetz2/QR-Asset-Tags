@@ -1,4 +1,4 @@
-# Non-Goals — AssetTag QR
+# Non-Goals — Mulemark
 
 This product is a **web-based QR equipment info system for rental businesses**. It is deliberately narrow. The items below are explicitly out of scope. Do not build them unless they are explicitly requested and re-scoped. If a request seems to drift toward one of these, flag it and record the decision in `docs/OPEN_QUESTIONS.md`.
 
@@ -28,7 +28,7 @@ It is not a CMMS, not a rental booking platform, not an inventory system, not a 
 
 ## Branding non-goal
 
-Do not hard-code final company branding, logos, colors, or "Powered by" copy. The working name **AssetTag QR** is temporary; all branding must stay generic and easy to change.
+Do not hard-code final company branding, logos, colors, or "Powered by" copy. The working name **Mulemark** is temporary; all branding must stay generic and easy to change.
 
 ## Liability non-goal
 

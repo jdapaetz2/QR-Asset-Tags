@@ -1,4 +1,4 @@
-import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 import { Badge } from "@/components/ui/badge";
 import type { TagRequestAsset } from "@/lib/tags/request-detail";
 
@@ -26,7 +26,7 @@ export function TagRequestAssets({ assets }: { assets: TagRequestAsset[] }) {
               <tr key={a.id} className="border-b align-top last:border-0">
                 <td className="whitespace-nowrap px-4 py-2.5">
                   <span className="inline-flex items-center gap-2">
-                    <AssetTagChip code={a.asset_code} />
+                    <AssetCodeChip code={a.asset_code} />
                     {a.archived ? <Badge tone="warning">Archived</Badge> : null}
                   </span>
                 </td>

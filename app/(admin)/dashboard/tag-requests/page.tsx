@@ -37,7 +37,7 @@ export default async function TagRequestsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Tag requests"
-        description="Request physical QR tags for selected covered assets. AssetTag QR produces and fulfills approved tag requests."
+        description="Request physical QR tags for selected covered assets. Mulemark produces and fulfills approved tag requests."
         actions={
           <PrimaryButton href="/dashboard/tag-requests/new">
             New request
@@ -48,7 +48,7 @@ export default async function TagRequestsPage() {
       {requests.length === 0 ? (
         <EmptyState
           title="No tag requests yet"
-          description="When an asset is ready for a durable metal QR tag, request one here — AssetTag QR reviews the specs, produces the tags, and ships them. Track each request's production status on this page."
+          description="When an asset is ready for a durable metal QR tag, request one here — Mulemark reviews the specs, produces the tags, and ships them. Track each request's production status on this page."
           action={
             <PrimaryButton href="/dashboard/tag-requests/new">
               New request

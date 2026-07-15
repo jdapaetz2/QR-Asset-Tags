@@ -59,7 +59,7 @@ async function svgResponse(
   });
 }
 
-// Scan-safe export (no logo). AssetTag QR platform admin only.
+// Scan-safe export (no logo). Mulemark platform admin only.
 export async function GET(request: NextRequest) {
   await requireRole(ROLES.PLATFORM_OWNER);
   const sp = request.nextUrl.searchParams;

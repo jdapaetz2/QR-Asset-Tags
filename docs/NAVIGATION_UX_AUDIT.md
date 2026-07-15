@@ -1,7 +1,7 @@
 # Mulemark — Navigation & UX Architecture Audit
 
 **Branch / commit:** `pilot-credibility` @ `6b37f3d` — _"fix(history): repair session browser and filtered end states"_
-**Product (internal name):** AssetTag QR · **Platform brand:** Mulemark (working name)
+**Product (internal name):** Mulemark · **Platform brand:** Mulemark (working name)
 **Companion visual map:** [`docs/brand/navigation-map.html`](brand/navigation-map.html) (open directly in a browser)
 
 > **Scope & limits.** This is a **current-state audit produced by static source inspection** of routes, layouts,
@@ -452,7 +452,7 @@ Recommended consistent shells (Recommended; describes the target, not current):
 | Shell | Title area | Primary action | Status | Secondary nav | Back/breadcrumb | Filters | Mobile | Desktop density | Empty | Error | Return path | Filter preservation |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | List/index | H1 + count | one filled button | inline badges | tab strip if scoped | explicit up-link | top, collapsible `<details>` | stacked, 44px targets | dense rows | one-line + one CTA | inline `role=alert` | keep list filters | **URL params preserved on detail→back** |
-| Asset detail | AssetTagChip + name | Publish/QR | rental + readiness badges | per-asset tab strip | `← Assets` **(with filters)** | n/a | stacked sections | 2-col | — | — | back to filtered list | preserve |
+| Asset detail | AssetCodeChip + name | Publish/QR | rental + readiness badges | per-asset tab strip | `← Assets` **(with filters)** | n/a | stacked sections | 2-col | — | — | back to filtered list | preserve |
 | Submission detail | reference + type badges | status buttons | status badge | one asset cluster | `← Submissions` **(with filters)** | n/a | reorder actions first | 2-col | — | — | filtered inbox | preserve |
 | Session evidence | RNT ref + status | Print | Active/Returned | `← Rentals` + `← Asset timeline` | explicit both | n/a | print-first | disclosures | per-source empty | — | back to Rentals list | preserve |
 | Staff scan | asset identity | one state-appropriate primary | state banner | none (mobile) | `← Public equipment page` | n/a | system font, single column | n/a | safe error card | error state | back to `/t` | n/a |

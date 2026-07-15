@@ -10,6 +10,7 @@ import {
   FORM_TYPE_LABELS,
 } from "@/lib/submissions/display";
 import { SubmissionBadges } from "@/components/submissions/submission-badges";
+import { secondaryActionClass } from "@/components/ui/secondary-action-link";
 import {
   BulkSelectionProvider,
   SelectAllCheckbox,
@@ -32,7 +33,7 @@ import {
   urgencyTone,
 } from "@/lib/submissions/inbox";
 import { Badge } from "@/components/ui/badge";
-import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { RefreshControls } from "@/components/refresh-controls";
@@ -200,10 +201,7 @@ export default async function SubmissionsPage({
           <>
             <Badge tone={newCount ? "info" : "neutral"}>{newCount ?? 0} new</Badge>
             <RefreshControls renderedAt={renderedAt} pollMs={30000} />
-            <a
-              href={exportHref}
-              className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-            >
+            <a href={exportHref} className={secondaryActionClass}>
               Export CSV
             </a>
           </>
@@ -450,7 +448,7 @@ export default async function SubmissionsPage({
                     <td className="px-4 py-2">
                       {row.asset ? (
                         <div className="flex flex-col items-start gap-1 leading-tight">
-                          <AssetTagChip code={row.asset.asset_code} />
+                          <AssetCodeChip code={row.asset.asset_code} />
                           <span className="text-xs text-muted-foreground">
                             {row.asset.asset_name}
                           </span>
@@ -475,7 +473,7 @@ export default async function SubmissionsPage({
                         {submissionStatusLabel(row.status)}
                       </Badge>
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="whitespace-nowrap px-4 py-2">
                       <div className="flex flex-col items-end gap-1.5">
                         <Link
                           href={withReturnTo(`/dashboard/submissions/${row.id}`, listHref)}
@@ -492,6 +490,7 @@ export default async function SubmissionsPage({
                           <MarkReturnedResolveButton
                             submissionId={row.id}
                             redirectTo={listHref}
+                            dense
                           />
                         ) : null}
                       </div>

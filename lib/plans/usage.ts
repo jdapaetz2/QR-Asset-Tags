@@ -37,7 +37,7 @@ export function coverageLimitLabel(limit: number | null): string {
 export const SCANS_UNLIMITED_COPY = "Scans are unlimited.";
 
 export const COVERED_ASSET_DEFINITION =
-  "Covered assets are active, non-archived assets with AssetTag QR coverage assigned.";
+  "Covered assets are active, non-archived assets with Mulemark coverage assigned.";
 
 export const PLAN_CONTACT_COPY =
-  "Contact AssetTag QR to change your plan or covered asset limit.";
+  "Contact Mulemark to change your plan or covered asset limit.";

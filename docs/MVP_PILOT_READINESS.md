@@ -1,4 +1,4 @@
-# MVP Pilot Readiness — AssetTag QR
+# MVP Pilot Readiness — Mulemark
 
 Go/no-go reference for running a controlled pilot. It combines the functional
 readiness checklist, the Sprint 7A security audit results, and the known MVP
@@ -6,7 +6,7 @@ limitations so expectations are honest. Pair with
 [ONBOARDING_RUNBOOK.md](ONBOARDING_RUNBOOK.md) and
 [PILOT_DEMO_SCRIPT.md](PILOT_DEMO_SCRIPT.md).
 
-> **Business rule:** QR/tag production is controlled by the AssetTag QR platform
+> **Business rule:** QR/tag production is controlled by the Mulemark platform
 > admin (`platform_owner`) only, via `/owner/production`. Customer admins manage
 > content and submissions but never get production exports.
 >

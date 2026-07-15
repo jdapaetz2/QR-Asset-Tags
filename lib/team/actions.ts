@@ -24,7 +24,7 @@ const LAST_ADMIN_MESSAGE =
   "This is the organization's last active administrator — promote or invite another admin first.";
 
 const SUSPENDED_ORG_MESSAGE =
-  "Your organization is suspended. Contact AssetTag QR to reactivate it.";
+  "Your organization is suspended. Contact Mulemark to reactivate it.";
 
 /**
  * Team actions use the service-role admin client (creating auth users needs it), which
@@ -183,7 +183,7 @@ export async function inviteUser(
   if (decision === "other_org") {
     return {
       error:
-        "That email already belongs to another organization. Contact AssetTag QR.",
+        "That email already belongs to another organization. Contact Mulemark.",
     };
   }
 

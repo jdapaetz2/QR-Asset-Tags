@@ -34,7 +34,7 @@ tenant scan pages. Kill switch: this is one component; removing the
 clip-path and radius override reverts the entire system to standard
 corners.
 
-**AssetTagChip** — as specced in BRAND.md. Usage law: every asset
+**AssetCodeChip** — as specced in BRAND.md. Usage law: every asset
 reference on every admin surface renders as the chip. Bare mono codes
 on admin surfaces are a defect. (Scan pages: bare system-mono, no chip.)
 

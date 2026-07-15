@@ -136,7 +136,7 @@ export default async function SettingsPage() {
           }
         >
           <p className="text-sm text-muted-foreground">
-            Export the record types AssetTag QR has enabled for your organization. Private media files are not
+            Export the record types Mulemark has enabled for your organization. Private media files are not
             included.
           </p>
         </SectionCard>
@@ -144,7 +144,7 @@ export default async function SettingsPage() {
 
       <SectionCard
         title="Plan & usage"
-        description="Your subscription and covered-asset usage. Plan changes are handled by AssetTag QR."
+        description="Your subscription and covered-asset usage. Plan changes are handled by Mulemark."
       >
         <PlanUsage
           mode="full"

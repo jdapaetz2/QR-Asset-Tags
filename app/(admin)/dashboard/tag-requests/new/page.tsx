@@ -34,7 +34,7 @@ export default async function NewTagRequestPage() {
         <div className="mt-2">
           <PageHeader
             title="New tag request"
-            description="Select the equipment that needs tags and choose the tag specs. AssetTag QR reviews, produces, and fulfills the physical tags."
+            description="Select the equipment that needs tags and choose the tag specs. Mulemark reviews, produces, and fulfills the physical tags."
           />
         </div>
       </div>

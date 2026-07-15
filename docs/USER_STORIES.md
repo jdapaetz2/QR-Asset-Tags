@@ -1,4 +1,4 @@
-# User Stories — AssetTag QR (MVP)
+# User Stories — Mulemark (MVP)
 
 Stories are grouped by the three user types. Each has acceptance criteria. Anything not listed here is out of MVP scope (see `docs/NON_GOALS.md`).
 

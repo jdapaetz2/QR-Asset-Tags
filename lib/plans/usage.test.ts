@@ -55,6 +55,6 @@ describe("usage copy", () => {
     expect(SCANS_UNLIMITED_COPY).toMatch(/scans are unlimited/i);
     expect(COVERED_ASSET_DEFINITION).toMatch(/non-archived/i);
     expect(COVERED_ASSET_DEFINITION).toMatch(/coverage/i);
-    expect(PLAN_CONTACT_COPY).toMatch(/contact assettag qr/i);
+    expect(PLAN_CONTACT_COPY).toMatch(/contact mulemark/i);
   });
 });

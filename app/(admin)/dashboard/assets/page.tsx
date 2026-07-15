@@ -4,14 +4,14 @@ import { createClient } from "@/lib/supabase/server";
 import { requireOrgContext } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
 import { withReturnTo } from "@/lib/nav/return-to";
-import { SecondaryNav } from "@/components/ui/secondary-nav";
+import { SecondaryActionLink } from "@/components/ui/secondary-action-link";
 import { Button } from "@/components/ui/button";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { ActionButton } from "@/components/action-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { AssetThumb } from "@/components/asset-thumb";
-import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 import { AssetStatusCell } from "@/components/ui/asset-status-cell";
 import { deriveAssetStatus } from "@/lib/ui/status-view";
 import { PlanUsage } from "@/components/plan-usage";
@@ -253,21 +253,24 @@ export default async function AssetsPage({
         }
       />
 
-      {/* Assets-area secondary destinations (Wave 3N.2) — one predictable click to the admin-only setup surfaces
-          (import + template catalogs + tag procurement). Shown to customer_admin only; the routes enforce the same. */}
+      {/* Assets-area secondary actions (Wave 3N.2/3N.4.1) — one predictable click to the admin-only setup surfaces
+          (import + template catalogs + tag procurement), rendered as clear outlined secondary buttons. Shown to
+          customer_admin only; the routes enforce the same. */}
       {isAdmin ? (
-        <SecondaryNav
-          ariaLabel="Assets tools"
-          items={[
-            { label: "Import CSV", href: "/dashboard/assets/import" },
-            { label: "Equipment-page templates", href: "/dashboard/templates" },
-            {
-              label: "Return-checklist templates",
-              href: "/dashboard/templates/return-inspections",
-            },
-            { label: "Tag requests", href: "/dashboard/tag-requests" },
-          ]}
-        />
+        <nav aria-label="Assets tools" className="flex flex-wrap gap-2">
+          <SecondaryActionLink href="/dashboard/assets/import">
+            Import CSV
+          </SecondaryActionLink>
+          <SecondaryActionLink href="/dashboard/templates">
+            Equipment-page templates
+          </SecondaryActionLink>
+          <SecondaryActionLink href="/dashboard/templates/return-inspections">
+            Return-checklist templates
+          </SecondaryActionLink>
+          <SecondaryActionLink href="/dashboard/tag-requests">
+            Tag requests
+          </SecondaryActionLink>
+        </nav>
       ) : null}
 
       {/* Compact toolbar: search + Apply/Clear always visible; advanced filters collapse
@@ -435,7 +438,7 @@ export default async function AssetsPage({
                         src={asset.cover_image_url}
                         alt={`Photo of ${asset.asset_name}`}
                       />
-                      <AssetTagChip code={asset.asset_code} />
+                      <AssetCodeChip code={asset.asset_code} />
                     </span>
                   </td>
                   <td className="px-3 py-2.5">{asset.asset_name}</td>

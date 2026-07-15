@@ -1,4 +1,4 @@
-# Open Questions — AssetTag QR
+# Open Questions — Mulemark
 
 Decisions that aren't fully settled by `docs/PROJECT_CONTEXT.md` / `CLAUDE.md`. Each has a recommended default so the build can proceed; revisit before or during the relevant sprint. Items marked **(assumption)** are how the docs currently proceed unless overridden.
 

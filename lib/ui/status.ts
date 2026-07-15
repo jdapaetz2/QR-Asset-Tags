@@ -29,21 +29,29 @@ export function submissionStatusTone(status: string): BadgeTone {
  * present; the caller must not rely on color alone. Includes default/hover/focus-visible/disabled states; the
  * caller applies `disabled={pending}` for the pending state.
  */
+// `whitespace-nowrap` keeps a long label (e.g. "Mark returned & resolve") on one line (Wave 3N.4.1); short
+// status labels are unaffected. `dense` swaps to a compact size for dense list/table rows.
 const ACTION_BASE =
-  "inline-flex min-h-9 items-center justify-center rounded-md border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-[3px]";
+  "inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-md border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-[3px]";
+const ACTION_BASE_DENSE =
+  "inline-flex min-h-8 items-center justify-center whitespace-nowrap rounded-md border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-[3px]";
 
-export function submissionStatusActionClasses(targetStatus: string): string {
+export function submissionStatusActionClasses(
+  targetStatus: string,
+  dense = false
+): string {
+  const base = dense ? ACTION_BASE_DENSE : ACTION_BASE;
   switch (targetStatus) {
     case "resolved":
-      return `${ACTION_BASE} border-emerald-500/50 text-emerald-700 hover:bg-emerald-500/10 focus-visible:ring-emerald-500/40 dark:text-emerald-400`;
+      return `${base} border-emerald-500/50 text-emerald-700 hover:bg-emerald-500/10 focus-visible:ring-emerald-500/40 dark:text-emerald-400`;
     case "new":
-      return `${ACTION_BASE} border-sky-500/50 text-sky-700 hover:bg-sky-500/10 focus-visible:ring-sky-500/40 dark:text-sky-400`;
+      return `${base} border-sky-500/50 text-sky-700 hover:bg-sky-500/10 focus-visible:ring-sky-500/40 dark:text-sky-400`;
     case "reviewed":
-      return `${ACTION_BASE} border-border text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring/50`;
+      return `${base} border-border text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring/50`;
     case "archived":
-      return `${ACTION_BASE} border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring/50`;
+      return `${base} border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring/50`;
     default:
-      return `${ACTION_BASE} border-border text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring/50`;
+      return `${base} border-border text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring/50`;
   }
 }
 

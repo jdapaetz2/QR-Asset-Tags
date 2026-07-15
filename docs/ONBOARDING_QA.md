@@ -1,4 +1,4 @@
-# Onboarding QA — AssetTag QR
+# Onboarding QA — Mulemark
 
 Pass/fail verification of the manual onboarding + account-management flow for pilot readiness
 (Prompt E, Part C).

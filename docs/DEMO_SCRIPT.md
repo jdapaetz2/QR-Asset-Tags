@@ -1,4 +1,4 @@
-# Demo Script — AssetTag QR
+# Demo Script — Mulemark
 
 A repeatable, **timed in-person walkthrough** (~12–15 min) of the core loop on the
 **Northridge Rentals** demo org. This is the canonical demo script; for narrative framing and
@@ -9,7 +9,7 @@ talking points see [`PILOT_CUSTOMER_DEMO.md`](PILOT_CUSTOMER_DEMO.md), and for a
 > into the support channel — your renter scans it and gets the right instructions, manuals, and a
 > way to report damage, and you get a clean record of every scan, submission, and return."*
 
-> **Model reminder:** AssetTag QR (the platform admin) owns QR/tag production. The customer
+> **Model reminder:** Mulemark (the platform admin) owns QR/tag production. The customer
 > manages content and submissions; we produce the durable tags.
 
 ---

@@ -1,9 +1,9 @@
 ---
 name: product-design-system
-description: MuleMark design system rules for AssetTag QR admin/marketing UI — tokens, typography, the AssetTagChip device, the nameplate-band components (PlateLabel/BandRule/BandStat/Sparkline), the chamfered PrimaryButton, attention semantics, status/timestamp/eyebrow/empty-state/motion/voice rules, and the wordmark hard rules. Consult before any visual/UI change on admin or marketing surfaces (never applies to /t/ scan pages beyond the zero-webfont rule).
+description: Mulemark design system rules for Mulemark admin/marketing UI — tokens, typography, the AssetCodeChip device, the nameplate-band components (PlateLabel/BandRule/BandStat/Sparkline), the chamfered PrimaryButton, attention semantics, status/timestamp/eyebrow/empty-state/motion/voice rules, and the wordmark hard rules. Consult before any visual/UI change on admin or marketing surfaces (never applies to /t/ scan pages beyond the zero-webfont rule).
 ---
 
-# Product Design System (working name: MuleMark)
+# Product Design System (working name: Mulemark)
 
 Canonical sources — build to match, do not redesign:
 - `docs/brand/BRAND.md` + `docs/brand/brand-reference.html` — brand identity.
@@ -49,8 +49,8 @@ This skill is the interface-design contract that sits on top of them.
 ### Eyebrows
 - Section labels ("QUICK START"): 11–12px, uppercase, ~+6% letter-spacing, `iron-600`.
 
-### AssetTagChip
-- The single signature device (`components/ui/asset-tag-chip.tsx`). Ring-style rivet hole at
+### AssetCodeChip
+- The single signature device (`components/ui/asset-code-chip.tsx`). Ring-style rivet hole at
   the left (a ring with a **transparent** center — never filled), code in JetBrains Mono, on a
   `bone-50` surface with a 7px radius. Optional single readiness dot; never a cluster.
 - **Usage law:** every asset reference on every admin surface renders as the chip. A bare mono
@@ -111,7 +111,7 @@ These build the dashboard briefing band; use them, don't re-roll bespoke variant
   the shared timestamp utility, absolute local time on hover.
 
 ### Scan-page guard (`/t/[shortCode]`)
-- No AssetTagChip, no chamfered PrimaryButton, no brass emphasis (tenant color + neutrals only),
+- No AssetCodeChip, no chamfered PrimaryButton, no brass emphasis (tenant color + neutrals only),
   no admin webfonts (system stack, zero webfonts), no new client JS. Design polish never outranks
   the scan-page behavior/security contract.
 

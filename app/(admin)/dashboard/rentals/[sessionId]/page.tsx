@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 
 // Route title override (Phase 3C.7, Part G). The root layout sets the document <title> to the
 // internal PRODUCT_NAME, which the browser stamps into the print header. This static title
-// (no extra query) makes the printed/exported record read as the MuleMark platform brand instead.
+// (no extra query) makes the printed/exported record read as the Mulemark platform brand instead.
 export const metadata: Metadata = {
   title: `Rental session evidence · ${PLATFORM_NAME}`,
 };

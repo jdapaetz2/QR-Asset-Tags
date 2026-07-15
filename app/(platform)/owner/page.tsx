@@ -7,6 +7,8 @@ import { unviewedCountByOrg } from "@/lib/tags/tag-requests";
 import { coveredCountByOrg } from "@/lib/plans/coverage";
 import { formatCents } from "@/lib/plans/presets";
 import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { SecondaryActionLink } from "@/components/ui/secondary-action-link";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { orgStatusLabel } from "@/lib/ui/status-labels";
@@ -77,30 +79,12 @@ export default async function OwnerPage() {
         description={`${orgs.length} organization${orgs.length === 1 ? "" : "s"}`}
         actions={
           <>
-            <Link
-              href="/owner/tag-requests"
-              className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-            >
-              Tag requests
-            </Link>
-            <Link
-              href="/owner/analytics"
-              className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-            >
-              Analytics
-            </Link>
-            <Link
-              href="/owner/users"
-              className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-            >
-              All users
-            </Link>
-            <Link
-              href="/owner/organizations/new"
-              className="rounded-md bg-foreground px-3 py-1.5 text-sm font-medium text-background hover:bg-foreground/90"
-            >
-              New organization
-            </Link>
+            <SecondaryActionLink href="/owner/tag-requests">Tag requests</SecondaryActionLink>
+            <SecondaryActionLink href="/owner/analytics">Analytics</SecondaryActionLink>
+            <SecondaryActionLink href="/owner/users">All users</SecondaryActionLink>
+            <Button asChild className="min-h-10">
+              <Link href="/owner/organizations/new">New organization</Link>
+            </Button>
           </>
         }
       />

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 import { Badge } from "@/components/ui/badge";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import type { BadgeTone } from "@/lib/ui/status";
@@ -112,7 +112,7 @@ export function SessionEvidenceRecord({
 
   return (
     <>
-      {/* Print-only MuleMark masthead — hidden on screen, self-identifies the printed record. */}
+      {/* Print-only Mulemark masthead — hidden on screen, self-identifies the printed record. */}
       <EvidencePrintHeader
         assetCode={asset?.asset_code ?? null}
         assetName={asset?.asset_name ?? null}
@@ -137,7 +137,7 @@ export function SessionEvidenceRecord({
           <Eyebrow>Rental session</Eyebrow>
           {asset ? (
             <div className="flex flex-col items-start gap-1.5">
-              <AssetTagChip code={asset.asset_code} />
+              <AssetCodeChip code={asset.asset_code} />
               <span className="font-medium text-iron-950">{asset.asset_name}</span>
             </div>
           ) : null}

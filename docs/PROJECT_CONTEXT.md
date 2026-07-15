@@ -16,8 +16,8 @@ This name is temporary. All branding, logos, colors, and “Powered by” copy m
 
 Use placeholder branding such as:
 
-- Product name: AssetTag QR
-- Powered by: Powered by AssetTag QR
+- Product name: Mulemark
+- Powered by: Powered by Mulemark
 - Demo customer: Northridge Rentals
 
 Do not hard-code final company branding.

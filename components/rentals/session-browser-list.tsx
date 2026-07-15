@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 
-import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 import { Badge } from "@/components/ui/badge";
 import { RelativeTime } from "@/components/relative-time";
 import { buildSessionEvidenceHref } from "@/lib/rentals/evidence";
@@ -26,7 +26,7 @@ function SessionCard({ s, returnTo }: { s: BrowserSession; returnTo: string }) {
 
       {s.asset ? (
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          <AssetTagChip code={s.asset.asset_code} />
+          <AssetCodeChip code={s.asset.asset_code} />
           <span className="font-medium text-iron-950">{s.asset.asset_name}</span>
         </div>
       ) : null}

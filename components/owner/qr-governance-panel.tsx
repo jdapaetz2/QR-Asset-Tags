@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 
-import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 import { ActionButton } from "@/components/action-button";
 import { CopyableUrl } from "@/components/copyable-url";
 import { buildPublicQrUrl } from "@/lib/qr/url";
@@ -57,7 +57,7 @@ export function QrGovernancePanel({
   return (
     <section className="rounded-lg border bg-card p-4">
       <div className="mb-3 flex items-center gap-2">
-        <AssetTagChip code={assetCode} />
+        <AssetCodeChip code={assetCode} />
       </div>
 
       {links.length === 0 ? (

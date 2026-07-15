@@ -21,10 +21,13 @@ export function MarkReturnedResolveButton({
   submissionId,
   redirectTo,
   className,
+  dense = false,
 }: {
   submissionId: string;
   redirectTo: string;
   className?: string;
+  /** Compact single-line size for dense list/table rows (inbox, attention queue) — Wave 3N.4.1. */
+  dense?: boolean;
 }) {
   const action = markReturnAndResolve.bind(null, submissionId);
   const [state, formAction, pending] = useActionState<
@@ -50,7 +53,8 @@ export function MarkReturnedResolveButton({
         type="submit"
         disabled={pending}
         // Target is "resolved" → track the Resolved (emerald/success) status vocabulary (Phase 3C.5).
-        className={className ?? submissionStatusActionClasses("resolved")}
+        // Nowrap keeps the long label on one line; `dense` gives the compact size for table/list rows.
+        className={className ?? submissionStatusActionClasses("resolved", dense)}
       >
         {pending ? "Marking returned…" : "Mark returned & resolve"}
       </button>

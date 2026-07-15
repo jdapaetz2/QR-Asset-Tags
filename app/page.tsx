@@ -25,7 +25,7 @@ const FEATURES = [
   },
   {
     title: "Tag production handled for you",
-    body: "AssetTag QR produces and ships the physical tags — you just manage the content.",
+    body: "Mulemark produces and ships the physical tags — you just manage the content.",
   },
   {
     title: "Built for rental yards",

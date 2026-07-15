@@ -1,10 +1,10 @@
-# Product Requirements Document — AssetTag QR
+# Product Requirements Document — Mulemark
 
-> Working product name **AssetTag QR** is temporary. All branding, colors, and "Powered by" copy must remain generic and easy to swap later. See `CLAUDE.md` and `docs/PROJECT_CONTEXT.md`.
+> Working product name **Mulemark** is temporary. All branding, colors, and "Powered by" copy must remain generic and easy to swap later. See `CLAUDE.md` and `docs/PROJECT_CONTEXT.md`.
 
 ## 1. Summary
 
-AssetTag QR is a web-based QR equipment info system for equipment rental businesses. Each physical rental asset carries a durable QR tag. When a renter, operator, or staff member scans it, a mobile-friendly hosted equipment page opens with the right information for that specific asset: startup steps, manuals, safety notes, return instructions, support contact, and action buttons for damage reports, support requests, and return checklists.
+Mulemark is a web-based QR equipment info system for equipment rental businesses. Each physical rental asset carries a durable QR tag. When a renter, operator, or staff member scans it, a mobile-friendly hosted equipment page opens with the right information for that specific asset: startup steps, manuals, safety notes, return instructions, support contact, and action buttons for damage reports, support requests, and return checklists.
 
 The QR encodes a permanent platform-controlled URL (e.g. `https://example.com/t/demo-ex017`), so the destination content can change for years without ever reprinting the physical tag.
 

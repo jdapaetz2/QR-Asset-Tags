@@ -1,6 +1,6 @@
-# Commercial Model — AssetTag QR
+# Commercial Model — Mulemark
 
-AssetTag QR is a customer-facing equipment support, documentation, intake, and
+Mulemark is a customer-facing equipment support, documentation, intake, and
 condition-history layer for rental assets, **bundled with durable physical QR tags and
 implementation**. It is not generic QR software and not a per-scan product.
 
@@ -13,7 +13,7 @@ implementation**. It is not generic QR software and not a per-scan product.
 
 ## Covered asset — the definition
 
-> **Covered asset = an active, non-archived asset that has AssetTag QR coverage assigned
+> **Covered asset = an active, non-archived asset that has Mulemark coverage assigned
 > for the subscription term.**
 
 **MVP implementation:** a covered asset is an asset where
@@ -65,7 +65,7 @@ legacy `monthly_fee`).
   unrestricted.
 - **New QR/tag coverage is what's limited.** Creating the first QR link for an
   uncovered, non-archived asset consumes one covered slot; if the org is at/over
-  `asset_limit` it is blocked with: *"Covered asset limit reached. Contact AssetTag QR to
+  `asset_limit` it is blocked with: *"Covered asset limit reached. Contact Mulemark to
   add more covered assets."* Enforced both app-side (`createQrLink`) and by a hard DB
   trigger (`enforce_qr_coverage_limit`, 0016).
 - **Tag requests** are similarly checked: a request that would push new coverage past the

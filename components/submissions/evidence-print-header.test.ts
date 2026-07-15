@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Server component → asserted structurally (Phase 3C.7). The print header carries the MuleMark brand.
+// Server component → asserted structurally (Phase 3C.7). The print header carries the Mulemark brand.
 const src = readFileSync(
   resolve(dirname(fileURLToPath(import.meta.url)), "evidence-print-header.tsx"),
   "utf8"
@@ -14,7 +14,7 @@ describe("evidence-print-header (Phase 3C.7, Part G)", () => {
     expect(src).toContain("hidden print:block");
   });
 
-  it("renders the canonical MuleMark wordmark artwork, not live text", () => {
+  it("renders the canonical Mulemark wordmark artwork, not live text", () => {
     expect(src).toContain("BrandWordmark");
     expect(src).toContain("title={PLATFORM_NAME}");
     expect(src).toContain('from "@/lib/constants"');

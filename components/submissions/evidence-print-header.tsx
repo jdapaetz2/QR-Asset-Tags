@@ -3,10 +3,10 @@ import { PLATFORM_NAME } from "@/lib/constants";
 
 /**
  * Print-only masthead for the rental-session evidence record (Phase 3C.7). Hidden on screen
- * (`hidden print:block`); revealed only when the page is printed. Carries the canonical MuleMark
+ * (`hidden print:block`); revealed only when the page is printed. Carries the canonical Mulemark
  * wordmark ARTWORK (never re-set from live text — see docs/brand/BRAND.md), the document title, and
  * the asset + session identity so a printed/exported PDF is self-identifying. The route also sets a
- * MuleMark <title>, so the browser's own print header no longer reads "AssetTag QR".
+ * Mulemark <title>, so the browser's own print header reads the platform brand, not the raw route path.
  */
 export function EvidencePrintHeader({
   assetCode,

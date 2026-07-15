@@ -1,4 +1,4 @@
-# Data Model — AssetTag QR (MVP)
+# Data Model — Mulemark (MVP)
 
 Postgres on Supabase. Every tenant-scoped table carries `organization_id` and is protected by row-level security from the first migration (see `docs/SECURITY_MODEL.md`). All tables use a UUID primary key and `created_at`/`updated_at` timestamps unless noted.
 

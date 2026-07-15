@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 
-import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 import { Badge } from "@/components/ui/badge";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { RelativeTime } from "@/components/relative-time";
@@ -133,6 +133,7 @@ function SubmissionRow({ s, returnTo }: { s: QueueSubmission; returnTo: string }
           <MarkReturnedResolveButton
             submissionId={s.submissionId}
             redirectTo="/dashboard"
+            dense
           />
         ) : null}
       </div>
@@ -182,7 +183,7 @@ export function AttentionQueue({ items }: { items: QueueItem[] }) {
                     className="size-2 shrink-0 rounded-full bg-warning"
                   />
                 ) : null}
-                <AssetTagChip code={item.code} />
+                <AssetCodeChip code={item.code} />
                 {/* Open row shows the reason as the amber chip (matches reference state 2);
                     collapsed row shows it as plain text. Never both — no duplicate reason line. */}
                 {open ? (

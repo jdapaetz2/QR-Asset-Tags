@@ -7,7 +7,7 @@ import { ROLES } from "@/lib/auth/roles";
 import { firstNameToken } from "@/lib/auth/name";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { EmptyState } from "@/components/ui/empty-state";
-import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 import { RelativeTime } from "@/components/relative-time";
 import { NameplateBand } from "@/components/dashboard/nameplate-band";
 import { AttentionQueue, type QueueItem } from "@/components/dashboard/attention-queue";
@@ -484,7 +484,7 @@ export default async function DashboardPage({
           <ul className="divide-y rounded-lg border bg-card">
             {activity.map((e, i) => (
               <li key={i} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm">
-                {e.code ? <AssetTagChip code={e.code} /> : null}
+                {e.code ? <AssetCodeChip code={e.code} /> : null}
                 {e.href ? (
                   <Link href={e.href} className="font-medium underline-offset-4 hover:underline">
                     {e.label}
@@ -530,7 +530,7 @@ export default async function DashboardPage({
                       href={g.href}
                       className="flex flex-wrap items-center gap-2 text-sm underline-offset-4 hover:underline"
                     >
-                      <AssetTagChip code={g.code} />
+                      <AssetCodeChip code={g.code} />
                       <span className="text-iron-600">{g.title}</span>
                     </Link>
                   </li>

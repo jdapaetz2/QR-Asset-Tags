@@ -1,4 +1,4 @@
-# CLAUDE.md — AssetTag QR
+# CLAUDE.md — Mulemark
 
 Hosted equipment-info system: a permanent QR tag on rental equipment → a public
 mobile page with instructions, manuals, and support → damage/support/return
@@ -61,7 +61,7 @@ docs/                planning docs
   `supabase/migrations` + `supabase/seed.sql`, connect Vercel) are owned by the operator.
 
 ## Design & brand (pilot-credibility)
-- Brand package (working name **MuleMark**, pending clearance): `docs/brand/BRAND.md` +
+- Brand package (working name **Mulemark**, pending clearance): `docs/brand/BRAND.md` +
   `docs/brand/*.svg`. Brand strings route through `lib/constants.ts`; artwork renders from
   `components/brand/brand.tsx` (never re-set the wordmark from live text; never fill the glyph hole).
 - Interface rules: the **`product-design-system`** skill (`.claude/skills/product-design-system/`).

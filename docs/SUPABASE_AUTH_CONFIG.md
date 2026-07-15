@@ -1,4 +1,4 @@
-# Supabase Auth Configuration — AssetTag QR (MVP)
+# Supabase Auth Configuration — Mulemark (MVP)
 
 How auth is configured for the pilot. **The MVP does not require editing Supabase email
 templates, configuring custom SMTP, or upgrading to Supabase Pro.**

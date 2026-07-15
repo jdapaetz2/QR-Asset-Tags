@@ -38,7 +38,7 @@ export function ExportSettingsForm({
         <legend className="px-1 text-sm font-medium">Customer data exports</legend>
         <p className="text-xs text-muted-foreground">
           Off by default. Enable self-serve CSV exports for this organization when a
-          buyer-trust or offboarding need arises. AssetTag QR can always export this
+          buyer-trust or offboarding need arises. Mulemark can always export this
           org&apos;s data regardless of these toggles.
         </p>
 

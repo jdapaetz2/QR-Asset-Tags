@@ -6,7 +6,7 @@ import { useActionState } from "react";
 
 import { startRentalSession, type RentalActionState } from "@/lib/rentals/actions";
 import { RentalDetailsFields } from "@/components/rental-details-fields";
-import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 
 const BTN =
   "inline-flex h-9 items-center justify-center rounded-md border px-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:opacity-50";
@@ -57,7 +57,7 @@ export function MarkRentedButton({
             </h2>
             {assetCode ? (
               <div className="flex flex-wrap items-center gap-2 text-sm">
-                <AssetTagChip code={assetCode} />
+                <AssetCodeChip code={assetCode} />
                 {assetName ? <span className="min-w-0 break-words font-medium">{assetName}</span> : null}
               </div>
             ) : null}

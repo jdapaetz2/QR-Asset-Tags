@@ -1,12 +1,12 @@
-# Onboarding Runbook — AssetTag QR
+# Onboarding Runbook — Mulemark
 
-How the **AssetTag QR platform admin** manually onboards a new pilot rental
+How the **Mulemark platform admin** manually onboards a new pilot rental
 company and takes it from an empty organization to a live, scannable fleet.
 Onboarding is manual by design for the MVP — there is no self-signup and no
 in-app "create organization" UI. Everything below is done by the platform admin
 through the Supabase dashboard (or SQL) plus the customer admin dashboard.
 
-> **Business rule:** QR/tag production is controlled by the AssetTag QR platform
+> **Business rule:** QR/tag production is controlled by the Mulemark platform
 > admin only. Customer admins manage assets, content, documents, submissions, and
 > QR readiness, but they never get production QR exports or tag-production controls.
 > Those live under `/owner/production` and are gated to the `platform_owner` role.
@@ -19,7 +19,7 @@ See also: [PILOT_DEMO_SCRIPT.md](PILOT_DEMO_SCRIPT.md) (call script),
 
 | Term in this doc | Role value (`profiles.role`) | What they do |
 | --- | --- | --- |
-| **AssetTag QR platform admin** | `platform_owner` | Creates organizations and first admins, runs QR/tag production, sees all orgs. `organization_id` is `NULL`. |
+| **Mulemark platform admin** | `platform_owner` | Creates organizations and first admins, runs QR/tag production, sees all orgs. `organization_id` is `NULL`. |
 | **Customer admin** | `customer_admin` | Manages one org's assets, pages, documents, and submissions. Scoped to their `organization_id`. |
 | Staff | `customer_staff` | Mirrors customer admin for the MVP (differentiated later if a pilot needs it). |
 
@@ -89,7 +89,7 @@ In the Supabase dashboard → **Authentication → URL Configuration**:
 `profiles` rows require a real `auth.users` user, so create the auth user first
 (dashboard or invite), then insert the matching `profiles` row.
 
-### a. AssetTag QR platform admin (`platform_owner`)
+### a. Mulemark platform admin (`platform_owner`)
 
 One-time per environment.
 
@@ -141,7 +141,7 @@ insert into public.organizations (
   '+1-555-0100',                      -- support phone
   'support@pilot-rentals.example',    -- support email
   'https://pilot-rentals.example',    -- website
-  'Powered by AssetTag QR',           -- footer label
+  'Powered by Mulemark',           -- footer label
   'active', 'pilot', 0, 100           -- status, plan, monthly fee, asset limit
 )
 returning id;  -- capture this org UUID for the steps below
@@ -275,7 +275,7 @@ just filed (`/dashboard/submissions/[submissionId]`), view its media, change sta
 (new → reviewed → resolved → archived), and export CSV. Confirm a different org's
 admin cannot see these submissions (RLS isolation).
 
-### 3.12 Generate AssetTag QR owner production outputs
+### 3.12 Generate Mulemark owner production outputs
 
 As the **platform admin only**, open **`/owner/production`**:
 

@@ -50,7 +50,7 @@ export default async function ExportPage() {
 
       {!flags.customer_exports_enabled ? (
         <section className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
-          Exports are not enabled for this organization. Contact AssetTag QR if you need
+          Exports are not enabled for this organization. Contact Mulemark if you need
           a data export.
         </section>
       ) : types.length === 0 ? (

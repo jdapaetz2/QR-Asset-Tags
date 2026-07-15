@@ -1,12 +1,12 @@
 import Link from "next/link";
 
-import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 import { submissionsHref } from "@/lib/analytics/insights";
 import type { ProblemAsset } from "@/lib/analytics/problem-assets";
 
 /**
  * Problem-assets module (docs/brand/analytics-reference.html frame 3): one
- * consolidated ranked list replacing the old "most X" lists. Each row: AssetTagChip,
+ * consolidated ranked list replacing the old "most X" lists. Each row: AssetCodeChip,
  * an amber open-count chip (only when open > 0), a reason summary, scans in mono, and
  * a Review link to the asset's unresolved submissions.
  */
@@ -18,7 +18,7 @@ export function ProblemAssets({ rows }: { rows: ProblemAsset[] }) {
           key={r.id}
           className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-iron-200 px-4 py-3 last:border-b-0"
         >
-          <AssetTagChip code={r.code} />
+          <AssetCodeChip code={r.code} />
           {r.open > 0 ? (
             <span className="rounded-md bg-amber-chip-bg px-2 py-0.5 text-xs text-amber-chip-text">
               {r.open} open

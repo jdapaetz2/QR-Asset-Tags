@@ -8,7 +8,7 @@ import { parseTimelineFilters } from "@/lib/timeline/cursor";
 import { createTimelineQueryClient, getAssetTimelinePage } from "@/lib/timeline/timeline-page";
 import { sanitizeReturnTo, withReturnTo } from "@/lib/nav/return-to";
 import { AssetSubnav } from "@/components/assets/asset-subnav";
-import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 import { TimelineFilters } from "@/components/timeline/timeline-filters";
 import { TimelineList } from "@/components/timeline/timeline-list";
 
@@ -61,7 +61,7 @@ export default async function AssetTimelinePage({
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Timeline</h1>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <AssetTagChip code={asset.asset_code} />
+          <AssetCodeChip code={asset.asset_code} />
           <span>{asset.asset_name}</span>
         </div>
       </section>

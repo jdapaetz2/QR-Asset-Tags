@@ -17,7 +17,8 @@ import {
 } from "@/lib/qr/production";
 import { deriveAssetStatus } from "@/lib/ui/status-view";
 import { ReadinessIndicator } from "@/components/ui/asset-status-cell";
-import { AssetTagChip } from "@/components/ui/asset-tag-chip";
+import { AssetCodeChip } from "@/components/ui/asset-code-chip";
+import { secondaryActionClass } from "@/components/ui/secondary-action-link";
 import {
   EC_OPTIONS,
   SIZE_OPTIONS,
@@ -52,7 +53,7 @@ export default async function ProductionPage({
 }: {
   searchParams: SearchParams;
 }) {
-  // AssetTag QR platform admin only.
+  // Mulemark platform admin only.
   await requireRole(ROLES.PLATFORM_OWNER);
 
   const sp = await searchParams;
@@ -79,7 +80,7 @@ export default async function ProductionPage({
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Production</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          AssetTag QR Admin · QR/tag production
+          Mulemark Admin · QR/tag production
         </p>
       </div>
       <div className="rounded-lg border bg-card p-3 text-sm">
@@ -430,7 +431,7 @@ export default async function ProductionPage({
                       />
                     </td>
                     <td className="px-3 py-2">
-                      <AssetTagChip code={asset.asset_code} />
+                      <AssetCodeChip code={asset.asset_code} />
                     </td>
                     <td className="px-3 py-2">
                       {asset.asset_name}
@@ -497,7 +498,7 @@ export default async function ProductionPage({
             <ul className="flex flex-col gap-1 text-sm">
               {selected.map(({ asset, qrUrl }) => (
                 <li key={asset.id} className="flex flex-wrap items-center gap-2">
-                  <AssetTagChip code={asset.asset_code} />
+                  <AssetCodeChip code={asset.asset_code} />
                   {qrUrl ? (
                     <code className="font-mono text-xs">{qrUrl}</code>
                   ) : (
@@ -509,23 +510,17 @@ export default async function ProductionPage({
               ))}
             </ul>
             <div className="mt-3 flex flex-wrap gap-2">
-              <a
-                href={sheetHref}
-                className="inline-flex rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-              >
+              <a href={sheetHref} className={secondaryActionClass}>
                 Download SVG sheet
               </a>
-              <a
-                href={csvHref}
-                className="inline-flex rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-              >
+              <a href={csvHref} className={secondaryActionClass}>
                 Download CSV
               </a>
               <a
                 href={productionSheetHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                className={secondaryActionClass}
               >
                 Production sheet
               </a>

@@ -29,7 +29,7 @@ describe("readSubmissionReference", () => {
 });
 
 describe("public platform brand", () => {
-  it("uses the canonical MuleMark platform name in the footer", () => {
-    expect(PLATFORM_NAME).toBe("MuleMark");
+  it("uses the canonical Mulemark platform name in the footer", () => {
+    expect(PLATFORM_NAME).toBe("Mulemark");
   });
 });

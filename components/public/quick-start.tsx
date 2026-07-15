@@ -8,7 +8,7 @@ import {
 } from "@/lib/rentals/rentals";
 
 const EYEBROW_CLS =
-  "text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground";
+  "text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground";
 
 /**
  * Quick Start — a collapsible section (same look as Safety / Fuel-power / etc.) that
@@ -79,7 +79,7 @@ export function QuickStart({
           <path d="m6 9 6 6 6-6" />
         </svg>
       </summary>
-      <p className="whitespace-pre-line border-t px-4 py-3 text-lg leading-relaxed">
+      <p className="whitespace-pre-line border-t px-4 py-3 text-base leading-relaxed">
         {body}
       </p>
     </details>

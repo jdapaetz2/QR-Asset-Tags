@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
 import { OwnerOrgSubnav } from "@/components/owner/org-subnav";
+import { SecondaryActionLink } from "@/components/ui/secondary-action-link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
@@ -105,12 +105,9 @@ export default async function OwnerOrganizationDetailPage({
         title={org.name}
         description={org.slug}
         actions={
-          <Link
-            href={`/owner/organizations/${org.id}/settings`}
-            className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-          >
+          <SecondaryActionLink href={`/owner/organizations/${org.id}/settings`}>
             Settings
-          </Link>
+          </SecondaryActionLink>
         }
       />
 
@@ -198,36 +195,21 @@ export default async function OwnerOrganizationDetailPage({
       <section>
         <h2 className="mb-3 text-sm font-medium text-muted-foreground">Manage</h2>
         <div className="flex flex-wrap gap-2">
-          <Link
-            href={`/owner/organizations/${org.id}/settings`}
-            className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-          >
+          <SecondaryActionLink href={`/owner/organizations/${org.id}/settings`}>
             Settings &amp; plan
-          </Link>
-          <Link
-            href={`/owner/organizations/${org.id}/users`}
-            className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-          >
+          </SecondaryActionLink>
+          <SecondaryActionLink href={`/owner/organizations/${org.id}/users`}>
             Users
-          </Link>
-          <Link
-            href={`/owner/organizations/${org.id}/export`}
-            className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-          >
+          </SecondaryActionLink>
+          <SecondaryActionLink href={`/owner/organizations/${org.id}/export`}>
             Data export
-          </Link>
-          <Link
-            href={`/owner/organizations/${org.id}/qr`}
-            className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-          >
+          </SecondaryActionLink>
+          <SecondaryActionLink href={`/owner/organizations/${org.id}/qr`}>
             QR codes
-          </Link>
-          <Link
-            href={`/owner/production?org=${org.id}`}
-            className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-          >
+          </SecondaryActionLink>
+          <SecondaryActionLink href={`/owner/production?org=${org.id}`}>
             Production
-          </Link>
+          </SecondaryActionLink>
         </div>
       </section>
     </div>

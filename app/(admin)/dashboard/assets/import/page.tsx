@@ -2,6 +2,10 @@ import Link from "next/link";
 
 import { requireCustomerAdminOrgId } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import {
+  SecondaryActionLink,
+  secondaryActionClass,
+} from "@/components/ui/secondary-action-link";
 import { AssetImport } from "@/components/asset-import";
 import { getOrgCategories } from "@/lib/assets/categories";
 import { getOrgCategoryDefaultLookup } from "@/lib/inspections/category-defaults-data";
@@ -46,16 +50,13 @@ export default async function ImportAssetsPage() {
         <div className="mt-3 flex flex-wrap gap-2">
           <a
             href="/dashboard/assets/import/template.csv"
-            className="inline-flex rounded-md border px-3 py-1.5 hover:bg-accent hover:text-accent-foreground"
+            className={secondaryActionClass}
           >
             Download CSV template
           </a>
-          <Link
-            href="/dashboard/assets/templates"
-            className="inline-flex rounded-md border px-3 py-1.5 hover:bg-accent hover:text-accent-foreground"
-          >
+          <SecondaryActionLink href="/dashboard/assets/templates">
             View template catalog
-          </Link>
+          </SecondaryActionLink>
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
           Equipment-page template keys: {TEMPLATE_KEYS.join(", ")}. Open the{" "}

@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 /**
- * AssetTagChip — the one signature device (BRAND.md rule 4). Renders an asset code as a
+ * AssetCodeChip — the one signature device (BRAND.md rule 4). Renders an asset code as a
  * small stamped-tag chip: 1px iron-200 border, 6px radius, a ring-style rivet-hole detail at
  * the left (a ring whose center is transparent — never filled, echoing the glyph + the real
  * drilled tag), and the code in JetBrains Mono. **Admin surfaces only** — never rendered on
@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
  * `readiness` is an optional status dot for surfaces that already carry that state; omit it to
  * show just the code (the default for A1).
  */
-export function AssetTagChip({
+export function AssetCodeChip({
   code,
   readiness = "none",
   className,
