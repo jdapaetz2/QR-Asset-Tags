@@ -72,6 +72,11 @@ export default async function OwnerTagRequestsPage({
     .order("name", { ascending: true });
   const orgs = (orgData ?? []) as { id: string; name: string | null }[];
 
+  // When filtered to one org (Wave 3N.4), preserve that context: a Back-to-org link + `?org` on row links.
+  const filteredOrgName = orgFilter
+    ? orgs.find((o) => o.id === orgFilter)?.name ?? "organization"
+    : null;
+
   return (
     <div className="flex flex-col gap-6">
       <section className="flex flex-wrap items-center justify-between gap-3">
@@ -81,12 +86,21 @@ export default async function OwnerTagRequestsPage({
             {requests.length} request{requests.length === 1 ? "" : "s"}
           </p>
         </div>
-        <Link
-          href="/owner"
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          ← Organizations
-        </Link>
+        {orgFilter ? (
+          <Link
+            href={`/owner/organizations/${orgFilter}`}
+            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+          >
+            ← Back to {filteredOrgName}
+          </Link>
+        ) : (
+          <Link
+            href="/owner"
+            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+          >
+            ← Organizations
+          </Link>
+        )}
       </section>
 
       <form method="get" className="flex flex-wrap items-end gap-3">
@@ -181,7 +195,11 @@ export default async function OwnerTagRequestsPage({
                   </td>
                   <td className="whitespace-nowrap px-4 py-2 text-right">
                     <Link
-                      href={`/owner/tag-requests/${r.id}`}
+                      href={
+                        orgFilter
+                          ? `/owner/tag-requests/${r.id}?org=${orgFilter}`
+                          : `/owner/tag-requests/${r.id}`
+                      }
                       className="text-sm underline-offset-4 hover:underline"
                     >
                       Open

@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { ROLES, roleLabel } from "@/lib/auth/roles";
+import { OwnerOrgSubnav } from "@/components/owner/org-subnav";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -66,20 +66,8 @@ export default async function OwnerOrgUsersPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Link
-          href={`/owner/organizations/${organizationId}`}
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          ← {org.name}
-        </Link>
-        <div className="mt-2">
-          <PageHeader
-            title="Users"
-            description={`Team members for ${org.name}.`}
-          />
-        </div>
-      </div>
+      <OwnerOrgSubnav orgId={organizationId} orgName={org.name} active="users" />
+      <PageHeader title="Users" description={`Team members for ${org.name}.`} />
 
       <InviteUserForm
         routeOrgId={organizationId}

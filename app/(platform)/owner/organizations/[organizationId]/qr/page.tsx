@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
@@ -6,6 +5,7 @@ import { requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
 import { publicEnv } from "@/lib/env";
 import { buildPublicQrUrl } from "@/lib/qr/url";
+import { OwnerOrgSubnav } from "@/components/owner/org-subnav";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -91,14 +91,7 @@ export default async function OwnerOrgQrPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Link
-          href={`/owner/organizations/${organizationId}`}
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          ← {org.name}
-        </Link>
-      </div>
+      <OwnerOrgSubnav orgId={organizationId} orgName={org.name} active="qr" />
       <PageHeader
         title="QR codes"
         description="Create a custom code, rotate to a replacement, and choose which code production prints. Existing codes keep working until you disable them."

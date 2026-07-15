@@ -4,13 +4,19 @@ import { navForRole } from "./nav";
 import { ROLES } from "./roles";
 
 describe("navForRole", () => {
-  it("gives the platform owner the org/tag-request/analytics/production links", () => {
+  it("gives the platform owner exactly the four approved global links", () => {
     expect(navForRole(ROLES.PLATFORM_OWNER)).toEqual([
       { label: "Organizations", href: "/owner" },
       { label: "Tag requests", href: "/owner/tag-requests" },
       { label: "Analytics", href: "/owner/analytics" },
       { label: "Production", href: "/owner/production" },
     ]);
+  });
+
+  it("keeps global Users out of the owner top nav (it lives on the Organizations page)", () => {
+    const owner = navForRole(ROLES.PLATFORM_OWNER);
+    expect(owner).toHaveLength(4);
+    expect(owner.some((i) => i.href === "/owner/users")).toBe(false);
   });
 
   it("gives the customer admin the six approved primary destinations (Wave 3N.2)", () => {

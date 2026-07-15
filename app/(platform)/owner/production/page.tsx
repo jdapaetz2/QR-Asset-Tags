@@ -285,12 +285,22 @@ export default async function ProductionPage({
       {header}
 
       <section>
-        <Link
-          href="/owner/production"
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          ← All organizations
-        </Link>
+        {/* Org context preserved (Wave 3N.4): the primary return goes back to this org's hub; switching
+            organizations is an explicit secondary action, not an unexpected drop to the picker. */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <Link
+            href={`/owner/organizations/${orgId}`}
+            className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            ← Back to {orgRow?.name ?? "organization"}
+          </Link>
+          <Link
+            href="/owner/production"
+            className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Switch organization
+          </Link>
+        </div>
         <h2 className="mt-2 text-lg font-semibold">
           {orgRow?.name ?? "Organization"}
         </h2>

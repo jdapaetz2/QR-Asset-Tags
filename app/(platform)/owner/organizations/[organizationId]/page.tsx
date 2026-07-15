@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
+import { OwnerOrgSubnav } from "@/components/owner/org-subnav";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
@@ -99,28 +100,19 @@ export default async function OwnerOrganizationDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Link
-          href="/owner"
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          ← Organizations
-        </Link>
-        <div className="mt-2">
-          <PageHeader
-            title={org.name}
-            description={org.slug}
-            actions={
-              <Link
-                href={`/owner/organizations/${org.id}/settings`}
-                className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-              >
-                Settings
-              </Link>
-            }
-          />
-        </div>
-      </div>
+      <OwnerOrgSubnav orgId={org.id} orgName={org.name} active="overview" />
+      <PageHeader
+        title={org.name}
+        description={org.slug}
+        actions={
+          <Link
+            href={`/owner/organizations/${org.id}/settings`}
+            className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+          >
+            Settings
+          </Link>
+        }
+      />
 
       {/* Identity + plan summary */}
       <section className="flex flex-col gap-3 rounded-lg border bg-card p-4 text-sm">

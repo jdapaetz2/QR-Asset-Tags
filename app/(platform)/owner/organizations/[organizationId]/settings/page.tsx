@@ -13,6 +13,7 @@ import { ExportSettingsForm } from "@/components/export-settings-form";
 import { toExportFlags } from "@/lib/export/types";
 import { PlanSettingsForm } from "@/components/plan-settings-form";
 import type { PlanSettings } from "@/lib/plans/settings";
+import { OwnerOrgSubnav } from "@/components/owner/org-subnav";
 import { Badge } from "@/components/ui/badge";
 import { orgStatusLabel } from "@/lib/ui/status-labels";
 
@@ -62,14 +63,14 @@ export default async function OwnerOrgSettingsPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <OwnerOrgSubnav
+        orgId={organizationId}
+        orgName={org.name ?? "Organization"}
+        active="settings"
+      />
+
       <section>
-        <Link
-          href="/owner"
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          ← Organizations
-        </Link>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-tight">
             {org.name ?? "Organization"} — settings
           </h1>

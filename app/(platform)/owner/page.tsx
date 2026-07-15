@@ -93,7 +93,7 @@ export default async function OwnerPage() {
               href="/owner/users"
               className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
             >
-              Users
+              All users
             </Link>
             <Link
               href="/owner/organizations/new"

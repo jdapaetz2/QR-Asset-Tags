@@ -64,10 +64,10 @@ export default async function OwnerTagRequestPage({
     <div className="flex flex-col gap-6">
       <section>
         <Link
-          href="/owner/tag-requests"
+          href={`/owner/tag-requests?org=${request.organization_id}`}
           className="text-sm text-muted-foreground underline-offset-4 hover:underline"
         >
-          ← Tag requests
+          ← {org?.name ?? "Organization"} tag requests
         </Link>
         <h1 className="mt-2 flex flex-wrap items-center gap-2 text-2xl font-semibold tracking-tight">
           {org?.name ?? "Organization"} — tag request

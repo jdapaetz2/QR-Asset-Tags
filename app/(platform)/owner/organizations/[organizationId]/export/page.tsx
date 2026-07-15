@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
 import { EXPORT_TYPES } from "@/lib/export/types";
+import { OwnerOrgSubnav } from "@/components/owner/org-subnav";
 
 export const dynamic = "force-dynamic";
 
@@ -26,14 +26,13 @@ export default async function OwnerOrgExportPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <OwnerOrgSubnav
+        orgId={organizationId}
+        orgName={org.name ?? "Organization"}
+        active="export"
+      />
       <section>
-        <Link
-          href={`/owner/organizations/${organizationId}/settings`}
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          ← {org.name ?? "Organization"} settings
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           Export — {org.name ?? "Organization"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
