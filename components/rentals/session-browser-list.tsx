@@ -7,11 +7,12 @@ import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { Badge } from "@/components/ui/badge";
 import { RelativeTime } from "@/components/relative-time";
 import { buildSessionEvidenceHref } from "@/lib/rentals/evidence";
+import { withReturnTo } from "@/lib/nav/return-to";
 import { loadMoreRentalSessions } from "@/lib/rentals/session-browser-actions";
 import { historyEndState } from "@/lib/history/end-state";
 import type { BrowserSession, SessionFilters } from "@/lib/rentals/session-browser";
 
-function SessionCard({ s }: { s: BrowserSession }) {
+function SessionCard({ s, returnTo }: { s: BrowserSession; returnTo: string }) {
   const active = s.status === "active";
   const who = [s.renter_label, s.rental_reference].filter(Boolean).join(" · ");
   return (
@@ -52,7 +53,7 @@ function SessionCard({ s }: { s: BrowserSession }) {
       </dl>
 
       <Link
-        href={buildSessionEvidenceHref(s.id)}
+        href={withReturnTo(buildSessionEvidenceHref(s.id), returnTo)}
         className="inline-flex min-h-9 w-fit items-center rounded-md border px-3 text-sm font-medium hover:bg-accent"
       >
         View session evidence →
@@ -72,6 +73,7 @@ export function SessionBrowserList({
   initialHasMore,
   filters,
   clearHref,
+  returnTo,
 }: {
   initialSessions: BrowserSession[];
   initialCursor: string | null;
@@ -79,6 +81,8 @@ export function SessionBrowserList({
   filters: SessionFilters;
   /** Where "Clear filters" navigates (the unfiltered first page, preserving any asset prefilter). */
   clearHref: string;
+  /** The current filtered list URL, carried into each evidence link so its "← Back to Rentals" restores filters. */
+  returnTo: string;
 }) {
   const [sessions, setSessions] = useState(initialSessions);
   const [cursor, setCursor] = useState(initialCursor);
@@ -118,7 +122,7 @@ export function SessionBrowserList({
       {sessions.length > 0 ? (
         <ul className="flex flex-col gap-3">
           {sessions.map((s) => (
-            <SessionCard key={s.id} s={s} />
+            <SessionCard key={s.id} s={s} returnTo={returnTo} />
           ))}
         </ul>
       ) : null}

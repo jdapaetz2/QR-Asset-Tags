@@ -9,16 +9,23 @@ import {
   resolveReturnTemplateKey,
   returnTemplateName,
 } from "@/lib/inspections/resolve";
+import { sanitizeReturnTo, withReturnTo } from "@/lib/nav/return-to";
+import { AssetSubnav } from "@/components/assets/asset-subnav";
 import { EquipmentPageForm } from "@/components/equipment-page-form";
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 
 export default async function EquipmentPageEditor({
   params,
+  searchParams,
 }: {
   params: Promise<{ assetId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requireOrgId();
   const { assetId } = await params;
+  const sp = await searchParams;
+  const returnToRaw = Array.isArray(sp.returnTo) ? sp.returnTo[0] : sp.returnTo;
+  const returnTo = sanitizeReturnTo(returnToRaw) ?? undefined;
 
   const supabase = await createClient();
 
@@ -80,7 +87,7 @@ export default async function EquipmentPageEditor({
     <div className="flex flex-col gap-6">
       <section>
         <Link
-          href={`/dashboard/assets/${assetId}`}
+          href={withReturnTo(`/dashboard/assets/${assetId}`, returnTo)}
           className="text-sm text-muted-foreground underline-offset-4 hover:underline"
         >
           ← {asset.asset_name}
@@ -94,10 +101,12 @@ export default async function EquipmentPageEditor({
         </div>
       </section>
 
+      <AssetSubnav assetId={assetId} current="page" returnTo={returnTo} />
+
       <EquipmentPageForm
         action={saveEquipmentPage.bind(null, assetId)}
         page={page ?? undefined}
-        cancelHref={`/dashboard/assets/${assetId}`}
+        cancelHref={withReturnTo(`/dashboard/assets/${assetId}`, returnTo)}
         assetId={assetId}
         returnTemplateName={returnTemplateLabel}
         org={{

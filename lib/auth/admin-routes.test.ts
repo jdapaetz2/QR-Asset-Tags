@@ -63,8 +63,9 @@ describe("route-guard vs nav agreement (Wave 3N.1)", () => {
     expect(read("app/(admin)/dashboard/export/download/route.ts")).toContain("isExportTypeEnabled");
   });
 
-  it("dashboard + settings surface export only via canCustomerUseExport", () => {
-    expect(read("app/(admin)/dashboard/page.tsx")).toContain("canCustomerUseExport");
+  it("settings surfaces export only via canCustomerUseExport (Wave 3N.2 moved it out of the dashboard)", () => {
     expect(read("app/(admin)/dashboard/settings/page.tsx")).toContain("canCustomerUseExport");
+    // The dashboard no longer links Data export at all — it lives solely under Settings now.
+    expect(read("app/(admin)/dashboard/page.tsx")).not.toContain("/dashboard/export");
   });
 });

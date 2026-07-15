@@ -80,7 +80,7 @@ export function OrgSettingsForm({
       ) : null}
 
       {/* Organization */}
-      <fieldset className="flex flex-col gap-3 rounded-lg border p-4">
+      <fieldset id="organization" className="flex flex-col gap-3 rounded-lg border p-4 scroll-mt-20">
         <legend className="px-1 text-sm font-medium">Organization</legend>
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">
@@ -107,7 +107,7 @@ export function OrgSettingsForm({
       </fieldset>
 
       {/* Public scanner branding */}
-      <fieldset className="flex flex-col gap-3 rounded-lg border p-4">
+      <fieldset id="branding" className="flex flex-col gap-3 rounded-lg border p-4 scroll-mt-20">
         <legend className="px-1 text-sm font-medium">Public scanner branding</legend>
 
         <div className="flex flex-col gap-1 text-sm">
@@ -193,7 +193,7 @@ export function OrgSettingsForm({
       </fieldset>
 
       {/* Support contact */}
-      <fieldset className="flex flex-col gap-3 rounded-lg border p-4">
+      <fieldset id="support" className="flex flex-col gap-3 rounded-lg border p-4 scroll-mt-20">
         <legend className="px-1 text-sm font-medium">Support contact</legend>
         <p className="text-xs text-muted-foreground">
           Shown on scan pages for assets without their own override.

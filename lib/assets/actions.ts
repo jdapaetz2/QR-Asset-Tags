@@ -21,6 +21,7 @@ import {
   managedCoverObjectPath,
   validateCoverFile,
 } from "@/lib/assets/cover";
+import { backHref, withReturnTo } from "@/lib/nav/return-to";
 
 export type AssetFormState = { error?: string };
 
@@ -211,7 +212,8 @@ export async function updateAsset(
     await supabase.storage.from(COVER_BUCKET).remove([oldPath]);
   }
 
-  redirect(`/dashboard/assets/${assetId}`);
+  // Stay on the detail but keep the originating list context so its "← Assets" still works (Wave 3N.2).
+  redirect(withReturnTo(`/dashboard/assets/${assetId}`, formData.get("returnTo")));
 }
 
 const PUBLIC_STATUSES = ["public", "private"] as const;
@@ -224,6 +226,7 @@ const PUBLIC_STATUSES = ["public", "private"] as const;
 export async function setAssetPublicStatus(
   assetId: string,
   status: string,
+  returnTo: string | undefined,
   _prev: AssetFormState,
   _formData: FormData
 ): Promise<AssetFormState> {
@@ -243,12 +246,13 @@ export async function setAssetPublicStatus(
   if (error) return { error: "Could not update the asset." };
   if (!data) return { error: "Asset not found." };
 
-  redirect(`/dashboard/assets/${assetId}`);
+  redirect(withReturnTo(`/dashboard/assets/${assetId}`, returnTo));
 }
 
 /** Archive (retire) an asset — hides it from the default list; history is kept. */
 export async function archiveAsset(
   assetId: string,
+  returnTo: string | undefined,
   _prev: AssetFormState,
   _formData: FormData
 ): Promise<AssetFormState> {
@@ -262,12 +266,13 @@ export async function archiveAsset(
     .maybeSingle();
   if (error) return { error: "Could not archive the asset." };
   if (!data) return { error: "Asset not found." };
-  redirect(`/dashboard/assets/${assetId}`);
+  redirect(withReturnTo(`/dashboard/assets/${assetId}`, returnTo));
 }
 
 /** Restore an archived asset back to the active list. */
 export async function restoreAsset(
   assetId: string,
+  returnTo: string | undefined,
   _prev: AssetFormState,
   _formData: FormData
 ): Promise<AssetFormState> {
@@ -281,7 +286,7 @@ export async function restoreAsset(
     .maybeSingle();
   if (error) return { error: "Could not restore the asset." };
   if (!data) return { error: "Asset not found." };
-  redirect(`/dashboard/assets/${assetId}`);
+  redirect(withReturnTo(`/dashboard/assets/${assetId}`, returnTo));
 }
 
 /**
@@ -292,6 +297,7 @@ export async function restoreAsset(
  */
 export async function deleteAsset(
   assetId: string,
+  returnTo: string | undefined,
   _prev: AssetFormState,
   _formData: FormData
 ): Promise<AssetFormState> {
@@ -326,5 +332,6 @@ export async function deleteAsset(
   const { error } = await supabase.from("assets").delete().eq("id", assetId);
   if (error) return { error: "Could not delete the asset." };
 
-  redirect("/dashboard/assets");
+  // The asset is gone → return to the (filtered) list the operator came from (Wave 3N.2).
+  redirect(backHref(returnTo, "/dashboard/assets"));
 }

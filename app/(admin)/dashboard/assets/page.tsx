@@ -1,7 +1,10 @@
 import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireOrgId } from "@/lib/auth/session";
+import { requireOrgContext } from "@/lib/auth/session";
+import { ROLES } from "@/lib/auth/roles";
+import { withReturnTo } from "@/lib/nav/return-to";
+import { SecondaryNav } from "@/components/ui/secondary-nav";
 import { Button } from "@/components/ui/button";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { ActionButton } from "@/components/action-button";
@@ -74,7 +77,10 @@ export default async function AssetsPage({
 }: {
   searchParams: SearchParams;
 }) {
-  await requireOrgId();
+  const { profile } = await requireOrgContext();
+  // Admin-only Assets-area secondary destinations (Import, template catalogs, Tag requests) are shown only to
+  // customer_admin — the routes themselves enforce the same guard (Wave 3N.1), so staff never sees a bounce link.
+  const isAdmin = profile.role === ROLES.CUSTOMER_ADMIN;
   const sp = await searchParams;
   const params = parseAssetListParams(sp);
 
@@ -242,13 +248,27 @@ export default async function AssetsPage({
                 limit: (planOrg?.asset_limit as number | null) ?? null,
               }}
             />
-            <Button asChild variant="outline">
-              <Link href="/dashboard/assets/import">Import CSV</Link>
-            </Button>
             <PrimaryButton href="/dashboard/assets/new">New asset</PrimaryButton>
           </>
         }
       />
+
+      {/* Assets-area secondary destinations (Wave 3N.2) — one predictable click to the admin-only setup surfaces
+          (import + template catalogs + tag procurement). Shown to customer_admin only; the routes enforce the same. */}
+      {isAdmin ? (
+        <SecondaryNav
+          ariaLabel="Assets tools"
+          items={[
+            { label: "Import CSV", href: "/dashboard/assets/import" },
+            { label: "Equipment-page templates", href: "/dashboard/templates" },
+            {
+              label: "Return-checklist templates",
+              href: "/dashboard/templates/return-inspections",
+            },
+            { label: "Tag requests", href: "/dashboard/tag-requests" },
+          ]}
+        />
+      ) : null}
 
       {/* Compact toolbar: search + Apply/Clear always visible; advanced filters collapse
           into a native <details> (no client JS, no dependency). Collapsed selects still
@@ -381,9 +401,11 @@ export default async function AssetsPage({
             description="Assets are your rental equipment records — each one gets a permanent QR page renters can scan for instructions and support. Add your first asset or import a CSV to get started."
             action={
               <div className="flex flex-wrap items-center justify-center gap-2">
-                <Button asChild variant="outline">
-                  <Link href="/dashboard/assets/import">Import CSV</Link>
-                </Button>
+                {isAdmin ? (
+                  <Button asChild variant="outline">
+                    <Link href="/dashboard/assets/import">Import CSV</Link>
+                  </Button>
+                ) : null}
                 <PrimaryButton href="/dashboard/assets/new">New asset</PrimaryButton>
               </div>
             }
@@ -465,7 +487,7 @@ export default async function AssetsPage({
                         />
                       )}
                       <Link
-                        href={`/dashboard/assets/${asset.id}`}
+                        href={withReturnTo(`/dashboard/assets/${asset.id}`, listHref)}
                         className="whitespace-nowrap text-sm underline-offset-4 hover:underline"
                       >
                         View / edit

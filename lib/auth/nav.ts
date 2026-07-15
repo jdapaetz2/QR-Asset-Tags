@@ -34,16 +34,16 @@ export function navForRole(role: Role): NavItem[] {
       { label: "Analytics", href: "/dashboard/analytics" },
     ];
   }
-  // Customer admin: full customer routes — never any /owner/* link. Data export is NOT in the
-  // top nav: it is a conditional secondary item under Settings, shown only when the owner has
-  // enabled the org's export capability (see canCustomerUseExport).
+  // Customer admin: full customer routes — never any /owner/* link. Two deliberate omissions (Wave 3N.2):
+  // Tag requests lives under the Assets area (secondary nav), not the top nav; Data export is a conditional
+  // secondary item under Settings, shown only when the owner has enabled the org's export capability
+  // (see canCustomerUseExport). Keeps the primary bar to six uncrowded destinations.
   return [
     { label: "Dashboard", href: "/dashboard" },
     { label: "Assets", href: "/dashboard/assets" },
     { label: "Submissions", href: "/dashboard/submissions", badge: "submissions_new" },
     { label: "Rentals", href: "/dashboard/rentals" },
     { label: "Analytics", href: "/dashboard/analytics" },
-    { label: "Tag requests", href: "/dashboard/tag-requests" },
     { label: "Settings", href: "/dashboard/settings" },
   ];
 }

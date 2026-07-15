@@ -17,6 +17,7 @@ import {
   isLastActiveAdminRemoval,
 } from "@/lib/auth/invitations";
 import { buildInviteUrl } from "@/lib/auth/invite-link";
+import { sanitizeNextPath } from "@/lib/auth/redirect";
 import { isOrgActive } from "@/lib/org/status";
 
 const LAST_ADMIN_MESSAGE =
@@ -96,9 +97,13 @@ async function regenLink(
   return { url: buildInviteUrl(publicEnv.siteUrl, hashedToken, "magiclink") };
 }
 
-/** Only allow same-app redirect targets (leading slash, no protocol/host). */
+/**
+ * Only allow same-app redirect targets. Team pages span both /owner and /dashboard, so this accepts any
+ * internal path but (via sanitizeNextPath) rejects absolute, protocol-relative `//host`, and backslash `/\host`
+ * escapes — closing the open-redirect the previous hand-rolled leading-slash regex left open (Wave 3N.2).
+ */
 function safeRedirect(value: FormDataEntryValue | null, fallback: string): string {
-  return typeof value === "string" && /^\/[^/]/.test(value) ? value : fallback;
+  return sanitizeNextPath(typeof value === "string" ? value : null) ?? fallback;
 }
 
 /** Escape ILIKE wildcards so an email lookup is a literal case-insensitive match. */

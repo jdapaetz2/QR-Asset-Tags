@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { documentLinkTone } from "@/lib/ui/status";
+import { sanitizeReturnTo, withReturnTo } from "@/lib/nav/return-to";
+import { AssetSubnav } from "@/components/assets/asset-subnav";
 
 const DOCUMENTS_BUCKET = "documents";
 
@@ -38,11 +40,16 @@ function typeLabel(type: string): string {
 
 export default async function DocumentsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ assetId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requireOrgId();
   const { assetId } = await params;
+  const sp = await searchParams;
+  const returnToRaw = Array.isArray(sp.returnTo) ? sp.returnTo[0] : sp.returnTo;
+  const returnTo = sanitizeReturnTo(returnToRaw) ?? undefined;
 
   const supabase = await createClient();
 
@@ -79,7 +86,7 @@ export default async function DocumentsPage({
     <div className="flex flex-col gap-6">
       <section>
         <Link
-          href={`/dashboard/assets/${assetId}`}
+          href={withReturnTo(`/dashboard/assets/${assetId}`, returnTo)}
           className="text-sm text-muted-foreground underline-offset-4 hover:underline"
         >
           ← {asset.asset_name}
@@ -92,6 +99,8 @@ export default async function DocumentsPage({
           </span>
         </div>
       </section>
+
+      <AssetSubnav assetId={assetId} current="documents" returnTo={returnTo} />
 
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
@@ -186,7 +195,7 @@ export default async function DocumentsPage({
           showUrl
           showFile
           showLinkStatus={false}
-          cancelHref={`/dashboard/assets/${assetId}`}
+          cancelHref={withReturnTo(`/dashboard/assets/${assetId}`, returnTo)}
         />
       </section>
     </div>

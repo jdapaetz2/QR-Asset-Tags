@@ -14,6 +14,7 @@ import { NotificationSettingsForm } from "@/components/notification-settings-for
 import type { NotificationSettings } from "@/lib/notifications/settings";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
+import { SecondaryNav } from "@/components/ui/secondary-nav";
 import { Button } from "@/components/ui/button";
 import { PlanUsage } from "@/components/plan-usage";
 import { getCoveredCount } from "@/lib/plans/coverage-query";
@@ -79,6 +80,22 @@ export default async function SettingsPage() {
         </div>
       </div>
 
+      {/* In-page section index (Wave 3N.2) — every Settings destination one predictable click away. Most anchor to
+          a section on this page; Team and Data export are their own routes. No duplicate settings pages. */}
+      <SecondaryNav
+        ariaLabel="Settings sections"
+        items={[
+          { label: "Organization", href: "#organization" },
+          { label: "Scanner branding", href: "#branding" },
+          { label: "Support contact", href: "#support" },
+          { label: "Notifications", href: "#notifications" },
+          { label: "Team", href: "#team" },
+          ...(canExport
+            ? [{ label: "Data export", href: "#data-export" }]
+            : []),
+        ]}
+      />
+
       <OrgSettingsForm
         action={updateOrgSettings}
         org={(org ?? {
@@ -93,6 +110,7 @@ export default async function SettingsPage() {
       />
 
       <SectionCard
+        id="team"
         title="Team"
         description="Invite staff and manage who can access your dashboard."
         actions={
@@ -108,6 +126,7 @@ export default async function SettingsPage() {
 
       {canExport ? (
         <SectionCard
+          id="data-export"
           title="Data export"
           description="Download your organization's records as CSV."
           actions={
@@ -143,6 +162,7 @@ export default async function SettingsPage() {
       </SectionCard>
 
       <SectionCard
+        id="notifications"
         title="Notifications"
         description="Email alerts for public submissions and tag request updates."
       >

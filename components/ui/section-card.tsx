@@ -10,6 +10,7 @@ import { Card, CardTitle } from "@/components/ui/card";
  * system instead of ad-hoc `border-t` section stacks. Presentational only.
  */
 export function SectionCard({
+  id,
   title,
   description,
   actions,
@@ -17,6 +18,8 @@ export function SectionCard({
   className,
   contentClassName,
 }: {
+  /** Optional anchor id so an in-page section index can link to this card. */
+  id?: string;
   title: React.ReactNode;
   description?: React.ReactNode;
   actions?: React.ReactNode;
@@ -25,7 +28,7 @@ export function SectionCard({
   contentClassName?: string;
 }) {
   return (
-    <Card className={cn("flex flex-col gap-4", className)}>
+    <Card id={id} className={cn("flex flex-col gap-4 scroll-mt-20", className)}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <CardTitle className="text-base">{title}</CardTitle>

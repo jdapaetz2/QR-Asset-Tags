@@ -5,6 +5,7 @@ import {
   getRentalSessionsPage,
   parseSessionFilters,
 } from "@/lib/rentals/session-browser";
+import { currentListHref } from "@/lib/nav/return-to";
 import { SessionFiltersCard } from "@/components/rentals/session-filters";
 import { SessionBrowserList } from "@/components/rentals/session-browser-list";
 
@@ -50,6 +51,7 @@ export default async function RentalSessionsBrowserPage({
         initialHasMore={page.hasMore}
         filters={filters}
         clearHref={filters.assetId ? `/dashboard/rentals?asset=${filters.assetId}` : "/dashboard/rentals"}
+        returnTo={currentListHref("/dashboard/rentals", sp)}
       />
     </div>
   );

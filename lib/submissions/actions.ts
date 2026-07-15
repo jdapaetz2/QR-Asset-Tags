@@ -13,13 +13,9 @@ import {
   partitionBulkResolve,
   type BulkResolveRow,
 } from "@/lib/submissions/bulk";
+import { sanitizeReturnTo } from "@/lib/nav/return-to";
 
 export type SubmissionActionState = { error?: string };
-
-/** Only allow same-app redirect targets (leading slash, no protocol/host). */
-function safeRedirect(value: FormDataEntryValue | null, fallback: string): string {
-  return typeof value === "string" && /^\/[^/]/.test(value) ? value : fallback;
-}
 
 /**
  * Update a submission's status. RLS (`form_submissions_rw`) limits this to the
@@ -92,10 +88,8 @@ export async function setSubmissionStatus(
   revalidateSubmissionSurfaces();
 
   redirect(
-    safeRedirect(
-      formData.get("redirect_to"),
+    sanitizeReturnTo(formData.get("redirect_to")) ??
       `/dashboard/submissions/${submissionId}`
-    )
   );
 }
 
@@ -129,10 +123,9 @@ export async function markReturnAndResolve(
 
   revalidateSubmissionSurfaces();
 
-  const base = safeRedirect(
-    formData.get("redirect_to"),
-    `/dashboard/submissions/${submissionId}`
-  );
+  const base =
+    sanitizeReturnTo(formData.get("redirect_to")) ??
+    `/dashboard/submissions/${submissionId}`;
   const sep = base.includes("?") ? "&" : "?";
   redirect(`${base}${sep}done=${outcome.done}`);
 }

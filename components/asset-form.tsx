@@ -79,6 +79,8 @@ export function AssetForm({
   orgTemplates = [],
   orgCategoryTargets = {},
   submitLabel,
+  cancelHref = "/dashboard/assets",
+  returnTo,
 }: {
   action: AssetFormAction;
   asset?: AssetDefaults;
@@ -91,6 +93,10 @@ export function AssetForm({
   /** Category → default target (custom id or system key) — drives the live suggestion + source label. */
   orgCategoryTargets?: CategoryDefaultTargetLookup;
   submitLabel: string;
+  /** Where Cancel returns to (Wave 3N.2 — the originating filtered list, else the Assets index). */
+  cancelHref?: string;
+  /** Validated `returnTo` posted with the save so the action can redirect back to the filtered list. */
+  returnTo?: string;
 }) {
   const [state, formAction, pending] = useActionState<AssetFormState, FormData>(
     action,
@@ -166,6 +172,7 @@ export function AssetForm({
 
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-4">
+      {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       {state.error ? (
         <p
           role="alert"
@@ -337,7 +344,7 @@ export function AssetForm({
           {pending ? "Saving…" : submitLabel}
         </Button>
         <Link
-          href="/dashboard/assets"
+          href={cancelHref}
           className="text-sm text-muted-foreground underline-offset-4 hover:underline"
         >
           Cancel

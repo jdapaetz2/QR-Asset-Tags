@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
 import { isLikelyUuid } from "@/lib/rentals/evidence";
+import { backHref } from "@/lib/nav/return-to";
 import {
   createEvidenceQueryClient,
   getRentalSessionEvidence,
@@ -91,11 +92,14 @@ function EvidenceDisclosure({
 
 export default async function RentalEvidencePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ sessionId: string }>;
+  searchParams: Promise<{ returnTo?: string }>;
 }) {
   await requireOrgId();
   const { sessionId } = await params;
+  const { returnTo } = await searchParams;
   // Reject a malformed id up front so an obviously-bad param 404s deterministically and never reaches the DB.
   if (!isLikelyUuid(sessionId)) notFound();
 
@@ -192,16 +196,32 @@ export default async function RentalEvidencePage({
           print. The back link and Print button never belong on the printed record. */}
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
-          {session.asset_id ? (
+          {/* Explicit navigation out of the evidence record (Wave 3N.2) — never rely on browser Back. Back to
+              Rentals preserves the originating filters; Asset detail + timeline are always offered when linked. */}
+          <nav aria-label="Session navigation" className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
             <Link
-              href={`/dashboard/assets/${session.asset_id}/timeline`}
-              className="text-sm text-iron-600 underline-offset-4 hover:underline"
+              href={backHref(returnTo, "/dashboard/rentals")}
+              className="text-iron-600 underline-offset-4 hover:text-foreground hover:underline"
             >
-              ← Asset timeline
+              ← Back to Rentals
             </Link>
-          ) : (
-            <span />
-          )}
+            {session.asset_id ? (
+              <>
+                <Link
+                  href={`/dashboard/assets/${session.asset_id}`}
+                  className="text-iron-600 underline-offset-4 hover:text-foreground hover:underline"
+                >
+                  Asset detail
+                </Link>
+                <Link
+                  href={`/dashboard/assets/${session.asset_id}/timeline`}
+                  className="text-iron-600 underline-offset-4 hover:text-foreground hover:underline"
+                >
+                  Asset timeline
+                </Link>
+              </>
+            ) : null}
+          </nav>
           <PrintEvidenceButton label="Print evidence" />
         </div>
         <div className="flex flex-col gap-1">

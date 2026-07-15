@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
 import { countNewSubmissions } from "@/lib/submissions/counts";
+import { currentListHref, withReturnTo } from "@/lib/nav/return-to";
 import { RelativeTime } from "@/components/relative-time";
 import {
   SUBMISSION_STATUSES,
@@ -80,6 +81,9 @@ export default async function SubmissionsPage({
   await requireOrgId();
   const sp = await searchParams;
   const filters = parseSubmissionFilters(sp);
+  // The current filtered inbox URL, carried into each detail link + resolve action so Back and post-action
+  // redirects land on this exact filtered list (Wave 3N.2).
+  const listHref = currentListHref("/dashboard/submissions", sp);
 
   const supabase = await createClient();
 
@@ -474,7 +478,7 @@ export default async function SubmissionsPage({
                     <td className="px-4 py-2">
                       <div className="flex flex-col items-end gap-1.5">
                         <Link
-                          href={`/dashboard/submissions/${row.id}`}
+                          href={withReturnTo(`/dashboard/submissions/${row.id}`, listHref)}
                           className="text-sm font-medium underline-offset-4 hover:underline"
                         >
                           Open
@@ -487,7 +491,7 @@ export default async function SubmissionsPage({
                         }) ? (
                           <MarkReturnedResolveButton
                             submissionId={row.id}
-                            redirectTo="/dashboard/submissions"
+                            redirectTo={listHref}
                           />
                         ) : null}
                       </div>

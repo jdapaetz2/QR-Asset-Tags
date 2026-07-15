@@ -9,6 +9,7 @@ import { PrimaryButton } from "@/components/ui/primary-button";
 import { RelativeTime } from "@/components/relative-time";
 import { MarkReturnedResolveButton } from "@/components/mark-returned-resolve-button";
 import { cn } from "@/lib/utils";
+import { withReturnTo } from "@/lib/nav/return-to";
 import { nextOpenAccordionId } from "@/lib/dashboard/briefing";
 import { submissionStatusTone } from "@/lib/ui/status";
 import { submissionStatusLabel } from "@/lib/ui/status-labels";
@@ -99,7 +100,7 @@ function Chevron({ open }: { open: boolean }) {
 }
 
 /** One enumerated submission row inside an expanded asset — carries its own quick actions. */
-function SubmissionRow({ s }: { s: QueueSubmission }) {
+function SubmissionRow({ s, returnTo }: { s: QueueSubmission; returnTo: string }) {
   return (
     <div className="flex flex-col gap-1.5 rounded-md border border-iron-200 bg-card px-3 py-2.5">
       <div className="flex flex-wrap items-center gap-2">
@@ -121,7 +122,10 @@ function SubmissionRow({ s }: { s: QueueSubmission }) {
       ) : null}
       {s.submitter ? <p className="text-xs text-iron-600">{s.submitter}</p> : null}
       <div className="mt-1 flex flex-wrap items-center gap-2">
-        <Link href={`/dashboard/submissions/${s.submissionId}`} className={SECONDARY_BTN}>
+        <Link
+          href={withReturnTo(`/dashboard/submissions/${s.submissionId}`, returnTo)}
+          className={SECONDARY_BTN}
+        >
           Open
         </Link>
         {s.canReview ? <MarkReviewedButton submissionId={s.submissionId} /> : null}
@@ -222,7 +226,7 @@ export function AttentionQueue({ items }: { items: QueueItem[] }) {
                     {/* Every unresolved submission for this asset — none hidden. */}
                     <div className="flex flex-col gap-2">
                       {item.submissions.map((s) => (
-                        <SubmissionRow key={s.submissionId} s={s} />
+                        <SubmissionRow key={s.submissionId} s={s} returnTo={item.href} />
                       ))}
                     </div>
 

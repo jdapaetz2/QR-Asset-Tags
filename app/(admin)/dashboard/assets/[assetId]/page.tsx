@@ -25,6 +25,8 @@ import {
 import { RETURN_TEMPLATE_PICKER } from "@/lib/inspections/templates";
 import { buildSessionEvidenceHref } from "@/lib/rentals/evidence";
 import { getOpenDamageForAsset } from "@/lib/submissions/damage-query";
+import { sanitizeReturnTo, backHref } from "@/lib/nav/return-to";
+import { AssetSubnav } from "@/components/assets/asset-subnav";
 import { OpenDamageAlert } from "@/components/assets/open-damage-alert";
 import { UNRESOLVED_STATUSES } from "@/lib/submissions/inbox";
 import { AssetForm } from "@/components/asset-form";
@@ -53,11 +55,17 @@ function Check({ ok, label }: { ok: boolean; label: string }) {
 
 export default async function EditAssetPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ assetId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requireOrgId();
   const { assetId } = await params;
+  const sp = await searchParams;
+  // Originating (filtered) Assets-list URL to return to — validated to an internal dashboard path.
+  const returnToRaw = Array.isArray(sp.returnTo) ? sp.returnTo[0] : sp.returnTo;
+  const returnTo = sanitizeReturnTo(returnToRaw) ?? undefined;
 
   // RLS-scoped: a row from another organization simply isn't returned → 404.
   const supabase = await createClient();
@@ -150,13 +158,11 @@ export default async function EditAssetPage({
       .eq("asset_id", assetId);
     return count ?? 0;
   };
-  const [scansCount, submissionsCount, documentsCount, acknowledgementsCount] =
-    await Promise.all([
-      countRows("scan_events"),
-      countRows("form_submissions"),
-      countRows("documents"),
-      countRows("asset_acknowledgements"),
-    ]);
+  const [scansCount, submissionsCount, documentsCount] = await Promise.all([
+    countRows("scan_events"),
+    countRows("form_submissions"),
+    countRows("documents"),
+  ]);
   const deleteCheck = deleteEligibility({
     qr: links.length,
     scans: scansCount,
@@ -172,7 +178,7 @@ export default async function EditAssetPage({
     <div className="flex flex-col gap-6">
       <section>
         <Link
-          href="/dashboard/assets"
+          href={backHref(returnTo, "/dashboard/assets")}
           className="text-sm text-muted-foreground underline-offset-4 hover:underline"
         >
           ← Assets
@@ -191,35 +197,12 @@ export default async function EditAssetPage({
         </div>
       </section>
 
+      {/* Consistent per-asset sub-navigation (Wave 3N.2). Replaces the scattered Timeline / Rental-sessions
+          links that used to live inline below — one canonical strip, preserving the Assets-list return context. */}
+      <AssetSubnav assetId={assetId} current="overview" returnTo={returnTo} />
+
       {/* Open-damage alert — above the fold, only when unresolved damage exists (Phase 3C). */}
       {openDamage ? <OpenDamageAlert assetId={assetId} summary={openDamage} /> : null}
-
-      {/* Activity timeline */}
-      <Link
-        href={`/dashboard/assets/${assetId}/timeline`}
-        className="flex items-center justify-between gap-3 rounded-lg border bg-card p-4 hover:bg-accent hover:text-accent-foreground"
-      >
-        <div>
-          <h2 className="font-medium">Activity timeline</h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Reports, checklists, acknowledgements, and tag history ·{" "}
-            {submissionsCount} submission{submissionsCount === 1 ? "" : "s"} ·{" "}
-            {acknowledgementsCount} acknowledgement
-            {acknowledgementsCount === 1 ? "" : "s"}
-          </p>
-        </div>
-        <span aria-hidden className="text-muted-foreground">
-          →
-        </span>
-      </Link>
-
-      {/* Rental history for this asset (Phase 3C.8) — secondary link into the session browser, prefiltered. */}
-      <Link
-        href={`/dashboard/rentals?asset=${assetId}`}
-        className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-      >
-        View rental sessions for this asset →
-      </Link>
 
       {/* Readiness checklist */}
       <section className="rounded-lg border bg-card p-4">
@@ -249,7 +232,8 @@ export default async function EditAssetPage({
           action={setAssetPublicStatus.bind(
             null,
             assetId,
-            isPublic ? "private" : "public"
+            isPublic ? "private" : "public",
+            returnTo
           )}
           variant="outline"
         >
@@ -367,6 +351,8 @@ export default async function EditAssetPage({
         orgTemplates={orgTemplates}
         orgCategoryTargets={orgCategoryTargets}
         submitLabel="Save changes"
+        cancelHref={backHref(returnTo, "/dashboard/assets")}
+        returnTo={returnTo}
       />
 
       {/* Lifecycle: archive (reversible) and permanent delete (safe only) */}
@@ -381,17 +367,17 @@ export default async function EditAssetPage({
         </div>
         <div className="flex flex-wrap items-start gap-3">
           {isArchived ? (
-            <ActionButton action={restoreAsset.bind(null, assetId)} variant="outline">
+            <ActionButton action={restoreAsset.bind(null, assetId, returnTo)} variant="outline">
               Restore
             </ActionButton>
           ) : (
-            <ActionButton action={archiveAsset.bind(null, assetId)} variant="outline">
+            <ActionButton action={archiveAsset.bind(null, assetId, returnTo)} variant="outline">
               Archive
             </ActionButton>
           )}
           {deleteCheck.canDelete ? (
             <ActionButton
-              action={deleteAsset.bind(null, assetId)}
+              action={deleteAsset.bind(null, assetId, returnTo)}
               variant="destructive"
               confirm="Permanently delete this asset? This cannot be undone."
             >

@@ -13,16 +13,38 @@ describe("navForRole", () => {
     ]);
   });
 
-  it("gives the customer admin the full customer routes (with Rentals)", () => {
+  it("gives the customer admin the six approved primary destinations (Wave 3N.2)", () => {
     expect(navForRole(ROLES.CUSTOMER_ADMIN)).toEqual([
       { label: "Dashboard", href: "/dashboard" },
       { label: "Assets", href: "/dashboard/assets" },
       { label: "Submissions", href: "/dashboard/submissions", badge: "submissions_new" },
       { label: "Rentals", href: "/dashboard/rentals" },
       { label: "Analytics", href: "/dashboard/analytics" },
-      { label: "Tag requests", href: "/dashboard/tag-requests" },
       { label: "Settings", href: "/dashboard/settings" },
     ]);
+  });
+
+  it("removes Tag requests from the admin primary nav — it lives under Assets now (Wave 3N.2)", () => {
+    const admin = navForRole(ROLES.CUSTOMER_ADMIN);
+    expect(admin.some((i) => i.href === "/dashboard/tag-requests")).toBe(false);
+    expect(admin.map((i) => i.label)).not.toContain("Tag requests");
+  });
+
+  it("never puts a Scan item in any primary nav (scan workflows are reached from a physical QR)", () => {
+    for (const role of [ROLES.PLATFORM_OWNER, ROLES.CUSTOMER_ADMIN, ROLES.CUSTOMER_STAFF]) {
+      for (const item of navForRole(role)) {
+        expect(item.label).not.toBe("Scan");
+      }
+    }
+  });
+
+  it("Rentals active-state uses the longest specific match, not the /dashboard root", () => {
+    // The shell highlights by longest matching href; /dashboard/rentals must out-rank /dashboard.
+    const admin = navForRole(ROLES.CUSTOMER_ADMIN);
+    const rentals = admin.find((i) => i.label === "Rentals")!.href;
+    const dashboard = admin.find((i) => i.label === "Dashboard")!.href;
+    expect(rentals.length).toBeGreaterThan(dashboard.length);
+    expect(rentals.startsWith(dashboard)).toBe(true);
   });
 
   it("gives staff a reduced nav with Rentals but no Settings or Tag requests", () => {

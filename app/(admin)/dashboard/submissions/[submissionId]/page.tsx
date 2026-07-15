@@ -12,6 +12,7 @@ import {
 import { isInspectionFormType, returnChecklistFlags } from "@/lib/submissions/returns";
 import { buildSessionEvidenceHref } from "@/lib/rentals/evidence";
 import { openDamageHref } from "@/lib/submissions/damage";
+import { sanitizeReturnTo, backHref } from "@/lib/nav/return-to";
 import {
   UNRESOLVED_STATUSES,
   mediaCount,
@@ -60,11 +61,13 @@ export default async function SubmissionDetailPage({
   searchParams,
 }: {
   params: Promise<{ submissionId: string }>;
-  searchParams: Promise<{ done?: string }>;
+  searchParams: Promise<{ done?: string; returnTo?: string }>;
 }) {
   await requireOrgId();
   const { submissionId } = await params;
   const sp = await searchParams;
+  // Originating (filtered) inbox URL to preserve on Back and after a status change (Wave 3N.2).
+  const returnTo = sanitizeReturnTo(sp.returnTo) ?? undefined;
 
   const supabase = await createClient();
 
@@ -185,16 +188,18 @@ export default async function SubmissionDetailPage({
     assetRented,
   });
   const detailHref = `/dashboard/submissions/${submission.id}`;
+  // After a status change, return to the originating filtered inbox (refreshed) when we know it, else stay put.
+  const afterAction = returnTo ?? detailHref;
   const statusActions = (
     <div className="flex flex-col gap-2 sm:items-end">
       {quickResolve ? (
-        <MarkReturnedResolveButton submissionId={submission.id} redirectTo={detailHref} />
+        <MarkReturnedResolveButton submissionId={submission.id} redirectTo={afterAction} />
       ) : null}
       <SubmissionStatusActions
         submissionId={submission.id}
         status={submission.status}
         hideResolve={quickResolve}
-        redirectTo={detailHref}
+        redirectTo={afterAction}
       />
     </div>
   );
@@ -202,7 +207,7 @@ export default async function SubmissionDetailPage({
   const headerBlock = (
     <section className="flex flex-col gap-3 rounded-lg border bg-card p-5">
       <Link
-        href="/dashboard/submissions"
+        href={backHref(returnTo, "/dashboard/submissions")}
         className="text-sm text-muted-foreground underline-offset-4 hover:underline"
       >
         ← Submissions
@@ -235,61 +240,10 @@ export default async function SubmissionDetailPage({
     </section>
   );
 
-  // Full (tall) asset card — default order for damage/support.
-  const assetCard = (
-    <section className="rounded-lg border bg-card p-4 text-sm">
-      <h2 className="mb-3 font-medium">Asset</h2>
-      {submission.asset ? (
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex flex-col items-start gap-1.5">
-            <AssetTagChip code={submission.asset.asset_code} />
-            <span className="font-medium">{submission.asset.asset_name}</span>
-            {submission.asset_id ? (
-              <span className="text-xs text-muted-foreground">
-                {assetUnresolved} unresolved submission
-                {assetUnresolved === 1 ? "" : "s"} on this asset
-              </span>
-            ) : null}
-          </div>
-          {submission.asset_id ? (
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href={`/dashboard/submissions?asset_id=${submission.asset_id}`}
-                className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
-              >
-                This asset&apos;s submissions →
-              </Link>
-              <Link
-                href={`/dashboard/assets/${submission.asset_id}`}
-                className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
-              >
-                Asset detail →
-              </Link>
-              <Link
-                href={`/dashboard/assets/${submission.asset_id}/timeline`}
-                className="rounded-md border px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
-              >
-                Asset timeline →
-              </Link>
-              {isDamageRelated ? (
-                <Link
-                  href={openDamageHref(submission.asset_id)}
-                  className="rounded-md border border-destructive/40 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10"
-                >
-                  Other open damage for this asset →
-                </Link>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-      ) : (
-        <p className="text-muted-foreground">No linked asset.</p>
-      )}
-    </section>
-  );
-
-  // Compact asset/action strip — inspection order, kept short so the report stays near the fold on mobile.
-  const assetStrip = (
+  // One compact asset/session context strip (Wave 3N.2) — replaces the two near-identical clusters that used to
+  // differ only by form type. Rendered for every submission; the asset-scoped links appear only when there is a
+  // linked asset, and Session evidence only when a rental session is available.
+  const assetContext = (
     <section className="flex flex-col gap-2 rounded-lg border bg-card p-3 text-sm">
       {submission.asset ? (
         <>
@@ -509,10 +463,10 @@ export default async function SubmissionDetailPage({
     <div className="flex flex-col gap-6">
       <ReturnDoneNotice done={sp.done} />
       {isInspection ? (
-        // Header (with status actions) → compact asset strip → report → submitter → related.
+        // Inspections lead with the structured report, so the context strip sits right under the header.
         <>
           {headerBlock}
-          {assetStrip}
+          {assetContext}
           {reportBlock}
           {submitterBlock}
           {relatedBlock}
@@ -521,7 +475,7 @@ export default async function SubmissionDetailPage({
         // Damage/support keep the established order (their primary content already leads).
         <>
           {headerBlock}
-          {assetCard}
+          {assetContext}
           {submitterBlock}
           {relatedBlock}
           {reportBlock}

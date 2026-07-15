@@ -6,6 +6,8 @@ import { requireOrgId } from "@/lib/auth/session";
 import { isLikelyUuid } from "@/lib/rentals/evidence";
 import { parseTimelineFilters } from "@/lib/timeline/cursor";
 import { createTimelineQueryClient, getAssetTimelinePage } from "@/lib/timeline/timeline-page";
+import { sanitizeReturnTo, withReturnTo } from "@/lib/nav/return-to";
+import { AssetSubnav } from "@/components/assets/asset-subnav";
 import { AssetTagChip } from "@/components/ui/asset-tag-chip";
 import { TimelineFilters } from "@/components/timeline/timeline-filters";
 import { TimelineList } from "@/components/timeline/timeline-list";
@@ -24,6 +26,8 @@ export default async function AssetTimelinePage({
   const { assetId } = await params;
   if (!isLikelyUuid(assetId)) notFound();
   const sp = await searchParams;
+  const returnToRaw = Array.isArray(sp.returnTo) ? sp.returnTo[0] : sp.returnTo;
+  const returnTo = sanitizeReturnTo(returnToRaw) ?? undefined;
   const filters = parseTimelineFilters(sp, new Date());
 
   const supabase = await createClient();
@@ -50,7 +54,7 @@ export default async function AssetTimelinePage({
     <div className="flex flex-col gap-6">
       <section>
         <Link
-          href={`/dashboard/assets/${assetId}`}
+          href={withReturnTo(`/dashboard/assets/${assetId}`, returnTo)}
           className="text-sm text-muted-foreground underline-offset-4 hover:underline"
         >
           ← {asset.asset_name}
@@ -59,14 +63,10 @@ export default async function AssetTimelinePage({
         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <AssetTagChip code={asset.asset_code} />
           <span>{asset.asset_name}</span>
-          <Link
-            href={`/dashboard/rentals?asset=${assetId}`}
-            className="rounded-md border px-2 py-0.5 text-xs text-foreground underline-offset-4 hover:bg-accent"
-          >
-            Browse rental sessions →
-          </Link>
         </div>
       </section>
+
+      <AssetSubnav assetId={assetId} current="timeline" returnTo={returnTo} />
 
       <TimelineFilters filters={filters} />
 
