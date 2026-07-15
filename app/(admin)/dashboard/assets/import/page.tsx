@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { requireOrgId } from "@/lib/auth/session";
+import { requireCustomerAdminOrgId } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { AssetImport } from "@/components/asset-import";
 import { getOrgCategories } from "@/lib/assets/categories";
@@ -8,7 +8,7 @@ import { getOrgCategoryDefaultLookup } from "@/lib/inspections/category-defaults
 import { TEMPLATE_KEYS, TEMPLATE_VERIFY_NOTE } from "@/lib/onboarding/templates";
 
 export default async function ImportAssetsPage() {
-  await requireOrgId();
+  await requireCustomerAdminOrgId();
 
   // This org's active custom template keys, so the preview accepts them too.
   const supabase = await createClient();

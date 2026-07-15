@@ -1,11 +1,11 @@
-import { requireOrgId } from "@/lib/auth/session";
+import { requireCustomerAdminOrgId } from "@/lib/auth/session";
 import { buildImportTemplateCsv } from "@/lib/onboarding/import";
 
 // Auth-scoped download — never cache.
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  await requireOrgId();
+  await requireCustomerAdminOrgId();
   const csv = buildImportTemplateCsv();
   return new Response(csv, {
     headers: {

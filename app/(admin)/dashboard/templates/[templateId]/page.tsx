@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { requireOrgId } from "@/lib/auth/session";
+import { requireCustomerAdminOrgId } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import {
   updateOrgTemplate,
@@ -17,7 +17,7 @@ export default async function EditTemplatePage({
 }: {
   params: Promise<{ templateId: string }>;
 }) {
-  await requireOrgId();
+  await requireCustomerAdminOrgId();
   const { templateId } = await params;
   const supabase = await createClient();
 

@@ -32,15 +32,16 @@ export function oppositeOrigin(origin: SubmissionOrigin): SubmissionOrigin {
 }
 
 /**
- * Human type label that folds in the origin. Return checklists read as "Renter return" (public) vs "Staff
- * return inspection" (staff); the outbound baseline is always "Outbound inspection". Other form types fall
- * back to their plain label.
+ * Human type label that folds in the origin. Return checklists read as "Renter return checklist" (public) vs
+ * "Staff return checklist" (staff) — the canonical user-facing term (Wave 3N.1); the outbound baseline is always
+ * "Outbound inspection". Other form types fall back to their plain label. The `return_checklist` DATA value is
+ * unchanged — only the display label.
  */
 export function submissionTypeLabel(formType: string, origin: unknown): string {
   const o = normalizeOrigin(origin);
   if (formType === "pre_use_inspection") return "Outbound inspection";
   if (formType === "return_checklist") {
-    return o === "staff" ? "Staff return inspection" : "Renter return";
+    return o === "staff" ? "Staff return checklist" : "Renter return checklist";
   }
   return formTypeLabel(formType);
 }

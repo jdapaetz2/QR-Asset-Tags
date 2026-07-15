@@ -22,21 +22,26 @@ export function navForRole(role: Role): NavItem[] {
       { label: "Production", href: "/owner/production" },
     ];
   }
-  // Customer staff: a reduced nav focused on the daily loop — no org Settings or
-  // Tag-request procurement. Display-only; each route keeps its own guard.
+  // Customer staff: a reduced nav focused on the daily loop — Rentals is an operational
+  // surface (session evidence) so it belongs here, but no org Settings or Tag-request
+  // procurement. Display-only; each route enforces its own role/org guard (Wave 3N.1).
   if (role === ROLES.CUSTOMER_STAFF) {
     return [
       { label: "Dashboard", href: "/dashboard" },
       { label: "Assets", href: "/dashboard/assets" },
       { label: "Submissions", href: "/dashboard/submissions", badge: "submissions_new" },
+      { label: "Rentals", href: "/dashboard/rentals" },
       { label: "Analytics", href: "/dashboard/analytics" },
     ];
   }
-  // Customer admin: full customer routes — never any /owner/* link.
+  // Customer admin: full customer routes — never any /owner/* link. Data export is NOT in the
+  // top nav: it is a conditional secondary item under Settings, shown only when the owner has
+  // enabled the org's export capability (see canCustomerUseExport).
   return [
     { label: "Dashboard", href: "/dashboard" },
     { label: "Assets", href: "/dashboard/assets" },
     { label: "Submissions", href: "/dashboard/submissions", badge: "submissions_new" },
+    { label: "Rentals", href: "/dashboard/rentals" },
     { label: "Analytics", href: "/dashboard/analytics" },
     { label: "Tag requests", href: "/dashboard/tag-requests" },
     { label: "Settings", href: "/dashboard/settings" },

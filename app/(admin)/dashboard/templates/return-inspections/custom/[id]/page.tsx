@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { requireOrgId } from "@/lib/auth/session";
+import { requireCustomerAdminOrgId } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getOrgTemplate } from "@/lib/inspections/org-templates-data";
 import { OrgTemplateEditor } from "@/components/inspections/org-template-editor";
@@ -13,7 +13,7 @@ export default async function OrgTemplateEditorPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireOrgId();
+  await requireCustomerAdminOrgId();
   const { id } = await params;
 
   const supabase = await createClient();

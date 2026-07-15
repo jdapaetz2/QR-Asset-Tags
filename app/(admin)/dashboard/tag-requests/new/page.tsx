@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireOrgId } from "@/lib/auth/session";
+import { requireCustomerAdminOrgId } from "@/lib/auth/session";
 import { PageHeader } from "@/components/ui/page-header";
 import {
   TagRequestForm,
@@ -11,7 +11,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function NewTagRequestPage() {
-  await requireOrgId();
+  await requireCustomerAdminOrgId();
   const supabase = await createClient();
 
   // RLS-scoped, active assets only (archived are excluded from tag requests).

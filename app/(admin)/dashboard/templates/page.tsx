@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { requireOrgId } from "@/lib/auth/session";
+import { requireCustomerAdminOrgId } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -20,7 +20,7 @@ type OrgTemplateRow = {
 };
 
 export default async function TemplatesPage() {
-  await requireOrgId();
+  await requireCustomerAdminOrgId();
   const supabase = await createClient();
 
   // RLS-scoped: only this organization's custom templates.

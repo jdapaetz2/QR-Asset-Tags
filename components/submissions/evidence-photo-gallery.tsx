@@ -4,8 +4,8 @@ import { PhotoTileGrid } from "@/components/submissions/photo-tile-grid";
 
 const SOURCE_LABEL: Record<PhotoSource, string> = {
   outbound: "Outbound baseline",
-  renter: "Renter return report",
-  staff: "Staff return inspection",
+  renter: "Renter return checklist",
+  staff: "Staff return checklist",
 };
 
 /**

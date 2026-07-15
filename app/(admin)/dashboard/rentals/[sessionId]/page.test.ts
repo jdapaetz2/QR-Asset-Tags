@@ -19,8 +19,8 @@ describe("session-evidence page — collapsed disclosures", () => {
     for (const title of [
       '"Differences"',
       '"Outbound baseline"',
-      '"Renter return report"',
-      '"Staff return inspection"',
+      '"Renter return checklist"',
+      '"Staff return checklist"',
       '"Photos by source"',
     ]) {
       expect(src).toContain(title);

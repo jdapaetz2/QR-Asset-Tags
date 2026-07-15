@@ -30,7 +30,7 @@ describe("staff asset page — workflow state matrix (Phase 3C.7)", () => {
     expect(src).toContain("Add outbound inspection");
     expect(src).toContain("original rental start time");
     expect(src).toContain("View session evidence");
-    expect(src).toContain("Complete return inspection");
+    expect(src).toContain("Complete return checklist");
   });
 
   it("recorded → View outbound inspection (baseline recorded time + inspector), never Start/Add", () => {

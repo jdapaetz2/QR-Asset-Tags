@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireOrgId } from "@/lib/auth/session";
+import { requireCustomerAdminOrgId } from "@/lib/auth/session";
 import { getTagRequestDetail } from "@/lib/tags/request-detail";
 import { tagRequestStatusLabel } from "@/lib/tags/tag-requests";
 import { tagRequestStatusTone } from "@/lib/ui/status";
@@ -24,7 +24,7 @@ export default async function CustomerTagRequestPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireOrgId();
+  await requireCustomerAdminOrgId();
   const { id } = await params;
   const supabase = await createClient();
 

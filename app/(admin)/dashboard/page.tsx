@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile, SUSPENDED_PATH } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
+import { toExportFlags } from "@/lib/export/types";
+import { canCustomerUseExport } from "@/lib/export/access";
 import { firstNameToken } from "@/lib/auth/name";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -342,6 +344,10 @@ export default async function DashboardPage({
   const orgLimit = org?.asset_limit ?? null;
   const coverage = coverageStatus(covered, orgLimit);
 
+  // Role-aware "More" links (Wave 3N.1): config links are admin-only; Data export also needs the org capability.
+  const isAdmin = profile.role === ROLES.CUSTOMER_ADMIN;
+  const canExport = canCustomerUseExport({ role: profile.role, flags: toExportFlags(org) });
+
   // Recent activity feed — meaningful events individually, raw scans rolled up to one
   // "Scanned N times" row per asset per day so the feed isn't scan spam.
   const scanEvents: ActivityEvent[] = rollupScanEvents(
@@ -561,26 +567,31 @@ export default async function DashboardPage({
         </Link>
       ) : null}
 
-      {/* More — routes not in the header nav, kept reachable (see plan deviation #6). */}
+      {/* More — routes not in the header nav, kept reachable. Config links are admin-only so staff never see a
+          link that would bounce; Data export also requires the org capability (Wave 3N.1). */}
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-iron-600">
-        <Link
-          href="/dashboard/templates"
-          className="underline-offset-4 hover:text-foreground hover:underline"
-        >
-          Page templates
-        </Link>
-        <Link
-          href="/dashboard/templates/return-inspections"
-          className="underline-offset-4 hover:text-foreground hover:underline"
-        >
-          Return inspections
-        </Link>
-        {org?.customer_exports_enabled ? (
+        {isAdmin ? (
+          <Link
+            href="/dashboard/templates"
+            className="underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Page templates
+          </Link>
+        ) : null}
+        {isAdmin ? (
+          <Link
+            href="/dashboard/templates/return-inspections"
+            className="underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Return inspections
+          </Link>
+        ) : null}
+        {canExport ? (
           <Link
             href="/dashboard/export"
             className="underline-offset-4 hover:text-foreground hover:underline"
           >
-            Export data
+            Data export
           </Link>
         ) : null}
         <span className="text-mono-meta">

@@ -81,8 +81,8 @@ export function ReturnInspectionSummary({
     template.inspection_type === "outbound"
       ? "Outbound inspection"
       : data.audience === "staff"
-        ? "Staff return inspection"
-        : "Return inspection";
+        ? "Staff return checklist"
+        : "Return checklist";
 
   return (
     <section className="flex flex-col gap-4 rounded-lg border bg-card p-4 text-sm">

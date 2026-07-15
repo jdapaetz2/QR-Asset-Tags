@@ -1,14 +1,18 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireOrgId } from "@/lib/auth/session";
+import { requireCustomerAdminOrgId } from "@/lib/auth/session";
+import { ROLES } from "@/lib/auth/roles";
 import { toExportFlags, enabledExportTypes } from "@/lib/export/types";
+import { canCustomerUseExport } from "@/lib/export/access";
 
 // Per-request, auth-scoped; never cache.
 export const dynamic = "force-dynamic";
 
 export default async function ExportPage() {
-  await requireOrgId();
+  // Admin-only (staff → /dashboard). The capability is ALSO gated below so a disabled org can't reach the page.
+  await requireCustomerAdminOrgId();
   const supabase = await createClient();
 
   // RLS-scoped: the caller only ever reads their own organization.
@@ -19,6 +23,12 @@ export default async function ExportPage() {
     )
     .maybeSingle();
   const flags = toExportFlags(org);
+
+  // Disabled capability = access blocked (not a "not enabled" message). Fails closed via toExportFlags.
+  if (!canCustomerUseExport({ role: ROLES.CUSTOMER_ADMIN, flags })) {
+    redirect("/dashboard/settings");
+  }
+
   const types = enabledExportTypes(flags);
 
   return (

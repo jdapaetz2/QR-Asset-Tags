@@ -105,7 +105,7 @@ describe("buildAssetTimeline", () => {
         },
       ],
     });
-    expect(staff[0].title).toBe("Staff return inspection");
+    expect(staff[0].title).toBe("Staff return checklist");
 
     const renter = buildAssetTimeline({
       ...base,
@@ -122,7 +122,7 @@ describe("buildAssetTimeline", () => {
         },
       ],
     });
-    expect(renter[0].title).toBe("Renter return");
+    expect(renter[0].title).toBe("Renter return checklist");
   });
 
   it("enriches a damaged return submission event with reference, origin, and the damage flag", () => {
@@ -144,7 +144,7 @@ describe("buildAssetTimeline", () => {
       ],
     });
     expect(event.kind).toBe("submission");
-    expect(event.title).toBe("Staff return inspection");
+    expect(event.title).toBe("Staff return checklist");
     expect(event.reference).toBe("SUB-2026-A1B2C3");
     expect(event.origin).toBe("staff");
     expect(event.status).toBe("new");

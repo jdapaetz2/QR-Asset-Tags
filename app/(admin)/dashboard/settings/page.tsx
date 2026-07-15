@@ -1,8 +1,10 @@
 import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireOrgId, requireProfile } from "@/lib/auth/session";
+import { requireCustomerAdminOrgId } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
+import { toExportFlags } from "@/lib/export/types";
+import { canCustomerUseExport } from "@/lib/export/access";
 import { updateOrgSettings } from "@/lib/org/actions";
 import {
   OrgSettingsForm,
@@ -20,9 +22,8 @@ import { getCoveredCount } from "@/lib/plans/coverage-query";
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  await requireOrgId();
-  const profile = await requireProfile();
-  const isAdmin = profile.role === ROLES.CUSTOMER_ADMIN;
+  // Settings is org configuration → customer_admin only (staff → /dashboard). Wave 3N.1.
+  await requireCustomerAdminOrgId();
   const supabase = await createClient();
 
   // RLS-scoped: the caller only ever sees/edits their own organization. Plan fields
@@ -30,9 +31,16 @@ export default async function SettingsPage() {
   const { data: org } = await supabase
     .from("organizations")
     .select(
-      "name, support_phone, support_email, website_url, primary_color, logo_url, notification_email, notify_damage_reports, notify_support_requests, notify_return_checklists, notify_tag_request_updates, status, plan_name, asset_limit, tag_credit_cents, storage_limit_mb, video_uploads_enabled"
+      "name, support_phone, support_email, website_url, primary_color, logo_url, notification_email, notify_damage_reports, notify_support_requests, notify_return_checklists, notify_tag_request_updates, status, plan_name, asset_limit, tag_credit_cents, storage_limit_mb, video_uploads_enabled, customer_exports_enabled"
     )
     .maybeSingle();
+
+  // Data export is a conditional secondary destination — visible only when the platform owner has enabled the org's
+  // export capability. The page is already admin-only, so role is customer_admin here.
+  const canExport = canCustomerUseExport({
+    role: ROLES.CUSTOMER_ADMIN,
+    flags: toExportFlags(org),
+  });
 
   // Covered-asset usage (RLS-scoped read; display only, no enforcement here).
   const coveredCount = await getCoveredCount(supabase);
@@ -84,18 +92,33 @@ export default async function SettingsPage() {
         sampleHref={sampleHref}
       />
 
-      {isAdmin ? (
+      <SectionCard
+        title="Team"
+        description="Invite staff and manage who can access your dashboard."
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/dashboard/settings/users">Manage team</Link>
+          </Button>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          Admins can invite teammates, set roles, and disable access.
+        </p>
+      </SectionCard>
+
+      {canExport ? (
         <SectionCard
-          title="Team"
-          description="Invite staff and manage who can access your dashboard."
+          title="Data export"
+          description="Download your organization's records as CSV."
           actions={
             <Button asChild variant="outline" size="sm">
-              <Link href="/dashboard/settings/users">Manage team</Link>
+              <Link href="/dashboard/export">Open data export</Link>
             </Button>
           }
         >
           <p className="text-sm text-muted-foreground">
-            Admins can invite teammates, set roles, and disable access.
+            Export the record types AssetTag QR has enabled for your organization. Private media files are not
+            included.
           </p>
         </SectionCard>
       ) : null}

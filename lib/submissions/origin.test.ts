@@ -35,9 +35,9 @@ describe("normalizeOrigin / oppositeOrigin", () => {
 
 describe("submissionTypeLabel", () => {
   it("distinguishes renter vs staff returns and the outbound baseline", () => {
-    expect(submissionTypeLabel("return_checklist", "public")).toBe("Renter return");
-    expect(submissionTypeLabel("return_checklist", "staff")).toBe("Staff return inspection");
-    expect(submissionTypeLabel("return_checklist", null)).toBe("Renter return");
+    expect(submissionTypeLabel("return_checklist", "public")).toBe("Renter return checklist");
+    expect(submissionTypeLabel("return_checklist", "staff")).toBe("Staff return checklist");
+    expect(submissionTypeLabel("return_checklist", null)).toBe("Renter return checklist");
     expect(submissionTypeLabel("pre_use_inspection", "staff")).toBe("Outbound inspection");
     // Outbound is always staff — even an odd origin value reads as outbound.
     expect(submissionTypeLabel("pre_use_inspection", "public")).toBe("Outbound inspection");

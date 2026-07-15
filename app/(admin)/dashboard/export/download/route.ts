@@ -1,7 +1,7 @@
 import { type NextRequest } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireOrgId } from "@/lib/auth/session";
+import { requireCustomerAdminOrgId } from "@/lib/auth/session";
 import { publicEnv } from "@/lib/env";
 import {
   isExportTypeKey,
@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
  * the read to the caller's organization — no service-role, no cross-org data.
  */
 export async function GET(request: NextRequest) {
-  await requireOrgId();
+  await requireCustomerAdminOrgId();
 
   const type = request.nextUrl.searchParams.get("type") ?? "";
   if (!isExportTypeKey(type)) {

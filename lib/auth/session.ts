@@ -112,3 +112,28 @@ export async function requireOrgId(): Promise<string> {
   if (!(await ownOrgActive(profile))) redirect(SUSPENDED_PATH);
   return profile.organization_id;
 }
+
+/**
+ * Like {@link requireOrgId} but ALSO returns the profile, so a page can branch on the
+ * caller's role (e.g. hide admin-only config controls from `customer_staff`) without a
+ * second `getProfile()` round-trip. Any active-org customer (admin OR staff) passes.
+ */
+export async function requireOrgContext(): Promise<{ orgId: string; profile: Profile }> {
+  const profile = await requireProfile();
+  if (!profile.organization_id) redirect(landingPathForRole(profile.role));
+  if (!(await ownOrgActive(profile))) redirect(SUSPENDED_PATH);
+  return { orgId: profile.organization_id, profile };
+}
+
+/**
+ * Require an ACTIVE-org **customer_admin** and return their organization id — the single
+ * server guard for admin-only configuration surfaces (Settings, Users, Export, Tag
+ * requests, Templates, Import, asset config sub-routes). Enforcement, not just nav hiding:
+ * `customer_staff` is sent to their landing (`/dashboard`), a platform owner to `/owner`,
+ * and a suspended-org customer to `/suspended`. Cross-org isolation stays with RLS.
+ */
+export async function requireCustomerAdminOrgId(): Promise<string> {
+  const { orgId, profile } = await requireOrgContext();
+  if (profile.role !== ROLES.CUSTOMER_ADMIN) redirect(landingPathForRole(profile.role));
+  return orgId;
+}

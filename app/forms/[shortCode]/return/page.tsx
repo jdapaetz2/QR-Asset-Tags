@@ -44,7 +44,7 @@ export default async function ReturnInspectionPage({
   return (
     <PublicFormLayout
       shortCode={shortCode}
-      title="Return inspection"
+      title="Return checklist"
       orgName={resolved.org.name ?? "Rental Equipment"}
       assetName={resolved.asset.asset_name}
       assetCode={resolved.asset.asset_code}

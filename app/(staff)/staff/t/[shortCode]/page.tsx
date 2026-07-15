@@ -158,7 +158,7 @@ export default async function StaffAssetPage({
             View session evidence
           </Link>
           <Link href={`/staff/t/${shortCode}/return`} className={SECONDARY_ACTION}>
-            Complete return inspection
+            Complete return checklist
           </Link>
         </div>
       ) : state === "recorded" && baseline ? (
@@ -175,7 +175,7 @@ export default async function StaffAssetPage({
             </dl>
           </div>
           <Link href={`/staff/t/${shortCode}/return`} className={PRIMARY_ACTION}>
-            Complete return inspection
+            Complete return checklist
           </Link>
           {baselineId ? (
             <Link href={`/dashboard/submissions/${baselineId}`} className={SECONDARY_ACTION}>

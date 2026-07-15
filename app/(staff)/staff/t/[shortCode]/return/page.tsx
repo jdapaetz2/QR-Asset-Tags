@@ -72,7 +72,7 @@ export default async function StaffReturnPage({
         >
           ← {asset.asset_name}
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Staff return inspection</h1>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Staff return checklist</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Record the equipment&apos;s condition at return. Completing this marks the asset available and
           closes the rental — no separate step needed.
@@ -82,7 +82,7 @@ export default async function StaffReturnPage({
       {/* Renter report context (Part B). Operational context only — inspect the asset independently. */}
       {renterReports.length > 0 ? (
         <section className="flex flex-col gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
-          <p className="font-medium">Renter return report received</p>
+          <p className="font-medium">Renter return checklist received</p>
           <p className="text-xs text-muted-foreground">
             Context only — inspect the equipment yourself before recording your answers.
           </p>
@@ -126,9 +126,9 @@ export default async function StaffReturnPage({
         shortCode={shortCode}
         action={submitStaffReturnInspection.bind(null, shortCode)}
         baseline={baseline}
-        disclaimer="Staff return inspection — records the equipment's condition at return and completes the rental. Damage or missing items stay open for follow-up."
-        reviewCta="Review return inspection"
-        submitCta="Complete return inspection"
+        disclaimer="Staff return checklist — records the equipment's condition at return and completes the rental. Damage or missing items stay open for follow-up."
+        reviewCta="Review return checklist"
+        submitCta="Complete return checklist"
         submittingCta="Completing…"
         contextTitle="Performed by"
         contextFields={

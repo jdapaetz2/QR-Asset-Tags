@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { requireOrgId } from "@/lib/auth/session";
+import { requireCustomerAdminOrgId } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getOrgCategories, normalizeCategoryKey } from "@/lib/assets/categories";
 import { getOrgCategoryDefaults } from "@/lib/inspections/category-defaults-data";
@@ -49,7 +49,7 @@ export default async function ReturnInspectionsPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  await requireOrgId();
+  await requireCustomerAdminOrgId();
   const sp = await searchParams;
   const applied = typeof sp.applied === "string" ? Number(sp.applied) : null;
   const moved = typeof sp.moved === "string" ? Number(sp.moved) : null;

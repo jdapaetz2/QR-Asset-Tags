@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { requireOrgId } from "@/lib/auth/session";
+import { requireCustomerAdminOrgId } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import {
   templateCatalog,
@@ -26,7 +26,7 @@ type OrgTemplateRow = {
 };
 
 export default async function TemplateCatalogPage() {
-  await requireOrgId();
+  await requireCustomerAdminOrgId();
   const catalog = templateCatalog();
 
   // This organization's custom templates (RLS-scoped), shown read-only here.

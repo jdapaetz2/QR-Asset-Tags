@@ -5,7 +5,7 @@ import { submissionStatusLabel } from "@/lib/ui/status-labels";
 
 /**
  * The single source of truth for how a submission reads at a glance (Phase 3C; simplified 3C.2). The type
- * label already encodes the source ("Renter return" / "Staff return inspection" / "Outbound inspection"), so
+ * label already encodes the source ("Renter return checklist" / "Staff return checklist" / "Outbound inspection"), so
  * there is NO separate Renter/Staff source badge — one primary type badge, the optional status badge, and the
  * condition Damage/Missing chips. The submissions inbox and the asset timeline both use this component, so
  * they stay in lockstep. No I/O; the caller supplies already-derived flags.

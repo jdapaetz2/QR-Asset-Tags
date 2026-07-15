@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mulemark — Navigation & UX Map</title>
+<style>
+  /* ---- Brand tokens (from app/globals.css) ---- */
+  :root{
+    --iron:#1a1917; --iron600:#57534b; --iron200:#e4e1db; --bone:#faf9f6; --bone2:#f2f0ea;
+    --brass:#a87b22; --brass600:#8c6519;
+    --success:#3d7a44; --warning:#b07b10; --danger:#b3372e; --info:#2e5ea8;
+    --amberchipbg:#faeeda; --amberchiptext:#854f0b;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Consolas, monospace;
+    --sans: "Barlow", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:var(--sans); color:var(--iron); background:var(--bone); line-height:1.4;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;}
+  a{color:var(--brass600)}
+  .wrap{max-width:1180px; margin:0 auto; padding:0 20px}
+
+  /* ---- Header ---- */
+  header{background:var(--iron); color:var(--bone)}
+  .head{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 20px; flex-wrap:wrap;
+    max-width:1180px; margin:0 auto}
+  .brand{display:flex; align-items:center; gap:14px}
+  .brand svg{height:22px; width:auto; display:block}
+  .brand .sub{font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:#d9a94f}
+  .meta{font-family:var(--mono); font-size:11px; color:#b8b4ac; text-align:right}
+
+  /* ---- Controls ---- */
+  .controls{position:sticky; top:0; z-index:5; background:var(--bone); border-bottom:1px solid var(--iron200);
+    padding:10px 0}
+  .controls .row{display:flex; gap:14px; align-items:center; flex-wrap:wrap; justify-content:space-between}
+  .tabs, .seg{display:flex; gap:6px; flex-wrap:wrap}
+  button{font-family:inherit; font-size:14px; cursor:pointer}
+  .tab{border:1px solid var(--iron200); background:var(--bone); color:var(--iron600); border-radius:8px;
+    padding:8px 14px; font-weight:600}
+  .tab[aria-selected="true"]{background:var(--iron); color:var(--bone); border-color:var(--iron)}
+  .seg button{border:1px solid var(--iron200); background:var(--bone); color:var(--iron600); padding:7px 12px;
+    border-radius:7px; font-weight:600}
+  .seg button[aria-pressed="true"]{background:var(--brass); color:var(--bone); border-color:var(--brass)}
+  .seg .lbl{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--iron600); align-self:center;
+    margin-right:2px}
+
+  /* ---- Legend ---- */
+  .legend{border:1px solid var(--iron200); background:var(--bone2); border-radius:10px; padding:12px 14px; margin:16px 0}
+  .legend h3{margin:0 0 8px; font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--iron600)}
+  .legend .items{display:grid; grid-template-columns:repeat(auto-fill,minmax(215px,1fr)); gap:6px 18px; font-size:12.5px}
+  .legend .k{display:flex; align-items:center; gap:8px}
+  .swatch{width:20px; height:14px; border-radius:3px; flex:none; border:1px solid rgba(0,0,0,.12)}
+  .sw-primary{background:var(--iron)} .sw-action{background:var(--brass)}
+  .sw-secondary{background:var(--bone); border:1px solid var(--iron200)}
+  .sw-rec{background:var(--bone); border:1.5px dashed var(--iron600)}
+  .sw-green{background:var(--success)} .sw-amber{background:var(--warning)}
+  .sw-red{background:var(--danger)} .sw-blue{background:var(--info)}
+  .conn{width:22px; height:0; border-top:2px solid var(--iron600); flex:none}
+  .conn.dot{border-top:2px dotted var(--iron600)}
+  .lockpill{font-size:10.5px; border:1px solid var(--iron600); border-radius:20px; padding:1px 7px; color:var(--iron600)}
+
+  /* ---- Panels / views ---- */
+  .panel{display:none} .panel.active{display:block}
+  .view{display:none} .view.show{display:block}
+  .panel h2{font-size:20px; margin:18px 0 4px}
+  .panel .lede{color:var(--iron600); font-size:13.5px; margin:0 0 8px; max-width:70ch}
+
+  /* ---- Role band / lane ---- */
+  .band{border:1px solid var(--iron200); border-radius:12px; margin:14px 0; background:#fff; overflow:hidden}
+  .band > .bandhead{display:flex; align-items:center; gap:10px; padding:9px 14px; background:var(--bone2);
+    border-bottom:1px solid var(--iron200)}
+  .bandhead .name{font-weight:600; font-size:13.5px}
+  .bandhead .tag{font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; padding:2px 8px; border-radius:20px}
+  .tag.public{background:#e6eefb; color:var(--info)}
+  .tag.auth{background:var(--amberchipbg); color:var(--amberchiptext)}
+  .tag.owner{background:#efe9dc; color:var(--brass600)}
+  .tag.mobile{background:#eef3ee; color:var(--success)}
+  .bandbody{padding:14px; overflow-x:auto}
+
+  /* ---- Flow rows (task-flow, horizontal) ---- */
+  .flow{display:flex; align-items:stretch; gap:0; min-width:max-content}
+  .flow.wrap{flex-wrap:wrap; min-width:0; gap:10px}
+  .step{display:flex; align-items:center}
+  .arrow{flex:none; width:30px; display:flex; align-items:center; justify-content:center; color:var(--iron600);
+    font-size:18px}
+  .arrow.dot{opacity:.75}
+  .col{display:flex; flex-direction:column; gap:8px; justify-content:center}
+
+  /* ---- Node cards ---- */
+  .node{border:1px solid var(--iron200); border-radius:9px; background:var(--bone); padding:8px 10px; min-width:150px;
+    max-width:210px; border-left-width:4px; border-left-color:var(--iron200)}
+  .node .nm{font-weight:600; font-size:12.5px; line-height:1.25}
+  .node .rt{font-family:var(--mono); font-size:10.5px; color:var(--iron600); margin-top:2px; word-break:break-all}
+  .node.primary{background:var(--iron); color:var(--bone); border-color:var(--iron)}
+  .node.primary .rt{color:#c9c4ba}
+  .node.action{background:var(--brass); color:var(--bone); border-color:var(--brass600)}
+  .node.action .rt{color:#f0e6cf}
+  .node.secondary{background:var(--bone)}
+  .node.b-green{border-left-color:var(--success)} .node.b-amber{border-left-color:var(--warning)}
+  .node.b-red{border-left-color:var(--danger)} .node.b-blue{border-left-color:var(--info)}
+  .node.rec{border:1.6px dashed var(--iron600); background:#fff}
+  .node.rec .badge-rec{display:inline-block; font-size:9.5px; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--brass600); border:1px solid var(--brass); border-radius:10px; padding:0 6px; margin-top:4px}
+  .lock{font-size:9.5px; border:1px solid currentColor; border-radius:10px; padding:0 6px; margin-left:6px; opacity:.85}
+  .decision{align-self:center; background:#fff; border:1.5px solid var(--warning); color:var(--amberchiptext);
+    border-radius:8px; padding:6px 9px; font-size:11.5px; max-width:150px; text-align:center}
+  .back{display:inline-block; font-size:10px; color:var(--iron600); margin-top:5px}
+  .back::before{content:"↩ "}
+  .frx{margin-top:6px; font-size:10.5px; background:var(--amberchipbg); color:var(--amberchiptext);
+    border-radius:6px; padding:3px 6px; display:block}
+  .frx::before{content:"⚠ "}
+
+  /* ---- Recommended summary blocks ---- */
+  .reccard{border:1.6px dashed var(--iron600); border-radius:12px; padding:14px 16px; margin:14px 0; background:#fff}
+  .reccard h4{margin:0 0 6px; font-size:14px}
+  .reccard .navrow{display:flex; gap:8px; flex-wrap:wrap; margin:8px 0}
+  .navchip{border:1px solid var(--iron); background:var(--iron); color:var(--bone); border-radius:7px;
+    padding:5px 11px; font-size:12.5px; font-weight:600}
+  .navchip.sub{background:var(--bone); color:var(--iron); border:1px dashed var(--iron600)}
+  .reccard ul{margin:6px 0 0; padding-left:18px; font-size:13px} .reccard li{margin:3px 0}
+  .note{font-size:12px; color:var(--iron600); margin-top:8px}
+  .kbd{font-family:var(--mono); font-size:11px; background:var(--bone2); border:1px solid var(--iron200);
+    border-radius:4px; padding:0 4px}
+  footer{color:var(--iron600); font-size:12px; padding:22px 0 34px; border-top:1px solid var(--iron200); margin-top:24px}
+
+  @media (max-width:640px){
+    .node{min-width:132px} .meta{text-align:left}
+  }
+
+  /* ---- Print ---- */
+  @media print{
+    .controls{display:none} header{background:#fff; color:#000; border-bottom:1px solid #000}
+    .brand svg path{fill:#000 !important}
+    .panel{display:block !important; page-break-before:always} .panel:first-of-type{page-break-before:avoid}
+    .view{display:block !important} .view.rec-only{display:block !important}
+    .bandbody{overflow:visible} .flow{flex-wrap:wrap; min-width:0}
+    .node.primary{background:#fff; color:#000; border:1px solid #000}
+    .node.action{background:#fff; color:#000; border:2px solid #000}
+    a{color:#000}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="head">
+    <div class="brand">
+      <!-- MuleMark lockup — verbatim artwork from components/brand/brand.tsx (reversed: bone wordmark on iron). -->
+      <svg viewBox="-30 -30 7189 760" role="img" aria-label="MuleMark">
+        <path fill-rule="evenodd" fill="#a87b22" d="M158 0H1348A158 158 0 0 1 1505 158V542A158 158 0 0 1 1348 700H158A158 158 0 0 1 0 542V158A158 158 0 0 1 158 0ZM394 350A96 96 0 1 1 201 350A96 96 0 1 1 394 350Z"/>
+        <g transform="matrix(1 0 0 -1 1835 700)"><path fill="#faf9f6" d="M504 700H660Q667 700 671.0 696.0Q675 692 675 685V15Q675 8 671.0 4.0Q667 0 660 0H502Q495 0 491.0 4.0Q487 8 487 15V378Q487 382 485.0 382.5Q483 383 481 380L413 269Q407 259 395 259H319Q307 259 301 269L233 380Q231 383 229.0 382.5Q227 382 227 378V15Q227 8 223.0 4.0Q219 0 212 0H54Q47 0 43.0 4.0Q39 8 39 15V685Q39 692 43.0 696.0Q47 700 54 700H210Q222 700 228 690L354 487Q357 481 360 487L486 690Q492 700 504 700ZM769 243V685Q769 692 773.0 696.0Q777 700 784 700H942Q949 700 953.0 696.0Q957 692 957 685V243Q957 202 980.5 177.5Q1004 153 1043 153Q1081 153 1104.5 178.0Q1128 203 1128 243V685Q1128 692 1132.0 696.0Q1136 700 1143 700H1301Q1308 700 1312.0 696.0Q1316 692 1316 685V243Q1316 168 1282.0 111.0Q1248 54 1186.0 23.0Q1124 -8 1043 -8Q962 -8 899.5 23.0Q837 54 803.0 111.0Q769 168 769 243ZM1410 15V685Q1410 692 1414.0 696.0Q1418 700 1425 700H1583Q1590 700 1594.0 696.0Q1598 692 1598 685V166Q1598 161 1603 161H1912Q1919 161 1923.0 157.0Q1927 153 1927 146V15Q1927 8 1923.0 4.0Q1919 0 1912 0H1425Q1418 0 1414.0 4.0Q1410 8 1410 15ZM2496 539H2197Q2192 539 2192 534V440Q2192 435 2197 435H2382Q2389 435 2393.0 431.0Q2397 427 2397 420V290Q2397 283 2393.0 279.0Q2389 275 2382 275H2197Q2192 275 2192 270V166Q2192 161 2197 161H2496Q2503 161 2507.0 157.0Q2511 153 2511 146V15Q2511 8 2507.0 4.0Q2503 0 2496 0H2019Q2012 0 2008.0 4.0Q2004 8 2004 15V685Q2004 692 2008.0 696.0Q2012 700 2019 700H2496Q2503 700 2507.0 696.0Q2511 692 2511 685V554Q2511 547 2507.0 543.0Q2503 539 2496 539ZM3059 700H3215Q3222 700 3226.0 696.0Q3230 692 3230 685V15Q3230 8 3226.0 4.0Q3222 0 3215 0H3057Q3050 0 3046.0 4.0Q3042 8 3042 15V378Q3042 382 3040.0 382.5Q3038 383 3036 380L2968 269Q2962 259 2950 259H2874Q2862 259 2856 269L2788 380Q2786 383 2784.0 382.5Q2782 382 2782 378V15Q2782 8 2778.0 4.0Q2774 0 2767 0H2609Q2602 0 2598.0 4.0Q2594 8 2594 15V685Q2594 692 2598.0 696.0Q2602 700 2609 700H2765Q2777 700 2783 690L2909 487Q2912 481 2915 487L3041 690Q3047 700 3059 700ZM3779 13 3757 91Q3755 95 3752 95H3540Q3537 95 3535 91L3513 13Q3510 0 3496 0H3325Q3307 0 3312 17L3523 688Q3527 700 3540 700H3752Q3765 700 3769 688L3980 17Q3981 15 3981 11Q3981 0 3967 0H3796Q3782 0 3779 13ZM3583 239H3708Q3714 239 3712 245L3648 469Q3647 472 3645.0 472.0Q3643 472 3642 469L3579 245Q3578 239 3583 239ZM4413.0 11.0Q4417.0 0.0 4430.0 0.0H4598.0Q4604.0 0.0 4608.0 3.0Q4612.0 6.0 4612.0 11.0Q4612.0 12.0 4610.0 18.0L4483.0 282.0Q4481.0 287.0 4486.0 289.0Q4543.0 312.0 4575.5 361.5Q4608.0 411.0 4608.0 477.0Q4608.0 543.0 4579.5 593.5Q4551.0 644.0 4499.5 672.0Q4448.0 700.0 4380.0 700.0H4272.0L4062.0 490.0V15.0Q4062.0 8.0 4066.0 4.0Q4070.0 0.0 4077.0 0.0H4235.0Q4242.0 0.0 4246.0 4.0Q4250.0 8.0 4250.0 15.0V264.0Q4250.0 269.0 4255.0 269.0H4297.0Q4301.0 269.0 4303.0 265.0ZM4250.0 534.0Q4250.0 539.0 4255.0 539.0H4349.0Q4381.0 539.0 4401.0 521.5Q4421.0 504.0 4421.0 475.0Q4421.0 447.0 4401.0 429.5Q4381.0 412.0 4349.0 412.0H4255.0Q4250.0 412.0 4250.0 417.0ZM4697 15V685Q4697 692 4701.0 696.0Q4705 700 4712 700H4870Q4877 700 4881.0 696.0Q4885 692 4885 685V446Q4885 443 4887.0 442.0Q4889 441 4891 444L5065 691Q5071 700 5084 700H5263Q5275 700 5275 691Q5275 687 5272 682L5064 393Q5062 390 5064 386L5279 18Q5282 14 5282 9Q5282 0 5269 0H5092Q5079 0 5074 10L4936 256Q4935 259 4933.0 259.0Q4931 259 4929 256L4887 192Q4885 188 4885 186V15Q4885 8 4881.0 4.0Q4877 0 4870 0H4712Q4705 0 4701.0 4.0Q4697 8 4697 15Z"/></g>
+      </svg>
+      <span class="sub">Navigation &amp; UX map</span>
+    </div>
+    <div class="meta">branch pilot-credibility @ 6b37f3d<br>current-state = real routes · dashed = Recommended</div>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="wrap row">
+    <div class="tabs" role="tablist" aria-label="Persona">
+      <button class="tab" role="tab" aria-selected="true"  data-tab="owner">Platform owner</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="rental">Rental company</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="scan">End scan user</button>
+    </div>
+    <div class="seg" role="group" aria-label="State">
+      <span class="lbl">State</span>
+      <button data-state="current" aria-pressed="true">Current</button>
+      <button data-state="rec" aria-pressed="false">Recommended</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- Legend -->
+  <div class="legend" aria-label="Legend">
+    <h3>Legend</h3>
+    <div class="items">
+      <div class="k"><span class="swatch sw-primary"></span> Primary destination</div>
+      <div class="k"><span class="swatch sw-action"></span> Primary action (brass)</div>
+      <div class="k"><span class="swatch sw-secondary"></span> Secondary / context page</div>
+      <div class="k"><span class="swatch sw-rec"></span> Recommended (does not exist yet)</div>
+      <div class="k"><span class="lockpill">lock</span> Authenticated / role-gated</div>
+      <div class="k"><span class="swatch sw-green"></span> Success / completion</div>
+      <div class="k"><span class="swatch sw-amber"></span> Warning / decision</div>
+      <div class="k"><span class="swatch sw-red"></span> Error / unavailable</div>
+      <div class="k"><span class="swatch sw-blue"></span> Public information / scan</div>
+      <div class="k"><span class="conn"></span> Normal navigation</div>
+      <div class="k"><span class="conn dot"></span> Optional / contextual</div>
+      <div class="k"><span class="frx" style="margin:0">friction</span></div>
+    </div>
+  </div>
+
+  <!-- =================== OWNER =================== -->
+  <section class="panel active" id="tab-owner" role="tabpanel" aria-label="Platform owner">
+    <div class="view current show">
+      <h2>Platform owner — current state</h2>
+      <p class="lede">Global top nav (4 items). No organization sub-navigation: once inside an org, the menu never
+        changes and Back destinations are inconsistent. All routes real.</p>
+
+      <div class="band">
+        <div class="bandhead"><span class="name">Platform owner</span><span class="tag owner">Platform owner · lock</span></div>
+        <div class="bandbody">
+          <div class="flow">
+            <div class="col"><div class="node b-blue"><div class="nm">Sign in</div><div class="rt">/login</div></div></div>
+            <div class="arrow">→</div>
+            <div class="col"><div class="node primary"><div class="nm">Organizations (home)</div><div class="rt">/owner</div></div></div>
+            <div class="arrow">→</div>
+            <div class="col">
+              <div class="node primary"><div class="nm">Org detail hub</div><div class="rt">/owner/organizations/[id]</div><span class="back">/owner (list)</span></div>
+            </div>
+            <div class="arrow">→</div>
+            <div class="col">
+              <div class="node secondary"><div class="nm">QR governance</div><div class="rt">…/[id]/qr</div><span class="back">org detail</span></div>
+              <div class="node secondary"><div class="nm">Org users</div><div class="rt">…/[id]/users</div><span class="back">org detail</span></div>
+              <div class="node secondary"><div class="nm">Settings &amp; plan</div><div class="rt">…/[id]/settings</div><span class="back">/owner (list)</span>
+                <span class="frx">Back loses org context</span></div>
+              <div class="node secondary"><div class="nm">Org export</div><div class="rt">…/[id]/export</div><span class="back">org settings</span></div>
+            </div>
+          </div>
+
+          <div class="flow" style="margin-top:14px">
+            <div class="col"><div class="node primary"><div class="nm">Tag requests</div><div class="rt">/owner/tag-requests?org=</div></div></div>
+            <div class="arrow">→</div>
+            <div class="col"><div class="node secondary"><div class="nm">Request detail</div><div class="rt">/owner/tag-requests/[id]</div></div></div>
+            <div class="arrow dot">⇢</div>
+            <div class="col"><div class="node primary"><div class="nm">Production</div><div class="rt">/owner/production?org=&amp;select=</div>
+              <span class="back">picker (?org lost)</span>
+              <span class="frx">Back → picker, not the org</span></div></div>
+            <div class="arrow">→</div>
+            <div class="col"><div class="node b-green"><div class="nm">QR / CSV / sheet</div><div class="rt">…/production/*</div></div></div>
+          </div>
+
+          <div class="flow wrap" style="margin-top:14px">
+            <div class="node secondary"><div class="nm">Analytics</div><div class="rt">/owner/analytics</div></div>
+            <div class="node secondary"><div class="nm">All users (roster)</div><div class="rt">/owner/users</div>
+              <span class="frx">Off-nav: home action only</span></div>
+            <div class="node secondary"><div class="nm">New organization</div><div class="rt">/owner/organizations/new</div></div>
+            <div class="node b-red"><div class="nm">Not found / suspended</div><div class="rt">notFound() · setOrgStatus</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view rec">
+      <h2>Platform owner — recommended</h2>
+      <div class="reccard">
+        <h4>Top navigation <span class="badge-rec" style="color:var(--brass600)">Recommended</span></h4>
+        <div class="navrow">
+          <span class="navchip">Organizations</span><span class="navchip">Tag requests</span>
+          <span class="navchip">Production</span><span class="navchip">Analytics</span>
+        </div>
+        <h4 style="margin-top:12px">Org-context sub-nav (shown whenever the URL holds an organizationId)</h4>
+        <div class="navrow">
+          <span class="navchip sub">Overview</span><span class="navchip sub">QR codes</span>
+          <span class="navchip sub">Users</span><span class="navchip sub">Export</span><span class="navchip sub">Settings</span>
+        </div>
+        <ul>
+          <li>Persistent org sub-nav removes the "how do I get back to this org?" problem — the owner returns via the
+            sub-nav, not Back.</li>
+          <li>Make Production org-scoped (<span class="kbd">/owner/organizations/[id]/production</span> — Recommended)
+            or at minimum keep <span class="kbd">?org</span> on Back and add "← {org} detail".</li>
+          <li>Surface <span class="kbd">/owner/users</span> in the top nav (or fold under Organizations).</li>
+          <li>Fix org-Settings Back → org detail (not the org list). Keep Tag requests global + add a per-org tab.</li>
+        </ul>
+        <p class="note">QR governance already lives correctly under the org (<span class="kbd">…/[id]/qr</span>);
+          keep it there.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== RENTAL COMPANY =================== -->
+  <section class="panel" id="tab-rental" role="tabpanel" aria-label="Rental company">
+    <div class="view current show">
+      <h2>Rental company — current state</h2>
+      <p class="lede">Three swimlanes. Admin desktop nav = 6 items; staff mobile nav = 4 (hides, but does not
+        enforce, Tag requests + Settings). Rentals, Templates, Export, Users are in <strong>no</strong> menu.</p>
+
+      <!-- Admin -->
+      <div class="band">
+        <div class="bandhead"><span class="name">Admin (desktop)</span><span class="tag auth">customer_admin · lock</span></div>
+        <div class="bandbody">
+          <div class="flow wrap" style="margin-bottom:10px">
+            <div class="node primary"><div class="nm">Dashboard</div><div class="rt">/dashboard</div></div>
+            <div class="node primary"><div class="nm">Assets</div><div class="rt">/dashboard/assets</div></div>
+            <div class="node primary"><div class="nm">Submissions <span class="lock">badge</span></div><div class="rt">/dashboard/submissions</div></div>
+            <div class="node primary"><div class="nm">Analytics</div><div class="rt">/dashboard/analytics</div></div>
+            <div class="node primary"><div class="nm">Tag requests</div><div class="rt">/dashboard/tag-requests</div></div>
+            <div class="node primary"><div class="nm">Settings</div><div class="rt">/dashboard/settings</div></div>
+          </div>
+          <div class="flow">
+            <div class="col"><div class="node primary"><div class="nm">Assets list</div><div class="rt">/dashboard/assets</div></div></div>
+            <div class="arrow">→</div>
+            <div class="col"><div class="node primary"><div class="nm">Asset detail</div><div class="rt">…/assets/[assetId]</div><span class="back">/dashboard/assets (filters lost)</span>
+              <span class="frx">List filters not preserved</span></div></div>
+            <div class="arrow dot">⇢</div>
+            <div class="col">
+              <div class="node secondary"><div class="nm">Equipment page</div><div class="rt">…/[assetId]/page</div></div>
+              <div class="node secondary"><div class="nm">Documents</div><div class="rt">…/[assetId]/documents</div></div>
+              <div class="node secondary"><div class="nm">Timeline</div><div class="rt">…/[assetId]/timeline</div></div>
+            </div>
+          </div>
+
+          <div class="flow" style="margin-top:14px">
+            <div class="col"><div class="node primary"><div class="nm">Submissions inbox</div><div class="rt">/dashboard/submissions?status=…</div></div></div>
+            <div class="arrow">→</div>
+            <div class="col"><div class="node primary"><div class="nm">Submission detail</div><div class="rt">…/submissions/[submissionId]</div><span class="back">/dashboard/submissions (bare)</span>
+              <span class="frx">Filter lost on Back + on resolve</span></div></div>
+            <div class="arrow">→</div>
+            <div class="col"><div class="node b-green"><div class="nm">Resolved / reviewed</div><div class="rt">status action</div></div></div>
+          </div>
+
+          <div class="flow wrap" style="margin-top:14px">
+            <div class="node secondary"><div class="nm">Templates</div><div class="rt">/dashboard/templates · /assets/templates</div><span class="frx">Off-nav</span></div>
+            <div class="node secondary"><div class="nm">Export</div><div class="rt">/dashboard/export</div><span class="frx">Off-nav (owner-gated)</span></div>
+            <div class="node secondary"><div class="nm">Import</div><div class="rt">/dashboard/assets/import</div></div>
+            <div class="node secondary"><div class="nm">Users <span class="lock">admin only</span></div><div class="rt">/dashboard/settings/users</div>
+              <span class="frx">Staff can open Settings + click → bounce</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Staff -->
+      <div class="band">
+        <div class="bandhead"><span class="name">Staff (mobile)</span><span class="tag mobile">customer_staff · system-font shell · lock</span></div>
+        <div class="bandbody">
+          <div class="flow">
+            <div class="col"><div class="node b-blue"><div class="nm">Scan tag → staff banner</div><div class="rt">/t/[shortCode]</div></div></div>
+            <div class="arrow">→</div>
+            <div class="col"><div class="node primary"><div class="nm">Staff asset (state matrix)</div><div class="rt">/staff/t/[shortCode]</div><span class="back">/t/[shortCode]</span></div></div>
+            <div class="arrow">→</div>
+            <div class="col">
+              <div class="decision">Available? / Rented + baseline?</div>
+            </div>
+            <div class="arrow">→</div>
+            <div class="col">
+              <div class="node action"><div class="nm">Start / Add outbound</div><div class="rt">/staff/t/[shortCode]/outbound</div></div>
+              <div class="node action"><div class="nm">Complete return</div><div class="rt">/staff/t/[shortCode]/return</div></div>
+            </div>
+          </div>
+          <div class="flow" style="margin-top:12px">
+            <div class="col"><div class="node primary"><div class="nm">Return complete</div><div class="rt">/staff/t/[shortCode]/return/complete</div></div></div>
+            <div class="arrow dot">⇢</div>
+            <div class="col"><div class="node secondary"><div class="nm">View session evidence</div><div class="rt">/dashboard/rentals/[sessionId]</div>
+              <span class="frx">Jumps to desktop admin shell; off-nav for staff</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shared -->
+      <div class="band">
+        <div class="bandhead"><span class="name">Shared records &amp; evidence</span><span class="tag auth">both roles · lock</span></div>
+        <div class="bandbody">
+          <div class="flow wrap">
+            <div class="node secondary"><div class="nm">Rentals browser</div><div class="rt">/dashboard/rentals?asset=</div>
+              <span class="frx">No top-nav home (~5 contextual links)</span></div>
+            <div class="arrow">→</div>
+            <div class="node secondary"><div class="nm">Session evidence</div><div class="rt">/dashboard/rentals/[sessionId]</div><span class="back">Asset timeline only</span>
+              <span class="frx">No ← Rentals back-to-list</span></div>
+            <div class="arrow dot">⇢</div>
+            <div class="node secondary"><div class="nm">Submission detail</div><div class="rt">/dashboard/submissions/[id]</div></div>
+          </div>
+          <p class="note">Param inconsistency: rentals use <span class="kbd">?asset=</span>, submissions use
+            <span class="kbd">?asset_id=</span> for the same concept.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="view rec">
+      <h2>Rental company — recommended</h2>
+      <div class="reccard">
+        <h4>Admin top nav <span class="badge-rec" style="color:var(--brass600)">Recommended</span></h4>
+        <div class="navrow">
+          <span class="navchip">Dashboard</span><span class="navchip">Assets</span><span class="navchip">Submissions</span>
+          <span class="navchip">Rentals</span><span class="navchip">Analytics</span><span class="navchip">Settings</span>
+        </div>
+        <h4 style="margin-top:12px">Folded under Settings (secondary)</h4>
+        <div class="navrow">
+          <span class="navchip sub">Tag requests</span><span class="navchip sub">Templates</span>
+          <span class="navchip sub">Export</span><span class="navchip sub">Users</span><span class="navchip sub">Scanner branding</span>
+        </div>
+        <h4 style="margin-top:12px">Staff (mobile)</h4>
+        <div class="navrow"><span class="navchip sub">Scan</span><span class="navchip sub">Submissions</span></div>
+        <ul>
+          <li><strong>Done in Wave 3N.1:</strong> Rentals is now in both admin and staff top nav; every admin-only
+            config route enforces <span class="kbd">customer_admin</span> server-side (<span class="kbd">requireCustomerAdminOrgId</span>);
+            the "Manage team" bounce link is gone. <strong>Data export</strong> is a conditional secondary item under
+            Settings, shown only when the org's platform-owner toggle is enabled — <span class="kbd">customer_staff</span>
+            never sees or reaches it; the owner always keeps owner-side export + the enable/disable control.</li>
+          <li><strong>Promote Rentals to primary</strong> — it is a daily surface once outbound/return is in use.</li>
+          <li><strong>Enforce role gating</strong> so nav and access agree (or expand the staff nav) — resolve the
+            hides-vs-allows contradiction; hide/guard the "Manage team" bounce link.</li>
+          <li>Add <span class="kbd">← Rentals</span> on session evidence; render evidence <em>inside</em> the staff
+            shell so a phone user never lands in the desktop admin app.</li>
+          <li>Preserve list filters across every detail→Back; standardize the asset query param.</li>
+          <li>Add a per-asset tab strip (Overview · Equipment page · Documents · Timeline · Rentals).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== END SCAN =================== -->
+  <section class="panel" id="tab-scan" role="tabpanel" aria-label="End scan user">
+    <div class="view current show">
+      <h2>End scan user — current state</h2>
+      <p class="lede">Mobile-first, zero-login. Layout is identical whether the asset is available or rented; rental
+        state only drives Quick Start auto-expand and the acknowledgement prompt. The authenticated-staff branch is
+        marked where it crosses the role boundary.</p>
+
+      <div class="band">
+        <div class="bandhead"><span class="name">Public · no login</span><span class="tag public">anon · mobile</span></div>
+        <div class="bandbody">
+          <div class="flow">
+            <div class="col"><div class="node b-blue"><div class="nm">Scan QR</div><div class="rt">/t/[shortCode]</div></div></div>
+            <div class="arrow">→</div>
+            <div class="col"><div class="decision">Published &amp; active?</div></div>
+            <div class="arrow">→</div>
+            <div class="col">
+              <div class="node b-blue"><div class="nm">Equipment page</div><div class="rt">/t/[shortCode]</div></div>
+              <div class="node b-red"><div class="nm">Unavailable</div><div class="rt">UnavailableNotice</div>
+                <span class="frx">Reason never disclosed</span></div>
+            </div>
+            <div class="arrow dot">⇢</div>
+            <div class="col">
+              <div class="node secondary"><div class="nm">Quick Start / docs / support</div><div class="rt">accordions · tel: · mailto:</div></div>
+              <div class="node b-amber"><div class="nm">Renter acknowledgement</div><div class="rt">per-session key</div></div>
+            </div>
+          </div>
+
+          <div class="flow" style="margin-top:14px">
+            <div class="col"><div class="node action"><div class="nm">Report Damage</div><div class="rt">/forms/[shortCode]/damage</div></div>
+              <div class="node secondary"><div class="nm">Return inspection</div><div class="rt">/forms/[shortCode]/return</div>
+                <span class="frx">Labelled "Return Checklist" on /t</span></div>
+              <div class="node secondary"><div class="nm">Request Support</div><div class="rt">/forms/[shortCode]/support</div></div>
+            </div>
+            <div class="arrow">→</div>
+            <div class="col"><div class="node secondary"><div class="nm">Fill · review · submit</div><div class="rt">Step N of 3 (return)</div></div></div>
+            <div class="arrow">→</div>
+            <div class="col"><div class="node b-green"><div class="nm">Thanks + reference</div><div class="rt">…/thanks?ref=SUB-YYYY-XXXXXX</div>
+              <span class="back">Return to equipment page → /t</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="band">
+        <div class="bandhead"><span class="name">Authenticated · same-org staff</span><span class="tag auth">role boundary · lock</span></div>
+        <div class="bandbody">
+          <div class="flow wrap">
+            <div class="node b-blue"><div class="nm">Same-org staff scan</div><div class="rt">/t/[shortCode]</div>
+              <span class="frx">Cold (not signed-in) staff see no affordance</span></div>
+            <div class="arrow">→</div>
+            <div class="node action"><div class="nm">Open staff workflow →</div><div class="rt">/staff/t/[shortCode]</div><span class="lock">org member</span></div>
+            <div class="arrow dot">⇢</div>
+            <div class="node secondary"><div class="nm">(ack prompt suppressed for staff)</div><div class="rt">isStaffViewer</div></div>
+          </div>
+          <p class="note">Anon deep-link to <span class="kbd">/staff/t/[shortCode]</span> → redirect
+            <span class="kbd">/login?next=…</span>. See the Rental-company tab for the staff workflow continuation.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="view rec">
+      <h2>End scan user — recommended</h2>
+      <div class="reccard">
+        <h4>Keep the single mobile screen <span class="badge-rec" style="color:var(--brass600)">Recommended</span></h4>
+        <ul>
+          <li>Unify the renter-facing name to <strong>Return checklist</strong> (button + thanks + form title). <em>Done
+            in Wave 3N.1</em> — the template architecture keeps "inspection"; "Outbound inspection" is unchanged.</li>
+          <li>Add a subtle <em>"Are you staff? Sign in"</em> affordance so a cold staff scan can reach
+            <span class="kbd">/staff/t/[shortCode]</span> without knowing the URL.</li>
+          <li>Preserve the zero-login, webfont-free, non-disclosing-error contract exactly as built.</li>
+          <li>Keep the per-session acknowledgement key + transient dismiss (already correct — no repeat prompts).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer class="wrap">
+    Self-contained reference — no server, CDN, or external script. Current-state nodes use real routes from
+    <span class="kbd">pilot-credibility @ 6b37f3d</span>; dashed nodes are <strong>Recommended</strong> and do not
+    exist yet. Full detail: <a href="../NAVIGATION_UX_AUDIT.md">docs/NAVIGATION_UX_AUDIT.md</a>.
+  </footer>
+</div>
+
+<script>
+  (function(){
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+    var panels = { owner:'tab-owner', rental:'tab-rental', scan:'tab-scan' };
+    tabs.forEach(function(t){
+      t.addEventListener('click', function(){
+        tabs.forEach(function(x){ x.setAttribute('aria-selected', x===t ? 'true':'false'); });
+        Object.keys(panels).forEach(function(k){
+          document.getElementById(panels[k]).classList.toggle('active', k===t.dataset.tab);
+        });
+      });
+    });
+    var segs = Array.prototype.slice.call(document.querySelectorAll('.seg button'));
+    segs.forEach(function(b){
+      b.addEventListener('click', function(){
+        var state = b.dataset.state;
+        segs.forEach(function(x){ x.setAttribute('aria-pressed', x===b ? 'true':'false'); });
+        Array.prototype.slice.call(document.querySelectorAll('.view')).forEach(function(v){
+          v.classList.toggle('show', v.classList.contains(state));
+        });
+      });
+    });
+  })();
+</script>
+</body>
+</html>

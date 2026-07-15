@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireOrgId } from "@/lib/auth/session";
+import { requireCustomerAdminOrgId } from "@/lib/auth/session";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -23,7 +23,7 @@ type RequestRow = {
 };
 
 export default async function TagRequestsPage() {
-  await requireOrgId();
+  await requireCustomerAdminOrgId();
   const supabase = await createClient();
 
   // RLS-scoped: only this organization's requests.

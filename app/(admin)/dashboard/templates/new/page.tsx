@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { requireOrgId } from "@/lib/auth/session";
+import { requireCustomerAdminOrgId } from "@/lib/auth/session";
 import { createOrgTemplate } from "@/lib/onboarding/org-templates-actions";
 import { TemplateForm, type TemplateDefaults } from "@/components/template-form";
 import {
@@ -31,7 +31,7 @@ export default async function NewTemplatePage({
 }: {
   searchParams: SearchParams;
 }) {
-  await requireOrgId();
+  await requireCustomerAdminOrgId();
   const sp = await searchParams;
   const from = Array.isArray(sp.from) ? sp.from[0] : sp.from;
 

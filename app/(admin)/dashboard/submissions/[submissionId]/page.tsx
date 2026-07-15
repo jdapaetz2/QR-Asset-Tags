@@ -165,7 +165,9 @@ export default async function SubmissionDetailPage({
       .order("created_at", { ascending: false });
     related = (rel ?? []) as RelatedRow[];
   }
-  const relatedHeading = isStaff ? "Related renter return reports" : "Related staff return inspection";
+  const relatedHeading = isStaff
+    ? "Related renter return checklists"
+    : "Related staff return checklist";
 
   // Inspection-style submissions (staff/renter return + outbound) lead with the structured report, so on a
   // phone the primary content sits right under a compact header + asset strip instead of below tall
@@ -411,7 +413,7 @@ export default async function SubmissionDetailPage({
         <h2 className="mb-3 font-medium">{relatedHeading}</h2>
         {related.length === 0 ? (
           <p className="text-muted-foreground">
-            No {isStaff ? "renter return reports" : "staff return inspection"} for this rental.
+            No {isStaff ? "renter return checklists" : "staff return checklist"} for this rental.
           </p>
         ) : (
           <ul className="flex flex-col divide-y">

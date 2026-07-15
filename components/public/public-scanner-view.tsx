@@ -260,7 +260,7 @@ export function PublicScannerView({
           Report Damage
         </Action>
         <Action mode={mode} href={`/forms/${shortCode}/return`} variant="outline" brand={brand} brandText={brandText}>
-          Return Checklist
+          Return checklist
         </Action>
         <Action mode={mode} href={`/forms/${shortCode}/support`} variant="outline" brand={brand} brandText={brandText}>
           Request Support

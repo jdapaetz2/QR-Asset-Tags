@@ -99,7 +99,7 @@ export default async function StaffReturnCompletePage({
         <div className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
           Staff workflow
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">Return inspection completed</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Staff return checklist completed</h1>
       </div>
 
       <section className="flex flex-col gap-3 rounded-lg border bg-card p-4">
@@ -134,7 +134,7 @@ export default async function StaffReturnCompletePage({
             <>
               <dt className="text-muted-foreground">Renter reports</dt>
               <dd className="font-medium">
-                {relatedRenter} related renter return{relatedRenter === 1 ? "" : "s"} this rental
+                {relatedRenter} related renter return checklist{relatedRenter === 1 ? "" : "s"} this rental
               </dd>
             </>
           ) : null}

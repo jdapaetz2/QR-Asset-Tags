@@ -272,7 +272,7 @@ export default async function RentalEvidencePage({
           </p>
         ) : !comparison.hasStaff ? (
           <p className="text-muted-foreground">
-            The staff return inspection has not been completed yet.
+            The staff return checklist has not been completed yet.
           </p>
         ) : comparison.rows.length === 0 ? (
           <p className="text-muted-foreground">No recorded value differences.</p>
@@ -342,9 +342,9 @@ export default async function RentalEvidencePage({
         />
       </EvidenceDisclosure>
 
-      {/* 3 · Renter return report(s) */}
+      {/* 3 · Renter return checklist(s) */}
       <EvidenceDisclosure
-        title="Renter return report"
+        title="Renter return checklist"
         meta={
           renterReports.length === 0
             ? "No renter report"
@@ -355,7 +355,7 @@ export default async function RentalEvidencePage({
         }
       >
         {renterReports.length === 0 ? (
-          <p className="text-muted-foreground">No renter return report for this rental.</p>
+          <p className="text-muted-foreground">No renter return checklist for this rental.</p>
         ) : (
           <div className="flex flex-col gap-4">
             {renterReports.map((r) => (
@@ -372,15 +372,15 @@ export default async function RentalEvidencePage({
         )}
       </EvidenceDisclosure>
 
-      {/* 4 · Staff return inspection */}
+      {/* 4 · Staff return checklist */}
       <EvidenceDisclosure
-        title="Staff return inspection"
+        title="Staff return checklist"
         meta={staff ? withPhotos(staffMeta, staffPhotoCount) : staffMeta}
         tone={staffTone}
       >
         <EvidenceBody
           row={staff}
-          empty="The staff return inspection has not been completed yet."
+          empty="The staff return checklist has not been completed yet."
           source="staff"
           photoGroups={photoGroups}
           signedByPath={signedByPath}
