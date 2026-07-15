@@ -26,7 +26,19 @@ describe("session-browser-list (Phase 3C.8, Part J)", () => {
     expect(list).not.toContain("IntersectionObserver");
     expect(list).not.toContain("setInterval");
     expect(list).not.toContain("router.refresh");
-    expect(list).toContain("End of recorded history");
+    expect(list).toContain("Load 50 more");
+  });
+
+  it("uses filter-aware rental-session end states (Phase 3C.8.1)", () => {
+    expect(list).toContain("historyEndState");
+    expect(list).toContain("End of recorded rental sessions");
+    expect(list).toContain("No more rental sessions match these filters.");
+    expect(list).toContain("No rental sessions match these filters.");
+    expect(list).toContain("No rental sessions found.");
+    expect(list).toContain("Clear filters");
+    expect(list).toContain("clearHref");
+    // Never the timeline's phrasing.
+    expect(list).not.toContain("End of recorded history");
   });
 });
 
@@ -45,7 +57,7 @@ describe("rentals browser page", () => {
   it("replaces the redirect stub with the org session browser (no redirect)", () => {
     expect(page).toContain("getRentalSessionsPage");
     expect(page).toContain("SessionBrowserList");
-    expect(page).toContain("No rental sessions found.");
+    expect(page).toContain("clearHref");
     expect(page).not.toContain('redirect("/dashboard/submissions")');
   });
 });

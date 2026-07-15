@@ -6,6 +6,7 @@ import Link from "next/link";
 import { RelativeTime } from "@/components/relative-time";
 import { SubmissionBadges } from "@/components/submissions/submission-badges";
 import { loadMoreAssetTimeline } from "@/lib/timeline/actions";
+import { historyEndState } from "@/lib/history/end-state";
 import type { TimelineEvent, TimelineKind } from "@/lib/timeline/timeline";
 import type { TimelineFilters } from "@/lib/timeline/cursor";
 
@@ -105,12 +106,15 @@ export function TimelineList({
   initialCursor,
   initialHasMore,
   filters,
+  clearHref,
 }: {
   assetId: string;
   initialEvents: TimelineEvent[];
   initialCursor: string | null;
   initialHasMore: boolean;
   filters: TimelineFilters;
+  /** Where "Clear filters" navigates (the unfiltered first page for this asset). */
+  clearHref: string;
 }) {
   const [events, setEvents] = useState(initialEvents);
   const [cursor, setCursor] = useState(initialCursor);
@@ -133,15 +137,30 @@ export function TimelineList({
     });
   }
 
+  // Filter-aware end state (Phase 3C.8.1): "End of recorded history" must appear only for an unfiltered, all-time
+  // timeline — never when a filter simply exhausted its matches (older history exists outside the filter).
+  const state = historyEndState({
+    hasMore,
+    hasActiveFilters: filters.active,
+    itemCount: events.length,
+  });
+  const clearLink = (
+    <Link href={clearHref} className="text-foreground underline-offset-4 hover:underline">
+      Clear filters to view all history
+    </Link>
+  );
+
   return (
     <div className="flex flex-col gap-4">
-      <ol className="flex flex-col gap-3">
-        {events.map((e) => (
-          <TimelineEventCard key={e.key} e={e} />
-        ))}
-      </ol>
+      {events.length > 0 ? (
+        <ol className="flex flex-col gap-3">
+          {events.map((e) => (
+            <TimelineEventCard key={e.key} e={e} />
+          ))}
+        </ol>
+      ) : null}
 
-      {hasMore ? (
+      {state === "load-more" ? (
         <div className="flex flex-col items-center gap-2">
           <button
             type="button"
@@ -162,9 +181,21 @@ export function TimelineList({
             </p>
           ) : null}
         </div>
-      ) : events.length > 0 ? (
+      ) : state === "end-all" ? (
         <p className="text-center text-xs text-muted-foreground">End of recorded history</p>
-      ) : null}
+      ) : state === "end-filtered" ? (
+        <p className="text-center text-xs text-muted-foreground">
+          No more activity matches these filters. {clearLink}
+        </p>
+      ) : state === "empty-filtered" ? (
+        <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
+          No history matches these filters. {clearLink}
+        </p>
+      ) : (
+        <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
+          No recorded activity for this asset yet.
+        </p>
+      )}
     </div>
   );
 }

@@ -42,18 +42,15 @@ export default async function RentalSessionsBrowserPage({
 
       <SessionFiltersCard filters={filters} />
 
-      {page.sessions.length === 0 ? (
-        <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
-          No rental sessions found.
-        </p>
-      ) : (
-        <SessionBrowserList
-          initialSessions={page.sessions}
-          initialCursor={page.nextCursor}
-          initialHasMore={page.hasMore}
-          filters={filters}
-        />
-      )}
+      {/* The list owns every empty + end-of-results state (Phase 3C.8.1), so the copy stays filter-accurate and
+          never implies older sessions don't exist outside a date range. */}
+      <SessionBrowserList
+        initialSessions={page.sessions}
+        initialCursor={page.nextCursor}
+        initialHasMore={page.hasMore}
+        filters={filters}
+        clearHref={filters.assetId ? `/dashboard/rentals?asset=${filters.assetId}` : "/dashboard/rentals"}
+      />
     </div>
   );
 }

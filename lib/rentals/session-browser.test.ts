@@ -1,3 +1,6 @@
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -10,6 +13,64 @@ import {
 import { decodeCursor } from "@/lib/timeline/cursor";
 
 const NOW = new Date("2026-08-01T00:00:00.000Z");
+const browserSrc = readFileSync(
+  resolve(dirname(fileURLToPath(import.meta.url)), "session-browser.ts"),
+  "utf8"
+);
+
+describe("session-browser asset embed (Phase 3C.8.1)", () => {
+  it("disambiguates the assets embed through the asset_id foreign key", () => {
+    expect(browserSrc).toContain("assets!asset_rental_sessions_asset_id_fkey(asset_code, asset_name)");
+  });
+
+  it("never leaves a bare ambiguous assets embed on asset_rental_sessions", () => {
+    // The intended (hinted) embed is fine; a BARE `asset:assets(` would trigger PGRST201.
+    expect(browserSrc).not.toMatch(/asset:assets\(/);
+  });
+
+  it("does not use the reverse active_rental_session_id relationship", () => {
+    expect(browserSrc).not.toContain("active_rental_session_id_fkey");
+  });
+
+  it("surfaces query failures via the diagnostic error formatter (not a raw console.error object)", () => {
+    expect(browserSrc).toContain("formatDbError");
+    expect(browserSrc).not.toContain('console.error("[session-browser]');
+  });
+
+  it("regression: no source file embeds a bare `assets(` off asset_rental_sessions", () => {
+    // asset_rental_sessions has TWO FKs to assets → any bare embed is ambiguous (PGRST201). Every file that
+    // selects from asset_rental_sessions must either avoid the embed or use an explicit FK hint (`assets!…`).
+    const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+    const walk = (dir: string): string[] => {
+      const out: string[] = [];
+      for (const name of readdirSync(dir)) {
+        if (name === "node_modules" || name === ".next" || name.startsWith(".")) continue;
+        const full = resolve(dir, name);
+        if (statSync(full).isDirectory()) out.push(...walk(full));
+        else if (/\.(ts|tsx)$/.test(name) && !/\.test\.(ts|tsx)$/.test(name)) out.push(full);
+      }
+      return out;
+    };
+    // Strip comments so a doc-comment mention of the old ambiguous embed isn't a false positive.
+    const stripComments = (s: string) =>
+      s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+    // Inspect ONLY the .select() string that follows a .from("asset_rental_sessions") — a bare `asset:assets(`
+    // there is ambiguous; the explicit `asset:assets!..._fkey(` hint is fine. A form_submissions embed of assets
+    // elsewhere in the same file is safe (single FK) and must not trip this.
+    const selectAfterSessions =
+      /from\(["']asset_rental_sessions["']\)[\s\S]{0,200}?\.select\(\s*["']([^"']*)["']/g;
+    const offenders = [resolve(repoRoot, "lib"), resolve(repoRoot, "app")]
+      .flatMap(walk)
+      .filter((file) => {
+        const src = stripComments(readFileSync(file, "utf8"));
+        for (const m of src.matchAll(selectAfterSessions)) {
+          if (/asset:assets\(/.test(m[1])) return true;
+        }
+        return false;
+      });
+    expect(offenders).toEqual([]);
+  });
+});
 
 type Row = {
   id: string;

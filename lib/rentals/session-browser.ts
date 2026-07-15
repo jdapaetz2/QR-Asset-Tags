@@ -20,10 +20,11 @@ import {
   type ParsedReference,
   type DatePreset,
 } from "@/lib/timeline/cursor";
+import { formatDbError, type DbError } from "@/lib/db/errors";
 
 export const SESSION_PAGE_SIZE = 50;
 
-type QResult<T> = { data: T | null; error: { message: string } | null };
+type QResult<T> = { data: T | null; error: DbError | null };
 
 export type SessionAsset = { asset_code: string; asset_name: string };
 
@@ -189,10 +190,7 @@ export async function getRentalSessionsPage(input: {
   let assetIds: string[] | undefined;
   if (filters.assetSearch) {
     const r = await client.findAssetIds(filters.assetSearch);
-    if (r.error) {
-      console.error("[session-browser] asset search failed", r.error);
-      throw new Error(`session-browser: asset search failed (${r.error.message})`);
-    }
+    if (r.error) throw formatDbError("session-browser: asset search failed", r.error);
     assetIds = r.data ?? [];
     if (assetIds.length === 0) {
       return { sessions: [], nextCursor: null, hasMore: false, appliedFilters: filters };
@@ -216,10 +214,7 @@ export async function getRentalSessionsPage(input: {
     assetId: filters.assetId,
     limit,
   });
-  if (result.error) {
-    console.error("[session-browser] session load failed", result.error);
-    throw new Error(`session-browser: session load failed (${result.error.message})`);
-  }
+  if (result.error) throw formatDbError("session-browser: session load failed", result.error);
 
   const rows = (result.data ?? []).map(normalizeSession);
   const filtered = rows
@@ -252,10 +247,13 @@ export function createSessionBrowserClient(supabase: ServerClient): SessionBrows
       return { data: (data ?? []).map((r) => r.id), error: null };
     },
     loadSessions: async (args) => {
+      // Explicit FK hint (Phase 3C.8.1): asset_rental_sessions has TWO relationships to assets
+      // (asset_id → assets.id AND assets.active_rental_session_id → asset_rental_sessions.id), so a bare
+      // `assets(...)` embed is ambiguous (PGRST201). Disambiguate through the intended asset_id constraint.
       let q = supabase
         .from("asset_rental_sessions")
         .select(
-          "id, status, rental_reference, renter_label, started_at, returned_at, asset:assets(asset_code, asset_name)"
+          "id, status, rental_reference, renter_label, started_at, returned_at, asset:assets!asset_rental_sessions_asset_id_fkey(asset_code, asset_name)"
         );
       if (args.idLo && args.idHi) q = q.gte("id", args.idLo).lte("id", args.idHi);
       if (args.assetId) q = q.eq("asset_id", args.assetId);

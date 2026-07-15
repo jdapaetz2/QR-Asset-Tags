@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { RelativeTime } from "@/components/relative-time";
 import { buildSessionEvidenceHref } from "@/lib/rentals/evidence";
 import { loadMoreRentalSessions } from "@/lib/rentals/session-browser-actions";
+import { historyEndState } from "@/lib/history/end-state";
 import type { BrowserSession, SessionFilters } from "@/lib/rentals/session-browser";
 
 function SessionCard({ s }: { s: BrowserSession }) {
@@ -70,11 +71,14 @@ export function SessionBrowserList({
   initialCursor,
   initialHasMore,
   filters,
+  clearHref,
 }: {
   initialSessions: BrowserSession[];
   initialCursor: string | null;
   initialHasMore: boolean;
   filters: SessionFilters;
+  /** Where "Clear filters" navigates (the unfiltered first page, preserving any asset prefilter). */
+  clearHref: string;
 }) {
   const [sessions, setSessions] = useState(initialSessions);
   const [cursor, setCursor] = useState(initialCursor);
@@ -97,15 +101,29 @@ export function SessionBrowserList({
     });
   }
 
+  // Filter-aware end state (Phase 3C.8.1): never imply older sessions don't exist when a filter simply ran out.
+  const state = historyEndState({
+    hasMore,
+    hasActiveFilters: filters.active,
+    itemCount: sessions.length,
+  });
+  const clearLink = (
+    <Link href={clearHref} className="text-foreground underline-offset-4 hover:underline">
+      Clear filters
+    </Link>
+  );
+
   return (
     <div className="flex flex-col gap-4">
-      <ul className="flex flex-col gap-3">
-        {sessions.map((s) => (
-          <SessionCard key={s.id} s={s} />
-        ))}
-      </ul>
+      {sessions.length > 0 ? (
+        <ul className="flex flex-col gap-3">
+          {sessions.map((s) => (
+            <SessionCard key={s.id} s={s} />
+          ))}
+        </ul>
+      ) : null}
 
-      {hasMore ? (
+      {state === "load-more" ? (
         <div className="flex flex-col items-center gap-2">
           <button
             type="button"
@@ -126,9 +144,21 @@ export function SessionBrowserList({
             </p>
           ) : null}
         </div>
-      ) : sessions.length > 0 ? (
-        <p className="text-center text-xs text-muted-foreground">End of recorded history</p>
-      ) : null}
+      ) : state === "end-all" ? (
+        <p className="text-center text-xs text-muted-foreground">End of recorded rental sessions</p>
+      ) : state === "end-filtered" ? (
+        <p className="text-center text-xs text-muted-foreground">
+          No more rental sessions match these filters. {clearLink}
+        </p>
+      ) : state === "empty-filtered" ? (
+        <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
+          No rental sessions match these filters. {clearLink}
+        </p>
+      ) : (
+        <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
+          No rental sessions found.
+        </p>
+      )}
     </div>
   );
 }

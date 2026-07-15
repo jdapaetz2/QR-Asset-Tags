@@ -343,6 +343,27 @@ DB/RLS/storage/auth/session change; media limits unchanged.
   `asset_acknowledgements` (asset+created), and `tag_request_assets (asset_id)`. No RLS/column change. **Operator runs
   `npx.cmd supabase db push`.**
 
+### Phase 3C.8.1 — session-browser query repair + filter-aware end states (no migration)
+- **Ambiguous embed fixed.** `getRentalSessionsPage`'s `loadSessions` embedded a BARE `asset:assets(...)`, but
+  `asset_rental_sessions` has TWO FKs to `assets` (`asset_id → assets.id` AND `assets.active_rental_session_id →
+  asset_rental_sessions.id`), so PostgREST threw **PGRST201** and `/dashboard/rentals` failed to load. Fixed with the
+  explicit FK hint **`asset:assets!asset_rental_sessions_asset_id_fkey(asset_code, asset_name)`** — one query, no N+1,
+  no service role; RLS/cursor/keyset/`limit 51`/filters unchanged (asset code/name SEARCH already used a separate
+  `findAssetIds` query, never the embed). A repo regression test scans every `.from("asset_rental_sessions")` select
+  for a bare `asset:assets(`. No schema change (query-ambiguity, not a schema defect).
+- **Diagnostic errors.** New pure `lib/db/errors.ts` `formatDbError(context, error)` throws an `Error` carrying the
+  PostgREST `message` + `code` + `details` + `hint` (the fields that identify an ambiguous relationship / missing
+  column / policy error). Loaders widen their error type to `DbError` and throw it (dropping the `console.error({})`
+  that lost the fields); unexpected errors still surface to the error boundary, never coerced to empty/404.
+- **Filter-aware end states.** New pure `lib/history/end-state.ts` `historyEndState({ hasMore, hasActiveFilters,
+  itemCount })` → `load-more | end-all | end-filtered | empty-filtered | empty-none`. "End of recorded history" now
+  appears ONLY on an unfiltered all-time view; a date/type/reference-filtered timeline that runs out shows "No more
+  activity matches these filters." + **Clear filters**; filtered-empty shows "No history matches these filters." +
+  Clear. `hasActiveFilters` uses the normalized `filters.active` (All time + All events = unfiltered). `/dashboard/
+  rentals` uses the same helper with rental-session language ("End of recorded rental sessions" / "No more rental
+  sessions match these filters." / "No rental sessions found."). Both lists own the empty + end copy; Clear navigates
+  to the unfiltered first page (pagination resets, no auto-load).
+
 ---
 
 > **Original design (future scope beyond 3A).** This documents the broader wave so it can be

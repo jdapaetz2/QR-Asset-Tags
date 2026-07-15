@@ -39,9 +39,11 @@ import {
   type TimelineFilters,
 } from "@/lib/timeline/cursor";
 
+import { formatDbError, type DbError } from "@/lib/db/errors";
+
 export const TIMELINE_PAGE_SIZE = 50;
 
-type QResult<T> = { data: T | null; error: { message: string } | null };
+type QResult<T> = { data: T | null; error: DbError | null };
 
 /** Bounds every source query applies (only the relevant fields per source are used). */
 export type SourceArgs = {
@@ -119,9 +121,8 @@ function subRowToEvent(s: SubRow): TimelineEvent {
   });
 }
 
-function bail(source: string, error: { message: string }): never {
-  console.error(`[timeline-page] ${source} load failed`, error);
-  throw new Error(`timeline-page: failed to load ${source} (${error.message})`);
+function bail(source: string, error: DbError): never {
+  throw formatDbError(`timeline-page: failed to load ${source}`, error);
 }
 
 /**

@@ -70,21 +70,15 @@ export default async function AssetTimelinePage({
 
       <TimelineFilters filters={filters} />
 
-      {page.events.length === 0 ? (
-        <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
-          {filters.active
-            ? "No history matches these filters."
-            : "No recorded activity for this asset yet."}
-        </p>
-      ) : (
-        <TimelineList
-          assetId={assetId}
-          initialEvents={page.events}
-          initialCursor={page.nextCursor}
-          initialHasMore={page.hasMore}
-          filters={filters}
-        />
-      )}
+      {/* The list owns every empty + end-of-history state (Phase 3C.8.1), so the copy stays filter-accurate. */}
+      <TimelineList
+        assetId={assetId}
+        initialEvents={page.events}
+        initialCursor={page.nextCursor}
+        initialHasMore={page.hasMore}
+        filters={filters}
+        clearHref={`/dashboard/assets/${assetId}/timeline`}
+      />
     </div>
   );
 }

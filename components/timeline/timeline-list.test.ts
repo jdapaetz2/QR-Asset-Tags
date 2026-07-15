@@ -33,6 +33,17 @@ describe("timeline-list — explicit Load more (Part F)", () => {
     expect(list).toContain('role="status"');
   });
 
+  it("uses filter-aware end states (Phase 3C.8.1) — never 'End of recorded history' while filtered", () => {
+    expect(list).toContain("historyEndState");
+    // end-all only; filtered exhaustion + empty use distinct copy + Clear.
+    expect(list).toContain('state === "end-all" ? (');
+    expect(list).toContain("No more activity matches these filters.");
+    expect(list).toContain("No history matches these filters.");
+    expect(list).toContain("Clear filters to view all history");
+    expect(list).toContain("No recorded activity for this asset yet.");
+    expect(list).toContain("clearHref");
+  });
+
   it("surfaces rental rows with the reference + a View session evidence action (Part I)", () => {
     expect(list).toContain("sessionRef");
     expect(list).toContain("View session evidence");
