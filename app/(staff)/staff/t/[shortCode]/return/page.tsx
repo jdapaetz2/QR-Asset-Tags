@@ -105,7 +105,7 @@ export default async function StaffReturnPage({
               </div>
               {r.notes ? <p className="text-xs text-muted-foreground">“{r.notes}”</p> : null}
               <Link
-                href={`/dashboard/submissions/${r.id}`}
+                href={`/staff/t/${shortCode}/submissions/${r.id}`}
                 className="text-xs underline-offset-4 hover:underline"
               >
                 Open report →

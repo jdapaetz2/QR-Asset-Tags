@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { requireStaffAssetByShortCode } from "@/lib/staff/guard";
 import { resolveOutboundTemplate } from "@/lib/inspections/outbound-templates";
 import { outboundSessionMode } from "@/lib/inspections/outbound-session";
-import { buildSessionEvidenceHref } from "@/lib/rentals/evidence";
 import { submitOutboundInspection } from "@/lib/forms/actions";
 import { ReturnInspectionForm } from "@/components/public/return-inspection-form";
 import { RentalDetailsFields } from "@/components/rental-details-fields";
@@ -97,13 +96,13 @@ export default async function StaffOutboundPage({
           </dl>
           <div className="flex flex-col gap-2">
             <Link
-              href={`/dashboard/submissions/${baseline.id}`}
+              href={`/staff/t/${shortCode}/submissions/${baseline.id}`}
               className="inline-flex min-h-11 w-full items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
             >
               View outbound inspection
             </Link>
             <Link
-              href={buildSessionEvidenceHref(session.id)}
+              href={`/staff/t/${shortCode}/evidence/${session.id}`}
               className="inline-flex min-h-11 w-full items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
             >
               View session evidence

@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { requireStaffAssetByShortCode } from "@/lib/staff/guard";
 import { resolveOutboundTemplate } from "@/lib/inspections/outbound-templates";
 import { staffOutboundState } from "@/lib/staff/workflow-state";
-import { buildSessionEvidenceHref } from "@/lib/rentals/evidence";
 import { RelativeTime } from "@/components/relative-time";
 
 export const dynamic = "force-dynamic";
@@ -154,7 +153,7 @@ export default async function StaffAssetPage({
           <Link href={`/staff/t/${shortCode}/outbound`} className={PRIMARY_ACTION}>
             Add outbound inspection
           </Link>
-          <Link href={buildSessionEvidenceHref(sessionId)} className={SECONDARY_ACTION}>
+          <Link href={`/staff/t/${shortCode}/evidence/${sessionId}`} className={SECONDARY_ACTION}>
             View session evidence
           </Link>
           <Link href={`/staff/t/${shortCode}/return`} className={SECONDARY_ACTION}>
@@ -178,11 +177,11 @@ export default async function StaffAssetPage({
             Complete return checklist
           </Link>
           {baselineId ? (
-            <Link href={`/dashboard/submissions/${baselineId}`} className={SECONDARY_ACTION}>
+            <Link href={`/staff/t/${shortCode}/submissions/${baselineId}`} className={SECONDARY_ACTION}>
               View outbound inspection
             </Link>
           ) : null}
-          <Link href={buildSessionEvidenceHref(sessionId)} className={SECONDARY_ACTION}>
+          <Link href={`/staff/t/${shortCode}/evidence/${sessionId}`} className={SECONDARY_ACTION}>
             View session evidence
           </Link>
         </div>

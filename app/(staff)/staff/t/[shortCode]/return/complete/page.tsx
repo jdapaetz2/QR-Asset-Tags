@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { requireStaffAssetByShortCode } from "@/lib/staff/guard";
 import { submissionReference } from "@/lib/submissions/inbox";
 import { returnChecklistFlags } from "@/lib/submissions/returns";
-import { buildSessionEvidenceHref } from "@/lib/rentals/evidence";
 
 export const dynamic = "force-dynamic";
 
@@ -142,31 +141,32 @@ export default async function StaffReturnCompletePage({
       </section>
 
       <div className="flex flex-col gap-2">
+        {/* Back to the scanned asset is the primary next action (keep the staff shell + shortCode). */}
         <Link
-          href={`/dashboard/assets/${asset.id}`}
+          href={`/staff/t/${shortCode}`}
           className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
-          View asset
+          ← Back to staff asset
         </Link>
         <Link
-          href={`/dashboard/submissions/${data.id}`}
+          href={`/staff/t/${shortCode}/submissions/${data.id}`}
           className="inline-flex min-h-11 w-full items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
         >
-          View inspection
+          View staff return checklist
         </Link>
         {evidenceSessionId ? (
           <Link
-            href={buildSessionEvidenceHref(evidenceSessionId)}
+            href={`/staff/t/${shortCode}/evidence/${evidenceSessionId}`}
             className="inline-flex min-h-11 w-full items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
           >
             View session evidence
           </Link>
         ) : null}
         <Link
-          href={`/staff/t/${shortCode}`}
+          href={`/dashboard/assets/${asset.id}`}
           className="text-center text-sm text-muted-foreground underline-offset-4 hover:underline"
         >
-          Return to staff asset page
+          View asset
         </Link>
       </div>
     </main>

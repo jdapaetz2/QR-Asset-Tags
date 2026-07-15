@@ -58,9 +58,10 @@ describe("session-evidence routes", () => {
 describe("every link site passes a rental_session_id (never an asset/submission id)", () => {
   const callers: { file: string; mustPass: string }[] = [
     {
-      // Staff completion page: the submission's bound session (falls back to the asset's latest session).
+      // Staff completion page (Wave 3N.3): routes to the mobile staff evidence wrapper, still keyed by the
+      // submission's bound session id (falls back to the asset's latest session).
       file: "app/(staff)/staff/t/[shortCode]/return/complete/page.tsx",
-      mustPass: "buildSessionEvidenceHref(evidenceSessionId)",
+      mustPass: "/evidence/${evidenceSessionId}",
     },
     {
       // Submission detail: the submission row's own rental_session_id.

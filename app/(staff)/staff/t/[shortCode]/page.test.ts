@@ -48,10 +48,13 @@ describe("staff asset page — workflow state matrix (Phase 3C.7)", () => {
     expect(src).toContain("id, created_at, submitted_by_name");
   });
 
-  it("uses the canonical short code + evidence href in every action", () => {
+  it("uses the canonical short code + staff-shell record wrappers in every action (Wave 3N.3)", () => {
     expect(src).toContain("`/staff/t/${shortCode}/outbound`");
     expect(src).toContain("`/staff/t/${shortCode}/return`");
-    expect(src).toContain("buildSessionEvidenceHref(sessionId)");
+    // Session evidence + submissions now stay in the staff mobile shell (no /dashboard drop).
+    expect(src).toContain("`/staff/t/${shortCode}/evidence/${sessionId}`");
+    expect(src).toContain("`/staff/t/${shortCode}/submissions/${baselineId}`");
+    expect(src).not.toContain("buildSessionEvidenceHref");
   });
 
   it("keeps the public equipment page as a secondary link", () => {

@@ -40,7 +40,8 @@ describe("user-facing return-checklist copy (Wave 3N.1)", () => {
   });
 
   it("evidence surfaces say 'Return checklist' (not report/inspection)", () => {
-    const evidence = read("app/(admin)/dashboard/rentals/[sessionId]/page.tsx");
+    // The evidence disclosure titles live in the shared record component (Wave 3N.3).
+    const evidence = read("components/rentals/session-evidence-record.tsx");
     expect(evidence).toContain('title="Renter return checklist"');
     expect(evidence).toContain('title="Staff return checklist"');
     expect(read("components/submissions/evidence-photo-gallery.tsx")).toContain("Renter return checklist");

@@ -66,6 +66,20 @@ export function PublicEquipmentPage({
         documents={documents}
       />
 
+      {/* Cold-staff sign-in affordance (Wave 3N.3). A quiet, muted footer link for anyone who is not already an
+          authorized same-org staff member — never tenant-colored, never competing with the renter CTAs. Renter
+          features need no login; `sanitizeNextPath` + the staff guard keep the `next` safe and cross-org 404s. */}
+      {!isStaffViewer ? (
+        <div className="mt-6 flex justify-center print:hidden">
+          <Link
+            href={`/login?next=/staff/t/${shortCode}`}
+            className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Staff member? Sign in
+          </Link>
+        </div>
+      ) : null}
+
       <PublicScannerStickyActions
         mode="public"
         shortCode={shortCode}
