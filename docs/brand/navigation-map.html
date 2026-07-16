@@ -100,8 +100,11 @@
   .node.b-green{border-left-color:var(--success)} .node.b-amber{border-left-color:var(--warning)}
   .node.b-red{border-left-color:var(--danger)} .node.b-blue{border-left-color:var(--info)}
   .node.rec{border:1.6px dashed var(--iron600); background:#fff}
-  .node.rec .badge-rec{display:inline-block; font-size:9.5px; text-transform:uppercase; letter-spacing:.06em;
-    color:var(--brass600); border:1px solid var(--brass); border-radius:10px; padding:0 6px; margin-top:4px}
+  /* Standalone so the "Recommended" pill styles wherever it's used (reccard headers included),
+     not only when nested in a .node.rec card. */
+  .badge-rec{display:inline-block; font-size:9.5px; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--brass600); border:1px solid var(--brass); border-radius:10px; padding:0 6px}
+  .node.rec .badge-rec{margin-top:4px}
   .lock{font-size:9.5px; border:1px solid currentColor; border-radius:10px; padding:0 6px; margin-left:6px; opacity:.85}
   .decision{align-self:center; background:#fff; border:1.5px solid var(--warning); color:var(--amberchiptext);
     border-radius:8px; padding:6px 9px; font-size:11.5px; max-width:150px; text-align:center}
@@ -152,7 +155,7 @@
       </svg>
       <span class="sub">Navigation &amp; UX map</span>
     </div>
-    <div class="meta">branch pilot-credibility @ 6b37f3d<br>current-state = real routes · dashed = Recommended</div>
+    <div class="meta">branch pilot-credibility @ 0b51cd7 · Wave 3N closeout<br>current-state = real routes · dashed = remaining / deferred</div>
   </div>
 </header>
 
@@ -165,8 +168,8 @@
     </div>
     <div class="seg" role="group" aria-label="State">
       <span class="lbl">State</span>
-      <button data-state="current" aria-pressed="true">Current</button>
-      <button data-state="rec" aria-pressed="false">Recommended</button>
+      <button data-state="current" aria-pressed="true">Current (implemented)</button>
+      <button data-state="rec" aria-pressed="false">Remaining / deferred</button>
     </div>
   </div>
 </div>
@@ -196,8 +199,10 @@
   <section class="panel active" id="tab-owner" role="tabpanel" aria-label="Platform owner">
     <div class="view current show">
       <h2>Platform owner — current state</h2>
-      <p class="lede">Global top nav (4 items). No organization sub-navigation: once inside an org, the menu never
-        changes and Back destinations are inconsistent. All routes real.</p>
+      <p class="lede">Global top nav (4 items) <strong>plus a persistent org sub-nav</strong> (Wave 3N.4):
+        whenever the URL holds an <span class="kbd">organizationId</span>, an <span class="kbd">OwnerOrgSubnav</span>
+        strip renders Overview · QR codes · Users · Export · Settings, so org context is kept via the sub-nav rather
+        than Back. All routes real.</p>
 
       <div class="band">
         <div class="bandhead"><span class="name">Platform owner</span><span class="tag owner">Platform owner · lock</span></div>
@@ -208,15 +213,15 @@
             <div class="col"><div class="node primary"><div class="nm">Organizations (home)</div><div class="rt">/owner</div></div></div>
             <div class="arrow">→</div>
             <div class="col">
-              <div class="node primary"><div class="nm">Org detail hub</div><div class="rt">/owner/organizations/[id]</div><span class="back">/owner (list)</span></div>
+              <div class="node primary"><div class="nm">Org detail hub</div><div class="rt">/owner/organizations/[id]</div><span class="back">org sub-nav · Overview tab</span></div>
             </div>
             <div class="arrow">→</div>
             <div class="col">
-              <div class="node secondary"><div class="nm">QR governance</div><div class="rt">…/[id]/qr</div><span class="back">org detail</span></div>
-              <div class="node secondary"><div class="nm">Org users</div><div class="rt">…/[id]/users</div><span class="back">org detail</span></div>
-              <div class="node secondary"><div class="nm">Settings &amp; plan</div><div class="rt">…/[id]/settings</div><span class="back">/owner (list)</span>
-                <span class="frx">Back loses org context</span></div>
-              <div class="node secondary"><div class="nm">Org export</div><div class="rt">…/[id]/export</div><span class="back">org settings</span></div>
+              <div class="node secondary" style="border-left-color:var(--brass)"><div class="nm">Org sub-nav (persistent)</div><div class="rt">OwnerOrgSubnav · Overview · QR codes · Users · Export · Settings</div></div>
+              <div class="node secondary"><div class="nm">QR governance</div><div class="rt">…/[id]/qr</div><span class="back">sub-nav</span></div>
+              <div class="node secondary"><div class="nm">Org users</div><div class="rt">…/[id]/users</div><span class="back">sub-nav</span></div>
+              <div class="node secondary"><div class="nm">Settings &amp; plan</div><div class="rt">…/[id]/settings</div><span class="back">sub-nav · Overview tab</span></div>
+              <div class="node secondary"><div class="nm">Org export</div><div class="rt">…/[id]/export</div><span class="back">sub-nav</span></div>
             </div>
           </div>
 
@@ -226,8 +231,7 @@
             <div class="col"><div class="node secondary"><div class="nm">Request detail</div><div class="rt">/owner/tag-requests/[id]</div></div></div>
             <div class="arrow dot">⇢</div>
             <div class="col"><div class="node primary"><div class="nm">Production</div><div class="rt">/owner/production?org=&amp;select=</div>
-              <span class="back">picker (?org lost)</span>
-              <span class="frx">Back → picker, not the org</span></div></div>
+              <span class="back">← {org} detail (?org kept)</span></div></div>
             <div class="arrow">→</div>
             <div class="col"><div class="node b-green"><div class="nm">QR / CSV / sheet</div><div class="rt">…/production/*</div></div></div>
           </div>
@@ -244,28 +248,33 @@
     </div>
 
     <div class="view rec">
-      <h2>Platform owner — recommended</h2>
+      <h2>Platform owner — remaining &amp; deferred</h2>
       <div class="reccard">
-        <h4>Top navigation <span class="badge-rec" style="color:var(--brass600)">Recommended</span></h4>
+        <h4>Delivered in Wave 3N.4 <span class="badge-rec">Done</span></h4>
         <div class="navrow">
           <span class="navchip">Organizations</span><span class="navchip">Tag requests</span>
           <span class="navchip">Production</span><span class="navchip">Analytics</span>
-        </div>
-        <h4 style="margin-top:12px">Org-context sub-nav (shown whenever the URL holds an organizationId)</h4>
-        <div class="navrow">
           <span class="navchip sub">Overview</span><span class="navchip sub">QR codes</span>
           <span class="navchip sub">Users</span><span class="navchip sub">Export</span><span class="navchip sub">Settings</span>
         </div>
         <ul>
-          <li>Persistent org sub-nav removes the "how do I get back to this org?" problem — the owner returns via the
-            sub-nav, not Back.</li>
-          <li>Make Production org-scoped (<span class="kbd">/owner/organizations/[id]/production</span> — Recommended)
-            or at minimum keep <span class="kbd">?org</span> on Back and add "← {org} detail".</li>
-          <li>Surface <span class="kbd">/owner/users</span> in the top nav (or fold under Organizations).</li>
-          <li>Fix org-Settings Back → org detail (not the org list). Keep Tag requests global + add a per-org tab.</li>
+          <li><strong>Persistent org sub-nav</strong> (<span class="kbd">OwnerOrgSubnav</span>) now renders on every
+            org route — the owner returns via the sub-nav, not Back.</li>
+          <li>Production keeps <span class="kbd">?org</span> and its primary back link is <span class="kbd">← {org}
+            detail</span>; org sub-pages return to the org via the Overview tab.</li>
         </ul>
-        <p class="note">QR governance already lives correctly under the org (<span class="kbd">…/[id]/qr</span>);
-          keep it there.</p>
+        <h4 style="margin-top:12px">Remaining (minor)</h4>
+        <ul>
+          <li>Surface <span class="kbd">/owner/users</span> (cross-org roster) in the top nav or fold under
+            Organizations — still reachable only from the home action.</li>
+          <li>Optional: a per-org Tag-requests tab within the org hub (global queue already filters by
+            <span class="kbd">?org</span>).</li>
+        </ul>
+        <h4 style="margin-top:12px">Deferred</h4>
+        <ul>
+          <li>Fully org-scoped Production route (<span class="kbd">/owner/organizations/[id]/production</span>) — the
+            current <span class="kbd">?org</span> approach is sufficient for pilot.</li>
+        </ul>
       </div>
     </div>
   </section>
@@ -274,8 +283,10 @@
   <section class="panel" id="tab-rental" role="tabpanel" aria-label="Rental company">
     <div class="view current show">
       <h2>Rental company — current state</h2>
-      <p class="lede">Three swimlanes. Admin desktop nav = 6 items; staff mobile nav = 4 (hides, but does not
-        enforce, Tag requests + Settings). Rentals, Templates, Export, Users are in <strong>no</strong> menu.</p>
+      <p class="lede">Three swimlanes. Admin nav = 6 (Rentals promoted, Wave 3N.2); staff nav = 5 (adds Rentals; omits
+        Settings + Tag requests, now <strong>enforced</strong> server-side, not just hidden). Config surfaces
+        (Templates, Import, Tag requests, Export, Users) live under Settings / the Assets tools row — each guarded by
+        <span class="kbd">requireCustomerAdminOrgId</span>.</p>
 
       <!-- Admin -->
       <div class="band">
@@ -285,17 +296,17 @@
             <div class="node primary"><div class="nm">Dashboard</div><div class="rt">/dashboard</div></div>
             <div class="node primary"><div class="nm">Assets</div><div class="rt">/dashboard/assets</div></div>
             <div class="node primary"><div class="nm">Submissions <span class="lock">badge</span></div><div class="rt">/dashboard/submissions</div></div>
+            <div class="node primary"><div class="nm">Rentals</div><div class="rt">/dashboard/rentals</div></div>
             <div class="node primary"><div class="nm">Analytics</div><div class="rt">/dashboard/analytics</div></div>
-            <div class="node primary"><div class="nm">Tag requests</div><div class="rt">/dashboard/tag-requests</div></div>
             <div class="node primary"><div class="nm">Settings</div><div class="rt">/dashboard/settings</div></div>
           </div>
           <div class="flow">
             <div class="col"><div class="node primary"><div class="nm">Assets list</div><div class="rt">/dashboard/assets</div></div></div>
             <div class="arrow">→</div>
-            <div class="col"><div class="node primary"><div class="nm">Asset detail</div><div class="rt">…/assets/[assetId]</div><span class="back">/dashboard/assets (filters lost)</span>
-              <span class="frx">List filters not preserved</span></div></div>
+            <div class="col"><div class="node primary"><div class="nm">Asset detail</div><div class="rt">…/assets/[assetId]</div><span class="back">← Assets (filters kept)</span></div></div>
             <div class="arrow dot">⇢</div>
             <div class="col">
+              <div class="node secondary" style="border-left-color:var(--brass)"><div class="nm">AssetSubnav tab strip</div><div class="rt">Overview · Equipment page · Documents · Timeline · Rental sessions</div></div>
               <div class="node secondary"><div class="nm">Equipment page</div><div class="rt">…/[assetId]/page</div></div>
               <div class="node secondary"><div class="nm">Documents</div><div class="rt">…/[assetId]/documents</div></div>
               <div class="node secondary"><div class="nm">Timeline</div><div class="rt">…/[assetId]/timeline</div></div>
@@ -305,18 +316,19 @@
           <div class="flow" style="margin-top:14px">
             <div class="col"><div class="node primary"><div class="nm">Submissions inbox</div><div class="rt">/dashboard/submissions?status=…</div></div></div>
             <div class="arrow">→</div>
-            <div class="col"><div class="node primary"><div class="nm">Submission detail</div><div class="rt">…/submissions/[submissionId]</div><span class="back">/dashboard/submissions (bare)</span>
-              <span class="frx">Filter lost on Back + on resolve</span></div></div>
+            <div class="col"><div class="node primary"><div class="nm">Submission detail</div><div class="rt">…/submissions/[submissionId]</div><span class="back">← Submissions (filters kept + on resolve)</span></div></div>
             <div class="arrow">→</div>
             <div class="col"><div class="node b-green"><div class="nm">Resolved / reviewed</div><div class="rt">status action</div></div></div>
           </div>
 
-          <div class="flow wrap" style="margin-top:14px">
-            <div class="node secondary"><div class="nm">Templates</div><div class="rt">/dashboard/templates · /assets/templates</div><span class="frx">Off-nav</span></div>
-            <div class="node secondary"><div class="nm">Export</div><div class="rt">/dashboard/export</div><span class="frx">Off-nav (owner-gated)</span></div>
-            <div class="node secondary"><div class="nm">Import</div><div class="rt">/dashboard/assets/import</div></div>
-            <div class="node secondary"><div class="nm">Users <span class="lock">admin only</span></div><div class="rt">/dashboard/settings/users</div>
-              <span class="frx">Staff can open Settings + click → bounce</span></div>
+          <p class="note" style="margin-top:14px">Admin-only config (all <span class="lock">customer_admin</span>,
+            server-guarded by <span class="kbd">requireCustomerAdminOrgId</span>; absent from staff nav):</p>
+          <div class="flow wrap" style="margin-top:6px">
+            <div class="node secondary"><div class="nm">Templates <span class="lock">admin</span></div><div class="rt">/dashboard/templates · /assets/templates</div><span class="back">Assets tools row</span></div>
+            <div class="node secondary"><div class="nm">Export <span class="lock">admin · conditional</span></div><div class="rt">/dashboard/export</div><span class="back">under Settings, only if owner-enabled</span></div>
+            <div class="node secondary"><div class="nm">Import <span class="lock">admin</span></div><div class="rt">/dashboard/assets/import</div><span class="back">Assets tools row</span></div>
+            <div class="node secondary"><div class="nm">Tag requests <span class="lock">admin</span></div><div class="rt">/dashboard/tag-requests</div><span class="back">Assets tools row</span></div>
+            <div class="node secondary"><div class="nm">Users <span class="lock">admin</span></div><div class="rt">/dashboard/settings/users</div><span class="back">Settings (admin-only; no staff bounce)</span></div>
           </div>
         </div>
       </div>
@@ -342,9 +354,11 @@
           <div class="flow" style="margin-top:12px">
             <div class="col"><div class="node primary"><div class="nm">Return complete</div><div class="rt">/staff/t/[shortCode]/return/complete</div></div></div>
             <div class="arrow dot">⇢</div>
-            <div class="col"><div class="node secondary"><div class="nm">View session evidence</div><div class="rt">/dashboard/rentals/[sessionId]</div>
-              <span class="frx">Jumps to desktop admin shell; off-nav for staff</span></div></div>
+            <div class="col"><div class="node secondary"><div class="nm">Session evidence (staff shell)</div><div class="rt">/staff/t/[shortCode]/evidence/[sessionId]</div>
+              <span class="back">← Back to {asset} → /staff/t/[shortCode]</span></div></div>
           </div>
+          <p class="note">Wave 3N.3: evidence + submissions render inside the system-font <span class="kbd">StaffRecordFrame</span>
+            (own back link), so a phone staff user never lands in the desktop admin shell.</p>
         </div>
       </div>
 
@@ -353,48 +367,51 @@
         <div class="bandhead"><span class="name">Shared records &amp; evidence</span><span class="tag auth">both roles · lock</span></div>
         <div class="bandbody">
           <div class="flow wrap">
-            <div class="node secondary"><div class="nm">Rentals browser</div><div class="rt">/dashboard/rentals?asset=</div>
-              <span class="frx">No top-nav home (~5 contextual links)</span></div>
+            <div class="node primary"><div class="nm">Rentals browser</div><div class="rt">/dashboard/rentals?asset=</div>
+              <span class="back">primary nav (Wave 3N.2)</span></div>
             <div class="arrow">→</div>
-            <div class="node secondary"><div class="nm">Session evidence</div><div class="rt">/dashboard/rentals/[sessionId]</div><span class="back">Asset timeline only</span>
-              <span class="frx">No ← Rentals back-to-list</span></div>
+            <div class="node secondary"><div class="nm">Session evidence</div><div class="rt">/dashboard/rentals/[sessionId]</div>
+              <span class="back">← Back to Rentals (filters kept) · Asset timeline</span></div>
             <div class="arrow dot">⇢</div>
             <div class="node secondary"><div class="nm">Submission detail</div><div class="rt">/dashboard/submissions/[id]</div></div>
           </div>
-          <p class="note">Param inconsistency: rentals use <span class="kbd">?asset=</span>, submissions use
-            <span class="kbd">?asset_id=</span> for the same concept.</p>
+          <p class="note">Remaining debt (R11): param naming still differs — rentals use <span class="kbd">?asset=</span>,
+            submissions use <span class="kbd">?asset_id=</span> for the same concept.</p>
         </div>
       </div>
     </div>
 
     <div class="view rec">
-      <h2>Rental company — recommended</h2>
+      <h2>Rental company — remaining &amp; deferred</h2>
       <div class="reccard">
-        <h4>Admin top nav <span class="badge-rec" style="color:var(--brass600)">Recommended</span></h4>
+        <h4>Delivered across Waves 3N.1–3N.4 <span class="badge-rec">Done</span></h4>
         <div class="navrow">
           <span class="navchip">Dashboard</span><span class="navchip">Assets</span><span class="navchip">Submissions</span>
           <span class="navchip">Rentals</span><span class="navchip">Analytics</span><span class="navchip">Settings</span>
         </div>
-        <h4 style="margin-top:12px">Folded under Settings (secondary)</h4>
-        <div class="navrow">
-          <span class="navchip sub">Tag requests</span><span class="navchip sub">Templates</span>
-          <span class="navchip sub">Export</span><span class="navchip sub">Users</span><span class="navchip sub">Scanner branding</span>
-        </div>
-        <h4 style="margin-top:12px">Staff (mobile)</h4>
-        <div class="navrow"><span class="navchip sub">Scan</span><span class="navchip sub">Submissions</span></div>
         <ul>
-          <li><strong>Done in Wave 3N.1:</strong> Rentals is now in both admin and staff top nav; every admin-only
-            config route enforces <span class="kbd">customer_admin</span> server-side (<span class="kbd">requireCustomerAdminOrgId</span>);
-            the "Manage team" bounce link is gone. <strong>Data export</strong> is a conditional secondary item under
-            Settings, shown only when the org's platform-owner toggle is enabled — <span class="kbd">customer_staff</span>
-            never sees or reaches it; the owner always keeps owner-side export + the enable/disable control.</li>
-          <li><strong>Promote Rentals to primary</strong> — it is a daily surface once outbound/return is in use.</li>
-          <li><strong>Enforce role gating</strong> so nav and access agree (or expand the staff nav) — resolve the
-            hides-vs-allows contradiction; hide/guard the "Manage team" bounce link.</li>
-          <li>Add <span class="kbd">← Rentals</span> on session evidence; render evidence <em>inside</em> the staff
-            shell so a phone user never lands in the desktop admin app.</li>
-          <li>Preserve list filters across every detail→Back; standardize the asset query param.</li>
-          <li>Add a per-asset tab strip (Overview · Equipment page · Documents · Timeline · Rentals).</li>
+          <li><strong>Rentals promoted</strong> to primary nav (admin + staff).</li>
+          <li><strong>Role gating enforced</strong> server-side: every admin-only config route uses
+            <span class="kbd">requireCustomerAdminOrgId</span>; nav and access agree; the "Manage team" bounce link is
+            gone. Config (Tag requests, Templates, Import, Export, Users) lives under Settings / the Assets tools row.</li>
+          <li><strong>Data export</strong> is conditional (owner-enabled), admin-only, under Settings; staff never see
+            or reach it; owner export is independent.</li>
+          <li><strong>Filters preserved</strong> on every detail→Back and on resolve
+            (<span class="kbd">currentListHref</span>/<span class="kbd">withReturnTo</span>/<span class="kbd">backHref</span>);
+            <span class="kbd">← Back to Rentals</span> on session evidence; staff records render inside the staff shell.</li>
+          <li><strong>Per-asset tab strip</strong> shipped (<span class="kbd">AssetSubnav</span>: Overview · Equipment
+            page · Documents · Timeline · Rental sessions).</li>
+        </ul>
+        <h4 style="margin-top:12px">Remaining (minor)</h4>
+        <ul>
+          <li>R11 — standardize the asset query param (<span class="kbd">?asset=</span> vs
+            <span class="kbd">?asset_id=</span>).</li>
+        </ul>
+        <h4 style="margin-top:12px">Deferred</h4>
+        <ul>
+          <li>R14 — self-service action-measurement analytics (explicit non-goal, <span class="kbd">docs/NON_GOALS.md</span>).</li>
+          <li>A separate camera "Scan" surface — <strong>not</strong> planned; there is deliberately no "Scan" nav item
+            without a scanner.</li>
         </ul>
       </div>
     </div>
@@ -430,8 +447,8 @@
 
           <div class="flow" style="margin-top:14px">
             <div class="col"><div class="node action"><div class="nm">Report Damage</div><div class="rt">/forms/[shortCode]/damage</div></div>
-              <div class="node secondary"><div class="nm">Return inspection</div><div class="rt">/forms/[shortCode]/return</div>
-                <span class="frx">Labelled "Return Checklist" on /t</span></div>
+              <div class="node secondary"><div class="nm">Return checklist</div><div class="rt">/forms/[shortCode]/return</div>
+                <span class="back">unified label (Wave 3N.1)</span></div>
               <div class="node secondary"><div class="nm">Request Support</div><div class="rt">/forms/[shortCode]/support</div></div>
             </div>
             <div class="arrow">→</div>
@@ -448,7 +465,7 @@
         <div class="bandbody">
           <div class="flow wrap">
             <div class="node b-blue"><div class="nm">Same-org staff scan</div><div class="rt">/t/[shortCode]</div>
-              <span class="frx">Cold (not signed-in) staff see no affordance</span></div>
+              <span class="back">cold staff see "Staff member? Sign in" (Wave 3N.3)</span></div>
             <div class="arrow">→</div>
             <div class="node action"><div class="nm">Open staff workflow →</div><div class="rt">/staff/t/[shortCode]</div><span class="lock">org member</span></div>
             <div class="arrow dot">⇢</div>
@@ -461,25 +478,27 @@
     </div>
 
     <div class="view rec">
-      <h2>End scan user — recommended</h2>
+      <h2>End scan user — remaining &amp; deferred</h2>
       <div class="reccard">
-        <h4>Keep the single mobile screen <span class="badge-rec" style="color:var(--brass600)">Recommended</span></h4>
+        <h4>All recommendations delivered <span class="badge-rec">Done</span></h4>
         <ul>
-          <li>Unify the renter-facing name to <strong>Return checklist</strong> (button + thanks + form title). <em>Done
-            in Wave 3N.1</em> — the template architecture keeps "inspection"; "Outbound inspection" is unchanged.</li>
-          <li>Add a subtle <em>"Are you staff? Sign in"</em> affordance so a cold staff scan can reach
-            <span class="kbd">/staff/t/[shortCode]</span> without knowing the URL.</li>
-          <li>Preserve the zero-login, webfont-free, non-disclosing-error contract exactly as built.</li>
-          <li>Keep the per-session acknowledgement key + transient dismiss (already correct — no repeat prompts).</li>
+          <li>Renter-facing name unified to <strong>Return checklist</strong> (button + thanks + form title); template
+            architecture keeps "inspection"; "Outbound inspection" unchanged (Wave 3N.1).</li>
+          <li>Cold-staff <em>"Staff member? Sign in"</em> affordance added so an unauthenticated staff scan reaches
+            <span class="kbd">/staff/t/[shortCode]</span> without knowing the URL (Wave 3N.3).</li>
         </ul>
+        <p class="note">Preserved exactly as built: the single mobile screen, zero-login, webfont-free scan surface,
+          the non-disclosing unavailable notice, and the per-session acknowledgement key + transient dismiss. No
+          remaining or deferred items for this persona.</p>
       </div>
     </div>
   </section>
 
   <footer class="wrap">
     Self-contained reference — no server, CDN, or external script. Current-state nodes use real routes from
-    <span class="kbd">pilot-credibility @ 6b37f3d</span>; dashed nodes are <strong>Recommended</strong> and do not
-    exist yet. Full detail: <a href="../NAVIGATION_UX_AUDIT.md">docs/NAVIGATION_UX_AUDIT.md</a>.
+    <span class="kbd">pilot-credibility @ 0b51cd7</span> (Wave 3N closeout, 3N.1–3N.4 implemented); the
+    <strong>Remaining / deferred</strong> view lists work not yet done. Full detail:
+    <a href="../NAVIGATION_UX_AUDIT.md">docs/NAVIGATION_UX_AUDIT.md</a>.
   </footer>
 </div>
 

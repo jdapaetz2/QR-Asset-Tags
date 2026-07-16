@@ -1,6 +1,7 @@
 # Mulemark — Navigation & UX Architecture Audit
 
-**Branch / commit:** `pilot-credibility` @ `6b37f3d` — _"fix(history): repair session browser and filtered end states"_
+**Branch / commit:** original audit at `pilot-credibility` @ `6b37f3d`; **current implemented state at `@ 0b51cd7`
+(Wave 3N closeout — see §0 and §0.1, which supersede the §1–§17 pre-3N.1 findings).**
 **Product (internal name):** Mulemark · **Platform brand:** Mulemark (working name)
 **Companion visual map:** [`docs/brand/navigation-map.html`](brand/navigation-map.html) (open directly in a browser)
 
@@ -39,6 +40,62 @@ decision here, **this section wins**; the current-state findings are left intact
   (fails closed via `toExportFlags`; no migration — the boolean already exists, `not null default false`, migration
   0015). `customer_staff` never sees or reaches export. The export entry point is a **conditional secondary item under
   Settings**, not top nav. The owner always retains owner-side export + the enable/disable toggle.
+
+---
+
+## 0.1 Wave 3N closeout (2026-07 — current implemented state)
+
+Waves 3N.1–3N.4 (`@ 0b51cd7`) are **implemented and verified**. The §1–§17 findings below are the **historical
+pre-3N.1 audit** and are kept as the record of what was fixed; where they conflict with this section, **this section
+wins**. All required closeout invariants hold (source-verified across route guards, nav config, link `href`s, and
+server-action redirects).
+
+**Final navigation by persona (implemented):**
+- **Platform owner** (`lib/auth/nav.ts`): **Organizations · Tag requests · Analytics · Production**, plus a persistent
+  **org sub-nav** (`OwnerOrgSubnav` → Overview · QR codes · Users · Export · Settings) on every route holding an
+  `organizationId`. Production keeps `?org` and backs to `← {org} detail`.
+- **Rental company admin**: **Dashboard · Assets · Submissions · Rentals · Analytics · Settings**. Config surfaces
+  (Tag requests, Templates, Import, Export, Users) live under Settings / the Assets tools row.
+- **Rental company staff**: **Dashboard · Assets · Submissions · Rentals · Analytics** (no Settings/Tag-requests) —
+  the omission is **enforced server-side**, not just hidden.
+
+**Role enforcement.** `requireCustomerAdminOrgId` (`lib/auth/session.ts`) gates every admin-only config route
+(Settings, Users, Export + download, Tag requests, Templates incl. return-inspections + custom, Import). Operational
+surfaces — Dashboard, Assets **and asset detail + its sub-pages** (equipment-page editor, documents, new asset),
+Submissions (+ export), Rentals (+ session evidence), Analytics — use the org-membership guard for both roles.
+`(admin)/layout.tsx` enforces active-org; every `/owner/**` page repeats `requireRole(PLATFORM_OWNER)`; staff scan
+routes use `requireStaffAssetByShortCode`. **Nav visibility and route guards agree.**
+
+**Intentional scope decision:** the asset **sub-pages** (equipment-page editor, documents, new asset) are reachable
+and editable by `customer_staff`. This is deliberate — they are part of the operational "Assets + asset detail"
+surface both roles share (Wave 3N.1), not "configuration". If a future policy reclassifies equipment-page/document
+editing as admin-only, swap those three pages to `requireCustomerAdminOrgId` and add an admin check in
+`lib/assets/equipment-actions.ts` + `lib/documents/actions.ts` + `lib/assets/actions.ts`.
+
+**Export capability behavior (final):** OFF by default (`customer_exports_enabled not null default false`, migration
+0015; `toExportFlags` fails closed). Disabled ⇒ the Settings item, dashboard card, page, and download route are all
+hidden/blocked. Enabled ⇒ **customer_admin only**; `customer_staff` never sees or reaches it. The platform owner's
+export (`/owner/organizations/[id]/export`) always works, independent of the flag. `protect_export_flags` (0015)
+restricts flag writes to the owner.
+
+**Canonical return-checklist labels (final):** renter-facing **"Return checklist"** (scanner action, form title,
+thanks); origin variants **"Renter return checklist"** / **"Staff return checklist"** (`lib/submissions/origin.ts`);
+**"Outbound inspection"** unchanged; the internal data value **`return_checklist`** and the template architecture
+("inspection") are unchanged.
+
+**Accepted cosmetic nuances (not defects):** (a) owner org sub-pages' back-arrow is the sub-nav's "← All
+organizations" (→ `/owner`); org context is preserved by the persistent sub-nav and the Overview tab returns to the
+org detail. (b) The asset tab strip labels the rentals tab **"Rental sessions"** (deep-links to
+`/dashboard/rentals?asset=`).
+
+**Remaining navigation debt:** R11 — the asset query param still differs (`?asset=` rentals vs `?asset_id=`
+submissions). **Deferred:** R13 in-page asset-tab redesign is effectively delivered via `AssetSubnav`; R14
+self-service action measurement is an explicit non-goal (`docs/NON_GOALS.md`). A camera "Scan" nav item is **not**
+planned (no scanner exists).
+
+**Readiness:** navigation is **ready for Phase 3 closeout** — no role leakage, no export leakage, context is
+preserved on the hot loops, no mobile dead ends, terminology is consistent, owner context is preserved, and the
+public zero-login flow is intact.
 
 ---
 
@@ -538,21 +595,27 @@ role behavior.**
 **Platform owner**
 - `/owner` → click an org → `/owner/organizations/[id]` → n/a → owner only.
 - org detail → QR codes → `.../qr` → org id in path → owner only; Back → org detail.
-- org detail → Production → `/owner/production?org=[id]` → `?org` preserved → **[current: Back drops `?org` — verify]**.
+- org detail → Production → `/owner/production?org=[id]` → `?org` preserved → **[resolved 3N.4: hidden `org` input keeps
+  the filter; primary back link is `← {org} detail`; org sub-nav persists]**.
 - `/owner/tag-requests` → open a request → `/owner/tag-requests/[id]` → marks viewed → owner only.
-- non-owner hits any `/owner/*` → redirected to own landing.
+- non-owner hits any `/owner/*` → redirected to own landing (`requireRole(PLATFORM_OWNER)` on every page).
+- inside an org → org sub-nav (`OwnerOrgSubnav`) shows Overview · QR codes · Users · Export · Settings → **[resolved 3N.4]**.
 
 **Rental company**
 - Dashboard band-stat "Rented" → `/dashboard/assets?rental=rented` → filter applied.
-- Assets → filter → open asset → Back → **[current: filter lost — verify]**.
-- Asset detail → Timeline → `.../timeline`; → "Browse rental sessions" → `/dashboard/rentals?asset=[id]`.
-- Submissions → set status filter → open submission → Back → **[current: returns to unfiltered inbox — verify]**.
-- Submission → Mark returned → **[current: redirect to bare inbox — verify]**.
-- Rentals → search RNT → open evidence → **[current: no `← Rentals` — verify]**.
-- Staff scan → Complete return → View session evidence → `/dashboard/rentals/[id]` → **[current: off-nav for staff,
-  desktop shell — verify]**.
-- customer_staff → type `/dashboard/settings` → **[current: reachable; only `/settings/users` blocks — verify]**.
-- customer_staff → `/dashboard/settings/users` → redirected to `/dashboard` (role-gated ✓).
+- Assets → filter → open asset → Back → **[resolved 3N.2: `← Assets` carries the filters via
+  `currentListHref`/`withReturnTo`/`backHref`]**.
+- Asset detail → `AssetSubnav` tab strip (Overview · Equipment page · Documents · Timeline · Rental sessions);
+  Timeline → "Browse rental sessions" → `/dashboard/rentals?asset=[id]`.
+- Submissions → set status filter → open submission → Back → **[resolved 3N.2: `← Submissions` returns to the filtered
+  inbox (validated `returnTo`)]**.
+- Submission → Mark returned → **[resolved 3N.2: `redirect_to` returns to the filtered inbox, not a bare list]**.
+- Rentals (primary nav) → search RNT → open evidence → **[resolved 3N.2: `← Back to Rentals` present, filters kept]**.
+- Staff scan → Complete return → View session evidence → **[resolved 3N.3: stays in the staff shell at
+  `/staff/t/[shortCode]/evidence/[sessionId]` via `StaffRecordFrame`, with `← Back to {asset}` — no desktop-admin jump]**.
+- customer_staff → type `/dashboard/settings` (or `/export`, `/tag-requests`, `/templates`, `/assets/import`) →
+  **[resolved 3N.1: redirected to `/dashboard` by `requireCustomerAdminOrgId`]**.
+- customer_staff → `/dashboard/settings/users` → redirected to `/dashboard` (`requireRole(CUSTOMER_ADMIN)` ✓).
 
 **End scan user**
 - Scan `/t/[shortCode]` (active session) → Quick Start auto-expands; ack card appears after 4 s.
@@ -562,8 +625,8 @@ role behavior.**
   `/t/[shortCode]`.
 - `/t` (renter return) → 3 stages → submit → thanks → back to `/t`.
 - Same-org staff scan → "Open staff workflow" banner shown; ack suppressed.
-- Cold (anon) staff scan → **[current: no staff affordance — verify]**; `/staff/t/[shortCode]` while anon →
-  `/login?next=/staff/t/[shortCode]`.
+- Cold (anon) staff scan → **[resolved 3N.3: "Staff member? Sign in" link → `/login?next=/staff/t/[shortCode]`]**;
+  `/staff/t/[shortCode]` while anon → `/login?next=/staff/t/[shortCode]` (`requireStaffAssetByShortCode`).
 - Unpublished/suspended tag → `UnavailableNotice`, reason not disclosed.
 
 ---

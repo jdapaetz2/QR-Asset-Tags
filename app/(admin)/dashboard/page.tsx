@@ -118,7 +118,7 @@ export default async function DashboardPage({
   ] = await Promise.all([
     supabase
       .from("organizations")
-      .select("name, customer_exports_enabled, asset_limit")
+      .select("name, asset_limit")
       .eq("id", profile.organization_id)
       .maybeSingle(),
     supabase
