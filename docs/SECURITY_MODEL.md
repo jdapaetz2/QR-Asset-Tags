@@ -12,7 +12,7 @@ The system must support multi-tenant organization isolation from the first migra
 
 **Customer admin** (`customer_admin`) — full access scoped to a single organization: manage org profile, assets, equipment pages, documents, QR links, and review that org's submissions.
 
-**Customer staff** (`customer_staff`) — same org scope as customer admin, for the limited day-to-day loop. **The admin/staff split is now defined and route-enforced** (Wave 3N.1): configuration surfaces (Settings, Users, Export, Tag requests, Templates, Import) require `customer_admin` server-side via `requireCustomerAdminOrgId`, while operational surfaces (Dashboard, Assets + detail, Submissions, Rentals, Analytics, and the staff scan workflow) allow both roles. Navigation visibility matches these guards. **Note (defense-in-depth gap, → A3.1):** this admin/staff distinction is enforced at the Next route/server-action layer, **not** independently at the database (RLS references role only for `platform_owner`) — see "Known security gaps" below and `docs/PILOT_LIMITATIONS.md`.
+**Customer staff** (`customer_staff`) — same org scope as customer admin, for the limited day-to-day loop. **The admin/staff split is now defined and route-enforced** (Wave 3N.1): configuration surfaces (Settings, Users, Export, Tag requests, Templates, Import) require `customer_admin` server-side via `requireCustomerAdminOrgId`, while operational surfaces (Dashboard, Assets + detail, Submissions, Rentals, Analytics, and the staff scan workflow) allow both roles. Navigation visibility matches these guards. **The same split is now enforced independently at the database** (Phase A3.1, migration 0032 — applied): administrative write policies require `is_current_org_admin()`, so a `customer_staff` cannot write organization config, tag requests, or templates via direct PostgREST. See "Role enforcement at the database" below.
 
 **Public scanner** — anonymous, no auth. Read-only access to published public content; insert-only access to form submissions and their media.
 
@@ -52,7 +52,7 @@ Anti-abuse (current state): a **honeypot** field (fixed internal `company_websit
 
 Raw IP addresses are not stored. `scan_events.ip_hash` holds a hashed or truncated value sufficient for basic dedup/analytics. Internal notes, private documents, billing fields, and submissions never appear on public surfaces. The activity log records actor, action, and entity for auditability without storing sensitive payloads in plaintext where avoidable.
 
-## Role enforcement at the database (Phase A3.1, migration 0032)
+## Role enforcement at the database (Phase A3.1, migration 0032 — APPLIED)
 
 `customer_admin` / `customer_staff` are application roles in `profiles.role`; both authenticate as the Postgres
 `authenticated` role. Until migration 0032 **no policy read `profiles.role` except to test `= 'platform_owner'`**, so
@@ -91,8 +91,8 @@ defense-in-depth items scoped to a single organization's own data. Details + sev
 1. **Route guards enforce the approved admin/staff navigation policy.** The `customer_admin` vs `customer_staff`
    split is enforced at the Next route/server-action layer (`requireCustomerAdminOrgId`), and nav visibility matches.
 2. ~~Same-organization write policies do not distinguish admin from staff.~~ **FIXED in A3.1** (migration 0032 —
-   role-aware write policies + admin guards on every administrative server action). Active in the app now; the DB
-   backstop activates on `db push`.
+   role-aware write policies + admin guards on every administrative server action). **Both layers are live:** 0032 is
+   applied on the linked remote (operator-verified).
 3. **Team/user management uses a sanctioned server-only service-role path with TypeScript authorization.**
    **Narrowed in A3.1:** an explicit owner/admin gate runs before any service-role client is created, privileged
    profile lookups are org-scoped for non-owners, `setUserRole` no longer uses the service role at all, and a

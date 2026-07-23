@@ -24,10 +24,12 @@ proof of remote application.
 > Re-verify with the read-only commands below after any future migration is added; never claim applied without a fresh
 > readout.
 >
-> **0032 (Phase A3.1) is NOT yet applied** — it was authored after the verification above and ships pending
-> `npx.cmd supabase db push`. Its server-layer counterparts are already active in the app; the database backstop
-> (role-aware write policies + the `profiles` privileged-column trigger) only takes effect once pushed. Run
-> `npx.cmd supabase migration list` + `npx.cmd supabase db push --dry-run` first, then push.
+> **0032 (Phase A3.1) — CONFIRMED APPLIED (operator-verified, Phase A3.1).** `npx.cmd supabase db push` applied
+> `0032_role_write_enforcement.sql` to the linked remote and reported `Finished supabase db push.` The single
+> `NOTICE: trigger "profiles_protect_privileged_fields" ... does not exist, skipping` is the expected output of the
+> migration's own `drop trigger if exists` idempotency guard on a first apply — the `create trigger` that follows is
+> what installs it. The role-aware write policies and the `profiles` privileged-column protection are therefore
+> **live**.
 
 ### Operator verification commands (run against the linked project)
 
