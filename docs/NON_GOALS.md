@@ -34,6 +34,14 @@ Do not hard-code final company branding, logos, colors, or "Powered by" copy. Th
 
 The platform hosts and displays customer-provided content. It does not author, generate, or guarantee equipment-specific safety or operating instructions. Customers approve all such content. Public pages carry a configurable disclaimer.
 
+## Now implemented (was future scope) — Phase A1 note
+
+The **authenticated-staff outbound/return scanner workflow** (staff scan → outbound baseline / staff return checklist,
+tied to rental sessions and condition evidence) is **built** and on `pilot-credibility` (see
+`docs/YARD_STAFF_SCANNER_MODE.md`). This is **not** the same as, and does not remove, these still-deferred items: a
+dedicated **`yard_worker` role**, an **in-app camera scanner** (staff scan the tag with the phone camera/OS today —
+there is no in-app scanner), and offline/PWA support. Those remain non-goals until pilot evidence justifies them.
+
 ## Deferred but data-model-ready
 
 Some non-goals are intentionally anticipated in the schema so they can be enabled later without painful migrations: multiple QR links per asset (`qr_links` is its own table), automated link checking (`documents.link_status` + `last_checked_at`), Stripe billing (`organizations.plan_name` / `monthly_fee` / `asset_limit`), and richer auditing (`activity_log`). Designing for these is allowed; *building* them now is not.

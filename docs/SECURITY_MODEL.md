@@ -12,7 +12,7 @@ The system must support multi-tenant organization isolation from the first migra
 
 **Customer admin** (`customer_admin`) — full access scoped to a single organization: manage org profile, assets, equipment pages, documents, QR links, and review that org's submissions.
 
-**Customer staff** (`customer_staff`) — same org scope as customer admin, intended for limited day-to-day use. In MVP this can mirror admin permissions or be lightly restricted; exact limits are an open question (see `docs/OPEN_QUESTIONS.md`).
+**Customer staff** (`customer_staff`) — same org scope as customer admin, for the limited day-to-day loop. **The admin/staff split is now defined and route-enforced** (Wave 3N.1): configuration surfaces (Settings, Users, Export, Tag requests, Templates, Import) require `customer_admin` server-side via `requireCustomerAdminOrgId`, while operational surfaces (Dashboard, Assets + detail, Submissions, Rentals, Analytics, and the staff scan workflow) allow both roles. Navigation visibility matches these guards. **Note (defense-in-depth gap, → A3.1):** this admin/staff distinction is enforced at the Next route/server-action layer, **not** independently at the database (RLS references role only for `platform_owner`) — see "Known security gaps" below and `docs/PILOT_LIMITATIONS.md`.
 
 **Public scanner** — anonymous, no auth. Read-only access to published public content; insert-only access to form submissions and their media.
 
@@ -46,11 +46,36 @@ Public users submit forms with the asset prefilled and not editable; the server 
 - Are not publicly listable; public users can upload through forms only and cannot enumerate or read other files.
 - Admin users can view uploads only for their own organization.
 
-Anti-abuse: include basic protection from the start — rate limiting on submission endpoints and/or a honeypot field and simple anti-spam mechanism. More robust abuse handling can come later.
+Anti-abuse (current state): a **honeypot** field (fixed internal `company_website`) is implemented on public forms. **Shared-store rate limiting is not yet implemented** — it is Phase A4 (must not be instance-local in-memory). More robust abuse handling and orphaned-upload cleanup are also A4.
 
 ## Privacy / data minimization
 
 Raw IP addresses are not stored. `scan_events.ip_hash` holds a hashed or truncated value sufficient for basic dedup/analytics. Internal notes, private documents, billing fields, and submissions never appear on public surfaces. The activity log records actor, action, and entity for auditability without storing sensitive payloads in plaintext where avoidable.
+
+## Known security gaps (Phase A1 record — not yet fixed)
+
+Recorded accurately for Phase A hardening. **Cross-tenant isolation is enforced in Postgres (RLS): every tenant
+policy is `is_platform_owner() or organization_id = current_org_id()`, and `current_org_id()` returns NULL for a
+disabled profile or suspended org. None of the items below is a cross-tenant leak** — they are intra-tenant /
+defense-in-depth items scoped to a single organization's own data. Details + severities in
+`docs/PILOT_LIMITATIONS.md`.
+
+1. **Route guards enforce the approved admin/staff navigation policy.** The `customer_admin` vs `customer_staff`
+   split is enforced at the Next route/server-action layer (`requireCustomerAdminOrgId`), and nav visibility matches.
+2. **Some same-organization write policies may not independently distinguish admin from staff at the DB.** RLS
+   references role only for `platform_owner`; for a few config tables (org settings incl. notification settings, tag
+   requests, inspection/page templates) the org-member RLS would allow a `customer_staff` to write directly via
+   PostgREST bypassing the route guard — within their own org only. **Fix in A3.1** (role-aware policies/triggers).
+3. **Team/user management uses a sanctioned server-only service-role path with TypeScript authorization.** It is
+   server-only (`import "server-only"`, never shipped to the browser) but has no DB-level role backstop for the
+   customer_admin invite path. **Hardening/review in A3.1.**
+4. **`/dashboard/submissions/export` is staff-reachable and independent of the owner-controlled customer-export
+   flags.** This is an operational inbox CSV, distinct from org-wide Data export, but it needs a product-policy
+   decision so it cannot bypass owner-controlled export. **Open security decision until fixed in A3.1.**
+5. **`public-assets` bucket objects are public by URL.** Cover images are readable by anyone with the (UUID) object
+   path regardless of the owning asset's `public_status`/`archived_at` (the bucket is declared public; unlike
+   `documents`, its read policy does not join to asset visibility). **Accepted pilot limitation — do not place
+   sensitive information in `public-assets`.**
 
 ## Things explicitly NOT in the MVP security scope
 

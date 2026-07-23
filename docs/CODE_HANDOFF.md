@@ -41,13 +41,19 @@ Set these in `.env.local` and in Vercel project settings (do not commit secrets)
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (server only — never exposed to the client)
-- `NEXT_PUBLIC_SITE_URL` (base for permanent QR URLs, e.g. the `/t/{short_code}` host)
-- Storage bucket name(s) and any upload size/type config
-- Anti-abuse config (rate-limit window, honeypot field name)
+- `NEXT_PUBLIC_SITE_URL` (base for permanent QR URLs, e.g. the `/t/{short_code}` host) — production-domain-sensitive
+- `SCAN_IP_HASH_SALT` (server only — salts the scan-event IP hash; **currently fails soft**: empty → weaker
+  anonymization, no error. A5 will require it in production)
 - `RESEND_API_KEY` and `NOTIFICATION_FROM_EMAIL` (server only — submission/tag-request
   notification emails via Resend). Both optional: leave blank to run notifications in
   dry-run mode (logged, never sent). `NOTIFICATION_FROM_EMAIL` must be a Resend-verified
   sender. Never commit these.
+
+**Not environment variables (reconciled in Phase A1):** storage **bucket names are hard-coded** in code
+(`public-assets` / `submissions` / `documents`) — they are not configurable; upload size/type caps are code
+constants. The public-form **honeypot is a fixed internal field** (`company_website`), not env-configurable.
+Shared-store **rate limiting is not implemented yet** — Phase A4 defines its configuration (no dead rate-limit env
+vars are retained). The authoritative env list is `lib/env.ts` + `.env.local.example`.
 
 The service-role key is used only in trusted server contexts (e.g. deriving `organization_id` on public submission intake). Never ship it to the browser.
 

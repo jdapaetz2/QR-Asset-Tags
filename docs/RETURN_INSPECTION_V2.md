@@ -1,11 +1,18 @@
 # Return Inspection V2 — Design of Record
 
-> **Status: Phase 1 BUILT & CLOSED — ready to merge pending `db push`.** Phase 1 covers 1A (guided
-> inspections), 1A.1 (mobile two-stage flow + conditional photos), and 1B (organization category defaults
-> + template catalog). It ships behind migrations `0024` **and** `0025`, both **unapplied until the
-> operator runs `npx.cmd supabase db push`**. The rest of this document remains the broader design of
-> record; **the "as built" sections below are authoritative where they differ from the design** (see the
-> reconciliation section immediately following). Phases 2 / 3 are still future waves.
+> **Phase A1 reconciliation (current).** Return-checklist Phase 1 (1A guided inspections, 1A.1 mobile two-stage +
+> conditional photos, 1B org category defaults + template catalog) is **IMPLEMENTED and on `pilot-credibility`**.
+> Phases 2 / 3 remain future waves. The "ready to merge pending `db push`" / "unapplied until operator runs
+> `db push`" notes below are **historical, point-in-time** authoring notes — **not** current remote migration
+> status. For the authoritative migration record and remote-verification commands see `docs/MIGRATION_LEDGER.md`
+> (migrations 0024 and 0025 back this phase). The "as built (authoritative)" sections below win where they differ
+> from the older design narrative.
+
+> **Status (historical, when authored): Phase 1 BUILT & CLOSED — ready to merge pending `db push`.** Phase 1 covers
+> 1A (guided inspections), 1A.1 (mobile two-stage flow + conditional photos), and 1B (organization category defaults
+> + template catalog). It ships behind migrations `0024` **and** `0025` (see the ledger for remote status). The rest
+> of this document remains the broader design of record; **the "as built" sections below are authoritative where they
+> differ from the design** (see the reconciliation section immediately following). Phases 2 / 3 are still future waves.
 > Related: [`YARD_STAFF_SCANNER_MODE.md`](YARD_STAFF_SCANNER_MODE.md), [`ROADMAP_DEFERRED.md`](ROADMAP_DEFERRED.md),
 > [`STORAGE_MEDIA_LIFECYCLE.md`](STORAGE_MEDIA_LIFECYCLE.md), [`NON_GOALS.md`](NON_GOALS.md),
 > [`DATA_MODEL.md`](DATA_MODEL.md).

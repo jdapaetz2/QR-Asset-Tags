@@ -1,0 +1,382 @@
+# Mulemark Roadmap
+
+**Updated:** July 22, 2026  
+**Current stage:** Pre-pilot product hardening  
+**Next phase:** Phase A - Pilot closeout and production hardening
+
+## Purpose
+
+This file is the durable roadmap for Mulemark. It records:
+
+- the current product position
+- the work that must be completed before a paid pilot
+- the commercial and physical-product work that follows
+- trigger-based features that should not be built until real customer evidence justifies them
+- decisions that should not be reopened casually
+
+It is not a substitute for `CLAUDE.md`, `docs/CODE_HANDOFF.md`, `docs/NON_GOALS.md`, `docs/DATA_MODEL.md`, or `docs/SECURITY_MODEL.md`. Current repository code remains the technical source of truth.
+
+---
+
+## Product thesis
+
+Mulemark is a customer-facing support, return-checklist, condition-evidence, and rental-session layer attached to physical rental equipment through durable QR tags.
+
+Mulemark does not attempt to replace a rental-management system. Its strongest value is:
+
+- instant renter access to useful equipment information
+- structured damage and support intake
+- renter and staff return checklists
+- outbound and return condition evidence
+- durable rental-session history
+- fewer low-value support interactions
+- clearer damage and accessory records
+- better yard workflow and customer experience
+- durable physical tags plus implementation, not software alone
+
+---
+
+## Current product position
+
+The core pilot workflow is substantially built:
+
+- public QR equipment pages
+- tenant branding and support contacts
+- manuals and equipment documents
+- Quick Start, safety, fuel/power, troubleshooting, and return information
+- public damage and support forms
+- renter return checklists
+- authenticated staff outbound inspections
+- authenticated staff return checklists
+- rental sessions connecting outbound, renter, acknowledgement, and staff records
+- photo-backed condition evidence
+- asset timelines
+- searchable rental-session evidence
+- submissions inbox, filters, bulk triage, and notifications
+- asset import, templates, and category assignment
+- QR governance, rotation, production-primary selection, and tag requests
+- plan limits and covered-asset counts
+- platform-owner-controlled customer export
+- role-aware navigation for owner, customer admin, customer staff, and public scan users
+- Mulemark branding and design language across current product surfaces
+
+The remaining risk is no longer a missing core workflow. The main risks are:
+
+- production deployment discipline
+- stale technical documentation
+- cross-role and cross-tenant regressions
+- public abuse and storage-cost exposure
+- email and operational observability
+- insufficient browser and real-device coverage
+- unstable domain or physical-tag assumptions
+- incomplete commercial packaging and physical-tag validation
+
+---
+
+## Durable product decisions
+
+### Usage and pricing model
+
+- Public scans are unlimited.
+- Pricing is based primarily on covered assets per yard/location.
+- A covered asset is active, non-archived, and actively covered by a production QR tag.
+- There is no seasonal or rarely-used paused-coverage loophole.
+- Archived assets do not count.
+- First-year pricing may be lower than renewal pricing to reduce adoption friction.
+- Annual plans may include a physical-tag allowance.
+- Standard implementation is scoped. It is not unlimited custom work.
+
+### Export and continuity
+
+- Customer export is disabled by default.
+- Only the platform owner can enable customer export.
+- When enabled, customer export is available to customer admins only.
+- Customer staff never receives organization-wide export access.
+- Platform-owner export remains available regardless of the customer-export setting.
+- A complete future offboarding package must eventually include media, not only CSV data.
+
+### Terminology
+
+- The canonical user-facing term is **Return checklist**.
+- Origin-specific records use **Renter return checklist** and **Staff return checklist**.
+- **Outbound inspection** remains the outbound term.
+- Internal identifiers such as `return_checklist` do not need cosmetic renaming.
+
+### Evidence and photos
+
+- Photos are strongly encouraged but are not an absolute prerequisite.
+- Missing recommended evidence requires a clear confirmation where appropriate.
+- Damage remains actionable even when no usable photo can be provided.
+- Records and media have different retention needs.
+- Evidence must never be silently deleted.
+
+### QR durability
+
+- Short codes must remain durable.
+- A stable production domain is also required before permanent physical tags are deployed.
+- Preview and localhost URLs are never production-tag destinations.
+- Redirect continuity and domain ownership must be documented.
+
+---
+
+# Roadmap phases
+
+## Phase A - Pilot closeout and production hardening
+
+**Objective:** Turn the current feature-complete pilot product into a production-deployable, supportable, and testable system.
+
+### A0. Current-state orientation
+
+- record branch, commit, working tree, migrations, route inventory, and deployment state
+- compare current code to handoff and roadmap documentation
+- identify actual pilot blockers without assuming older docs are accurate
+- produce an evidence-based Phase A implementation plan
+
+### A1. Repository and documentation reconciliation
+
+- reconcile `CODE_HANDOFF`, `DATA_MODEL`, `SECURITY_MODEL`, `NON_GOALS`, roadmap, inspection docs, and staff workflow docs
+- remove stale statements claiming implemented features are still future work
+- create an authoritative migration ledger
+- document applied, unapplied, superseded, and operator-required migrations
+- confirm current route, role, export, notification, storage, rental-session, and QR behavior
+
+### A2. Production deployment and environment readiness
+
+- validate Vercel and Supabase project linkage
+- validate production environment variables
+- confirm production URL and QR base URL
+- prevent production tag output using localhost or preview hosts
+- apply all required migrations in the target project
+- verify Resend production configuration
+- verify Speed Insights and production logging
+- create a repeatable deployment and rollback runbook
+- run production smoke tests
+
+### A3. Security, roles, and tenant isolation
+
+- audit every route, server action, RPC, storage path, and export handler
+- verify customer-admin and customer-staff permissions
+- verify platform-owner isolation and organization context
+- verify cross-organization IDs fail safely
+- confirm service-role usage is limited to sanctioned server workflows
+- verify public forms are insert-only and private media remains private
+- add automated regression coverage for the highest-risk boundaries
+- scan tracked files and docs for secrets
+
+**Split slices (from A0):**
+- **A3.1 — database role-separation backstop.** Add a defense-in-depth backstop so same-organization write policies
+  distinguish `customer_admin` from `customer_staff` (org settings, notification settings, tag requests, templates),
+  harden/review the server-only service-role team-management path, and resolve the `/dashboard/submissions/export`
+  product-policy decision so it cannot bypass owner-controlled customer export. These are intra-tenant/defense-in-depth
+  items, not cross-tenant leaks (see `docs/PILOT_LIMITATIONS.md`).
+- **A3.2 — full boundary audit + secret scanning.** Broader route/server-action/RPC/storage-path/export audit,
+  cross-organization ID fuzzing, and CI secret scanning + git hooks.
+
+### A4. Public abuse, rate limiting, and upload cleanup
+
+- retain the honeypot as a low-cost first layer
+- add shared-store rate limiting for public submissions and media workflows
+- do not use instance-local in-memory limits
+- rate-limit by privacy-preserving identifiers such as IP hash, short code, and action
+- return clear 429 responses without leaking asset or organization state
+- enforce file count, per-file size, total-byte, MIME, and path rules
+- clean uploaded files when submission finalization fails
+- provide an operator cleanup path for orphaned media
+- add structured abuse logging without raw IP storage
+
+### A5. Notification reliability and operational observability
+
+- verify the Mulemark sending domain and provider configuration
+- document SPF, DKIM, and DMARC requirements
+- preserve non-blocking public submissions when email fails
+- stop swallowing failures without enough diagnostic information
+- add structured, redacted notification logs
+- capture provider response IDs and failure classifications where safe
+- define retry or operator follow-up behavior for transient failures
+- create an operations runbook for email, deployment, storage, and public-form incidents
+- avoid building SMS or a full notification center in Phase A
+
+### A6. Browser E2E, real-device QA, and performance baseline
+
+- add a focused Playwright suite if one does not exist
+- cover public scan, forms, renter return checklist, staff outbound, staff return, submissions, rentals, export gating, and owner routes
+- test role and tenant boundaries through real navigation
+- create repeatable QA accounts and test-data setup
+- test photo uploads with controlled fixtures
+- test iPhone and Android devices or equivalent real-device coverage
+- test weak-signal behavior and mobile layout at common widths
+- establish Speed Insights and route-performance baselines
+- define practical performance budgets for scan and form routes
+
+**Split slices (from A0 — no browser/E2E, live-RLS, or migration-execution tests exist today):**
+- **A6.1 — E2E harness.** Stand up a Playwright suite from scratch (none exists; `vitest` runs node-only with no DOM)
+  and wire it into CI; cover the public scan/forms/return-checklist and core admin golden paths.
+- **A6.2 — role and tenant boundary E2E.** Exercise customer-admin, customer-staff, platform-owner, and public
+  boundaries through real navigation, plus live-RLS/migration-execution coverage for the highest-risk boundaries.
+- **A6.3 — real-device QA + performance baseline.** iPhone/Android (or equivalent) scan/form testing, weak-signal and
+  common mobile widths, and Speed Insights / route-performance budgets.
+
+### A7. Pilot-readiness closeout
+
+- run lint, typecheck, unit tests, E2E tests, and production build
+- verify migrations, environment, domain, email, rate limits, storage, and role boundaries
+- run the full owner/admin/staff/public smoke matrix
+- produce a final pilot-readiness report with pass/fail evidence
+- list accepted pilot limitations separately from blockers
+- merge and deploy only when blocking items are closed
+
+### Phase A exit criteria
+
+Phase A is complete when:
+
+- production deployment is repeatable and documented
+- current docs match the actual product
+- every required migration is accounted for
+- critical role and tenant boundaries have automated coverage
+- public forms have shared-store abuse controls
+- failed uploads do not leave uncontrolled orphaned media
+- email failures are diagnosable
+- core golden paths pass browser E2E tests
+- public scan and form surfaces pass real-device QA
+- stable-domain rules are enforced for production tags
+- no critical or high pilot blockers remain
+- accepted limitations are explicitly documented
+
+---
+
+## Phase B - Commercial readiness
+
+- CIPO, USPTO, common-law, domain, and social-handle clearance
+- final production domain and continuity story
+- pricing and package decisions
+- first-year versus renewal pricing
+- monthly versus annual terms
+- tag allowance and replacement pricing
+- onboarding scope and multi-yard rules
+- full unit-economics model
+- sales deck, one-page overview, pilot package, buyer FAQ, pricing sheet, agreement, onboarding checklist, case-study template, and PNW prospect list
+- credible Mulemark landing page
+
+---
+
+## Phase C - Physical product readiness
+
+- anodized aluminum, Cerakote, stainless, and interim supplier testing
+- QR size, contrast, quiet zone, scan angle, and damage tolerance
+- UV, rain, freeze/thaw, mud, grease, fuel, hydraulic fluid, abrasion, pressure washing, and temperature cycling
+- adhesive, rivet, screw, curved-surface, trailer, heavy-equipment, and portable-tool mounting
+- production traveler, first article, scan QA, serialization, scrap tracking, packaging, replacement traceability, warranty, and first-batch acceptance criteria
+
+---
+
+## Phase D - Controlled pilots
+
+- two or three carefully selected yards
+- defined sponsor, asset scope, users, and success measures
+- real tags and real operational use
+- regular check-ins and end-of-pilot conversion review
+- metrics for onboarding, scans, valuable actions, submissions, return checklists, outbound baselines, staff returns, acknowledgements, photo evidence, response time, repeated problems, storage, delivery, objections, and renewal intent
+- case study, pricing evidence, workflow evidence, and post-pilot roadmap
+
+---
+
+## Phase E - Post-pilot development
+
+Build only what repeated pilot evidence justifies.
+
+- operations-grade value reporting
+- storage and media lifecycle enforcement
+- organization-customized checklist templates
+- finer staff permissions
+- multi-yard/location support
+- multiple notification recipients
+- SMS and delivery history
+- API, webhooks, and rental-system integrations
+- offline/PWA support
+- in-app scanner
+- automated billing
+- custom domains/subdomains
+- localization, French, units, and timezone settings
+- complete offboarding package with media
+- customer-facing rental-session history where justified
+
+---
+
+# Trigger-based backlog
+
+| Item | Build trigger | Current disposition |
+|---|---|---|
+| Storage quotas and archival | Before storage cost becomes material or before broad photo rollout | High priority after Phase A |
+| Multi-recipient notifications | First pilot needs different operations/service recipients | Deferred |
+| SMS | Email proves too slow for urgent damage or support | Deferred |
+| Notification center | Event volume makes email/log review insufficient | Deferred |
+| Out-of-service/hold state | A pilot needs to block damaged equipment from rental | Deferred, likely early |
+| Checklist customization | Two or more customers need materially different checks | Deferred |
+| Fine-grained staff permissions | Customer has counter, yard, service, and manager role separation | Deferred |
+| Multi-yard/location | First serious multi-location prospect | Deferred |
+| API/webhooks | Integration need repeats across prospects | Deferred |
+| RMS integration | A paid customer makes it a buying condition | Deferred |
+| Offline/PWA | Poor coverage causes failed or abandoned field workflows | Deferred |
+| In-app scanner | Staff repeatedly need batch or in-app scanning | Deferred |
+| SSG/ISR | Scan cost or performance justifies rendering-model work | Deferred |
+| Video evidence | Photos repeatedly prove inadequate | Deferred |
+| Customer self-service actions | Pickup, extension, or accessory requests show clear demand | Deferred |
+| Complete offboarding package | Enterprise continuity or churn concern requires media export | Deferred |
+| Automated billing | Manual invoicing becomes an operating burden | Deferred |
+| Custom domains | Larger customer requires stronger white-labeling | Deferred |
+| Internationalization | First committed French/non-English customer | Deferred |
+| Split-view submissions inbox | Real volume makes page-by-page triage too slow | Deferred |
+| SLA timers/assignment | Multiple operators need ownership and escalation | Deferred |
+| Physical-tag QA | Before first paid physical deployment | Phase C blocker |
+| Trademark clearance | Before large tag or marketing spend | Phase B blocker |
+
+---
+
+# Small items to verify during Phase A
+
+- no visible AssetTag QR references remain
+- Mulemark metadata, email, print, and production output are consistent
+- owner Organizations page shows unviewed tag-request status
+- customer export fails closed
+- staff cannot access admin configuration by direct URL
+- list filters survive detail round trips
+- category defaults and explicit template assignments still work
+- duplicate outbound baselines are blocked
+- acknowledgements attach to the correct rental session
+- archived submissions leave active counts
+- submission counters update without manual refresh
+- production selects the production-primary QR link
+- deactivated QR links retain history
+- public forms do not expose database errors
+- timelines and rental-session browsers remain bounded and paginated
+- no automatic refresh loops remain
+- sign out works for every role
+
+---
+
+# Current non-goals
+
+- full rental booking and reservation system
+- invoicing and payment processing
+- dispatch management
+- general-purpose CMMS
+- full work-order scheduling
+- GPS and telematics
+- native mobile app
+- blank-canvas form builder
+- e-signature or rental contracts
+- automated fault attribution
+- automated damage billing
+- AI damage determination
+- template marketplace
+- unlimited video storage
+
+---
+
+# Roadmap maintenance rules
+
+- Update this file after every completed phase.
+- Record completed work without deleting the history of why it was prioritized.
+- Move a deferred item into an active phase only when its trigger has been met.
+- Keep accepted pilot limitations separate from defects.
+- Real pilot evidence takes precedence over speculative roadmap work.

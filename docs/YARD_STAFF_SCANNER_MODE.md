@@ -1,10 +1,19 @@
 # Yard Staff Outbound/Return Scanner Mode
 
-> **Status: Phase 3A + 3A.1 + 3B + 3C BUILT** — outbound baseline, protected atomic staff return, the
-> connected condition story (baseline-aware return, structured comparison, renter-report reconciliation,
-> session evidence view), and unified condition-history presentation + open-damage surfacing. DB migrations
-> `0027`, `0028`, `0029` ship unapplied until `npx.cmd supabase db push`; **Phase 3C adds no schema change**
-> (presentation + queries only).
+> **Phase A1 reconciliation (current).** The authenticated-staff outbound/return scanner workflow (Phases 3A / 3A.1
+> / 3B / 3C and the 3C.1–3C.8.1 follow-ups) is **IMPLEMENTED** on `pilot-credibility`. This is distinct from — and
+> does **not** deliver — the deferred `yard_worker` role or an in-app camera scanner (both still future; see
+> `docs/roadmap.md` / `docs/NON_GOALS.md`). The "ship unapplied until `db push`" / "ships UNAPPLIED" notes throughout
+> this document are **historical, point-in-time** authoring notes — **not** current remote migration status; see
+> `docs/MIGRATION_LEDGER.md` for the authoritative record (migrations 0027–0031 back this workflow) and the operator
+> verification commands. Also note: the Phase-3A "NOT built — before/after (outbound-vs-return) comparison" line was
+> **superseded by Phase 3B** (`buildSessionComparison` in `lib/inspections/session-comparison.ts`).
+
+> **Status (historical, when authored): Phase 3A + 3A.1 + 3B + 3C BUILT** — outbound baseline, protected atomic staff
+> return, the connected condition story (baseline-aware return, structured comparison, renter-report reconciliation,
+> session evidence view), and unified condition-history presentation + open-damage surfacing. DB migrations `0027`,
+> `0028`, `0029` were authored to ship pending `db push` (see the ledger for remote status); **Phase 3C adds no schema
+> change** (presentation + queries only).
 
 ## Phase 3A — as built (authoritative)
 Authenticated staff (customer_admin / customer_staff) scan the tag and run an **outbound (pre-use)

@@ -4,6 +4,8 @@
 (Wave 3N closeout — see §0 and §0.1, which supersede the §1–§17 pre-3N.1 findings).**
 **Product (internal name):** Mulemark · **Platform brand:** Mulemark (working name)
 **Companion visual map:** [`docs/brand/navigation-map.html`](brand/navigation-map.html) (open directly in a browser)
+**See also (Phase A1):** [`docs/CURRENT_ARCHITECTURE.md`](CURRENT_ARCHITECTURE.md) (as-built system map) and
+[`docs/MIGRATION_LEDGER.md`](MIGRATION_LEDGER.md) (authoritative migration record).
 
 > **Scope & limits.** This is a **current-state audit produced by static source inspection** of routes, layouts,
 > route guards, navigation config, link `href`s, and server-action redirect destinations. **No application code,

@@ -17,7 +17,12 @@ assets 1──1 equipment_pages
 
 An asset may have more than one `qr_link` over its life, so QR routing is kept in its own table rather than on `assets`.
 
-## Tables
+## Tables (MVP baseline)
+
+> **Reconciliation note (Phase A1).** The table definitions in this section are the **MVP baseline** (migrations
+> 0001–0002). Waves 2–3 added tables and columns via migrations 0008–0031 — see **"Schema additions since MVP"**
+> below and, for the authoritative per-migration column list, `docs/MIGRATION_LEDGER.md`. Where this section and the
+> ledger differ, the ledger + the migration SQL win.
 
 ### organizations
 Represents each customer company.
@@ -172,6 +177,35 @@ Internal audit trail.
 | entity_id | uuid | |
 | metadata_json | jsonb | |
 | created_at | timestamptz | |
+
+## Schema additions since MVP (migrations 0008–0031)
+
+Added after the MVP baseline above. Authoritative column details + verify queries: `docs/MIGRATION_LEDGER.md`.
+
+**New tables**
+
+| Table | Migration | Purpose |
+|---|---|---|
+| `equipment_page_templates` | 0008 | Org-custom equipment-page templates (system rows read-only to customers) |
+| `tag_requests`, `tag_request_assets` | 0010 (+0011 viewed cols) | Customer requests for physical QR tags; owner-only status writes |
+| `asset_acknowledgements` | 0013 (+0014 `rental_session_id`) | Public, insert-only renter acknowledgements (not an e-signature) |
+| `asset_rental_sessions` | 0014 | Rental sessions (outbound → renter → staff), auth-only |
+| `inspection_category_defaults` | 0025 | Org category → return-template default map (no anon) |
+| `inspection_templates` | 0026 | Versioned, immutable return-inspection templates + `get_asset_return_template` RPC |
+
+**New columns (existing tables)**
+
+| Table | Columns (migration) |
+|---|---|
+| `organizations` | notification email settings (0012); export flags incl. `customer_exports_enabled` (0015); plan/commercial fields (0016) |
+| `assets` | `archived_at` (0009); `active_rental_session_id` (0014); `return_inspection_template_key` (0024); `return_inspection_template_id` (0026) |
+| `profiles` | `status` = active/invited/disabled (0017) |
+| `qr_links` | `is_production_primary`, `supersedes_qr_link_id` (0023) |
+| `form_submissions` | `submission_origin` (public/staff), `submitted_by_profile_id`, `created_by_profile_id`, `rental_session_id` (0024/0027/0028) |
+
+**Key RPCs / helpers added:** `mark_return_and_resolve` (0022), `start_outbound_rental` (0027→0028→**0030**),
+`complete_staff_return` (0028→**0029**), `set_qr_production_primary` (0023), the 4 analytics RPCs (0020/0021), and
+the disabled-/suspension-aware `current_org_id()` (0018→**0019**). See the ledger's supersession chains.
 
 ## Enum reference (string-typed in MVP)
 
