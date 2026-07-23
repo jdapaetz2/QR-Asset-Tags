@@ -3,7 +3,7 @@
 import { randomBytes } from "node:crypto";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireProfile } from "@/lib/auth/session";
+import { requireCustomerAdmin } from "@/lib/auth/session";
 import { publicEnv } from "@/lib/env";
 import { shortCodeFromBytes, SHORT_CODE_LENGTH } from "@/lib/qr/short-code";
 import { buildPublicQrUrl } from "@/lib/qr/url";
@@ -51,7 +51,7 @@ export async function importAssets(
   _prev: ImportState,
   formData: FormData
 ): Promise<ImportState> {
-  const profile = await requireProfile();
+  const { profile } = await requireCustomerAdmin();
   if (!profile.organization_id) {
     return { error: "Your account is not attached to an organization." };
   }

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { requireProfile, requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { publicEnv } from "@/lib/env";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -25,6 +26,36 @@ const LAST_ADMIN_MESSAGE =
 
 const SUSPENDED_ORG_MESSAGE =
   "Your organization is suspended. Contact Mulemark to reactivate it.";
+
+const NOT_A_MANAGER_MESSAGE = "You are not allowed to manage users.";
+
+/**
+ * Team management is administrative: only a platform owner or a customer admin may reach the
+ * privileged lookups in these actions. Checked BEFORE any service-role client is created, so a
+ * `customer_staff` can never probe another organization's profiles for existence or lifecycle
+ * status (Phase A3.1 — server actions are independently invocable, so the admin-only page that
+ * renders them is not itself a guard).
+ */
+function isTeamManager(role: string): boolean {
+  return role === ROLES.PLATFORM_OWNER || role === ROLES.CUSTOMER_ADMIN;
+}
+
+/**
+ * Restrict a service-role profile lookup to the actor's own organization unless they are the
+ * platform owner. Defense in depth: `canManageMember` is still the authority, but the query
+ * itself is now tenant-safe, so a missed check cannot become a cross-tenant read or write.
+ */
+function scopeToActorOrg<T>(
+  query: T,
+  actorRole: string,
+  actorOrgId: string | null
+): T {
+  if (actorRole === ROLES.PLATFORM_OWNER) return query;
+  return (query as { eq: (c: string, v: unknown) => T }).eq(
+    "organization_id",
+    actorOrgId
+  );
+}
 
 /**
  * Team actions use the service-role admin client (creating auth users needs it), which
@@ -227,8 +258,13 @@ export async function inviteUser(
     status: "invited",
   });
   if (profileError) {
+    // Compensate: `generateLink({type:"invite"})` already created the auth user. Without this the
+    // account is permanently wedged — the profile lookup above finds nothing, so a retry takes the
+    // new-user path and fails forever with "the email may already have an account". Best-effort:
+    // if the cleanup itself fails the operator message below still applies (Phase A3.1).
+    await admin.auth.admin.deleteUser(generated.user.id).catch(() => {});
     return {
-      error: "Invite created, but the profile could not be saved. Contact support.",
+      error: "Invite created, but the profile could not be saved. Please try again.",
     };
   }
 
@@ -253,16 +289,20 @@ export async function regenerateInvite(
   _formData: FormData
 ): Promise<TeamActionState> {
   const actor = await requireProfile();
+  if (!isTeamManager(actor.role)) return { error: NOT_A_MANAGER_MESSAGE };
 
   const admin = createAdminClient();
   if (await actorBlockedBySuspension(admin, actor)) {
     return { error: SUSPENDED_ORG_MESSAGE };
   }
-  const { data: target } = await admin
-    .from("profiles")
-    .select("id, email, organization_id, role, status")
-    .eq("id", profileId)
-    .maybeSingle();
+  const { data: target } = await scopeToActorOrg(
+    admin
+      .from("profiles")
+      .select("id, email, organization_id, role, status")
+      .eq("id", profileId),
+    actor.role,
+    actor.organization_id
+  ).maybeSingle();
   if (!target) return { error: "User not found." };
   if (target.status !== "invited") {
     return { error: "Only invited users can get a new invite link." };
@@ -306,6 +346,7 @@ export async function setUserStatus(
     return { error: "Invalid status." };
   }
   const actor = await requireProfile();
+  if (!isTeamManager(actor.role)) return { error: NOT_A_MANAGER_MESSAGE };
   const fallback =
     actor.role === ROLES.PLATFORM_OWNER ? "/owner/users" : "/dashboard/settings/users";
   const redirectTo = safeRedirect(formData.get("redirect_to"), fallback);
@@ -314,11 +355,14 @@ export async function setUserStatus(
   if (await actorBlockedBySuspension(admin, actor)) {
     return { error: SUSPENDED_ORG_MESSAGE };
   }
-  const { data: target } = await admin
-    .from("profiles")
-    .select("id, organization_id, role, status, auth_user_id")
-    .eq("id", profileId)
-    .maybeSingle();
+  const { data: target } = await scopeToActorOrg(
+    admin
+      .from("profiles")
+      .select("id, organization_id, role, status, auth_user_id")
+      .eq("id", profileId),
+    actor.role,
+    actor.organization_id
+  ).maybeSingle();
   if (!target) return { error: "User not found." };
 
   if (target.auth_user_id === actor.auth_user_id) {
@@ -375,7 +419,10 @@ export async function setUserRole(
   const actor = await requireRole(ROLES.PLATFORM_OWNER);
   const redirectTo = safeRedirect(formData.get("redirect_to"), "/owner/users");
 
-  const admin = createAdminClient();
+  // No service role here (Phase A3.1): this action is platform-owner-only and the existing
+  // `profiles_select`/`profiles_update` policies already admit `is_platform_owner()`, so the
+  // RLS-scoped client is sufficient and RLS stays in force as a second boundary.
+  const admin = await createClient();
   const { data: target } = await admin
     .from("profiles")
     .select("id, organization_id, role, status, auth_user_id")

@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireProfile } from "@/lib/auth/session";
+import { requireCustomerAdmin } from "@/lib/auth/session";
 import { RETURN_TEMPLATES, isReturnTemplateKey } from "@/lib/inspections/templates";
 import {
   copyFromSystemTemplate,
@@ -26,7 +26,7 @@ export async function copySystemTemplate(
   _prev: OrgTemplateState,
   _formData: FormData
 ): Promise<OrgTemplateState> {
-  const profile = await requireProfile();
+  const { profile } = await requireCustomerAdmin();
   if (!profile.organization_id) {
     return { error: "Your account is not attached to an organization." };
   }
@@ -69,7 +69,7 @@ export async function saveDraft(
   _prev: OrgTemplateState,
   formData: FormData
 ): Promise<OrgTemplateState> {
-  await requireProfile();
+  await requireCustomerAdmin();
   const supabase = await createClient();
 
   const row = await getOrgTemplate(supabase, id);
@@ -113,7 +113,7 @@ export async function publishTemplate(
   _prev: OrgTemplateState,
   _formData: FormData
 ): Promise<OrgTemplateState> {
-  await requireProfile();
+  await requireCustomerAdmin();
   const supabase = await createClient();
 
   const row = await getOrgTemplate(supabase, id);
@@ -138,7 +138,7 @@ export async function createNewVersion(
   _prev: OrgTemplateState,
   _formData: FormData
 ): Promise<OrgTemplateState> {
-  const profile = await requireProfile();
+  const { profile } = await requireCustomerAdmin();
   if (!profile.organization_id) {
     return { error: "Your account is not attached to an organization." };
   }
@@ -188,7 +188,7 @@ export async function retireTemplate(
   _prev: OrgTemplateState,
   _formData: FormData
 ): Promise<OrgTemplateState> {
-  await requireProfile();
+  await requireCustomerAdmin();
   const supabase = await createClient();
   const row = await getOrgTemplate(supabase, id);
   if (!row) return { error: "Template not found." };
@@ -208,7 +208,7 @@ export async function discardDraft(
   _prev: OrgTemplateState,
   _formData: FormData
 ): Promise<OrgTemplateState> {
-  await requireProfile();
+  await requireCustomerAdmin();
   const supabase = await createClient();
   const row = await getOrgTemplate(supabase, id);
   if (!row) return { error: "Template not found." };
@@ -229,7 +229,7 @@ export async function moveAssignedAssetsToVersion(
   _prev: OrgTemplateState,
   _formData: FormData
 ): Promise<OrgTemplateState> {
-  await requireProfile();
+  await requireCustomerAdmin();
   const supabase = await createClient();
 
   const from = await getOrgTemplate(supabase, fromTemplateId);

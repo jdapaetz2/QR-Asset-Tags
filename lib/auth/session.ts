@@ -133,7 +133,24 @@ export async function requireOrgContext(): Promise<{ orgId: string; profile: Pro
  * and a suspended-org customer to `/suspended`. Cross-org isolation stays with RLS.
  */
 export async function requireCustomerAdminOrgId(): Promise<string> {
+  const { orgId } = await requireCustomerAdmin();
+  return orgId;
+}
+
+/**
+ * Like {@link requireCustomerAdminOrgId} but ALSO returns the profile, for admin-only server
+ * actions that need the actor (e.g. `created_by_profile_id`). Same enforcement: an active-org
+ * `customer_admin` only — `customer_staff` is sent to `/dashboard`, a platform owner to `/owner`,
+ * a suspended-org customer to `/suspended`.
+ *
+ * Server actions are independently invocable POST endpoints, so every admin-only action must call
+ * this itself — an admin-only *page* does not protect the action it renders (Phase A3.1).
+ */
+export async function requireCustomerAdmin(): Promise<{
+  orgId: string;
+  profile: Profile;
+}> {
   const { orgId, profile } = await requireOrgContext();
   if (profile.role !== ROLES.CUSTOMER_ADMIN) redirect(landingPathForRole(profile.role));
-  return orgId;
+  return { orgId, profile };
 }

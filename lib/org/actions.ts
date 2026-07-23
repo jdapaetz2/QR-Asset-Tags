@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireOrgId, requireRole } from "@/lib/auth/session";
+import { requireCustomerAdminOrgId, requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
 import {
   normalizeOrgSettings,
@@ -193,12 +193,16 @@ export async function createOrganization(
   redirect(`/owner/organizations/${data.id}`);
 }
 
-/** Customer admin updates their own organization (org derived from the profile). */
+/**
+ * Customer admin updates their own organization (org derived from the profile).
+ * Admin-only at the action layer too (A3.1) — the admin-only Settings page does not protect this
+ * server action, which is an independently invocable endpoint.
+ */
 export async function updateOrgSettings(
   _prev: OrgSettingsState,
   formData: FormData
 ): Promise<OrgSettingsState> {
-  const organizationId = await requireOrgId();
+  const organizationId = await requireCustomerAdminOrgId();
   const supabase = await createClient();
   const result = await saveOrgSettings(supabase, organizationId, formData);
   if (result.error) return result;

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireProfile } from "@/lib/auth/session";
+import { requireCustomerAdmin } from "@/lib/auth/session";
 import {
   validateTagRequest,
   type RawTagRequestForm,
@@ -33,7 +33,7 @@ export async function createTagRequest(
   _prev: TagRequestState,
   formData: FormData
 ): Promise<TagRequestState> {
-  const profile = await requireProfile();
+  const { profile } = await requireCustomerAdmin();
   if (!profile.organization_id) {
     return { error: "Your account is not attached to an organization." };
   }

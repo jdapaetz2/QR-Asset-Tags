@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireProfile } from "@/lib/auth/session";
+import { requireCustomerAdmin } from "@/lib/auth/session";
 import { normalizeCategoryKey } from "@/lib/assets/categories";
 import { isReturnTemplateKey } from "@/lib/inspections/templates";
 import {
@@ -27,7 +27,7 @@ export async function saveCategoryDefault(
   _prev: CategoryDefaultFormState,
   formData: FormData
 ): Promise<CategoryDefaultFormState> {
-  const profile = await requireProfile();
+  const { profile } = await requireCustomerAdmin();
   if (!profile.organization_id) {
     return { error: "Your account is not attached to an organization." };
   }
@@ -82,7 +82,7 @@ export async function removeCategoryDefault(
   _prev: CategoryDefaultFormState,
   _formData: FormData
 ): Promise<CategoryDefaultFormState> {
-  await requireProfile();
+  await requireCustomerAdmin();
   const supabase = await createClient();
   const { error } = await supabase
     .from("inspection_category_defaults")
@@ -102,7 +102,7 @@ export async function applyCategoryDefaultToUnassigned(
   _prev: CategoryDefaultFormState,
   _formData: FormData
 ): Promise<CategoryDefaultFormState> {
-  await requireProfile();
+  await requireCustomerAdmin();
   const supabase = await createClient();
 
   const defaults = await getOrgCategoryDefaults(supabase);

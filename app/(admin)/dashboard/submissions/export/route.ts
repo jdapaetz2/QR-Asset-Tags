@@ -1,7 +1,8 @@
 import { type NextRequest } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireOrgId } from "@/lib/auth/session";
+import { requireCustomerAdminOrgId } from "@/lib/auth/session";
+import { isExportTypeEnabled, toExportFlags } from "@/lib/export/types";
 import {
   buildSubmissionsCsv,
   type SubmissionExportRow,
@@ -13,8 +14,10 @@ import { isSubmissionStatus } from "@/lib/submissions/display";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  // Redirects logged-out users (also enforced by the proxy) and null-org users.
-  await requireOrgId();
+  // Customer data export is owner-enabled and customer-admin-only (Phase A3.1). This inbox CSV is
+  // a customer export like any other: staff are refused by the guard, and the org must have both
+  // the master flag and the `submissions` type enabled. Denial returns 403 with no data.
+  const organizationId = await requireCustomerAdminOrgId();
 
   const sp = request.nextUrl.searchParams;
   const formType = sp.get("form_type") ?? "";
@@ -29,6 +32,21 @@ export async function GET(request: NextRequest) {
   const assetId = sp.get("asset_id") ?? "";
 
   const supabase = await createClient();
+
+  // Owner-controlled export gate: master flag AND the `submissions` type. Fails closed —
+  // toExportFlags coerces a missing/blocked row to all-false.
+  const { data: org } = await supabase
+    .from("organizations")
+    .select(
+      "customer_exports_enabled, export_assets_enabled, export_qr_mapping_enabled, export_documents_enabled, export_submissions_enabled"
+    )
+    .eq("id", organizationId)
+    .maybeSingle();
+  if (!isExportTypeEnabled(toExportFlags(org), "submissions")) {
+    return new Response("Export is not enabled for this organization.", {
+      status: 403,
+    });
+  }
 
   // RLS-scoped: only the caller's organization's submissions are returned.
   let query = supabase

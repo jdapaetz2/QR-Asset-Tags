@@ -44,17 +44,26 @@ try {
   add("fail", "env-names", ".env.local.example not found");
 }
 
-// 2) Migrations 0001–0031 all present.
+// 2) Migration files are contiguous from 0001 to the highest present (no gaps).
 {
   const dir = join(root, "supabase", "migrations");
-  const files = existsSync(dir) ? readdirSync(dir) : [];
+  const files = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".sql")) : [];
+  const numbers = files
+    .map((f) => Number(f.slice(0, 4)))
+    .filter((n) => Number.isInteger(n) && n > 0);
+  const highest = numbers.length ? Math.max(...numbers) : 0;
   const missing = [];
-  for (let i = 1; i <= 31; i++) {
-    const n = String(i).padStart(4, "0");
-    if (!files.some((f) => f.startsWith(`${n}_`) && f.endsWith(".sql"))) missing.push(n);
+  for (let i = 1; i <= highest; i++) {
+    if (!numbers.includes(i)) missing.push(String(i).padStart(4, "0"));
   }
-  if (missing.length) add("fail", "migrations", `missing migration files: ${missing.join(", ")}`);
-  else add("pass", "migrations", "0001–0031 all present (remote-applied state is operator-verified, not checked here)");
+  if (!highest) add("fail", "migrations", "no migration files found");
+  else if (missing.length) add("fail", "migrations", `gaps in migration sequence: ${missing.join(", ")}`);
+  else
+    add(
+      "pass",
+      "migrations",
+      `0001–${String(highest).padStart(4, "0")} contiguous (remote-applied state is operator-verified, not checked here)`
+    );
 }
 
 // 3) Canonical Node version consistent (.nvmrc == package.json engines major).

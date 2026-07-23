@@ -23,6 +23,11 @@ proof of remote application.
 >
 > Re-verify with the read-only commands below after any future migration is added; never claim applied without a fresh
 > readout.
+>
+> **0032 (Phase A3.1) is NOT yet applied** — it was authored after the verification above and ships pending
+> `npx.cmd supabase db push`. Its server-layer counterparts are already active in the app; the database backstop
+> (role-aware write policies + the `profiles` privileged-column trigger) only takes effect once pushed. Run
+> `npx.cmd supabase migration list` + `npx.cmd supabase db push --dry-run` first, then push.
 
 ### Operator verification commands (run against the linked project)
 
@@ -95,6 +100,7 @@ keep the table scannable.
 | 0029 | `0029_reconcile_staff_return.sql` | Redefine `complete_staff_return` to reconcile same-session renter reports | 0028 | Altering (REPLACE) | RPC,G/R | staff completion reconciliation | `select proname from pg_proc where proname='complete_staff_return';` |
 | 0030 | `0030_outbound_attach_session.sql` | Redefine `start_outbound_rental` to attach to an existing active session; 1 partial unique idx | 0028,0027 | Altering (REPLACE) + IDX | RPC,G/R,IDX | outbound attach-to-session UI | call `start_outbound_rental` on a rented asset → `attached_to_existing_session`/`baseline_already_exists` |
 | 0031 | `0031_history_indexes.sql` | 6 composite/covering indexes for timeline + rentals pagination | 0014,0001,0013,0010 | Additive | IDX | `getAssetTimelinePage`, `getRentalSessionsPage` | `select indexname from pg_indexes where indexname='form_submissions_asset_created_idx';` |
+| 0032 | `0032_role_write_enforcement.sql` | **Phase A3.1** — `current_profile_role()` + `is_current_org_admin()` helpers; `protect_profile_privileged_fields` trigger (closes self-escalation of `profiles.role`); role-aware WRITE policies on organizations/tag requests/templates/category defaults; anon DML revokes | 0001,0008,0010,0018,0019,0025,0026 | Additive (adds fns/trigger; drops+recreates only the write policies it supersedes) | RLS,RPC,TRG,G/R | admin-only server actions (`requireCustomerAdmin`), all admin config UI | `select proname from pg_proc where proname in ('current_profile_role','is_current_org_admin');` → 2 rows; `select tgname from pg_trigger where tgname='profiles_protect_privileged_fields';` |
 
 ---
 

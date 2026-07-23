@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireProfile } from "@/lib/auth/session";
+import { requireCustomerAdmin } from "@/lib/auth/session";
 import {
   validateTemplateForm,
   type RawTemplateForm,
@@ -40,7 +40,7 @@ export async function createOrgTemplate(
   _prev: TemplateFormState,
   formData: FormData
 ): Promise<TemplateFormState> {
-  const profile = await requireProfile();
+  const { profile } = await requireCustomerAdmin();
   if (!profile.organization_id) {
     return { error: "Your account is not attached to an organization." };
   }
@@ -76,7 +76,7 @@ export async function updateOrgTemplate(
   _prev: TemplateFormState,
   formData: FormData
 ): Promise<TemplateFormState> {
-  await requireProfile();
+  await requireCustomerAdmin();
 
   const result = validateTemplateForm(readForm(formData));
   if (!result.value) return { error: result.error };
@@ -107,7 +107,7 @@ export async function setOrgTemplateActive(
   _prev: TemplateFormState,
   _formData: FormData
 ): Promise<TemplateFormState> {
-  await requireProfile();
+  await requireCustomerAdmin();
 
   const supabase = await createClient();
   const { data, error } = await supabase

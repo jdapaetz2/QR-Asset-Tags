@@ -24,6 +24,8 @@ const ADMIN_ONLY = [
   "app/(admin)/dashboard/assets/import/page.tsx",
   "app/(admin)/dashboard/assets/import/template.csv/route.ts",
   "app/(admin)/dashboard/assets/templates/page.tsx",
+  // Phase A3.1: the submissions inbox CSV is a customer data export, not an operational surface.
+  "app/(admin)/dashboard/submissions/export/route.ts",
 ];
 
 // Operational surfaces that both customer_admin AND customer_staff may use — must NOT be admin-gated.
@@ -33,7 +35,8 @@ const STAFF_ALLOWED = [
   "app/(admin)/dashboard/assets/[assetId]/timeline/page.tsx",
   "app/(admin)/dashboard/submissions/page.tsx",
   "app/(admin)/dashboard/submissions/[submissionId]/page.tsx",
-  "app/(admin)/dashboard/submissions/export/route.ts",
+  // NOTE: submissions/export/route.ts was here until Phase A3.1. The inbox CSV is a customer data
+  // export, so it is now admin-only AND owner-flag-gated — see ADMIN_ONLY above.
   "app/(admin)/dashboard/rentals/page.tsx",
   "app/(admin)/dashboard/rentals/[sessionId]/page.tsx",
   "app/(admin)/dashboard/analytics/page.tsx",

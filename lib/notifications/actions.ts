@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireOrgId } from "@/lib/auth/session";
+import { requireCustomerAdminOrgId } from "@/lib/auth/session";
 import {
   normalizeNotificationSettings,
   type RawNotificationForm,
@@ -37,7 +37,7 @@ export async function updateNotificationSettings(
   _prev: NotificationSettingsState,
   formData: FormData
 ): Promise<NotificationSettingsState> {
-  const organizationId = await requireOrgId();
+  const organizationId = await requireCustomerAdminOrgId();
 
   const result = normalizeNotificationSettings(readForm(formData));
   if (!result.value) return { error: result.error };

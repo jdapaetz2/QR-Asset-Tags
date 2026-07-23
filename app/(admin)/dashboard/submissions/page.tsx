@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireOrgId } from "@/lib/auth/session";
+import { requireOrgContext } from "@/lib/auth/session";
+import { canCustomerUseExport } from "@/lib/export/access";
+import { isExportTypeEnabled, toExportFlags } from "@/lib/export/types";
 import { countNewSubmissions } from "@/lib/submissions/counts";
 import { currentListHref, withReturnTo } from "@/lib/nav/return-to";
 import { RelativeTime } from "@/components/relative-time";
@@ -79,7 +81,7 @@ export default async function SubmissionsPage({
 }: {
   searchParams: SearchParams;
 }) {
-  await requireOrgId();
+  const { orgId, profile } = await requireOrgContext();
   const sp = await searchParams;
   const filters = parseSubmissionFilters(sp);
   // The current filtered inbox URL, carried into each detail link + resolve action so Back and post-action
@@ -87,6 +89,21 @@ export default async function SubmissionsPage({
   const listHref = currentListHref("/dashboard/submissions", sp);
 
   const supabase = await createClient();
+
+  // The inbox CSV is a customer data export: owner-enabled, customer-admin-only, and requires the
+  // `submissions` type (Phase A3.1). Mirrors the route guard exactly so the button and the route
+  // can never disagree.
+  const { data: exportOrg } = await supabase
+    .from("organizations")
+    .select(
+      "customer_exports_enabled, export_assets_enabled, export_qr_mapping_enabled, export_documents_enabled, export_submissions_enabled"
+    )
+    .eq("id", orgId)
+    .maybeSingle();
+  const exportFlags = toExportFlags(exportOrg);
+  const canExportSubmissions =
+    canCustomerUseExport({ role: profile.role, flags: exportFlags }) &&
+    isExportTypeEnabled(exportFlags, "submissions");
 
   // RLS-scoped: only this organization's assets and submissions are visible.
   const { data: assetData } = await supabase
@@ -201,9 +218,11 @@ export default async function SubmissionsPage({
           <>
             <Badge tone={newCount ? "info" : "neutral"}>{newCount ?? 0} new</Badge>
             <RefreshControls renderedAt={renderedAt} pollMs={30000} />
-            <a href={exportHref} className={secondaryActionClass}>
-              Export CSV
-            </a>
+            {canExportSubmissions ? (
+              <a href={exportHref} className={secondaryActionClass}>
+                Export CSV
+              </a>
+            ) : null}
           </>
         }
       />
