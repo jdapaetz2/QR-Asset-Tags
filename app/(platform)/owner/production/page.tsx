@@ -266,8 +266,12 @@ export default async function ProductionPage({
   if (productionNotes) exportParams.set("production_notes", productionNotes);
   for (const s of selected) exportParams.append("select", s.asset.id);
   const query = exportParams.toString();
-  const sheetHref = `/owner/production/qr-sheet.svg?${query}`;
-  const csvHref = `/owner/production/export.csv?${query}`;
+  // On a non-production base URL the durable-output routes fail closed; the operator has
+  // already been shown the warning below, so on-screen test downloads pass the explicit
+  // ?unsafe=1 acknowledgment. A real production base never adds it.
+  const unsafeSuffix = baseIsProd ? "" : "&unsafe=1";
+  const sheetHref = `/owner/production/qr-sheet.svg?${query}${unsafeSuffix}`;
+  const csvHref = `/owner/production/export.csv?${query}${unsafeSuffix}`;
   const productionSheetHref = `/owner/production/sheet?${query}`;
 
   // Assets that have a QR link, for the optional branded export.
@@ -459,7 +463,7 @@ export default async function ProductionPage({
                           <a
                             href={`/owner/production/qr.svg?short=${encodeURIComponent(
                               qr.short_code
-                            )}&ec=${ec}&size=${size}`}
+                            )}&ec=${ec}&size=${size}${unsafeSuffix}`}
                             className="text-xs underline-offset-4 hover:underline"
                           >
                             Download SVG

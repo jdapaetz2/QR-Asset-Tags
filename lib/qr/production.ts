@@ -2,6 +2,8 @@
  * Pure helpers for the platform-admin QR production workspace. No I/O.
  */
 
+import { isPlaceholderHost } from "@/lib/env";
+
 /** Default QR preset for production exports — scan-safe (branded sheet is deferred). */
 export const QR_STYLE_PRESET = "scan-safe";
 
@@ -29,29 +31,33 @@ export const MOUNTING_OPTIONS = [
 ] as const;
 
 /**
- * Whether a base URL is safe for printing on physical tags. Localhost and Vercel
- * preview hosts are NOT — a permanent tag must point at the real production domain.
+ * Why a base URL is unsafe for printing on physical tags, or null if it is safe.
+ * A permanent tag must point at a real HTTPS production domain — not http, not a
+ * localhost/placeholder host, and not a Vercel preview/deploy host.
  */
-export function isProductionBaseUrl(url: string): boolean {
-  let host: string;
+export function productionBaseUrlIssue(url: string): string | null {
+  let parsed: URL;
   try {
-    host = new URL(url).hostname.toLowerCase();
+    parsed = new URL(url);
   } catch {
-    return false;
+    return "not a valid URL";
   }
-  if (
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    host === "0.0.0.0" ||
-    host === "::1"
-  ) {
-    return false;
-  }
+  if (parsed.protocol !== "https:") return "must use https";
+  const host = parsed.hostname.toLowerCase();
+  if (isPlaceholderHost(host)) return "is a localhost/placeholder host";
   // Vercel preview/deploy hosts (e.g. my-app-git-branch.vercel.app).
   if (host === "vercel.app" || host.endsWith(".vercel.app")) {
-    return false;
+    return "is a Vercel preview host";
   }
-  return true;
+  return null;
+}
+
+/**
+ * Whether a base URL is safe for printing on physical tags. See
+ * {@link productionBaseUrlIssue} for the specific reasons.
+ */
+export function isProductionBaseUrl(url: string): boolean {
+  return productionBaseUrlIssue(url) === null;
 }
 
 export type AssetReadinessInput = {

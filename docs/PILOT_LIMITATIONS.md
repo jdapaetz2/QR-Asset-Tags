@@ -12,8 +12,8 @@ Blockers are kept separate from defects and from accepted limitations, per the r
 
 | Item | Evidence | Owner |
 |---|---|---|
-| **Migrations verified-applied on the target project.** Code on `pilot-credibility` assumes all of 0001–0031 (authoritative chain endpoints 0019/0030/0029/0028/0009). If any are unapplied, staff outbound/return, org templates, guided inspections, outbound-attach, reconciliation, and the bounded-history indexes fail at runtime. Remote status is currently **unverified**. | `docs/MIGRATION_LEDGER.md`; design-doc "ships unapplied" notes are historical | **A2** |
-| **Stable production domain / QR base URL.** `NEXT_PUBLIC_SITE_URL` is baked into permanent physical tags; it must be the final production host before any tags are printed (localhost / `*.vercel.app` are blocked from tag production by `isProductionBaseUrl`). | env matrix; `lib/qr/production.ts` | **A2** (physical: Phase C) |
+| ~~**Migrations verified-applied on the target project.**~~ **RESOLVED (A2).** Operator-verified: `supabase migration list` full match + `db push --dry-run` = "up to date"; 0001–0031 applied. | `docs/MIGRATION_LEDGER.md` header | done (A2) |
+| **Stable production domain / QR base URL.** `NEXT_PUBLIC_SITE_URL` must be the final https production host before any tags are printed. **(A2) Enforcement added:** env validation requires https + non-placeholder in production, and the durable-output routes fail closed on an unsafe base URL. **Remaining operator action:** actually set the production domain in Vercel. | `lib/env.ts`, `lib/qr/output-guard.ts` | operator (physical: Phase C) |
 
 ## P1 — pre-paid-pilot hardening
 
@@ -32,8 +32,8 @@ Blockers are kept separate from defects and from accepted limitations, per the r
 | Item | Evidence | Note |
 |---|---|---|
 | **`public-assets` cover images are public by URL** regardless of asset `public_status`/`archived_at`. | SECURITY_MODEL #5 | Do not put sensitive info in cover images; low-sensitivity, UUID paths. Optional hardening later. |
-| **`SCAN_IP_HASH_SALT` fails soft** — empty salt → weaker IP anonymization, no error. | `lib/env.ts`, `lib/scan/record.ts` | A5 to require it in production. |
-| **CI triggers on `main` / PR only** (not `pilot-credibility` pushes); no secret scanning / git hooks; local Node 24 vs CI Node 22. | `.github/workflows/ci.yml` | Tighten in A3.2 / A7. |
+| ~~**`SCAN_IP_HASH_SALT` fails soft.**~~ **RESOLVED (A2):** now fails closed (≥ 32 chars) in Vercel production/preview; fail-soft only in local/test. | `lib/env.ts` | done (A2) |
+| ~~**Node 24 vs CI 22 mismatch; CI not on the pilot branch.**~~ **RESOLVED (A2):** canonical Node 22 (`.nvmrc` + engines); CI runs on main/PR/`pilot-credibility`. Secret scanning + git hooks still open. | `.github/workflows/ci.yml`, `.nvmrc` | secret-scan → A3.2 |
 | **Timezone is fixed to `America/Vancouver`** for analytics day buckets (no `organizations.timezone` column yet). | `docs/DATA_MODEL.md` analytics RPCs | Deferred until a multi-tz customer. |
 
 ## Deferred enhancements

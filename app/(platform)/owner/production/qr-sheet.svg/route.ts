@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
 import { publicEnv } from "@/lib/env";
 import { buildPublicQrUrl } from "@/lib/qr/url";
+import { productionOutputBlock } from "@/lib/qr/output-guard";
 import { buildQrSheetSvg, type QrSheetItem } from "@/lib/qr/svg";
 import {
   selectProductionLink,
@@ -26,6 +27,9 @@ export async function GET(request: NextRequest) {
   if (!orgId || selectIds.length === 0) {
     return new Response("Select assets to export", { status: 400 });
   }
+
+  const blocked = productionOutputBlock(publicEnv.siteUrl, sp.get("unsafe") === "1");
+  if (blocked) return blocked;
 
   const supabase = await createClient();
 

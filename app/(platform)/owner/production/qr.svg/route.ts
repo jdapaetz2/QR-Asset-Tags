@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
 import { publicEnv } from "@/lib/env";
 import { buildPublicQrUrl } from "@/lib/qr/url";
+import { productionOutputBlock } from "@/lib/qr/output-guard";
 import { buildQrSvg, sanitizeSvgFilename, type QrLogo } from "@/lib/qr/svg";
 import {
   clampLogoPercent,
@@ -63,6 +64,8 @@ async function svgResponse(
 export async function GET(request: NextRequest) {
   await requireRole(ROLES.PLATFORM_OWNER);
   const sp = request.nextUrl.searchParams;
+  const blocked = productionOutputBlock(publicEnv.siteUrl, sp.get("unsafe") === "1");
+  if (blocked) return blocked;
   const supabase = await createClient();
   return svgResponse(supabase, sp.get("short") ?? "", {
     ec: sp.get("ec"),
@@ -73,6 +76,11 @@ export async function GET(request: NextRequest) {
 // Branded export (multipart): colors + optional logo. Logo always forces EC H.
 export async function POST(request: NextRequest) {
   await requireRole(ROLES.PLATFORM_OWNER);
+  const blocked = productionOutputBlock(
+    publicEnv.siteUrl,
+    request.nextUrl.searchParams.get("unsafe") === "1"
+  );
+  if (blocked) return blocked;
 
   const form = await request.formData();
   const shortCode = String(form.get("short") ?? "");

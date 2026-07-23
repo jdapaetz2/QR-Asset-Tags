@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { assetReadiness, isProductionBaseUrl } from "./production";
+import {
+  assetReadiness,
+  isProductionBaseUrl,
+  productionBaseUrlIssue,
+} from "./production";
 
 describe("isProductionBaseUrl", () => {
   it("rejects localhost and vercel previews", () => {
@@ -10,9 +14,24 @@ describe("isProductionBaseUrl", () => {
     expect(isProductionBaseUrl("not a url")).toBe(false);
   });
 
-  it("accepts a real production domain", () => {
+  it("rejects http (non-localhost) and placeholder hosts", () => {
+    expect(isProductionBaseUrl("http://app.northridge.com")).toBe(false);
+    expect(isProductionBaseUrl("https://example.com")).toBe(false);
+  });
+
+  it("accepts a real https production domain", () => {
     expect(isProductionBaseUrl("https://tags.assettag.example")).toBe(true);
     expect(isProductionBaseUrl("https://app.northridge.com")).toBe(true);
+  });
+});
+
+describe("productionBaseUrlIssue", () => {
+  it("returns null for a safe URL and a reason otherwise", () => {
+    expect(productionBaseUrlIssue("https://app.northridge.com")).toBeNull();
+    expect(productionBaseUrlIssue("http://app.northridge.com")).toMatch(/https/);
+    expect(productionBaseUrlIssue("https://localhost")).toMatch(/placeholder/);
+    expect(productionBaseUrlIssue("https://x.vercel.app")).toMatch(/Vercel/);
+    expect(productionBaseUrlIssue("nope")).toMatch(/valid URL/);
   });
 });
 

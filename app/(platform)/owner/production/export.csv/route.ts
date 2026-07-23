@@ -3,6 +3,8 @@ import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
+import { publicEnv } from "@/lib/env";
+import { productionOutputBlock } from "@/lib/qr/output-guard";
 import { normalizeErrorCorrection } from "@/lib/qr/svg";
 import { QR_STYLE_PRESET } from "@/lib/qr/production";
 import { getProductionAssets } from "@/lib/qr/production-data";
@@ -36,6 +38,10 @@ export async function GET(request: NextRequest) {
     return new Response("Select at least one asset", { status: 400 });
   }
 
+  // The CSV carries durable public URLs — fail closed on an unsafe base URL.
+  const blocked = productionOutputBlock(publicEnv.siteUrl, sp.get("unsafe") === "1");
+  if (blocked) return blocked;
+
   const ec = normalizeErrorCorrection(sp.get("ec"));
 
   const supabase = await createClient();
@@ -53,7 +59,7 @@ export async function GET(request: NextRequest) {
   };
 
   const csv = buildProductionCsv(rows, meta);
-  const filename = `assettag-production-${slugify(orgName)}.csv`;
+  const filename = `mulemark-production-${slugify(orgName)}.csv`;
 
   return new Response(csv, {
     headers: {

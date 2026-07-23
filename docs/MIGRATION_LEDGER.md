@@ -12,10 +12,17 @@ proof of remote application.
   status on the linked Supabase project has **not** been verified from source.
 - **Pending** — used **only** with remote evidence that it is not yet applied.
 
-> **Every row below is "Operator verification required."** As of Phase A1 no remote readout has been captured, so no
-> migration is claimed applied or pending. The "ships unapplied" / "pending db push" notes in
-> `docs/RETURN_INSPECTION_V2.md` and `docs/YARD_STAFF_SCANNER_MODE.md` are **historical, point-in-time** authoring
-> notes (true when written) and are **not** evidence of current remote state.
+> **Remote status: CONFIRMED APPLIED (operator-verified, Phase A2, 2026-07).** The linked Supabase project was checked
+> with `npx.cmd supabase migration list` (Local and Remote both contain every version 0001–0031, no unmatched
+> versions) and `npx.cmd supabase db push --dry-run` (**"Remote database is up to date"** — no migrations would be
+> applied). Because 0001–0031 are contiguous and all present remotely, the full supersession chains resolve to their
+> authoritative endpoints (0019 / 0016 / 0022 / 0023 / 0028 / 0026 / 0029 / 0030 / 0031). The `supabase_migrations.
+> schema_migrations` SQL query was unnecessary — the list + dry-run already provide sufficient remote evidence. The
+> "ships unapplied" / "pending db push" notes in `docs/RETURN_INSPECTION_V2.md` and `docs/YARD_STAFF_SCANNER_MODE.md`
+> are **historical, point-in-time** authoring notes and are superseded by this verification.
+>
+> Re-verify with the read-only commands below after any future migration is added; never claim applied without a fresh
+> readout.
 
 ### Operator verification commands (run against the linked project)
 
@@ -51,8 +58,9 @@ prior link to have run.
 
 ## Ledger (0001–0031)
 
-Legend — Contains: RLS = policy, RPC = function, TRG = trigger, G/R = grant/revoke, IDX = index. Remote status is
-**Operator verification required** for all (omitted per-row to avoid implying otherwise).
+Legend — Contains: RLS = policy, RPC = function, TRG = trigger, G/R = grant/revoke, IDX = index. Remote status for
+every row is **Confirmed applied (operator-verified, Phase A2)** — see the header for the evidence; omitted per-row to
+keep the table scannable.
 
 | # | Filename | Purpose | Depends on | Additive? | Contains | Code that assumes it | Safe verify query |
 |---|---|---|---|---|---|---|---|
@@ -97,5 +105,5 @@ Legend — Contains: RLS = policy, RPC = function, TRG = trigger, G/R = grant/re
   fail at runtime (staff outbound/return, org templates, guided inspections, outbound-attach, reconciliation, and the
   additive history indexes that keep the timeline/rentals queries bounded).
 - Do **not** edit already-authored migration files. To change an applied object, add a new forward migration.
-- Remote application status remains **operator-verified** — run the commands above against the linked project before
-  the pilot.
+- Remote application status is **confirmed applied (operator-verified, Phase A2)** — see the header. Re-run the
+  read-only commands only after a new migration is added; never claim applied without a fresh readout.
