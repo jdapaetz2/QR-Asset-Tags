@@ -86,6 +86,8 @@ Create all MVP tables in migrations (see `docs/DATA_MODEL.md`) and **enable RLS 
 
 Run **lint, typecheck, tests, and build** after meaningful changes and show the command output. Use plan mode before multi-file changes. A change isn't done until checks pass and the slice is demoable.
 
+- **Executed security suite (A3.2).** `npm run test:security` boots a local Supabase stack (Docker) and runs real PostgREST/Auth/Storage tests that prove live RLS, RPC role/org boundaries, storage policies, and fresh migration application. `npm run test:rls` re-runs just the DB tests against the already-reset stack; `npm run db:reset` applies `0001→latest` + seed to a fresh local DB. It never touches a hosted project (loopback-guarded). Runs nightly + on PRs via `.github/workflows/security.yml`. Secret scanning (gitleaks, `--redact`) runs in `ci.yml`. Full guide: `docs/SECURITY_TESTING.md`. Requires Docker Desktop locally.
+
 ## Open items
 
 Resolve or accept the defaults in `docs/OPEN_QUESTIONS.md` as you reach each area (notably: admin invite flow, allowed file types/size caps, IP-hash scheme, submission notifications, and short-code format).

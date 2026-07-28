@@ -46,3 +46,21 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
+
+  # Secret scanning (Phase A3.2). Runs the gitleaks release BINARY directly — no marketplace
+  # action, no license key, and nothing about the repository is uploaded anywhere. --redact means a
+  # finding fails the job without printing the value. fetch-depth: 0 so full history is scanned.
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        env:
+          GITLEAKS_VERSION: 8.18.4
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o gitleaks.tar.gz
+          tar -xzf gitleaks.tar.gz gitleaks
+          ./gitleaks detect --source . --config .gitleaks.toml --redact --no-banner --exit-code 1

@@ -107,7 +107,40 @@ defense-in-depth items scoped to a single organization's own data. Details + sev
 5. **`public-assets` bucket objects are public by URL.** Cover images are readable by anyone with the (UUID) object
    path regardless of the owning asset's `public_status`/`archived_at` (the bucket is declared public; unlike
    `documents`, its read policy does not join to asset visibility). **Accepted pilot limitation — do not place
-   sensitive information in `public-assets`.**
+   sensitive information in `public-assets`.** **A3.2 confirms this is safe by construction:** an executed storage
+   test asserts `public-assets` is the only public bucket (submissions/documents stay private), and a structural
+   test (`lib/security/service-role.test.ts`) asserts the bucket name is referenced only by the cover-image and
+   org-logo helpers — no submission or document media is ever written there.
+
+## Executed verification (Phase A3.2)
+
+The boundaries above are no longer only *asserted in source* — they are **executed against a real Postgres/Auth/
+Storage stack**. `npm run test:security` signs in as each role and proves, through PostgREST, that: cross-tenant
+reads return zero rows on every tenant table; `customer_staff` writes to config tables are denied while its
+operational reads/writes still work; `profiles.role`/`organization_id`/`status` self-escalation is coerced away
+(the 0032 trigger, executed); commercial/export flags cannot be mutated by a customer; disabled profiles and
+suspended orgs are locked out; every privileged RPC refuses `anon` and a wrong-org caller; and the storage
+policies keep submissions/documents private while `public-assets` is public by URL. The suite runs nightly and on
+every PR (`.github/workflows/security.yml`), never against a hosted project (a loopback guard aborts otherwise).
+See `docs/SECURITY_TESTING.md` for the executed/structural/manual split.
+
+## Service-role inventory (Phase A3.2 audit)
+
+The service-role client (`lib/supabase/admin.ts`, `import "server-only"`) bypasses RLS, so its reach is kept small
+and audited. Only these modules may import it — enforced by `scripts/verify-production-config.mjs`
+(`service-role-allowlist`) and `lib/security/service-role.test.ts`; a new importer fails CI until reviewed here.
+
+| Module / function | Trusted context | Authorization before the call | Row scope | Why RLS is insufficient | Failure / rollback | Narrowable? |
+|---|---|---|---|---|---|---|
+| `lib/notifications/notify.ts` — `notifySubmission`, `notifyTagRequestStatus` | Triggered by public (anon) submission intake and by status changes | The triggering event already happened; these only READ org notification settings | A single `organizations` row by id | The anon intake context cannot read the private notification columns; no user session exists | Swallows its own errors (a notification must never break the write that triggered it) | No — read-only, single row |
+| `lib/team/actions.ts` — `inviteUser`, `regenerateInvite`, `setUserStatus` | `"use server"` actions | Explicit `isTeamManager(actor.role)` gate BEFORE any admin client; `canManageMember`; org-suspension gate; lookups org-scoped for non-owners | `auth.admin.generateLink` (the invited user); a deliberately cross-tenant email-collision probe; the invited/updated `profiles` row | Creating an `auth.users` row is impossible under RLS; `profiles_insert` is owner-only, so a customer admin's invite/status write cannot use the RLS client yet | Half-created invite is compensated (`auth.admin.deleteUser`) | Partially — see A3.2 note below |
+| `lib/supabase/admin.ts` | Defines the client | n/a | n/a | n/a | n/a | n/a |
+
+**Still queued (not this slice):** a caller-aware SECURITY DEFINER RPC that would take the customer-admin
+profile insert/status writes off the service role entirely (`profiles_insert` is owner-only today). That is a
+behavior change with its own migration; the guardrails above keep the current path safe in the meantime.
+`setUserRole` was already moved off the service role in A3.1 (platform-owner-only; `is_platform_owner()` satisfies
+`profiles_update`).
 
 ## Things explicitly NOT in the MVP security scope
 

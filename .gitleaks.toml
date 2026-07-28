@@ -1,0 +1,27 @@
+# gitleaks configuration — Mulemark secret scanning (Phase A3.2).
+#
+# Extends the built-in ruleset (Supabase/JWT/Resend/private-key/generic patterns) and adds a small,
+# reviewed allowlist for known false positives. A credible secret fails CI; the value is never
+# printed because the workflow runs with --redact.
+
+title = "Mulemark gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Reviewed false positives (no real secrets)."
+paths = [
+  # npm lockfile: Subresource-Integrity digests (sha512-…) are base64 hashes, not credentials. One
+  # such hash starts with `eyJ`, which the JWT rule flags. Lockfiles never hold secrets.
+  '''package-lock\.json''',
+  # The env EXAMPLE ships variable NAMES only (all values blank); never real secrets.
+  '''\.env\.local\.example''',
+]
+regexes = [
+  # SRI integrity hashes anywhere (defense in depth for the lockfile case above).
+  '''sha512-[A-Za-z0-9+/=]{40,}''',
+  # The local Supabase demo keys are PUBLIC fixtures shipped by the CLI (issuer "supabase-demo"),
+  # not secrets. They only ever appear if a test/doc quotes them; allow that explicitly.
+  '''supabase-demo''',
+]

@@ -119,6 +119,45 @@ try {
   else add("pass", "server-only", "service-role + notifier are server-only; no client importer");
 }
 
+// 4b) Service-role import allowlist (Phase A3.2). Only reviewed, documented modules may import the
+// service-role client. A new importer fails this gate until it is added here AND audited in
+// docs/SECURITY_MODEL.md, so service-role reach cannot grow silently. Every allowlisted module must
+// also be server-only (an `import "server-only"` or a `"use server"` action file).
+{
+  const ALLOWED = new Set([
+    "lib/supabase/admin.ts", // defines createAdminClient
+    "lib/notifications/notify.ts", // trusted notification lookup/delivery
+    "lib/team/actions.ts", // Supabase Auth Admin invitation lifecycle + cross-tenant collision probe
+  ]);
+  const rel = (p) => p.replace(root + "\\", "").replace(root + "/", "").split("\\").join("/");
+  const importers = [];
+  const walk = (d) => {
+    for (const entry of readdirSync(d)) {
+      if (entry === "node_modules" || entry === ".next" || entry === ".git") continue;
+      const p = join(d, entry);
+      const st = statSync(p);
+      if (st.isDirectory()) walk(p);
+      else if (/\.(ts|tsx)$/.test(entry) && !/\.test\.(ts|tsx)$/.test(entry)) {
+        const src = readFileSync(p, "utf8");
+        if (/from\s+["']@\/lib\/supabase\/admin["']|createAdminClient\s*\(/.test(src)) {
+          importers.push({ file: rel(p), serverOnly: /["']server-only["']/.test(src) || /^\s*["']use server["']/m.test(src) });
+        }
+      }
+    }
+  };
+  for (const base of ["app", "lib", "components"]) {
+    const d = join(root, base);
+    if (existsSync(d)) walk(d);
+  }
+  const rogue = importers.filter((i) => !ALLOWED.has(i.file)).map((i) => i.file);
+  const notServerOnly = importers.filter((i) => ALLOWED.has(i.file) && !i.serverOnly).map((i) => i.file);
+  const fails = [];
+  if (rogue.length) fails.push(`un-allowlisted service-role importer(s): ${rogue.join(", ")} (add to ALLOWED + audit in SECURITY_MODEL.md)`);
+  if (notServerOnly.length) fails.push(`service-role module(s) not server-only: ${notServerOnly.join(", ")}`);
+  if (fails.length) add("fail", "service-role-allowlist", fails.join(" | "));
+  else add("pass", "service-role-allowlist", `${importers.length} service-role importer(s), all allowlisted + server-only`);
+}
+
 // 5) Value checks — only when set. WARN locally, FAIL in Vercel production/preview.
 {
   const site = process.env.NEXT_PUBLIC_SITE_URL;

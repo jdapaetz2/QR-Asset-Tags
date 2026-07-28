@@ -30,6 +30,13 @@ proof of remote application.
 > migration's own `drop trigger if exists` idempotency guard on a first apply — the `create trigger` that follows is
 > what installs it. The role-aware write policies and the `profiles` privileged-column protection are therefore
 > **live**.
+>
+> **Fresh-apply is now an executed test (Phase A3.2).** `npm run test:security` runs `supabase db reset`, applying
+> `0001→latest` in order to an empty local database on every run, and `tests/security/catalog.test.ts` then asserts
+> the result: the migration set is contiguous, the supersession chains resolved to their latest definitions
+> (`current_org_id` 0018→0019, `is_platform_owner` 0018, etc.), and the A3.1 role helpers + `profiles` trigger
+> exist. This proves the migrations apply cleanly with no manual hotfix — it does **not** re-verify remote
+> application, which stays operator-driven via the commands below.
 
 ### Operator verification commands (run against the linked project)
 

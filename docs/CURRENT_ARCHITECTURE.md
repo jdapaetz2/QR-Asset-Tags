@@ -83,9 +83,13 @@ push-to-`main` and PRs. Env is centralized in `lib/env.ts` (7 vars; server secre
 `NEXT_PUBLIC_SITE_URL` is production-domain-sensitive. No deploy/rollback/incident runbook yet (A2/A5).
 
 ## Test coverage
-126 test files: ~103 pure/unit + 23 source-structural (readFileSync string-asserts). **0 integration, 0 live-RLS,
-0 migration-execution, 0 browser/E2E.** `vitest` runs node-only (no DOM); no Playwright/jsdom. No security or
-performance tests, no secret scanning, no git hooks. See `docs/PILOT_LIMITATIONS.md` (A6).
+Two suites. **(1) Fast unit/structural** — `npm test` (Vitest, node-only, no DOM): ~103 pure/unit + source-structural
+`readFileSync` string-asserts; runs on every push. **(2) Executed security (Phase A3.2)** — `npm run test:security`
+against a local Supabase stack: real signed-in PostgREST/Auth/Storage clients prove **live RLS, RPC role/org
+boundaries, storage policies, and fresh migration application (0001→latest)**. Runs nightly + on PRs
+(`.github/workflows/security.yml`), never against a hosted project (loopback-guarded). Secret scanning is active
+(gitleaks in `ci.yml`). Still open: **0 browser/E2E** (no Playwright/jsdom) — A6.1. No git hooks (by design). See
+`docs/SECURITY_TESTING.md` and `docs/PILOT_LIMITATIONS.md`.
 
 ## Known scaling boundaries
 - Asset **timeline** and **rentals browser** use bounded keyset (cursor) pagination + explicit "Load more" — no
