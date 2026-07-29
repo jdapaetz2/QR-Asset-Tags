@@ -63,6 +63,8 @@ orphan-media tool (`scripts/cleanup-orphan-media.mjs`, dry-run default) is the b
 
 Raw IP addresses are not stored. `scan_events.ip_hash` holds a hashed or truncated value sufficient for basic dedup/analytics. Internal notes, private documents, billing fields, and submissions never appear on public surfaces. The activity log records actor, action, and entity for auditability without storing sensitive payloads in plaintext where avoidable.
 
+**Notification logs (Phase A5)** emit only redacted, structured `[notifications]` records: event, outcome, org id, reference, the recipient **domain** and a **redacted** recipient (`r***@domain`), and provider metadata (id/status/attempts/failure class). They never contain the full recipient address, the message body, a media URL (the email builders never include media), the Resend API key, the auth header, or a raw IP. Email is always best-effort and never blocks a submission.
+
 ## Role enforcement at the database (Phase A3.1, migration 0032 — APPLIED)
 
 `customer_admin` / `customer_staff` are application roles in `profiles.role`; both authenticate as the Postgres

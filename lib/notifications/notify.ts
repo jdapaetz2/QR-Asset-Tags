@@ -14,6 +14,7 @@ import {
   buildTagStatusEmail,
 } from "@/lib/notifications/email";
 import { sendNotificationEmail } from "@/lib/notifications/send";
+import { logNotificationEvent } from "@/lib/notifications/log";
 
 /**
  * Notification orchestration. Reads an organization's notification settings with
@@ -57,7 +58,26 @@ export async function notifySubmission(input: {
       .maybeSingle<OrgNotifyRow>();
     if (!org) return;
 
-    if (!shouldNotifySubmission(input.formType, org)) return;
+    // Explicitly distinguish "no recipient set" from "this event type is disabled" for diagnosability.
+    if (!org.notification_email) {
+      logNotificationEvent({
+        event: "submission",
+        outcome: "skipped_no_recipient",
+        organizationId: input.organizationId,
+        reference: input.reference,
+      });
+      return;
+    }
+    if (!shouldNotifySubmission(input.formType, org)) {
+      logNotificationEvent({
+        event: "submission",
+        outcome: "skipped_disabled",
+        organizationId: input.organizationId,
+        reference: input.reference,
+        recipient: org.notification_email,
+      });
+      return;
+    }
 
     const { data: asset } = await admin
       .from("assets")
@@ -83,9 +103,29 @@ export async function notifySubmission(input: {
       adminUrl: `${publicEnv.siteUrl}/dashboard/submissions/${input.submissionId}`,
     });
 
-    await sendNotificationEmail(org.notification_email!, content);
+    const result = await sendNotificationEmail(org.notification_email, content);
+    logNotificationEvent({
+      event: "submission",
+      outcome: result.outcome,
+      organizationId: input.organizationId,
+      reference: input.reference,
+      recipient: org.notification_email,
+      providerId: result.providerId,
+      providerStatus: result.status,
+      attempts: result.attempts,
+      failureClass: result.failureClass,
+    });
   } catch (err) {
-    console.error("[notifications] notifySubmission failed (ignored):", err);
+    // Submission-safety backstop: a notification must never break the submission. Log a redacted,
+    // structured record (no error body) and move on.
+    logNotificationEvent({
+      event: "submission",
+      outcome: "failed_transient",
+      organizationId: input.organizationId,
+      reference: input.reference,
+      failureClass: "exception",
+    });
+    void err;
   }
 }
 
@@ -101,7 +141,23 @@ export async function notifyTagRequestStatus(input: {
       .eq("id", input.organizationId)
       .maybeSingle<OrgNotifyRow>();
     if (!org) return;
-    if (!org.notification_email || !org.notify_tag_request_updates) return;
+    if (!org.notification_email) {
+      logNotificationEvent({
+        event: "tag_status",
+        outcome: "skipped_no_recipient",
+        organizationId: input.organizationId,
+      });
+      return;
+    }
+    if (!org.notify_tag_request_updates) {
+      logNotificationEvent({
+        event: "tag_status",
+        outcome: "skipped_disabled",
+        organizationId: input.organizationId,
+        recipient: org.notification_email,
+      });
+      return;
+    }
 
     const content = buildTagStatusEmail({
       orgName: org.name ?? "Your organization",
@@ -109,8 +165,24 @@ export async function notifyTagRequestStatus(input: {
       manageUrl: `${publicEnv.siteUrl}/dashboard/tag-requests`,
     });
 
-    await sendNotificationEmail(org.notification_email, content);
+    const result = await sendNotificationEmail(org.notification_email, content);
+    logNotificationEvent({
+      event: "tag_status",
+      outcome: result.outcome,
+      organizationId: input.organizationId,
+      recipient: org.notification_email,
+      providerId: result.providerId,
+      providerStatus: result.status,
+      attempts: result.attempts,
+      failureClass: result.failureClass,
+    });
   } catch (err) {
-    console.error("[notifications] notifyTagRequestStatus failed (ignored):", err);
+    logNotificationEvent({
+      event: "tag_status",
+      outcome: "failed_transient",
+      organizationId: input.organizationId,
+      failureClass: "exception",
+    });
+    void err;
   }
 }
