@@ -128,6 +128,7 @@ try {
     "lib/supabase/admin.ts", // defines createAdminClient
     "lib/notifications/notify.ts", // trusted notification lookup/delivery
     "lib/team/actions.ts", // Supabase Auth Admin invitation lifecycle + cross-tenant collision probe
+    "lib/ratelimit/limiter.ts", // Phase A4 shared-store rate limiter (private counter table, service_role only)
   ]);
   const rel = (p) => p.replace(root + "\\", "").replace(root + "/", "").split("\\").join("/");
   const importers = [];

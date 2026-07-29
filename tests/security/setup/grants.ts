@@ -37,6 +37,10 @@ export async function applyLocalGrantParity(): Promise<void> {
       -- authenticated: match hosted default privileges (tables + sequences). anon untouched.
       grant select, insert, update, delete on all tables in schema public to authenticated;
       grant usage, select on all sequences in schema public to authenticated;
+      -- Re-apply migration revokes of authenticated that the blanket grant above would otherwise undo.
+      -- Hosted applies the default grant then the migration revoke; this reproduces that end state.
+      -- Currently: rate_limit_counters (0033) is service_role-only.
+      revoke all on public.rate_limit_counters from anon, authenticated;
       alter default privileges in schema public grant all on tables to service_role;
       alter default privileges in schema public grant all on sequences to service_role;
       alter default privileges in schema public grant all on routines to service_role;

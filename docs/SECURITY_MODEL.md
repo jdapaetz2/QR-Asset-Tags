@@ -46,7 +46,18 @@ Public users submit forms with the asset prefilled and not editable; the server 
 - Are not publicly listable; public users can upload through forms only and cannot enumerate or read other files.
 - Admin users can view uploads only for their own organization.
 
-Anti-abuse (current state): a **honeypot** field (fixed internal `company_website`) is implemented on public forms. **Shared-store rate limiting is not yet implemented** — it is Phase A4 (must not be instance-local in-memory). More robust abuse handling and orphaned-upload cleanup are also A4.
+Anti-abuse: a **honeypot** field (fixed internal `company_website`) is the first layer, plus a **shared-store
+rate limiter** (Phase A4). Public writes (damage/support/return/acknowledgement) run a preflight limit check
+**before** any resolve/upload/insert, so a limited request incurs no storage/DB/notification cost and returns a
+generic message that reveals no asset/org state. The limiter is a private Postgres fixed-window counter
+(`rate_limit_counters`) driven by an atomic SECURITY DEFINER RPC `rate_limit_touch`, callable by **service_role
+only** (trusted server code in `lib/ratelimit/limiter.ts`) — production-safe across serverless instances where
+process memory would not be. Keys are `(action, salted-IP-hash, salted-short-code-hash)` — **never a raw IP**,
+NAT-friendly (per short code), stricter for media-bearing writes; thresholds are centralized in
+`lib/ratelimit/policy.ts`. **Scans stay unlimited** (product rule). Failed uploads are cleaned up best-effort
+(`lib/forms/cleanup.ts`), a client idempotency token makes a rapid resubmit a PK no-op, and an operator
+orphan-media tool (`scripts/cleanup-orphan-media.mjs`, dry-run default) is the backstop. See
+`docs/ORPHAN_MEDIA_CLEANUP.md`.
 
 ## Privacy / data minimization
 
@@ -134,6 +145,7 @@ and audited. Only these modules may import it — enforced by `scripts/verify-pr
 |---|---|---|---|---|---|---|
 | `lib/notifications/notify.ts` — `notifySubmission`, `notifyTagRequestStatus` | Triggered by public (anon) submission intake and by status changes | The triggering event already happened; these only READ org notification settings | A single `organizations` row by id | The anon intake context cannot read the private notification columns; no user session exists | Swallows its own errors (a notification must never break the write that triggered it) | No — read-only, single row |
 | `lib/team/actions.ts` — `inviteUser`, `regenerateInvite`, `setUserStatus` | `"use server"` actions | Explicit `isTeamManager(actor.role)` gate BEFORE any admin client; `canManageMember`; org-suspension gate; lookups org-scoped for non-owners | `auth.admin.generateLink` (the invited user); a deliberately cross-tenant email-collision probe; the invited/updated `profiles` row | Creating an `auth.users` row is impossible under RLS; `profiles_insert` is owner-only, so a customer admin's invite/status write cannot use the RLS client yet | Half-created invite is compensated (`auth.admin.deleteUser`) | Partially — see A3.2 note below |
+| `lib/ratelimit/limiter.ts` — `checkRateLimit` | Public-intake server actions/cores | Runs after the honeypot, before any resolve/upload/insert; keys are server-derived (salted IP + short-code hash), never client input | Calls `rate_limit_touch` on a private counter table; no tenant rows touched | The limiter table + RPC are execute-granted to `service_role` only, so anon/authenticated can neither read counters nor probe/poison another key | Fail-open on infra error (a limiter hiccup must never block a real renter); logged | No — the private counter is the minimal footprint |
 | `lib/supabase/admin.ts` | Defines the client | n/a | n/a | n/a | n/a | n/a |
 
 **Still queued (not this slice):** a caller-aware SECURITY DEFINER RPC that would take the customer-admin

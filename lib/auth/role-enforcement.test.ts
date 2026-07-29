@@ -100,9 +100,14 @@ describe("migration 0032 — admin-only write policies", () => {
   });
 
   it("is additive — no already-applied migration file is edited", () => {
-    const files = readdirSync(resolve(repo, "supabase/migrations")).sort();
-    expect(files.at(-1)).toBe("0032_role_write_enforcement.sql");
-    expect(files.filter((f) => f.endsWith(".sql")).length).toBe(32);
+    // 0032 ships as its own numbered migration and later phases add higher numbers (0033+, Phase A4).
+    // Assert 0032 exists and the sequence is contiguous through at least 0032 — not that it is the last file.
+    const files = readdirSync(resolve(repo, "supabase/migrations"))
+      .filter((f) => f.endsWith(".sql"))
+      .sort();
+    expect(files).toContain("0032_role_write_enforcement.sql");
+    const numbers = files.map((f) => Number(f.slice(0, 4)));
+    for (let i = 1; i <= 32; i++) expect(numbers).toContain(i);
   });
 });
 

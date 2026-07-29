@@ -1,9 +1,14 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+
 import { createPublicClient } from "@/lib/supabase/public";
 import { resolvePublicEquipment } from "@/lib/public/resolve";
 import { HONEYPOT_FIELD } from "@/lib/forms/validate";
 import { readString } from "@/lib/forms/submit";
+import { checkRateLimit } from "@/lib/ratelimit/limiter";
+import { RATE_LIMITED_MESSAGE } from "@/lib/ratelimit/policy";
+import { logAbuseEvent } from "@/lib/ratelimit/log";
 import {
   ACKNOWLEDGEMENT_STATEMENT,
   validateAcknowledgement,
@@ -22,9 +27,24 @@ export async function submitAcknowledgement(
   _prev: AcknowledgementState,
   formData: FormData
 ): Promise<AcknowledgementState> {
+  const correlationId = randomUUID();
+
   // Honeypot: a filled hidden field means a bot. Silently report success.
   if (readString(formData, HONEYPOT_FIELD)) {
     return { ok: true };
+  }
+
+  // Preflight rate limit before any DB write (acknowledgements carry no media). A limited request costs
+  // nothing and reveals no asset state.
+  const rl = await checkRateLimit({
+    action: "acknowledgement",
+    shortCode,
+    hasMedia: false,
+    correlationId,
+  });
+  if (!rl.allowed) {
+    logAbuseEvent({ action: "acknowledgement", correlationId, shortCodeHash: rl.shortCodeHash, limiter: "limited" });
+    return { error: RATE_LIMITED_MESSAGE };
   }
 
   const supabase = createPublicClient();

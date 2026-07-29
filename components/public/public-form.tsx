@@ -1,10 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import type { PublicFormState } from "@/lib/forms/submit";
-import { HONEYPOT_FIELD } from "@/lib/forms/validate";
+import { HONEYPOT_FIELD, IDEMPOTENCY_FIELD } from "@/lib/forms/validate";
 import { ALLOWED_IMAGE_TYPES, MAX_FILES } from "@/lib/forms/media";
 
 export const fieldClass =
@@ -38,8 +38,19 @@ export function PublicForm({
     {}
   );
 
+  // Mint one idempotency token per mount (client-only, so it never mismatches SSR). If a rapid
+  // double-submit reaches the server twice, both carry this same token → the second is a PK no-op.
+  const [idempotencyKey, setIdempotencyKey] = useState("");
+  useEffect(() => {
+    // One-shot, client-only token. Set in a mount effect (not lazy init) so SSR and the first client
+    // render both produce an empty value — no hydration mismatch — then the real UUID fills in.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIdempotencyKey(crypto.randomUUID());
+  }, []);
+
   return (
     <form action={formAction} className="flex flex-col gap-4">
+      <input type="hidden" name={IDEMPOTENCY_FIELD} value={idempotencyKey} readOnly />
       {state.error ? (
         <p
           role="alert"

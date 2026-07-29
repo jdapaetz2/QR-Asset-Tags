@@ -9,6 +9,11 @@ import {
   submissionPathPrefix,
   validateInspectionFiles,
 } from "@/lib/forms/media";
+import { cleanupUploadedMedia } from "@/lib/forms/cleanup";
+import { resolveSubmissionId } from "@/lib/forms/submit";
+import { checkRateLimit } from "@/lib/ratelimit/limiter";
+import { RATE_LIMITED_MESSAGE } from "@/lib/ratelimit/policy";
+import { logAbuseEvent } from "@/lib/ratelimit/log";
 import { notifySubmission } from "@/lib/notifications/notify";
 import { submissionReference } from "@/lib/submissions/inbox";
 import { resolveReturnTemplate } from "@/lib/inspections/resolve";
@@ -51,9 +56,21 @@ export async function submitReturnInspectionCore(
   formData: FormData
 ): Promise<PublicFormState> {
   const thanks = `/forms/${shortCode}/return/thanks`;
+  const correlationId = randomUUID();
 
   // Honeypot: silently accept a bot without saving.
   if (readStr(formData, HONEYPOT_FIELD)) redirect(thanks);
+
+  // Preflight rate limit BEFORE resolve/upload/insert. The 'return' rules are media-agnostic, so a cheap
+  // "any photo attached" probe is enough for the log; no template resolution is needed to decide.
+  const hasMedia = [...formData.entries()].some(
+    ([key, value]) => key.startsWith("photo:") && typeof value !== "string" && value.size > 0
+  );
+  const rl = await checkRateLimit({ action: "return", shortCode, hasMedia, correlationId });
+  if (!rl.allowed) {
+    logAbuseEvent({ action: "return", correlationId, shortCodeHash: rl.shortCodeHash, limiter: "limited" });
+    return { error: RATE_LIMITED_MESSAGE };
+  }
 
   const supabase = createPublicClient();
   const resolved = await resolvePublicEquipment(supabase, shortCode);
@@ -112,9 +129,11 @@ export async function submitReturnInspectionCore(
   }
 
   // Upload each slot's files; record flat paths (media_urls) + per-slot metadata (answers.photos).
-  const submissionId = randomUUID();
+  // submissionId is the client idempotency token when present (rapid resubmit → same PK, not a dupe).
+  const submissionId = resolveSubmissionId(formData);
   const prefix = submissionPathPrefix(resolved.organizationId, resolved.assetId, submissionId);
   const mediaPaths: string[] = [];
+  let totalBytes = 0;
   const photos: Record<string, PhotoAnswer[]> = {};
   for (const slot of slots) {
     const files = filesBySlot.get(slot.id) ?? [];
@@ -122,10 +141,16 @@ export async function submitReturnInspectionCore(
     for (const file of files) {
       const path = `${prefix}/${mediaObjectName(randomUUID(), file.type)}`;
       const bytes = new Uint8Array(await file.arrayBuffer());
+      totalBytes += bytes.byteLength;
       const { error } = await supabase.storage
         .from(SUBMISSIONS_BUCKET)
         .upload(path, bytes, { contentType: file.type, upsert: false });
-      if (error) return { error: "Could not upload your files. Please try again." };
+      if (error) {
+        await cleanupUploadedMedia(supabase, mediaPaths, {
+          action: "return", correlationId, shortCodeHash: rl.shortCodeHash, failure: "upload",
+        });
+        return { error: "Could not upload your files. Please try again." };
+      }
       mediaPaths.push(path);
       slotPhotos.push({ path, caption: slot.label });
     }
@@ -176,9 +201,29 @@ export async function submitReturnInspectionCore(
     inspection_template_version: template.version,
     // rental_session_id is set authoritatively by the BEFORE INSERT trigger (migration 0024).
   });
-  if (insertError) return { error: "Could not submit the inspection. Please try again." };
-
   const reference = submissionReference(submissionId, createdAt);
+
+  if (insertError) {
+    // Duplicate submit (same idempotency token) → PK conflict: clean THIS call's re-uploaded objects
+    // (the original inspection + media are untouched) and finish successfully.
+    if (insertError.code === "23505") {
+      await cleanupUploadedMedia(supabase, mediaPaths, {
+        action: "return", correlationId, shortCodeHash: rl.shortCodeHash, failure: "duplicate",
+      });
+      redirect(`${thanks}?ref=${reference}`);
+    }
+    // Real insert failure → clean up the just-uploaded objects so they are not orphaned.
+    await cleanupUploadedMedia(supabase, mediaPaths, {
+      action: "return", correlationId, shortCodeHash: rl.shortCodeHash, failure: "insert",
+    });
+    return { error: "Could not submit the inspection. Please try again." };
+  }
+
+  logAbuseEvent({
+    action: "return", correlationId, shortCodeHash: rl.shortCodeHash,
+    limiter: "allowed", fileCount: allFiles.length, totalBytes, cleanup: "none",
+  });
+
   await notifySubmission({
     organizationId: resolved.organizationId,
     formType: "return_checklist",

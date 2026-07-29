@@ -95,4 +95,26 @@ describe("RPC execute grants (defense in depth)", () => {
   it("anon execute is GRANTED only on the public return-template resolver", async () => {
     expect(await anonMayExecute("public.get_asset_return_template(uuid)"), "anon should execute get_asset_return_template").toBe(true);
   });
+
+  it("the Phase A4 rate limiter is service_role only (not anon/authenticated)", async () => {
+    async function mayExecute(role: string, sig: string): Promise<boolean> {
+      const { rows } = await db.query<{ ok: boolean }>(
+        "select has_function_privilege($1, $2::regprocedure, 'EXECUTE') as ok",
+        [role, sig]
+      );
+      return rows[0].ok;
+    }
+    for (const sig of ["public.rate_limit_touch(text, jsonb)", "public.rate_limit_gc()"]) {
+      expect(await mayExecute("anon", sig), `anon must NOT execute ${sig}`).toBe(false);
+      expect(await mayExecute("authenticated", sig), `authenticated must NOT execute ${sig}`).toBe(false);
+      expect(await mayExecute("service_role", sig), `service_role must execute ${sig}`).toBe(true);
+    }
+    // The counter table itself is not readable by anon/authenticated.
+    const { rows } = await db.query<{ anon: boolean; authd: boolean }>(
+      "select has_table_privilege('anon','public.rate_limit_counters','SELECT') as anon, " +
+        "has_table_privilege('authenticated','public.rate_limit_counters','SELECT') as authd"
+    );
+    expect(rows[0].anon, "anon must not read rate_limit_counters").toBe(false);
+    expect(rows[0].authd, "authenticated must not read rate_limit_counters").toBe(false);
+  });
 });

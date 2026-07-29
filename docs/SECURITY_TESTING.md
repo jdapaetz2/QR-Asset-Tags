@@ -79,6 +79,8 @@ migration, guarded by the same loopback check.
 | Disabled profile / suspended org lockout (0018/0019) | ✅ | | |
 | RPC role/org boundaries + anon execute revoked | ✅ | | |
 | Storage: submissions / documents / public-assets policies | ✅ | | |
+| Public rate limiter (A4): grant boundary, burst/abuse denial, key isolation, no raw IP | ✅ | ✅ (policy) | |
+| Failed-upload cleanup + duplicate-submit idempotency (A4) | | ✅ (mocked core) | |
 | Fresh migration application (0001→latest) | ✅ | ✅ (contiguity) | |
 | Customer **export route** flag gate (`requireCustomerAdminOrgId` + `isExportTypeEnabled`) | | ✅ | ✅ golden-path |
 | Service-role import allowlist + server-only | | ✅ (test + verifier) | |

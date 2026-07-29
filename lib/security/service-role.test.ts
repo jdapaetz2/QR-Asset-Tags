@@ -42,6 +42,7 @@ const SERVICE_ROLE_ALLOWLIST = [
   "lib/supabase/admin.ts", // defines createAdminClient
   "lib/notifications/notify.ts", // trusted notification lookup/delivery
   "lib/team/actions.ts", // Supabase Auth Admin invitation lifecycle + collision probe
+  "lib/ratelimit/limiter.ts", // Phase A4 shared-store rate limiter (private counter table, service_role only)
 ];
 
 describe("service-role import allowlist", () => {

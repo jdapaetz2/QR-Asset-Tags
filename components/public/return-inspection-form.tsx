@@ -6,7 +6,7 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { fieldClass } from "@/components/public/public-form";
 import { submitReturnInspection } from "@/lib/forms/actions";
-import { HONEYPOT_FIELD } from "@/lib/forms/validate";
+import { HONEYPOT_FIELD, IDEMPOTENCY_FIELD } from "@/lib/forms/validate";
 import { ALLOWED_IMAGE_TYPES } from "@/lib/forms/media";
 import type { PublicFormState } from "@/lib/forms/submit";
 import {
@@ -151,6 +151,13 @@ export function ReturnInspectionForm({
 
   // Soft damage-photo omission (Phase 3C.1): acknowledged via an explicit dialog before Submit.
   const [omissionAck, setOmissionAck] = useState(false);
+  // Idempotency token minted per mount (Phase A4): a rapid double-submit reuses it → PK no-op, not a dupe.
+  const [idempotencyKey, setIdempotencyKey] = useState("");
+  useEffect(() => {
+    // One-shot, client-only token — mount effect keeps SSR/first-render empty (no hydration mismatch).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIdempotencyKey(crypto.randomUUID());
+  }, []);
   // One-shot flags kept in refs (not state) so the effects only touch external systems (DOM focus / submit).
   const submitAfterAckRef = useRef(false);
   // Explicit-submit gate (Phase 3C.3): the form action fires ONLY when an intended submit path sets this true
@@ -427,6 +434,8 @@ export function ReturnInspectionForm({
           <input type="text" name={HONEYPOT_FIELD} tabIndex={-1} autoComplete="off" />
         </label>
       </div>
+
+      <input type="hidden" name={IDEMPOTENCY_FIELD} value={idempotencyKey} readOnly />
 
       {/* Server-authoritative omission acknowledgement (only meaningful when damage has no photo). */}
       <input type="hidden" name="damage_photos_omission_ack" value={omissionAck ? "yes" : ""} />

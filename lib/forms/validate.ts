@@ -13,6 +13,14 @@ export type Urgency = (typeof URGENCY_LEVELS)[number];
 /** Honeypot field name — must stay empty; if filled, the submission is a bot. */
 export const HONEYPOT_FIELD = "company_website";
 
+/**
+ * Client idempotency token field (Phase A4). The form mints one UUID per mount; the server uses it as
+ * the submission id so a rapid double-submit lands on the same row (PK) instead of creating a duplicate.
+ * Defined here (a client-safe, server-only-free module) so both the client forms and the server core can
+ * import it.
+ */
+export const IDEMPOTENCY_FIELD = "idempotency";
+
 export type DamageReportInput = {
   name: string | null;
   email: string | null;

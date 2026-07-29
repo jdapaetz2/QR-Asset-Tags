@@ -5,6 +5,13 @@
 > `organizations` today as **metadata only — not enforced.** No quota, retention, or lifecycle
 > tooling exists yet. See [`ROADMAP_DEFERRED.md`](ROADMAP_DEFERRED.md) and
 > [`COMMERCIAL_MODEL.md`](COMMERCIAL_MODEL.md).
+>
+> **Failed-upload cleanup DOES exist (Phase A4).** Public upload cores delete their own just-uploaded
+> objects on any insert/upload failure (`lib/forms/cleanup.ts`), a client idempotency token prevents
+> duplicate rows+files on resubmit, and an operator backstop (`scripts/cleanup-orphan-media.mjs`,
+> dry-run default) removes any residual objects whose `form_submissions` row never materialized — never
+> touching a submission that has a row. See [`ORPHAN_MEDIA_CLEANUP.md`](ORPHAN_MEDIA_CLEANUP.md). This is
+> orphan cleanup, distinct from the quota/retention wave below.
 
 ## Principle
 
