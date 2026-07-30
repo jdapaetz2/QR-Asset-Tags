@@ -2,8 +2,9 @@
 
 Operational incident handling for the pilot. Deployment steps live in
 [`PRODUCTION_DEPLOYMENT_RUNBOOK.md`](PRODUCTION_DEPLOYMENT_RUNBOOK.md); production smoke steps in
-[`PRODUCTION_SMOKE_TEST.md`](PRODUCTION_SMOKE_TEST.md). (There is no separate staging runbook — preview
-deployments follow the production runbook with placeholder/QA env values.)
+[`PRODUCTION_SMOKE_TEST.md`](PRODUCTION_SMOKE_TEST.md). Staging/preview deployments follow the production runbook plus
+the staging-specific record and safeguards in
+[`STAGING_DEPLOYMENT_RUNBOOK.md`](STAGING_DEPLOYMENT_RUNBOOK.md) (added in Phase A6.3).
 
 ## Guiding guarantee
 

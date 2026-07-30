@@ -20,7 +20,12 @@
     "test:e2e:smoke": "playwright test tests/e2e/smoke",
     "test:e2e:critical": "playwright test --grep @critical",
     "test:e2e:reset": "supabase db reset",
-    "verify:production-config": "node scripts/verify-production-config.mjs"
+    "verify:production-config": "node scripts/verify-production-config.mjs",
+    "qa:staging:data": "node scripts/qa/staging-qa-data.mjs",
+    "qa:staging:devices": "node scripts/qa/staging-audit.mjs --devices",
+    "qa:staging:loops": "node scripts/qa/staging-audit.mjs --loops",
+    "qa:staging:qr": "node scripts/qa/staging-audit.mjs --qr",
+    "qa:staging:vitals": "node scripts/qa/staging-vitals.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

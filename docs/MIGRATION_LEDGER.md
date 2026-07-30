@@ -31,6 +31,16 @@ proof of remote application.
 > what installs it. The role-aware write policies and the `profiles` privileged-column protection are therefore
 > **live**.
 >
+> **0033 (Phase A4) — CONFIRMED APPLIED (operator-authorized, Phase A6.3).** A6.3 found `0033_public_rate_limit.sql`
+> present locally but **missing on the remote** (`supabase migration list` showed `0033 | <blank> | 0033`). Because
+> the limiter fails *open* (`lib/ratelimit/limiter.ts`), public forms kept working and the gap was invisible from the
+> outside — but shared-store rate limiting was **inactive on the deployed product**, and every public submit logged a
+> `failopen` abuse event. With explicit operator authorization, `npx.cmd supabase db push` applied it
+> (`Applying migration 0033_public_rate_limit.sql... Finished supabase db push.`) and `migration list` now shows
+> `0033 | 0033 | 0033`. The migration is purely additive: it creates `rate_limit_counters`, `rate_limit_touch()` and
+> `rate_limit_gc()` plus grants — the only `delete` statements are inside those functions, operating on the new table's
+> own expired rows. **Lesson:** a fail-open dependency needs an explicit remote-state check; the app cannot report it.
+>
 > **Fresh-apply is now an executed test (Phase A3.2).** `npm run test:security` runs `supabase db reset`, applying
 > `0001→latest` in order to an empty local database on every run, and `tests/security/catalog.test.ts` then asserts
 > the result: the migration set is contiguous, the supersession chains resolved to their latest definitions
