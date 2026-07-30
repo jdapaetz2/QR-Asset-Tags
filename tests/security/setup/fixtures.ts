@@ -21,8 +21,11 @@ export const ORG_A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 export const ORG_B = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 export const ORG_C_SUSPENDED = "cccccccc-cccc-cccc-cccc-cccccccccccc";
 
-// A shared, non-secret local test password (min length only; never a real credential).
-export const TEST_PASSWORD = "A3dot2-Local-Test-Pw!";
+// A shared local test password. Non-secret by default (a throwaway used only against the LOCAL stack);
+// override via E2E_PASSWORD for a non-local target so no real credential is ever tracked in source. The
+// default is unchanged, so the executed security suite behaves identically. Both the seeder (which creates
+// the users with this password) and the E2E auth fixtures read from here, so they can never diverge.
+export const TEST_PASSWORD = process.env.E2E_PASSWORD ?? "A3dot2-Local-Test-Pw!";
 
 export type ActorKey =
   | "owner"

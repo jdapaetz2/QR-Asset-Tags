@@ -13,6 +13,12 @@
 # testing
 /coverage
 
+# e2e (Playwright) — never commit auth storage state or run artifacts
+/test-results
+/playwright-report
+/playwright/.cache
+/tests/e2e/.auth
+
 # next.js
 /.next/
 /out/

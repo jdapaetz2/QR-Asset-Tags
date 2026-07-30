@@ -15,6 +15,10 @@
     "db:reset": "supabase db reset",
     "test:security": "npm run db:reset && vitest run --config vitest.security.config.ts",
     "test:rls": "vitest run --config vitest.security.config.ts tests/security/rls",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:smoke": "playwright test tests/e2e/smoke",
+    "test:e2e:reset": "supabase db reset",
     "verify:production-config": "node scripts/verify-production-config.mjs"
   },
   "dependencies": {
@@ -32,6 +36,7 @@
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",
