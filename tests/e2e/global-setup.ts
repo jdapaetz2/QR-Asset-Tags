@@ -1,6 +1,7 @@
 import { assertLocal, getStackConfig } from "../security/setup/stack";
 import { applyLocalGrantParity } from "../security/setup/grants";
 import { seedFixtures, serviceClient, ORG_A, ASSET } from "../security/setup/fixtures";
+import { seedE2eExtras } from "./support/seed";
 
 /**
  * Phase A6.1 — Playwright global setup. Reuses the A3.2 fixtures rather than duplicating them:
@@ -30,4 +31,8 @@ export default async function globalSetup(): Promise<void> {
     status: "disabled",
   });
   if (error) throw new Error(`e2e global-setup: seeding the disabled QR link failed: ${error.message}`);
+
+  // Phase A6.2 — read-only enrichment for the golden-path suite (equipment-page content, a resolvable
+  // return template, and one rich rental-session evidence graph). Kept out of the A3.2 security fixtures.
+  await seedE2eExtras();
 }

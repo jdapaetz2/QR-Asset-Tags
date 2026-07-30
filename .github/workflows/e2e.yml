@@ -1,0 +1,59 @@
+name: E2E (critical browser subset)
+
+# Phase A6.2 — bounded Playwright browser suite. Runs the @critical golden-path + role-boundary tests
+# (the highest-value ~subset, not the full suite) against a throwaway LOCAL Supabase stack + a production
+# build of the app — never a hosted project (playwright.config + stack.ts refuse any non-loopback host),
+# never live email (RESEND_* unset → notifications dry-run). The local stack's keys are public CLI
+# fixtures, so NO repository secrets are needed. Docker is preinstalled on ubuntu-latest.
+#
+# Cadence (approved): every pull request + nightly + manual dispatch. The FULL suite (`npm run test:e2e`)
+# is run manually / pre-deploy — CI stays bounded so PR turnaround is fast. Direct pushes to
+# pilot-credibility are not gated here (pull_request only); the first PR run validates the workflow.
+
+on:
+  schedule:
+    - cron: "41 6 * * *" # 06:41 UTC nightly (offset from the security suite)
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  critical:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium (+ OS deps)
+        run: npx playwright install --with-deps chromium
+
+      - name: Start local Supabase stack
+        run: npx supabase start
+
+      - name: Reset database (apply migrations)
+        run: npm run test:e2e:reset
+
+      - name: Critical browser subset (@critical)
+        run: npm run test:e2e:critical
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: npx supabase stop --no-backup

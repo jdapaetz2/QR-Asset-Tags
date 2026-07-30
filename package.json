@@ -18,6 +18,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:smoke": "playwright test tests/e2e/smoke",
+    "test:e2e:critical": "playwright test --grep @critical",
     "test:e2e:reset": "supabase db reset",
     "verify:production-config": "node scripts/verify-production-config.mjs"
   },

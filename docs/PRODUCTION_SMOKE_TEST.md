@@ -1,9 +1,17 @@
 # Production Smoke Test — Mulemark
 
-Run against the **production URL** after every deploy (see `docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md`). Manual today;
-the A6 Playwright suite will automate the core paths. Use a throwaway rental session / test org — never real customer
-data. Record pass/fail + tester + commit. Stop and roll back on any P0 failure (auth, public scan, private-media leak,
-export leak, request loop).
+Run against the **production URL** after every deploy (see `docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md`). Use a throwaway
+rental session / test org — never real customer data. Record pass/fail + tester + commit. Stop and roll back on any P0
+failure (auth, public scan, private-media leak, export leak, request loop).
+
+**Automated vs manual (A6.2).** The Playwright golden-path suite (`docs/E2E_TESTING.md`) now automates most of this
+matrix **against a local stack** — Auth, Public scan (✅ automated), Customer admin, Customer staff + staff scan
+workflow, Submissions/evidence, Owner, and Conditional customer export sections all have equivalent browser specs.
+This production checklist still runs manually **against the real production URL** after each deploy, because the
+automated suite deliberately never touches production. Rows that remain **manual-only even locally** (not automated by
+A6.2): live **email delivery** (the suite runs notifications dry-run — 📧 below), the production QR `?unsafe=1`
+base-URL safety rows (🏭), and private-media signed-URL loading in a real browser (🔒 — the storage boundary is covered
+by the executed `npm run test:security` suite instead).
 
 ## Accounts needed
 - Platform owner; a customer **admin**; a customer **staff**; and an anonymous device (phone) for public scan.
@@ -49,8 +57,8 @@ export leak, request loop).
 
 ### Owner
 - [ ] Organizations list/detail + org sub-nav; QR governance; production.
-- [ ] Production shows **no** "not production-safe" warning; downloading **QR SVG / QR sheet / production CSV** returns
-      files **without** `?unsafe=1` (production base URL is safe).
+- [ ] 🏭 **(manual-only — needs the real production base URL)** Production shows **no** "not production-safe" warning;
+      downloading **QR SVG / QR sheet / production CSV** returns files **without** `?unsafe=1`.
 - [ ] Owner export always works.
 
 ### Conditional customer export
@@ -59,7 +67,8 @@ export leak, request loop).
 - [ ] Owner enables it → customer **admin** sees + downloads; customer **staff** still cannot see/reach it.
 
 ### Email + media + stability
-- [ ] Trigger a notification (new submission / tag-request status). With Resend configured → email received; unset →
-      logged dry-run, submission still succeeds.
-- [ ] Private media: submission images load for admin via signed URL; a raw storage path is not publicly listable.
+- [ ] 📧 **(manual-only)** Trigger a notification (new submission / tag-request status). With Resend configured → email
+      received; unset → logged dry-run, submission still succeeds.
+- [ ] 🔒 **(manual-only in-browser; storage boundary covered by `test:security`)** Private media: submission images load
+      for admin via signed URL; a raw storage path is not publicly listable.
 - [ ] No automatic refresh/poll loop and no repeated network requests on any page (watch the Network tab settle).

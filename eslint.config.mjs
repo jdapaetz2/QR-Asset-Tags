@@ -26,6 +26,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Playwright artifacts (gitignored) — generated minified bundles + traces; never lint them.
+    "playwright-report/**",
+    "test-results/**",
+    "tests/e2e/.auth/**",
   ]),
 ]);
 

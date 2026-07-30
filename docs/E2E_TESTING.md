@@ -1,7 +1,8 @@
-# E2E / Browser Testing — Mulemark (Phase A6.1)
+# E2E / Browser Testing — Mulemark (Phase A6.2)
 
-Playwright browser tests that run the **real app** against the **local Supabase stack**. A6.1 is the
-foundation + a small smoke set; the full golden-path suite is **deferred to A6.2**.
+Playwright browser tests that run the **real app** against the **local Supabase stack**. A6.1 built the
+foundation + a smoke set; **A6.2 adds the critical golden-path + role-boundary suite** across public,
+admin, staff, owner, cross-tenant, and failure/idempotency surfaces.
 
 > **Production prohibition.** These tests are non-production only. `playwright.config.ts` resolves the
 > Supabase credentials from `supabase status` via `getStackConfig()`, which **refuses any non-loopback
@@ -54,8 +55,9 @@ active rental session; open submissions; templates and tag requests. Seeding is 
 
 ```bash
 npx supabase start            # once, Docker up
-npm run test:e2e:smoke        # build the app + seed + run the smoke suite (Chromium)
-npm run test:e2e              # same set today (A6.2 will add the full suite)
+npm run test:e2e:smoke        # build the app + seed + run the A6.1 smoke suite (Chromium)
+npm run test:e2e:critical     # the bounded @critical subset (what CI runs)
+npm run test:e2e              # the FULL golden-path suite (all specs)
 npm run test:e2e:ui           # Playwright UI mode
 npm run test:e2e:reset        # supabase db reset (clean migrations + seed)
 ```
@@ -64,6 +66,47 @@ The web server runs a **production build** (`next build && next start`), not `ne
 client components (e.g. the Radix account menu) intermittently non-interactive, causing flaky clicks. The
 build also strips any stale `.next/dev` types first for a deterministic type-check. First run builds
 (~1 min); locally, a server already listening on 3100 is reused.
+
+## Golden-path suite (A6.2)
+
+Automated browser coverage, by persona directory under `tests/e2e/`:
+
+- **public/** (`viewport 390×844`, anon) — scan page (active / unavailable-without-disclosure / Quick
+  Start / documents / no horizontal overflow), damage + support forms (required block, optional media,
+  `SUB-YYYY-XXXXXX` reference), the 3-stage guided **return checklist** (answers survive Back, no-photo
+  omission dialog, damage-without-photo path), and the once-per-rental **acknowledgement** prompt
+  (delayed show, transient Dismiss, completion suppression, staff never sees it).
+- **admin/** (org A) — dashboard settle + active nav, asset search/filter → detail with `returnTo`,
+  submissions status transitions + bulk toolbar, rental-session **evidence** disclosures + print +
+  acknowledgements + RNT-reference search, the customer-export boundary (org A disabled → redirect; org B
+  enabled → CSV), settings/team reachability + wordmark + "Return checklist" terminology.
+- **staff/** (org A) — nav omits Settings + every admin route 302s to `/dashboard`; outbound inspection's
+  three session states (create / attach / blocked) verified via a service read; staff return closes the
+  rental and frees the asset.
+- **owner/** — org list + subnav, always-available owner export CSV, the customer-export toggle control,
+  QR code-alias creation, and a customer bounced off `/owner`.
+- **cross-tenant/** — an org-B customer sees no org-A record through any admin URL, an org-B export never
+  contains org-A rows, `/owner` redirects a customer, and a wrong-org **staff** short code 404s.
+- **failure/** — a double-fired submit creates exactly one row, a rejected upload preserves values and
+  writes nothing, a rate-limited submit shows the generic message and writes nothing, and an
+  unauthenticated protected route redirects.
+
+**Disposable-fixture pattern (critical).** The shared baseline (A3.2 fixtures + `seedE2eExtras()`
+enrichment) is seeded ONCE by `global-setup` and is **read-only** — reseeding would delete/recreate the
+fixture users and invalidate the saved auth storage state. So every state-mutating test creates its OWN
+disposable entities (unique ids + short codes) via the service-role helpers in
+`tests/e2e/support/seed.ts` (`createAsset`, `createRentedStaffAsset`, `createSubmission`, …), acts, and
+asserts on those — never disturbing the baseline or another test. `seedE2eExtras()` adds only read-only
+enrichment (equipment-page content, a resolvable return template, one rich rental-session evidence graph)
+and never touches the A3.2 security fixtures.
+
+**`@critical` subset.** ~20 highest-value tests are tagged `@critical`; `npm run test:e2e:critical`
+(`playwright test --grep @critical`) is what CI runs. The full suite runs manually / nightly / pre-deploy.
+
+**Manual-only (not automated here).** Live Resend email delivery (deliberately dry-run — `RESEND_*`
+unset); the owner disabled-primary QR guard end-to-end (create-alias is automated, the production-primary
+disable guard is exercised by unit tests in `lib/qr`); real magic-link email login (password login is
+used instead); multi-browser / visual-regression.
 
 ## Smoke tests
 

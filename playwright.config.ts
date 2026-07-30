@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 import { getStackConfig } from "./tests/security/setup/stack";
-import { E2E_PORT, E2E_BASE_URL, ROLE_KEYS } from "./tests/e2e/support/roles";
+import { E2E_PORT, E2E_BASE_URL, E2E_SCAN_SALT, ROLE_KEYS } from "./tests/e2e/support/roles";
 
 /**
  * Phase A6.1 — Playwright foundation. Runs the real app against the LOCAL Supabase stack only.
@@ -63,7 +63,8 @@ export default defineConfig({
       SUPABASE_SERVICE_ROLE_KEY: stack.serviceRoleKey,
       NEXT_PUBLIC_SITE_URL: E2E_BASE_URL,
       // Local-only, non-secret salt so scan logging works; fail-soft outside prod/preview anyway.
-      SCAN_IP_HASH_SALT: "e2e-local-scan-salt-not-a-secret-000000",
+      // Shared with seed helpers so they can compute the exact rate-limit bucket key.
+      SCAN_IP_HASH_SALT: E2E_SCAN_SALT,
       // RESEND_* intentionally unset → notifications dry-run (no email in E2E).
     },
   },
