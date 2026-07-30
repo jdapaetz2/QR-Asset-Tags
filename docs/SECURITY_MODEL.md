@@ -156,6 +156,34 @@ behavior change with its own migration; the guardrails above keep the current pa
 `setUserRole` was already moved off the service role in A3.1 (platform-owner-only; `is_platform_owner()` satisfies
 `profiles_update`).
 
+## Environment isolation (Phase B1 — in progress)
+
+**The finding (A7):** every Vercel environment variable is a single row scoped `Production, Preview`, so
+a preview deployment receives the **production Supabase URL, anon key, and service-role key**. Any
+preview, from any branch, can read and write real data with full RLS bypass. Current blast radius is
+demo data only (no customers yet), which is why this is a scheduled fix rather than an incident — but it
+must land before broader preview QA, demos, or external pilot use.
+
+**B1A (done, repo-side):** the target a destructive script may touch is now resolved by one tested
+module, `scripts/lib/env-target.mjs`:
+
+- classification is by **project ref / host only** — never by a human-readable project name;
+- the live production ref is a committed constant, so staging tooling refuses production **by name**
+  (a Supabase project ref is public by construction — it is the hostname inside
+  `NEXT_PUBLIC_SUPABASE_URL`, compiled into the browser bundle);
+- **ambiguity fails closed to production** — an unrecognised remote ref is treated as real, not safe;
+- staging requires an explicitly declared `STAGING_SUPABASE_REF`; without one, nothing is staging;
+- errors carry host and ref only. The module never accepts key material, so it cannot leak any.
+
+Enforced by `npm run verify:{local,staging,production}-target`, the Supabase CLI linked-project guard
+(`scripts/check-linked-project.mjs`), and an explicit `MULEMARK_TARGET` precondition on both the A6.3 QA
+scripts and the staging seeder. `db reset` is pinned to `--local`; `db reset --linked` and
+`migration repair` are documented as forbidden.
+
+**B1B (operator):** create the staging Supabase project and re-scope the Vercel Preview variables —
+[`STAGING_ENVIRONMENT_SETUP.md`](STAGING_ENVIRONMENT_SETUP.md). Until then, preview still shares
+production.
+
 ## Things explicitly NOT in the MVP security scope
 
 No SSO/SAML, no granular custom permission roles beyond the three above, no field-level encryption beyond Supabase defaults, no automated link/file virus scanning (basic type/size checks only), and no formal compliance certification work. These are noted for future consideration, not MVP commitments.

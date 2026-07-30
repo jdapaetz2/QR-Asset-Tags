@@ -301,13 +301,54 @@ lifts the permanent-tag and live-pilot verdicts and enables a real performance r
 
 **Engineering, not blocked by any gate**, in priority order:
 
-1. **Give staging its own Supabase project + preview-scoped env** — today a preview deployment reads and
-   writes production data with the production service-role key. Highest-value remaining risk reduction.
+1. ~~**Give staging its own Supabase project + preview-scoped env.**~~ → **Phase B1, below.**
 2. **Set the Vercel project to Node 22.x** to match the tested baseline (currently 24.x).
 3. **Execute the physical-device QA matrix** (`docs/REAL_DEVICE_QA.md` Part 2) — needs hardware, not code.
 4. **Fix D-1**: admin data tables overflow on phones (93 px / 183 px at 412 px).
 5. **Take customer-admin profile writes off the service role** (the queued caller-aware SECURITY DEFINER
    RPC — the last P1 security item).
+
+---
+
+## Phase B1 — isolate the staging environment
+
+Removes the A7 finding that a Vercel **preview** deployment reads and writes the **production** Supabase
+project using the **production service-role key**. Current blast radius is demo data only (no customers
+yet), so this is a planned fix — but it must land before broader preview QA, demos, or external pilot use.
+
+### B1A — repository preparation — **DONE**
+
+No Supabase project created, no remote migration applied, no production variable changed.
+
+- **`scripts/lib/env-target.mjs`** — one tested module resolving which project a script may touch.
+  Classification is by **project ref / host only**, never by a human-readable name; ambiguity **fails
+  closed to production**; staging requires an explicitly declared `STAGING_SUPABASE_REF`; the committed
+  production ref lets staging tooling refuse production **by name**; errors carry host + ref only and the
+  module never accepts key material. 20 unit tests.
+- **Target verifiers** — `verify:local-target`, `verify:staging-target`, `verify:production-target`.
+- **CLI guard** — `scripts/check-linked-project.mjs` compares `supabase/.temp/project-ref` against a
+  stated expectation and fails on mismatch. Never relinks, pushes, or runs `migration repair`.
+  `db reset` is pinned to `--local`; `db reset --linked` documented as forbidden.
+- **Fail-closed bootstrap** — `scripts/staging/seed-staging-qa.mjs` (prepared, **not run**): requires
+  `MULEMARK_TARGET=staging`, a verified staging ref, `--confirm`, and an env-supplied password. Idempotent;
+  never logs the password; never applies migrations.
+- **Closed the A6.3 hole** — `scripts/qa/staging-qa-data.mjs` previously read the Supabase URL and
+  service-role key with **no target check at all**. It now requires an explicit `MULEMARK_TARGET`.
+- **Operator procedure** — [`docs/STAGING_ENVIRONMENT_SETUP.md`](docs/STAGING_ENVIRONMENT_SETUP.md).
+
+### B1B — operator bootstrap — **PENDING**
+
+Create the staging Supabase project, apply migrations behind the linked-project guard, re-scope the
+**Vercel Preview** variables to staging (recommended model: the built-in Preview scope, *not* a custom
+environment or a second project — branch-specific vars would let other branches fall back to production),
+set Node 22.x, redeploy, verify the target, then seed staging QA data.
+
+**The coupling is not removed until B1B lands.** B1A only makes it impossible to hit the wrong project by
+accident.
+
+### Unchanged by Phase B1
+
+The permanent QR domain remains deferred to **B3**; Resend/live email remains dry-run until **B4**.
 
 ---
 

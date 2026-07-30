@@ -28,6 +28,8 @@ import { randomBytes } from "node:crypto";
 
 import { createClient } from "@supabase/supabase-js";
 
+import { assertTarget, classifyTarget } from "../lib/env-target.mjs";
+
 // ---- The single blast radius -------------------------------------------------
 export const QA_ORG_ID = "a6300000-0000-4000-8000-0000000a63a0";
 const QA_ASSET_ID = "a6300000-0000-4000-8000-0000000a63a1";
@@ -52,11 +54,50 @@ function requireEnv(name) {
   return v;
 }
 
+/**
+ * Resolve the client, but only after the caller has STATED which environment they mean.
+ *
+ * Phase A7 found this script could write to any project the shell happened to point at — including
+ * production — with no check at all. The target is now never inferred: `MULEMARK_TARGET` must be set
+ * explicitly and must match the project the URL actually resolves to. Aiming this at production is
+ * still possible (that is where the A6.3 QA org lived) but now requires saying so out loud.
+ */
 function client() {
   const url = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
   const key = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-  // Host only — never the key.
-  console.log(`[qa-data] target: ${new URL(url).host}`);
+
+  const declared = process.env.MULEMARK_TARGET ?? "";
+  const resolved = classifyTarget({
+    supabaseUrl: url,
+    expectedStagingRef: process.env.STAGING_SUPABASE_REF || null,
+  });
+
+  if (!declared) {
+    console.error(
+      `[qa-data] REFUSING TO RUN: MULEMARK_TARGET is not set.\n` +
+        `  This shell resolves to ${resolved.target.toUpperCase()} (host: ${resolved.host}).\n` +
+        `  Re-run with MULEMARK_TARGET=${resolved.target} if that is what you intend.\n` +
+        `  The target is never inferred — see docs/STAGING_ENVIRONMENT_SETUP.md.`
+    );
+    process.exit(1);
+  }
+
+  try {
+    assertTarget(declared, {
+      supabaseUrl: url,
+      expectedStagingRef: process.env.STAGING_SUPABASE_REF || null,
+    });
+  } catch (err) {
+    console.error(`[qa-data] REFUSING TO RUN: ${err.message}`);
+    process.exit(1);
+  }
+
+  // Host + classification only — never the key.
+  console.log(`[qa-data] target: ${resolved.host} (${declared.toUpperCase()}, confirmed)`);
+  if (declared === "production") {
+    console.log("[qa-data] WARNING: writing QA fixtures into the PRODUCTION project.");
+    console.log("[qa-data] Run `npm run qa:staging:data cleanup` when finished.");
+  }
   return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
 }
 

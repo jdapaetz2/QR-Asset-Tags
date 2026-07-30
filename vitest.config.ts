@@ -16,6 +16,9 @@ export default defineConfig({
       "lib/**/*.test.ts",
       "app/**/*.test.{ts,tsx}",
       "components/**/*.test.{ts,tsx}",
+      // Operator tooling (Phase B1A). The environment-target module decides which Supabase project a
+      // destructive script may touch, so it is covered here rather than mirrored and hoped.
+      "scripts/**/*.test.mjs",
     ],
   },
 });

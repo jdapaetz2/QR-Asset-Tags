@@ -40,7 +40,13 @@ URL is acceptable *for testing only*.
 | Node (repo) | `22` (`.nvmrc`, `engines.node` = `22.x`) |
 | Node (Vercel project setting) | **`24.x` — drift, see findings** |
 
-### ⚠️ Staging shares production's database
+### ⚠️ Staging shares production's database — **being removed in Phase B1**
+
+> **Status:** Phase **B1A** (repo-side preparation) is **done** — target verifiers, a Supabase CLI
+> linked-project guard, fail-closed staging bootstrap tooling, and the full operator procedure in
+> [`STAGING_ENVIRONMENT_SETUP.md`](STAGING_ENVIRONMENT_SETUP.md). Phase **B1B** is the operator running
+> that procedure: create the staging Supabase project, re-scope the Vercel Preview variables, and seed
+> staging QA data. **Until B1B lands, everything below still applies.**
 
 Vercel `env ls` shows every variable scoped `Production, Preview` — a preview deployment therefore reads
 and writes the **same Supabase project as production**. Consequences:
@@ -82,6 +88,25 @@ Preview deployments sit behind Vercel Deployment Protection. For device QA, enab
   tester browse normally.
 
 **Revoke the bypass token when QA is finished** — it grants anonymous access to every preview.
+
+## Target verification (Phase B1A)
+
+Before anything destructive, confirm which project the shell is aimed at. The target is **never
+inferred** — it must be declared, and the tooling refuses when the declaration and the resolved project
+disagree.
+
+```bash
+npm run verify:local-target        # loopback Docker stack only
+npm run verify:staging-target      # requires STAGING_SUPABASE_REF; refuses the production ref by name
+npm run verify:production-target   # refuses the staging ref
+node scripts/check-linked-project.mjs --expect=<ref>   # guards the Supabase CLI link
+```
+
+`scripts/qa/staging-qa-data.mjs` and `scripts/staging/seed-staging-qa.mjs` both require an explicit
+`MULEMARK_TARGET` and verify it before writing. None of these print key material.
+
+**Forbidden on any linked remote, staging included:** `supabase db reset --linked` (destroys the remote)
+and `supabase migration repair` (rewrites history). `npm run db:reset` is pinned to `--local`.
 
 ## Cleanup checklist (run at the end of every QA session)
 

@@ -8,6 +8,13 @@ admin, staff, owner, cross-tenant, and failure/idempotency surfaces.
 > Supabase credentials from `supabase status` via `getStackConfig()`, which **refuses any non-loopback
 > host**, and `baseURL` is always `http://127.0.0.1:3100`. Never point E2E at a production or shared
 > database.
+>
+> **Phase B1A addition.** The E2E and security suites were already loopback-guarded; the gap was the
+> A6.3 **QA scripts** (`scripts/qa/staging-*.mjs`), which read the Supabase URL and service-role key from
+> the environment with no target check. They now require an explicit `MULEMARK_TARGET` and verify it
+> against the resolved project ref before writing anything —
+> see [`STAGING_ENVIRONMENT_SETUP.md`](STAGING_ENVIRONMENT_SETUP.md). Check a shell with
+> `npm run verify:local-target` / `verify:staging-target` / `verify:production-target`.
 
 ## Prerequisites
 
