@@ -216,31 +216,98 @@ The remaining risk is no longer a missing core workflow. The main risks are:
 - **A6.3 — real-device QA + performance baseline.** iPhone/Android (or equivalent) scan/form testing, weak-signal and
   common mobile widths, and Speed Insights / route-performance budgets.
 
-### A7. Pilot-readiness closeout
+### A7. Pilot-readiness closeout — **DONE**
 
-- run lint, typecheck, unit tests, E2E tests, and production build
-- verify migrations, environment, domain, email, rate limits, storage, and role boundaries
-- run the full owner/admin/staff/public smoke matrix
-- produce a final pilot-readiness report with pass/fail evidence
-- list accepted pilot limitations separately from blockers
-- merge and deploy only when blocking items are closed
+Produced **six independent readiness verdicts** rather than one blended answer, so the domain and email
+deferrals cannot drag down the software verdict and good software results cannot imply tag/email
+approval. Full evidence: [`docs/PHASE_A_PILOT_READINESS.md`](docs/PHASE_A_PILOT_READINESS.md).
 
-### Phase A exit criteria
+| Readiness | Verdict |
+|---|---|
+| Development | **GO** |
+| Controlled staging / demo | **GO** |
+| Software-only limited pilot | **CONDITIONAL GO** (temporary-URL disclosure, no metal tags, manual email process, data isolation) |
+| Permanent-tag live customer pilot | **NO-GO** — no stable domain |
+| Live notification delivery | **NO-GO** — no Resend domain / SPF / DKIM / DMARC / verified sender |
+| Physical production | **NOT YET ASSESSED** — laser not arrived |
 
-Phase A is complete when:
+Gates at closeout: lint, typecheck, **1087 unit tests**, build, **79 security tests**, **68 E2E**,
+12 smoke, `verify:production-config` (0 fail). Migrations **0001–0033** verified local ↔ remote,
+"Remote database is up to date". **No software blockers.**
 
-- production deployment is repeatable and documented
-- current docs match the actual product
-- every required migration is accounted for
-- critical role and tenant boundaries have automated coverage
-- public forms have shared-store abuse controls
-- failed uploads do not leave uncontrolled orphaned media
-- email failures are diagnosable
-- core golden paths pass browser E2E tests
-- public scan and form surfaces pass real-device QA
-- stable-domain rules are enforced for production tags
-- no critical or high pilot blockers remain
-- accepted limitations are explicitly documented
+Added `npm run verify:tag-config` — a machine-checkable permanent-tag gate that exits 1 while the base
+URL is not tag-safe (it rejects `*.vercel.app`, which the deployment config check accepts).
+
+### Phase A exit criteria — met for software
+
+- ✅ production deployment is repeatable and documented
+- ✅ current docs match the actual product
+- ✅ every required migration is accounted for (0001–0033 verified on the linked remote)
+- ✅ critical role and tenant boundaries have automated coverage (79 executed security tests)
+- ✅ public forms have shared-store abuse controls (0033 applied remotely in A6.3)
+- ✅ failed uploads do not leave uncontrolled orphaned media
+- ✅ email failures are diagnosable (structured, redacted outcomes)
+- ✅ core golden paths pass browser E2E tests (68)
+- ⚠️ public scan and form surfaces pass real-device QA — **automated engine pass done (106/110);
+  the physical-device matrix is unexecuted** (`docs/REAL_DEVICE_QA.md` Part 2)
+- ✅ stable-domain rules are **enforced** for production tags (the rule is enforced; the domain itself
+  is an operator gate below)
+- ✅ no critical or high pilot blockers remain **in software**
+- ✅ accepted limitations are explicitly documented
+
+---
+
+## Operator-owned gates (external — these do NOT block development)
+
+These are purchases, DNS records and provider configuration. They are **not** software defects, and
+nothing here blocks continued development, preview deployments, demos, E2E testing, or controlled
+internal QA.
+
+### Gate 1 — Production domain → unblocks permanent tags + live customer pilot
+
+Checklist: [`docs/PRODUCTION_DOMAIN_CHECKLIST.md`](docs/PRODUCTION_DOMAIN_CHECKLIST.md)
+
+- purchase the domain (pending name clearance)
+- choose the stable application hostname — tags encode it permanently
+- Vercel DNS + HTTPS custom domain
+- set `NEXT_PUBLIC_SITE_URL` to the final origin
+- **document the path-preserving `/t/*` redirect obligation and who owns it**
+- `npm run verify:tag-config` must pass (currently exits 1 by design)
+- permanent QR test + physical-tag scan QA
+
+### Gate 2 — Email / DNS → unblocks live notification delivery
+
+Checklists: [`docs/EMAIL_CONFIGURATION_CHECKLIST.md`](docs/EMAIL_CONFIGURATION_CHECKLIST.md),
+[`docs/EMAIL_DELIVERABILITY_RUNBOOK.md`](docs/EMAIL_DELIVERABILITY_RUNBOOK.md)
+
+- Resend sending domain verified; SPF, DKIM, DMARC
+- `RESEND_API_KEY` + `NOTIFICATION_FROM_EMAIL` (verified sender)
+- live sender test + multi-provider inbox delivery test
+
+Until then notification is a **UI-only** workflow — nobody may rely on an email arriving.
+
+### Gate 3 — Physical tag production (separate workstream)
+
+Tracked in [`docs/TAG_PRODUCTION_READINESS.md`](docs/TAG_PRODUCTION_READINESS.md): laser arrival,
+material/process validation, durability, scannability, production economics. Also inherits Gate 1 — a
+perfect tag is useless until the domain is stable.
+
+---
+
+## Next recommended workstream
+
+**Operator, in parallel and unblocking:** Gate 1 (domain) has the widest downstream effect — it alone
+lifts the permanent-tag and live-pilot verdicts and enables a real performance re-baseline.
+
+**Engineering, not blocked by any gate**, in priority order:
+
+1. **Give staging its own Supabase project + preview-scoped env** — today a preview deployment reads and
+   writes production data with the production service-role key. Highest-value remaining risk reduction.
+2. **Set the Vercel project to Node 22.x** to match the tested baseline (currently 24.x).
+3. **Execute the physical-device QA matrix** (`docs/REAL_DEVICE_QA.md` Part 2) — needs hardware, not code.
+4. **Fix D-1**: admin data tables overflow on phones (93 px / 183 px at 412 px).
+5. **Take customer-admin profile writes off the service role** (the queued caller-aware SECURITY DEFINER
+   RPC — the last P1 security item).
 
 ---
 

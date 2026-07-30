@@ -6,10 +6,15 @@
  * reads local files + already-present env var NAMES.
  *
  * Hard checks (exit 1 on FAIL) are limited to things safe to enforce locally:
- * required var names declared, migrations 0001–0031 present, canonical Node
- * version consistent, and server-only import boundaries intact. Value checks
- * (site URL shape, salt strength, sender format) run only when the values are
- * set — WARN locally, FAIL in Vercel production/preview.
+ * required var names declared, the migration sequence contiguous from 0001 to
+ * the highest present (currently 0033 — the check is dynamic, not pinned),
+ * canonical Node version consistent, and server-only import boundaries intact.
+ * Value checks (site URL shape, salt strength, sender format) run only when the
+ * values are set — WARN locally, FAIL in Vercel production/preview.
+ *
+ * SCOPE: this is the DEPLOYMENT config gate. It intentionally accepts a Vercel
+ * preview host as a valid QA target. Whether the base URL is safe to etch into a
+ * PERMANENT tag is a stricter, separate question — see scripts/verify-tag-config.mjs.
  *
  * Run: npm run verify:production-config
  */

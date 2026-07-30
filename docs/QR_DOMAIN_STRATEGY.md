@@ -34,6 +34,11 @@ a stale placeholder host. Exports follow the same rule.
 
 ## Pre-production checklist
 
+> The **executable** gate list with current status lives in
+> [`PRODUCTION_DOMAIN_CHECKLIST.md`](PRODUCTION_DOMAIN_CHECKLIST.md), and
+> `npm run verify:tag-config` makes it machine-checkable (it exits 1 while the base URL is not
+> tag-safe). This section states the policy; that file tracks completion.
+
 - [ ] `NEXT_PUBLIC_SITE_URL` is set to the final production/custom domain.
 - [ ] A test scan of a real printed sample resolves correctly on mobile.
 - [ ] DNS/host for the domain is owned by the operator and not expiring.

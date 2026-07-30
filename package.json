@@ -21,6 +21,7 @@
     "test:e2e:critical": "playwright test --grep @critical",
     "test:e2e:reset": "supabase db reset",
     "verify:production-config": "node scripts/verify-production-config.mjs",
+    "verify:tag-config": "node scripts/verify-tag-config.mjs",
     "qa:staging:data": "node scripts/qa/staging-qa-data.mjs",
     "qa:staging:devices": "node scripts/qa/staging-audit.mjs --devices",
     "qa:staging:loops": "node scripts/qa/staging-audit.mjs --loops",
