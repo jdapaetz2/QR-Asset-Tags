@@ -27,13 +27,13 @@
     "verify:production-target": "node scripts/verify-production-target.mjs",
     "verify:linked-project": "node scripts/check-linked-project.mjs",
     "staging:seed": "node scripts/staging/seed-staging-qa.mjs",
-    "staging:verify": "node scripts/staging/verify-staging-workflows.mjs",
+    "staging:verify": "node --env-file=.env.staging.local scripts/staging/verify-staging-workflows.mjs",
     "qa:overflow": "node --env-file=.env.staging.local scripts/qa/measure-responsive-overflow.mjs",
-    "qa:staging:data": "node scripts/qa/staging-qa-data.mjs",
-    "qa:staging:devices": "node scripts/qa/staging-audit.mjs --devices",
-    "qa:staging:loops": "node scripts/qa/staging-audit.mjs --loops",
-    "qa:staging:qr": "node scripts/qa/staging-audit.mjs --qr",
-    "qa:staging:vitals": "node scripts/qa/staging-vitals.mjs"
+    "qa:staging:data": "node --env-file=.env.staging.local scripts/qa/staging-qa-data.mjs",
+    "qa:staging:devices": "node --env-file=.env.staging.local scripts/qa/staging-audit.mjs --devices",
+    "qa:staging:loops": "node --env-file=.env.staging.local scripts/qa/staging-audit.mjs --loops",
+    "qa:staging:qr": "node --env-file=.env.staging.local scripts/qa/staging-audit.mjs --qr",
+    "qa:staging:vitals": "node --env-file=.env.staging.local scripts/qa/staging-vitals.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

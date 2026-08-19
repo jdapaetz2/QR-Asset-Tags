@@ -362,6 +362,30 @@ Staging Supabase project `kwserenxwjxozztyigmw` ("Mulemark-Staging") is live and
 production and preview, so it is **pre-existing, not caused by B1B**. Earlier phases called it "wired,
 awaiting traffic"; that was optimistic. Operator action: enable it in the Vercel dashboard.
 
+## Phase B2 — responsive fix + device matrix closeout — **DONE (2026-08-19)**
+
+Closed D-1, the last open engineering item from the A6.3 device QA.
+
+- **The recorded root cause was wrong.** A6.3 blamed the tables and recommended an `overflow-x-auto`
+  wrapper; both tables already had one and it works. The page could never be dragged sideways
+  (`scrollX` stays 0). The real mechanism: a wide table pushes its **min-content width into the
+  document's intrinsic width** even when an ancestor clips it, so mobile Chromium **shrink-to-fits** and
+  renders the page zoomed out (~66 % on the submissions inbox).
+- **Two causes, and six affected routes rather than two.** Wide tables on `/dashboard/assets`,
+  `/dashboard/submissions`, `/dashboard/templates`, `/owner`, `/owner/tag-requests`,
+  `/owner/production` — plus a **shared primitive**, `PageHeader`, whose action row had no `flex-wrap`.
+  Eight other table routes were already clean and were left alone.
+- **Fix:** card list below `md`, existing compact table at `md`+, both mapping the same fetched rows.
+  Desktop density untouched; bulk selection preserved through the existing context provider, with a
+  mobile "Select all visible" control added since the table's lives in a `<thead>`.
+- **Verified:** all 14 routes report 0 px at 360 / 390 / 430 / 768 / 1024 / 1280 via the new
+  `npm run qa:overflow`; device pass **108/110, 0 failures**; staging workflow verification 23/23.
+- **Tooling hardened:** QA scripts now take every input from `.env.staging.local` — no URL or secret on
+  a command line, in a log, or in an approval prompt.
+
+**Still operator-owned:** the physical-device matrix (`docs/REAL_DEVICE_QA.md` Part 2) remains
+unexecuted — camera QR scan, real weak signal, iOS Safari and desktop Safari need hardware.
+
 ### Unchanged by Phase B1
 
 The permanent QR domain remains deferred to **B3**; Resend/live email remains dry-run until **B4**.

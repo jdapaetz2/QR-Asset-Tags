@@ -569,6 +569,13 @@ export default async function SubmissionsPage({
           )}
         </div>
       ) : (
+        <>
+        {/* Select-all on mobile. The table's copy lives in a `<thead>`, which does not render below
+            `md`; without this, phone users could select rows one at a time but never all of them. */}
+        <label className="flex min-h-11 items-center gap-2.5 px-1 text-sm text-muted-foreground md:hidden">
+          <SelectAllCheckbox />
+          Select all visible
+        </label>
         <ListCardGroup>
           {viewRows.map(({ row, count, urgency, flags, rowDamage, submitter, reference, isNew, quickResolve }) => (
             <ListCard
@@ -636,6 +643,7 @@ export default async function SubmissionsPage({
             </ListCard>
           ))}
         </ListCardGroup>
+        </>
       )}
       </BulkSelectionProvider>
     </div>

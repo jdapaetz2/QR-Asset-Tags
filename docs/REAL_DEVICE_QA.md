@@ -2,7 +2,8 @@
 
 > **TEST-ONLY.** All QA runs against the temporary staging deployment recorded in
 > [`STAGING_DEPLOYMENT_RUNBOOK.md`](STAGING_DEPLOYMENT_RUNBOOK.md), using a **disposable test QR code**
-> (`qa-a63-test`) inside a disposable test organization. **No permanent tag may ever be produced from a
+> (`stg-qa-public` / `stg-qa-rented`, seeded by `npm run staging:seed`) inside disposable test
+> organizations. **No permanent tag may ever be produced from a
 > staging URL.**
 
 ## How to read this document
@@ -24,8 +25,15 @@ Emulation reproduces viewport, device-pixel-ratio, touch flags, user-agent and C
 
 ## Part 1 — Automated emulated pass (complete)
 
-Command: `npm run qa:staging:devices -- --base=<staging>` · 110 checks · **106 pass / 4 fail**
-All four failures are the **same defect** (D-1 below), reproduced independently on both mobile engines.
+Command: `npm run qa:staging:devices` · 110 checks.
+
+| Run | Result |
+|---|---|
+| A6.3 (2026-07-30) | 106 pass / **4 fail** — all four the same defect, D-1 |
+| **B2 re-run (2026-08-19)** | **108 pass / 0 fail**, 2 N/A |
+
+The two `N/A` are the bulk-action toolbar on the mobile profiles when the seeded inbox happens to have
+nothing selectable; the control itself is present and passes on the desktop profiles.
 
 | Profile | Engine | Viewport | Notes |
 |---|---|---|---|
@@ -70,8 +78,8 @@ All four failures are the **same defect** (D-1 below), reproduced independently 
 | Bulk-action toolbar | PASS | PASS | PASS | PASS |
 | Rentals list | PASS | PASS | PASS | PASS |
 | Export **disabled** → redirects to settings | PASS | PASS | PASS | PASS |
-| Assets — no horizontal overflow | **FAIL** | **FAIL** | PASS | PASS |
-| Submissions — no horizontal overflow | **FAIL** | **FAIL** | PASS | PASS |
+| Assets — no horizontal overflow | ~~FAIL~~ **PASS** (B2) | ~~FAIL~~ **PASS** (B2) | PASS | PASS |
+| Submissions — no horizontal overflow | ~~FAIL~~ **PASS** (B2) | ~~FAIL~~ **PASS** (B2) | PASS | PASS |
 | Rentals — no horizontal overflow | PASS | PASS | PASS | PASS |
 
 ---
@@ -80,24 +88,65 @@ All four failures are the **same defect** (D-1 below), reproduced independently 
 
 Severity: **S1** blocks the pilot · **S2** fix before pilot · **S3** fix when convenient · **S4** cosmetic.
 
-### D-1 · S3 · Admin data tables overflow horizontally at phone widths
+### D-1 · S3 · Page overflow at phone widths — **RESOLVED in Phase B2 (2026-08-19)**
 
-**Reproduced on both mobile engines.** Measured at a 412 px viewport:
+> **The root cause recorded here in A6.3 was wrong, and the affected-route list was incomplete.**
+> Corrected below from live measurement.
 
-| Route | Horizontal overflow | First offending element |
+**What A6.3 recorded.** "Admin data tables overflow horizontally", offender `TABLE.w-full text-sm`,
+recommendation "wrap the two `<table>`s in an `overflow-x-auto` container".
+
+**Why that was wrong.** Both tables *already had* that wrapper, and it works — the scroll container
+measures `clientWidth 378` around `scrollWidth 675`. Walking the ancestor chain, every ancestor is clean
+at 412 px, and a full-document scan finds **zero unclipped overflowing elements**. `window.scrollTo(9999, 0)`
+leaves `scrollX` at **0**: the page could never be dragged sideways. The A6.3 probe flagged the table
+because its bounding rect extends past the viewport, but that rect is *inside a working scroller*.
+
+**The actual cause.** Bisecting by hiding subtrees, `table { display: none }` drops
+`documentElement.scrollWidth` from 622 straight back to 412. A wide table pushes its **min-content width
+into the document's intrinsic width** even when an ancestor clips it. Under `isMobile`, `window.innerWidth`
+then expands to match (504 / 622) — Chromium **shrink-to-fits**, so a real Android phone renders the page
+**zoomed out** (~66 % on the submissions inbox) instead of scrolling. That is why no wrapper could cure it.
+
+**Fixes tested live before choosing one:**
+
+| Attempt | Result |
+|---|---|
+| `min-width: 0` on the scroll container | no effect |
+| `contain: inline-size` on the container | no effect |
+| `max-width: 100%` / `width: 100%` on the container | no effect |
+| `table-layout: fixed` on the table | fixes the metric, but compresses columns — rejected, weakens desktop density |
+| removing the table from layout below `md` | **fixes it** |
+
+**Second, separate cause — a shared primitive.** `components/ui/page-header.tsx` rendered its actions as
+`flex items-center gap-2` with **no `flex-wrap`**, giving a ~450 px action row. This was the non-table
+half of the overflow and had gone unrecorded; fixing the primitive cleared `/owner` at every mobile width.
+
+**Affected routes — six, not two:**
+
+| Route | Before (412 px) | After |
 |---|---|---|
-| `/dashboard` | 0 px | — |
-| `/dashboard/assets` | **93 px** | `TABLE.w-full text-sm` |
-| `/dashboard/submissions` | **183 px** | `TABLE.w-full text-sm` |
-| `/dashboard/rentals` | 0 px | — |
+| `/dashboard/assets` | 92 px | **0** |
+| `/dashboard/submissions` | 210 px | **0** |
+| `/dashboard/templates` | 63 px | **0** |
+| `/owner` | 294 px | **0** |
+| `/owner/tag-requests` | 52 px | **0** |
+| `/owner/production` | 43 px | **0** |
 
-The page scrolls sideways; content is reachable but the layout is not phone-shaped. Public/renter and
-staff surfaces — the ones actually used on a phone in a yard — are all clean, and admin work is
-desktop-primary, so this does not block a pilot.
+Eight further routes contain tables and were already clean, so this was never "all tables" — only tables
+wider than the viewport. Those were left untouched.
 
-**Recommendation:** wrap the two `<table>`s in an `overflow-x-auto` container, or switch to the card
-layout already used elsewhere at small widths. **Not fixed in A6.3** — this is a layout/design change
-outside a QA phase's remit, and it is deliberately left visible rather than quietly patched.
+**The fix.** Below `md`, a purpose-built card list (`components/ui/list-card.tsx`); at `md`+, the existing
+compact table, unchanged. Both map the **same already-fetched rows** — no second query, no duplicated
+business logic. On submissions the per-row derivation was extracted into one `viewRows` pass consumed by
+both presentations so they cannot drift. Bulk selection keeps working because `BulkSelectionProvider` is a
+context provider: table and cards sit inside it and share selection state, and the card list carries its
+own **"Select all visible"** control since the table's copy lives in a `<thead>` that does not render on
+mobile. `/owner/tag-requests` needed 6 px more at the `md` switch point, reclaimed from that one table's
+cell padding.
+
+**Verified** — `npm run qa:overflow`, all 14 admin + owner routes at **360 / 390 / 430 / 768 / 1024 /
+1280 px**: every cell 0 px.
 
 ### D-2 · S4 · Quick Start auto-expand can race a fast tap
 

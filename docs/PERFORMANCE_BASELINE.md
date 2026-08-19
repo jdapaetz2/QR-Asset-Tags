@@ -101,6 +101,22 @@ screen — noted as an efficiency item, not a loop. Hidden-tab: **0 requests**.
 | Live email (Resend) | slightly slower | notifier is best-effort and never blocks a submit, but is untimed here |
 | Concurrent load | unknown | never tested; single-session only |
 
+## Phase B2 responsive fix — performance impact
+
+The mobile card layout was checked against the constraints that matter here, not assumed harmless:
+
+- **No new dependency.** `components/ui/list-card.tsx` is plain JSX; nothing added to `package.json`.
+- **No extra data query.** The card list maps the *same* rows the table already receives. On the
+  submissions inbox the per-row derivation was pulled into a single `viewRows` pass that both
+  presentations consume, so the work happens once, not twice.
+- **No duplicate page render.** One server render emits both branches; CSS decides which is displayed.
+  The hidden branch costs a little markup, not a second data fetch or a client round-trip.
+- **No layout shift.** Visibility is decided by static Tailwind breakpoints at first paint — there is no
+  JS measurement, no post-hydration swap, so nothing moves after load. CLS on the public scan route is
+  unaffected: `/t/*` was never in scope and is untouched.
+- **No request loop.** Nothing polls; the 30 s inbox refresh (D-3) is unchanged.
+- **Public scan metrics unaffected.** No public route was modified.
+
 ## Re-baseline checklist (before quoting performance to anyone)
 
 - [ ] Final production domain live, `NEXT_PUBLIC_SITE_URL` set to it.

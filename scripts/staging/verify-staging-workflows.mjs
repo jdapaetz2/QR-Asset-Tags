@@ -17,11 +17,13 @@
  */
 import { chromium } from "playwright";
 
-const BASE = (process.env.STAGING_BASE_URL || "").replace(/\/$/, "");
+// All inputs come from the environment (`--env-file=.env.staging.local`), never from argv, so no
+// secret can reach a command line, a log, or an approval prompt. Legacy names kept as fallbacks.
+const BASE = (process.env.QA_BASE_URL || process.env.STAGING_BASE_URL || "").replace(/\/$/, "");
 const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || "";
-const PW = process.env.QA_PASSWORD || "";
+const PW = process.env.STAGING_QA_PASSWORD || process.env.QA_PASSWORD || "";
 if (!BASE || !PW) {
-  console.error("need STAGING_BASE_URL and QA_PASSWORD");
+  console.error("need QA_BASE_URL and STAGING_QA_PASSWORD (set them in .env.staging.local)");
   process.exit(1);
 }
 const H = BYPASS ? { "x-vercel-protection-bypass": BYPASS } : {};

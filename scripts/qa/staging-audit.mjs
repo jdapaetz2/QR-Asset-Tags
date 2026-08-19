@@ -24,23 +24,31 @@ const args = Object.fromEntries(
     return [k, v.join("=") || true];
   })
 );
-const BASE = String(args.base || "").replace(/\/$/, "");
+// Prefer the environment (`--env-file=.env.staging.local`) so no URL or secret needs to appear on a
+// command line; `--base=` stays supported for ad-hoc runs against a specific deployment.
+const BASE = String(args.base || process.env.QA_BASE_URL || "").replace(/\/$/, "");
 if (!BASE) {
-  console.error("usage: staging-audit.mjs --base=https://<staging> [--devices|--loops|--qr]");
+  console.error("set QA_BASE_URL in .env.staging.local (or pass --base=https://<staging>)");
   process.exit(1);
 }
 const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || "";
-const SHORT = process.env.QA_SHORT_CODE || "qa-a63-test";
-/** Fixture text assertions, env-driven so the audit survives a fixture change (B1B renamed these). */
-const QA_ASSET_NAME = process.env.QA_ASSET_NAME || "QA Test Trailer";
-const QA_QUICKSTART_TEXT = process.env.QA_QUICKSTART_TEXT || "disposable QA content";
+/**
+ * Fixture identifiers, env-overridable. Defaults track the CURRENT staging seed
+ * (`scripts/staging/seed-staging-qa.mjs`, Phase B1B) rather than the retired A6.3 fixtures, so the
+ * audit runs against staging with no extra configuration.
+ */
+const SHORT = process.env.QA_SHORT_CODE || "stg-qa-public";
+const QA_ASSET_NAME = process.env.QA_ASSET_NAME || "Staging QA Trailer";
+const QA_QUICKSTART_TEXT = process.env.QA_QUICKSTART_TEXT || "Disposable staging content";
 /**
  * Some checks need an asset with an ACTIVE RENTAL SESSION: the acknowledgement prompt only renders for
  * one, and the staff return route redirects away when the asset is not rented. The A6.3 fixture set put
  * the session on its single short code; B1B split public and rented onto separate assets, so those two
  * checks need their own code. Falls back to QA_SHORT_CODE for older fixture sets.
  */
-const RENTED_SHORT = process.env.QA_RENTED_SHORT_CODE || SHORT;
+const QA_ADMIN_EMAIL = process.env.QA_ADMIN_EMAIL || "qa.admin@mulemark-staging.invalid";
+const QA_STAFF_EMAIL = process.env.QA_STAFF_EMAIL || "qa.staff@mulemark-staging.invalid";
+const RENTED_SHORT = process.env.QA_RENTED_SHORT_CODE || "stg-qa-rented";
 // Bypass header ONLY. Adding `x-vercel-set-bypass-cookie` makes the edge redirect to set the cookie on
 // every request, which Playwright follows into ERR_TOO_MANY_REDIRECTS.
 const HEADERS = BYPASS ? { "x-vercel-protection-bypass": BYPASS } : {};
@@ -78,7 +86,7 @@ async function visible(locator, timeout = 10_000) {
 
 /** Returns "ok" | "no-credentials" | "failed: <reason>" so the report never conflates the two. */
 async function signIn(context, email) {
-  const password = process.env.QA_PASSWORD;
+  const password = process.env.STAGING_QA_PASSWORD || process.env.QA_PASSWORD;
   if (!email || !password) return "no-credentials";
   const page = await context.newPage();
   try {
@@ -230,7 +238,7 @@ async function devicePass() {
 
     // --- Staff workflows ---------------------------------------------------
     const staffCtx = await browser.newContext({ ...p.descriptor, extraHTTPHeaders: HEADERS });
-    const staffAuth = await signIn(staffCtx, process.env.QA_STAFF_EMAIL);
+    const staffAuth = await signIn(staffCtx, QA_STAFF_EMAIL);
     if (staffAuth === "ok") {
       record(p.key, "staff — login", "PASS");
       try {
@@ -255,7 +263,7 @@ async function devicePass() {
 
     // --- Admin workflows ---------------------------------------------------
     const adminCtx = await browser.newContext({ ...p.descriptor, extraHTTPHeaders: HEADERS });
-    const adminAuth = await signIn(adminCtx, process.env.QA_ADMIN_EMAIL);
+    const adminAuth = await signIn(adminCtx, QA_ADMIN_EMAIL);
     if (adminAuth === "ok") {
       record(p.key, "admin — login", "PASS");
       for (const [label, path, heading] of [
@@ -315,7 +323,7 @@ async function loopPass() {
   const WINDOW = Number(args.window ?? 90);
   const browser = await chromium.launch();
   const context = await browser.newContext({ ...devices["Desktop Chrome"], extraHTTPHeaders: HEADERS });
-  const authed = await signIn(context, process.env.QA_ADMIN_EMAIL);
+  const authed = await signIn(context, QA_ADMIN_EMAIL);
 
   const targets = [
     { key: "public scan", path: `/t/${SHORT}`, auth: false },
