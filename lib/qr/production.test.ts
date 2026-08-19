@@ -25,6 +25,49 @@ describe("isProductionBaseUrl", () => {
   });
 });
 
+/**
+ * Phase B3 — the canonical Mulemark host. These assertions exist so the permanent-tag classification of
+ * the real production domain is locked down rather than incidental.
+ *
+ * Note the gate is a DENYLIST (non-https / placeholder / *.vercel.app), so `mulemark.io` passes without
+ * any host-specific branch. That is deliberate: hard-coding an allowlist would tie tag safety to one
+ * string instead of to the environment, and a future `app.mulemark.io` or a customer-specific host would
+ * silently fail. These tests pin the behaviour without pinning the implementation to a literal.
+ */
+describe("the canonical Mulemark production host (Phase B3)", () => {
+  it("treats https://mulemark.io as safe for permanent tags", () => {
+    expect(productionBaseUrlIssue("https://mulemark.io")).toBeNull();
+    expect(isProductionBaseUrl("https://mulemark.io")).toBe(true);
+    // A trailing slash is normalized away before this check, but must not change the verdict.
+    expect(isProductionBaseUrl("https://mulemark.io/")).toBe(true);
+  });
+
+  it("also accepts the www host and a future app subdomain", () => {
+    expect(isProductionBaseUrl("https://www.mulemark.io")).toBe(true);
+    // A later dashboard move to app.mulemark.io must not need a code change to stay tag-safe.
+    expect(isProductionBaseUrl("https://app.mulemark.io")).toBe(true);
+  });
+
+  it("still refuses the same domain over http", () => {
+    expect(productionBaseUrlIssue("http://mulemark.io")).toMatch(/https/);
+  });
+
+  it("keeps preview and local hosts blocked after the domain switch", () => {
+    expect(isProductionBaseUrl("https://qr-asset-tags-git-pilot-credibility.vercel.app")).toBe(false);
+    expect(isProductionBaseUrl("https://mulemark.io.vercel.app")).toBe(false);
+    expect(isProductionBaseUrl("http://localhost:3000")).toBe(false);
+  });
+
+  it("accepts the reserved marketing/Canadian domains only as generic hosts", () => {
+    // They are structurally valid production origins — nothing in code stops someone pointing
+    // NEXT_PUBLIC_SITE_URL at them. The rule that permanent tags must never depend on them is a
+    // DOCUMENTED operator decision (QR_DOMAIN_STRATEGY), not a code guarantee. Asserted here so that
+    // distinction is explicit rather than assumed.
+    expect(isProductionBaseUrl("https://getmulemark.com")).toBe(true);
+    expect(isProductionBaseUrl("https://mulemark.ca")).toBe(true);
+  });
+});
+
 describe("productionBaseUrlIssue", () => {
   it("returns null for a safe URL and a reason otherwise", () => {
     expect(productionBaseUrlIssue("https://app.northridge.com")).toBeNull();

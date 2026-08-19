@@ -56,6 +56,10 @@ Run `docs/PRODUCTION_SMOKE_TEST.md` against the production URL. Do not announce 
 passes.
 
 ## 6. QR domain verification (durability)
+- **Canonical host (Phase B3): `https://mulemark.io`.** Production `NEXT_PUBLIC_SITE_URL` must be exactly
+  this — no trailing slash, no `www`, never `getmulemark.com` or `mulemark.ca`. Preview keeps the staging
+  URL so a preview build can never advertise or encode the production host.
+- Setup steps and the DNS/mail-preservation warning: `docs/PRODUCTION_DOMAIN_CHECKLIST.md`.
 - Confirm `NEXT_PUBLIC_SITE_URL` is the final production host and resolves over https.
 - Owner → Production shows **no** "not production-safe" warning; the durable-output routes (`qr.svg`, `qr-sheet.svg`,
   `export.csv`) return files without `?unsafe=1`.

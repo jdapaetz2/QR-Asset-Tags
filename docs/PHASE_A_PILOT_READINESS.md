@@ -20,7 +20,7 @@ judgement.
 | 1 | Development | **GO** | — |
 | 2 | Controlled staging / demo | **GO** | — |
 | 3 | Software-only limited pilot | **CONDITIONAL GO** | 4 conditions below (all operator-side) |
-| 4 | Permanent-tag live customer pilot | **NO-GO** | no stable domain; tag-config gate fails by design |
+| 4 | Permanent-tag live customer pilot | **NO-GO** (narrowed) | domain decided + software gate closed in B3; awaiting DNS/Vercel, live verification, and physical scan QA |
 | 5 | Live notification delivery | **NO-GO** (narrowed) | provider + DNS now verified; awaiting Production env wiring + B4 integration |
 | 6 | Physical production | **NOT YET ASSESSED** | laser not arrived; no material/durability/scan/economics data |
 
@@ -116,7 +116,18 @@ customer-admin profile writes still use the service role (P1, deferred to its ow
 
 ---
 
-## 4. Permanent-tag live customer pilot readiness — **NO-GO**
+## 4. Permanent-tag live customer pilot readiness — **NO-GO** (blocker narrowed)
+
+**Update (B3).** The canonical host is decided — **`https://mulemark.io`** — and the *software* half of
+this gate is closed: the tag-safety guard is a denylist, so the real domain needs no code change; path
+preservation (`/t/{shortCode}` exactly), the `*.vercel.app` block and the localhost block are pinned by
+tests; and canonical metadata is derived from the environment rather than hard-coded.
+`getmulemark.com` and `mulemark.ca` are reserved and documented as never being QR destinations.
+
+**Why this is still NO-GO:** none of the external work has happened. `vercel domains ls` returns **0
+domains** and `mulemark.io` still serves a registrar parking page. Until DNS, the Vercel domains, the
+Production `NEXT_PUBLIC_SITE_URL`, and the redeploy are done, `verify:tag-config` continues to fail by
+design — and a real-phone scan test has not been run.
 
 Not cleared, and the software refuses to pretend otherwise.
 
@@ -146,9 +157,9 @@ EXIT=1
 
 | # | Condition | State |
 |---|---|---|
-| 1 | Stable production domain exists | ⬜ deferred by operator decision |
+| 1 | Stable production domain exists | 🟡 **decided (B3): `mulemark.io`** — owned, but not yet connected to Vercel |
 | 2 | `npm run verify:tag-config` passes | ⬜ **exits 1 by design** |
-| 3 | Path-preserving `/t/*` redirect obligation documented + owned | ⬜ not recorded |
+| 3 | Path-preserving `/t/*` redirect obligation documented + owned | 🟡 **documented (B3)** in `QR_DOMAIN_STRATEGY.md` + `PRODUCTION_DOMAIN_CHECKLIST.md`; owner still to be named |
 | 4 | Physical QR scan tests pass on real phones | ⬜ not run |
 
 **Defence in depth already in place:** durable-output routes are auth-gated (307 for anonymous) *and*

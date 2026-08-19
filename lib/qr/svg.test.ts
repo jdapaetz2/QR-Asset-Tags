@@ -57,6 +57,31 @@ describe("buildQrSvg", () => {
     expect(url).toBe("https://tags.example.com/t/demo-ex017");
   });
 
+  /**
+   * Phase B3 — the artwork actually produced for the canonical Mulemark host.
+   *
+   * This pins the ENCODED TARGET, which is what a permanent tag carries forever. It does not decode the
+   * rendered modules back to a string (that would only re-test the `qrcode` library); it pins the input
+   * the encoder receives, which is the part this codebase controls. Whether a printed tag *scans* —
+   * contrast, size, dirt, camera — is physical QA and is not claimed here.
+   */
+  it("encodes exactly https://mulemark.io/t/<code> for several codes, including an alias pair", async () => {
+    const cases = [
+      "demo-ex017", // original code
+      "excavator-17", // human-readable alias for the same asset
+      "67uqc3q7", // generated replacement alias
+    ];
+    for (const code of cases) {
+      const url = buildPublicQrUrl("https://mulemark.io", code);
+      expect(url).toBe(`https://mulemark.io/t/${code}`);
+      const svg = await buildQrSvg(url);
+      expect(svg).toContain("<svg");
+      // No preview or localhost host may survive into durable artwork.
+      expect(svg).not.toContain("vercel.app");
+      expect(svg).not.toContain("localhost");
+    }
+  });
+
   it("encodes with the requested error correction without throwing", async () => {
     await expect(
       buildQrSvg("https://tags.example.com/t/x", { ec: "M", size: "1.5" })

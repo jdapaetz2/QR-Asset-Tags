@@ -294,6 +294,38 @@ perfect tag is useless until the domain is stable.
 
 ---
 
+## Phase B3 — permanent QR domain — **software gate CLOSED (2026-08-19); operator work outstanding**
+
+Decides the canonical host and closes the *software* half of the permanent-tag gate.
+
+**Architecture decided:**
+
+| Role | Domain |
+|---|---|
+| **Canonical product + permanent QR host** | **`https://mulemark.io`** — tags encode `https://mulemark.io/t/{shortCode}` |
+| Dashboard / login | same host for now; a later `app.mulemark.io` must not disturb `/t/*` |
+| `www.mulemark.io` | path-preserving redirect to the apex |
+| `getmulemark.com` | **reserved** marketing site — **never** a QR destination |
+| `mulemark.ca` | **reserved** Canadian redirect/landing — **never** a QR destination |
+
+Apex rather than a subdomain, so the dashboard or marketing can move later without touching printed metal.
+
+**Software gate — closed.** The audit found the URL layer already correct: every hostname derives from
+`publicEnv.siteUrl`, `buildPublicQrUrl` emits `${base}/t/${shortCode}` exactly, and the stored
+`qr_links.public_url` is never trusted on read (so pre-switch rows need no migration). The tag-safety
+guard is a **denylist**, so `mulemark.io` needed **no code change** — hard-coding an allowlist would have
+tied tag safety to a literal and broken a future `app.mulemark.io`. Instead the behaviour is pinned by
+tests, and `metadataBase` now derives canonical/OG URLs from the environment so a preview can never
+advertise the production host.
+
+**Operator work outstanding** (`docs/PRODUCTION_DOMAIN_CHECKLIST.md`): `vercel domains ls` returns **0
+domains** and `mulemark.io` still serves a registrar parking page. DNS + Vercel domains + Production
+`NEXT_PUBLIC_SITE_URL` + redeploy + live route verification + a real-phone scan test all remain.
+The DNS step must not disturb Google Workspace MX/SPF/DKIM/DMARC or the Resend `notify` records.
+
+**Not closed by B3:** physical tag material, marking process, durability, contrast and scannability
+(`docs/TAG_PRODUCTION_READINESS.md`). **No metal-tag readiness claim is made.** Live email remains B4.
+
 ## Next recommended workstream
 
 **Operator, in parallel and unblocking:** Gate 1 (domain) has the widest downstream effect — it alone

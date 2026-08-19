@@ -4,6 +4,29 @@ Physical QR tags are permanent. The data they encode must stay valid for the lif
 the equipment, so the **domain** the QR points at is durable infrastructure — treat it
 with the same care as the database.
 
+## Decided domain architecture (Phase B3)
+
+| Role | Domain | Notes |
+|---|---|---|
+| **Canonical product + permanent QR host** | **`mulemark.io`** | tags encode `https://mulemark.io/t/{shortCode}` |
+| Dashboard / login | `mulemark.io` (same host, for now) | a later move to `app.mulemark.io` **must not** disturb `/t/*` |
+| `www` | `www.mulemark.io` | path-preserving redirect to the apex |
+| Marketing site | `getmulemark.com` | **reserved**, not configured. **Never** a QR destination. |
+| Canadian presence | `mulemark.ca` | **reserved** for a redirect or later landing page. **Never** a QR destination. |
+| Email | Google Workspace on `mulemark.io` | human support: `support@mulemark.io` |
+| Notification sending | `notify.mulemark.io` (Resend) | verified provider-side; app wiring is **Phase B4** |
+
+**Why the apex and not a subdomain.** The QR host is the one thing that can never move cheaply. Putting
+it on the apex means the product can later split the dashboard onto `app.mulemark.io`, or put marketing
+on `getmulemark.com`, without touching a single printed tag. The reverse — tags on a subdomain that
+later needs repurposing — has no cheap escape.
+
+**Why permanent tags never point at `getmulemark.com` or `mulemark.ca`.** A marketing domain is a
+commercial asset: it can be rebranded, sold, redirected, or allowed to lapse in a way the product domain
+cannot. A Canadian domain may later become a regional redirect. Neither is a safe forever-target for
+metal. This is a **documented decision, not a code guarantee** — `productionBaseUrlIssue` would accept
+either as a structurally valid https host, so the discipline lives here and in the operator checklist.
+
 ## What a tag encodes
 
 Every QR encodes `${NEXT_PUBLIC_SITE_URL}/t/{short_code}`. Two parts:
