@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ListCard, ListCardGroup, ListCardMeta } from "@/components/ui/list-card";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
@@ -127,7 +128,8 @@ export default async function ProductionPage({
           <h2 className="mb-3 text-sm font-medium text-muted-foreground">
             Select an organization
           </h2>
-          <div className="overflow-x-auto rounded-lg border">
+          {/* Desktop/tablet table; mobile gets cards below (Phase B2 / D-1). */}
+          <div className="hidden overflow-x-auto rounded-lg border md:block">
             <table className="w-full text-sm">
               <thead className="border-b bg-muted/50 text-left text-muted-foreground">
                 <tr>
@@ -172,6 +174,35 @@ export default async function ProductionPage({
               </tbody>
             </table>
           </div>
+
+          {/* Mobile: same `orgs`, no second query. */}
+          {orgs.length === 0 ? (
+            <p className="rounded-lg border px-4 py-6 text-center text-muted-foreground md:hidden">
+              No organizations yet.
+            </p>
+          ) : (
+            <ListCardGroup>
+              {orgs.map((org) => (
+                <ListCard
+                  key={org.id}
+                  title={org.name}
+                  meta={org.slug}
+                  status={<span className="text-xs text-muted-foreground">{org.status}</span>}
+                  actions={
+                    <Link
+                      href={`/owner/production?org=${org.id}`}
+                      className="text-sm font-medium underline-offset-4 hover:underline"
+                    >
+                      Open
+                    </Link>
+                  }
+                >
+                  <ListCardMeta label="Assets" value={assetCounts.get(org.id) ?? 0} />
+                  <ListCardMeta label="QR links" value={qrCounts.get(org.id) ?? 0} />
+                </ListCard>
+              ))}
+            </ListCardGroup>
+          )}
         </section>
       </div>
     );

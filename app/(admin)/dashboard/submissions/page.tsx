@@ -36,6 +36,7 @@ import {
 } from "@/lib/submissions/inbox";
 import { Badge } from "@/components/ui/badge";
 import { AssetCodeChip } from "@/components/ui/asset-code-chip";
+import { ListCard, ListCardGroup, ListCardMeta } from "@/components/ui/list-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { RefreshControls } from "@/components/refresh-controls";
@@ -178,6 +179,38 @@ export default async function SubmissionsPage({
     .from("form_submissions")
     .select("id", { count: "exact", head: true });
   const hasAnySubmissions = (totalCount ?? 0) > 0;
+
+  /**
+   * Per-row view data, derived ONCE (Phase B2). The desktop table and the mobile card list are two
+   * presentations of this same array — so there is no second query and no duplicated derivation.
+   */
+  const viewRows = rows.map((row) => {
+    const flags =
+      row.form_type === "return_checklist"
+        ? returnChecklistFlags(row.submission_data_json)
+        : { damage: false, missing: false };
+    return {
+      row,
+      count: mediaCount(row.media_urls),
+      thumb: thumbs.get(row.id),
+      urgency: submissionUrgency(row.form_type, row.submission_data_json),
+      flags,
+      rowDamage: row.form_type === "damage_report" ? true : flags.damage,
+      submitter:
+        row.submitted_by_name ??
+        row.submitted_by_email ??
+        row.submitted_by_phone ??
+        "—",
+      reference: submissionReference(row.id, row.created_at),
+      isNew: row.status === "new",
+      quickResolve: canQuickResolveReturn({
+        formType: row.form_type,
+        status: row.status,
+        origin: row.submission_origin,
+        assetRented: row.asset_id ? rentedAssetIds.has(row.asset_id) : false,
+      }),
+    };
+  });
 
   const renderedAt = new Date().toISOString();
 
@@ -335,7 +368,10 @@ export default async function SubmissionsPage({
         visibleIds={visibleIds}
         viewingArchived={viewingArchived}
       >
-      <div className="overflow-x-auto rounded-lg border">
+      {/* Desktop/tablet: the compact inbox table, unchanged. Gated to `md`+ because a wide table
+          forces its min-content width into the document intrinsic width even inside this scroller,
+          which makes mobile Chromium shrink-to-fit the whole page (Phase B2 / D-1). */}
+      <div className="hidden overflow-x-auto rounded-lg border md:block">
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/50 text-left text-muted-foreground">
             <tr>
@@ -386,25 +422,7 @@ export default async function SubmissionsPage({
                 </td>
               </tr>
             ) : (
-              rows.map((row) => {
-                const count = mediaCount(row.media_urls);
-                const thumb = thumbs.get(row.id);
-                const urgency = submissionUrgency(
-                  row.form_type,
-                  row.submission_data_json
-                );
-                const flags =
-                  row.form_type === "return_checklist"
-                    ? returnChecklistFlags(row.submission_data_json)
-                    : { damage: false, missing: false };
-                const rowDamage = row.form_type === "damage_report" ? true : flags.damage;
-                const submitter =
-                  row.submitted_by_name ??
-                  row.submitted_by_email ??
-                  row.submitted_by_phone ??
-                  "—";
-                const reference = submissionReference(row.id, row.created_at);
-                const isNew = row.status === "new";
+              viewRows.map(({ row, count, thumb, urgency, flags, rowDamage, submitter, reference, isNew, quickResolve }) => {
                 return (
                   <tr
                     key={row.id}
@@ -500,12 +518,7 @@ export default async function SubmissionsPage({
                         >
                           Open
                         </Link>
-                        {canQuickResolveReturn({
-                          formType: row.form_type,
-                          status: row.status,
-                          origin: row.submission_origin,
-                          assetRented: row.asset_id ? rentedAssetIds.has(row.asset_id) : false,
-                        }) ? (
+                        {quickResolve ? (
                           <MarkReturnedResolveButton
                             submissionId={row.id}
                             redirectTo={listHref}
@@ -521,6 +534,109 @@ export default async function SubmissionsPage({
           </tbody>
         </table>
       </div>
+
+      {/* Mobile: same `viewRows`, same BulkSelectionProvider — so SelectCheckbox shares selection
+          state with the desktop table and bulk actions keep working. Identity + status first, both
+          Open and Mark returned & resolve reachable without any horizontal dragging. */}
+      {viewRows.length === 0 ? (
+        <div className="md:hidden">
+          {hasAnySubmissions ? (
+            <EmptyState
+              title="No submissions match"
+              description="No submissions match the current filters. Adjust or clear the filters to see more."
+              action={
+                <Link
+                  href="/dashboard/submissions"
+                  className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                >
+                  Clear filters
+                </Link>
+              }
+            />
+          ) : (
+            <EmptyState
+              title="No submissions yet"
+              description="No submissions yet. Open a scan page and send a test report — damage, support, and return checklists land here with photos and contact details."
+              action={
+                <Link
+                  href="/dashboard/assets"
+                  className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                >
+                  Go to assets
+                </Link>
+              }
+            />
+          )}
+        </div>
+      ) : (
+        <ListCardGroup>
+          {viewRows.map(({ row, count, urgency, flags, rowDamage, submitter, reference, isNew, quickResolve }) => (
+            <ListCard
+              key={row.id}
+              title={
+                <span className="flex items-start gap-2.5">
+                  <SelectCheckbox id={row.id} />
+                  <span className="flex min-w-0 flex-col gap-1">
+                    {row.asset ? (
+                      <>
+                        <AssetCodeChip code={row.asset.asset_code} />
+                        <span className="text-xs font-normal text-muted-foreground">
+                          {row.asset.asset_name}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </span>
+                </span>
+              }
+              status={
+                <>
+                  <Badge tone={submissionStatusTone(row.status)}>
+                    {submissionStatusLabel(row.status)}
+                  </Badge>
+                  {count > 0 ? (
+                    <span className="text-xs text-muted-foreground" title={`${count} attachment${count === 1 ? "" : "s"}`}>
+                      <span aria-hidden>📎</span> {count}
+                    </span>
+                  ) : null}
+                </>
+              }
+              actions={
+                <>
+                  <Link
+                    href={withReturnTo(`/dashboard/submissions/${row.id}`, listHref)}
+                    className={`text-sm underline-offset-4 hover:underline ${isNew ? "font-semibold" : "font-medium"}`}
+                  >
+                    Open
+                  </Link>
+                  {quickResolve ? (
+                    <MarkReturnedResolveButton submissionId={row.id} redirectTo={listHref} dense />
+                  ) : null}
+                </>
+              }
+            >
+              <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+                <SubmissionBadges
+                  formType={row.form_type}
+                  origin={row.submission_origin}
+                  status={row.status}
+                  damage={rowDamage}
+                  missing={flags.missing}
+                  showStatus={false}
+                />
+                {urgency ? <Badge tone={urgencyTone(urgency)}>{titleCase(urgency)}</Badge> : null}
+              </div>
+              <ListCardMeta label="Submitter" value={submitter} />
+              <ListCardMeta label="Received" value={<RelativeTime value={row.created_at} />} />
+              <ListCardMeta
+                label="Reference"
+                value={<span className="font-mono text-[11px] break-all">{reference}</span>}
+              />
+            </ListCard>
+          ))}
+        </ListCardGroup>
+      )}
       </BulkSelectionProvider>
     </div>
   );

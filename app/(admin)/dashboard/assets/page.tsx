@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { AssetThumb } from "@/components/asset-thumb";
 import { AssetCodeChip } from "@/components/ui/asset-code-chip";
+import { ListCard, ListCardGroup, ListCardMeta } from "@/components/ui/list-card";
 import { AssetStatusCell } from "@/components/ui/asset-status-cell";
 import { deriveAssetStatus } from "@/lib/ui/status-view";
 import { PlanUsage } from "@/components/plan-usage";
@@ -415,7 +416,11 @@ export default async function AssetsPage({
           />
         )
       ) : (
-        <div className="overflow-x-auto rounded-lg border bg-card">
+        <>
+        {/* Desktop/tablet: the compact operational table, unchanged. Gated to `md`+ because a wide
+            table forces its min-content width into the document's intrinsic width even inside this
+            scroller, which makes mobile Chromium shrink-to-fit the whole page (Phase B2 / D-1). */}
+        <div className="hidden overflow-x-auto rounded-lg border bg-card md:block">
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-[0.06em] text-iron-600">
               <tr>
@@ -502,6 +507,77 @@ export default async function AssetsPage({
             </tbody>
           </table>
         </div>
+
+        {/* Mobile: same `rows`, no second query. Identity + status first, both actions in the card. */}
+        <ListCardGroup>
+          {rows.map(({ asset, hasQr, hasActiveQr, pageStatus, activeSessionId }) => (
+            <ListCard
+              key={asset.id}
+              title={
+                <span className="flex items-center gap-3">
+                  <AssetThumb src={asset.cover_image_url} alt={`Photo of ${asset.asset_name}`} />
+                  <AssetCodeChip code={asset.asset_code} />
+                </span>
+              }
+              meta={asset.asset_name}
+              status={
+                <>
+                  <AssetStatusCell
+                    status={deriveAssetStatus({
+                      rented: Boolean(activeSessionId),
+                      publicStatus: asset.public_status,
+                      qrStatus: hasActiveQr ? "active" : hasQr ? "disabled" : null,
+                      pageStatus,
+                      archivedAt: asset.archived_at,
+                    })}
+                  />
+                  {openDamageByAsset.has(asset.id) ? (
+                    <OpenDamageBadge
+                      assetId={asset.id}
+                      count={openDamageByAsset.get(asset.id)!.count}
+                    />
+                  ) : null}
+                </>
+              }
+              actions={
+                <>
+                  <Link
+                    href={withReturnTo(`/dashboard/assets/${asset.id}`, listHref)}
+                    className="text-sm font-medium underline-offset-4 hover:underline"
+                  >
+                    View / edit
+                  </Link>
+                  {asset.archived_at ? null : activeSessionId ? (
+                    <ActionButton
+                      action={closeRentalSession.bind(
+                        null,
+                        asset.id,
+                        activeSessionId,
+                        "returned",
+                        listHref
+                      )}
+                      variant="outline"
+                      confirm="Mark this asset returned?"
+                    >
+                      Mark returned
+                    </ActionButton>
+                  ) : (
+                    <MarkRentedButton
+                      assetId={asset.id}
+                      assetName={asset.asset_name}
+                      assetCode={asset.asset_code}
+                      unresolvedCount={unresolvedByAsset.get(asset.id) ?? 0}
+                      redirectTo={listHref}
+                    />
+                  )}
+                </>
+              }
+            >
+              <ListCardMeta label="Category" value={asset.category ?? "—"} />
+            </ListCard>
+          ))}
+        </ListCardGroup>
+        </>
       )}
     </div>
   );

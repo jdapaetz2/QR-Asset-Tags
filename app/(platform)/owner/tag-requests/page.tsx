@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ListCard, ListCardGroup, ListCardMeta } from "@/components/ui/list-card";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
@@ -147,16 +148,17 @@ export default async function OwnerTagRequestsPage({
         </Link>
       </form>
 
-      <div className="overflow-x-auto rounded-lg border">
+      {/* Desktop/tablet table; mobile gets cards below (Phase B2 / D-1). */}
+      <div className="hidden overflow-x-auto rounded-lg border md:block">
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/50 text-left text-muted-foreground">
             <tr>
-              <th className="whitespace-nowrap px-4 py-2 font-medium">Requested</th>
-              <th className="px-4 py-2 font-medium">Organization</th>
-              <th className="px-4 py-2 font-medium">Status</th>
-              <th className="px-4 py-2 font-medium">Assets</th>
-              <th className="px-4 py-2 font-medium">Spec</th>
-              <th className="px-4 py-2 font-medium sr-only">Actions</th>
+              <th className="px-3 py-2 font-medium">Requested</th>
+              <th className="px-3 py-2 font-medium">Organization</th>
+              <th className="px-3 py-2 font-medium">Status</th>
+              <th className="px-3 py-2 font-medium">Assets</th>
+              <th className="px-3 py-2 font-medium">Spec</th>
+              <th className="px-3 py-2 font-medium sr-only">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -169,10 +171,10 @@ export default async function OwnerTagRequestsPage({
             ) : (
               requests.map((r) => (
                 <tr key={r.id} className="border-b last:border-0">
-                  <td className="whitespace-nowrap px-4 py-2 text-muted-foreground">
+                  <td className="px-3 py-2 text-muted-foreground">
                     {formatDate(r.created_at)}
                   </td>
-                  <td className="px-4 py-2 font-medium">
+                  <td className="px-3 py-2 font-medium">
                     <span className="inline-flex flex-wrap items-center gap-2">
                       {r.organizations?.name ?? "—"}
                       {r.platform_viewed_at === null ? (
@@ -182,18 +184,18 @@ export default async function OwnerTagRequestsPage({
                       ) : null}
                     </span>
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-3 py-2">
                     <span className="rounded-full border px-2 py-0.5 text-xs">
                       {tagRequestStatusLabel(r.status)}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-muted-foreground">
+                  <td className="px-3 py-2 text-muted-foreground">
                     {r.tag_request_assets?.[0]?.count ?? 0}
                   </td>
-                  <td className="px-4 py-2 text-muted-foreground">
+                  <td className="px-3 py-2 text-muted-foreground">
                     {[r.material, r.tag_size].filter(Boolean).join(" · ") || "—"}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-right">
+                  <td className="px-3 py-2 text-right">
                     <Link
                       href={
                         orgFilter
@@ -211,6 +213,49 @@ export default async function OwnerTagRequestsPage({
           </tbody>
         </table>
       </div>
+
+      {/* Mobile: same `requests`, no second query. */}
+      {requests.length === 0 ? (
+        <p className="rounded-lg border px-4 py-6 text-center text-muted-foreground md:hidden">
+          No tag requests.
+        </p>
+      ) : (
+        <ListCardGroup>
+          {requests.map((r) => (
+            <ListCard
+              key={r.id}
+              title={r.organizations?.name ?? "—"}
+              meta={formatDate(r.created_at)}
+              status={
+                <>
+                  <span className="rounded-full border px-2 py-0.5 text-xs">
+                    {tagRequestStatusLabel(r.status)}
+                  </span>
+                  {r.platform_viewed_at === null ? (
+                    <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-500">
+                      New
+                    </span>
+                  ) : null}
+                </>
+              }
+              actions={
+                <Link
+                  href={orgFilter ? `/owner/tag-requests/${r.id}?org=${orgFilter}` : `/owner/tag-requests/${r.id}`}
+                  className="text-sm font-medium underline-offset-4 hover:underline"
+                >
+                  Open
+                </Link>
+              }
+            >
+              <ListCardMeta label="Assets" value={r.tag_request_assets?.[0]?.count ?? 0} />
+              <ListCardMeta
+                label="Spec"
+                value={[r.material, r.tag_size].filter(Boolean).join(" · ") || "—"}
+              />
+            </ListCard>
+          ))}
+        </ListCardGroup>
+      )}
     </div>
   );
 }

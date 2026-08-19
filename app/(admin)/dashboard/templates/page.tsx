@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ListCard, ListCardGroup, ListCardMeta } from "@/components/ui/list-card";
 
 import { requireCustomerAdminOrgId } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -78,7 +79,8 @@ export default async function TemplatesPage() {
             description="Templates pre-fill equipment page content so onboarding new assets is fast. Create one, or copy a built-in template below to customize it."
           />
         ) : (
-          <div className="overflow-x-auto rounded-lg border">
+          <>
+          <div className="hidden overflow-x-auto rounded-lg border md:block">
             <table className="w-full text-sm">
               <thead className="border-b bg-muted/50 text-left text-muted-foreground">
                 <tr>
@@ -115,6 +117,32 @@ export default async function TemplatesPage() {
               </tbody>
             </table>
           </div>
+          {/* Mobile: same `orgTemplates`, no second query (Phase B2 / D-1). */}
+          <ListCardGroup>
+            {orgTemplates.map((t) => (
+              <ListCard
+                key={t.id}
+                title={t.name}
+                meta={<span className="font-mono text-xs break-all">{t.key}</span>}
+                status={
+                  <span className="text-xs text-muted-foreground">
+                    {t.is_active ? "Active" : "Archived"}
+                  </span>
+                }
+                actions={
+                  <Link
+                    href={`/dashboard/templates/${t.id}`}
+                    className="text-sm font-medium underline-offset-4 hover:underline"
+                  >
+                    Edit
+                  </Link>
+                }
+              >
+                <ListCardMeta label="Category" value={t.category ?? "—"} />
+              </ListCard>
+            ))}
+          </ListCardGroup>
+          </>
         )}
       </section>
 
@@ -123,7 +151,7 @@ export default async function TemplatesPage() {
         <h2 className="text-sm font-medium text-muted-foreground">
           Built-in templates (read-only)
         </h2>
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="hidden overflow-x-auto rounded-lg border md:block">
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/50 text-left text-muted-foreground">
               <tr>
@@ -156,6 +184,26 @@ export default async function TemplatesPage() {
             </tbody>
           </table>
         </div>
+        {/* Mobile: same `builtIns`, no second query (Phase B2 / D-1). */}
+        <ListCardGroup>
+          {builtIns.map((t) => (
+            <ListCard
+              key={t.key}
+              title={t.name}
+              meta={<span className="font-mono text-xs break-all">{t.key}</span>}
+              actions={
+                <Link
+                  href={`/dashboard/templates/new?from=${t.key}`}
+                  className="text-sm font-medium underline-offset-4 hover:underline"
+                >
+                  Copy &amp; customize
+                </Link>
+              }
+            >
+              <ListCardMeta label="Equipment type" value={t.equipmentType} />
+            </ListCard>
+          ))}
+        </ListCardGroup>
         <p className="text-xs text-muted-foreground">
           Built-in templates can&apos;t be edited.{" "}
           <Link

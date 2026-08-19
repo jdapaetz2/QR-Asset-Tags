@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ListCard, ListCardGroup, ListCardMeta } from "@/components/ui/list-card";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
@@ -89,7 +90,8 @@ export default async function OwnerPage() {
         }
       />
 
-      <div className="overflow-x-auto rounded-lg border">
+      {/* Desktop/tablet table; mobile gets cards below (Phase B2 / D-1). */}
+      <div className="hidden overflow-x-auto rounded-lg border md:block">
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/50 text-left text-muted-foreground">
             <tr>
@@ -170,6 +172,65 @@ export default async function OwnerPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Mobile: same `orgs`, no second query. */}
+      {orgs.length === 0 ? (
+        <div className="md:hidden">
+          <EmptyState
+            title="No organizations yet"
+            description="Organizations you onboard will appear here with their plan, covered-asset usage, and tag-request activity."
+          />
+        </div>
+      ) : (
+        <ListCardGroup>
+          {orgs.map((org) => {
+            const newCount = unviewedByOrg.get(org.id) ?? 0;
+            const covered = coveredByOrg.get(org.id) ?? 0;
+            return (
+              <ListCard
+                key={org.id}
+                title={
+                  <Link href={`/owner/organizations/${org.id}`} className="underline-offset-4 hover:underline">
+                    {org.name}
+                  </Link>
+                }
+                meta={org.slug}
+                status={
+                  <>
+                    <Badge tone={org.status === "active" ? "success" : "warning"}>
+                      {orgStatusLabel(org.status)}
+                    </Badge>
+                    {newCount > 0 ? (
+                      <Link
+                        href={`/owner/tag-requests?org=${org.id}&viewed=unviewed`}
+                        className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-500/20 dark:text-amber-500"
+                      >
+                        {newCount} new
+                      </Link>
+                    ) : null}
+                  </>
+                }
+                actions={
+                  <Link
+                    href={`/owner/organizations/${org.id}/settings`}
+                    className="text-sm font-medium underline-offset-4 hover:underline"
+                  >
+                    Settings
+                  </Link>
+                }
+              >
+                <ListCardMeta label="Plan" value={org.plan_name ?? "—"} />
+                <ListCardMeta
+                  label="Covered / limit"
+                  value={<span className="tabular-nums">{covered} / {org.asset_limit ?? "∞"}</span>}
+                />
+                <ListCardMeta label="Tag credit" value={formatCents(org.tag_credit_cents)} />
+                <ListCardMeta label="Created" value={formatDate(org.created_at)} />
+              </ListCard>
+            );
+          })}
+        </ListCardGroup>
+      )}
     </div>
   );
 }

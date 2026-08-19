@@ -31,6 +31,16 @@ if (!BASE) {
 }
 const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || "";
 const SHORT = process.env.QA_SHORT_CODE || "qa-a63-test";
+/** Fixture text assertions, env-driven so the audit survives a fixture change (B1B renamed these). */
+const QA_ASSET_NAME = process.env.QA_ASSET_NAME || "QA Test Trailer";
+const QA_QUICKSTART_TEXT = process.env.QA_QUICKSTART_TEXT || "disposable QA content";
+/**
+ * Some checks need an asset with an ACTIVE RENTAL SESSION: the acknowledgement prompt only renders for
+ * one, and the staff return route redirects away when the asset is not rented. The A6.3 fixture set put
+ * the session on its single short code; B1B split public and rented onto separate assets, so those two
+ * checks need their own code. Falls back to QA_SHORT_CODE for older fixture sets.
+ */
+const RENTED_SHORT = process.env.QA_RENTED_SHORT_CODE || SHORT;
 // Bypass header ONLY. Adding `x-vercel-set-bypass-cookie` makes the edge redirect to set the cookie on
 // every request, which Playwright follows into ERR_TOO_MANY_REDIRECTS.
 const HEADERS = BYPASS ? { "x-vercel-protection-bypass": BYPASS } : {};
@@ -103,7 +113,7 @@ async function devicePass() {
       const page = await context.newPage();
       const resp = await page.goto(`${BASE}/t/${SHORT}`, { waitUntil: "load", timeout: 45_000 });
       const ok = resp?.status() === 200;
-      const nameSeen = await visible(page.getByText("QA Test Trailer", { exact: false }));
+      const nameSeen = await visible(page.getByText(QA_ASSET_NAME, { exact: false }));
       record(p.key, "public scan — equipment page", ok && nameSeen ? "PASS" : "FAIL", `http ${resp?.status()}`);
       record(p.key, "public scan — no horizontal overflow", (await noOverflow(page)) ? "PASS" : "FAIL");
 
@@ -114,7 +124,7 @@ async function devicePass() {
         // false failure. Then open it only if it is still closed.
         await page.waitForTimeout(1500);
         if (!(await qs.evaluate((d) => d.open))) await qs.locator("summary").click();
-        const body = await visible(page.getByText("disposable QA content", { exact: false }), 5000);
+        const body = await visible(page.getByText(QA_QUICKSTART_TEXT, { exact: false }), 5000);
         record(p.key, "public scan — quick start expands", body ? "PASS" : "FAIL");
       } else record(p.key, "public scan — quick start expands", "N/A", "no quick-start content");
 
@@ -208,7 +218,7 @@ async function devicePass() {
     // --- Acknowledgement ---------------------------------------------------
     try {
       const page = await context.newPage();
-      await page.goto(`${BASE}/t/${SHORT}`, { waitUntil: "load", timeout: 45_000 });
+      await page.goto(`${BASE}/t/${RENTED_SHORT}`, { waitUntil: "load", timeout: 45_000 });
       const prompt = page.getByRole("dialog", { name: "Before you use this equipment" });
       // The prompt is deliberately delayed ~4s; wait well past that.
       const seen = await visible(prompt, 15_000);
@@ -231,7 +241,7 @@ async function devicePass() {
         const rented = await visible(page.getByRole("link", { name: /outbound inspection/i }), 5000);
         const canReturn = await visible(page.getByRole("link", { name: "Complete return checklist" }), 5000);
         record(p.key, "staff — active rental session state", rented || canReturn ? "PASS" : "FAIL");
-        await page.goto(`${BASE}/staff/t/${SHORT}/return`, { waitUntil: "load", timeout: 45_000 });
+        await page.goto(`${BASE}/staff/t/${RENTED_SHORT}/return`, { waitUntil: "load", timeout: 45_000 });
         const returnForm = await visible(page.getByRole("heading", { name: "Staff return checklist" }));
         record(p.key, "staff — return checklist reachable", returnForm ? "PASS" : "FAIL");
         await page.close();
