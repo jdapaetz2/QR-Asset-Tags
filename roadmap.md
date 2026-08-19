@@ -336,15 +336,31 @@ No Supabase project created, no remote migration applied, no production variable
   service-role key with **no target check at all**. It now requires an explicit `MULEMARK_TARGET`.
 - **Operator procedure** — [`docs/STAGING_ENVIRONMENT_SETUP.md`](docs/STAGING_ENVIRONMENT_SETUP.md).
 
-### B1B — operator bootstrap — **PENDING**
+### B1B — operator bootstrap — **DONE (2026-08-19)**
 
-Create the staging Supabase project, apply migrations behind the linked-project guard, re-scope the
-**Vercel Preview** variables to staging (recommended model: the built-in Preview scope, *not* a custom
-environment or a second project — branch-specific vars would let other branches fall back to production),
-set Node 22.x, redeploy, verify the target, then seed staging QA data.
+Staging Supabase project `kwserenxwjxozztyigmw` ("Mulemark-Staging") is live and isolated.
 
-**The coupling is not removed until B1B lands.** B1A only makes it impossible to hit the wrong project by
-accident.
+- **Migrations 0001–0033 applied** to staging behind the linked-project guard; `db push --dry-run` now
+  reports "Remote database is up to date". Applied in order; no `migration repair`, no remote `db reset`.
+- **Deterministic QA data seeded** — Northridge demo org (from `0003`/`0004`) plus two QA organizations
+  (org A exports OFF, org B exports ON), four assets (public / rented / private-draft / org-B), five QR
+  codes including a disabled link and a staging-only isolation probe, public + private documents, an
+  active rental session, four submissions, and four QA logins (owner / admin / staff / second-org admin).
+  Password login works with **no email**; the seeder is idempotent and never prints the password.
+- **Preview isolation proven, not asserted.** The client bundle does not inline the Supabase URL, so the
+  proof is a short-code pair: `stg-only-isolation-probe` (staging-only) **resolves** on Preview while
+  production-only codes `67uqc3q7` / `eb43bf3r` do **not exist** to it. A damage report submitted through
+  Preview (`SUB-2026-2E9E37`) landed in staging; production `form_submissions` stayed at 39.
+- **Production unmutated** — every row count identical before and after; zero B1B QA users, zero staging
+  short codes, zero B1B submissions, zero scan events created.
+- **23/23 staging golden-path checks pass** (`npm run staging:verify`) across public, owner, admin, staff,
+  org-B export, and cross-tenant denial.
+- **Node 22.x confirmed** in the Vercel project, closing the A6.3 drift finding.
+
+**Found and recorded, not papered over:** Speed Insights is **not collecting** — present in
+`app/layout.tsx`, script route returns 200, but the browser never requests it. Verified identically on
+production and preview, so it is **pre-existing, not caused by B1B**. Earlier phases called it "wired,
+awaiting traffic"; that was optimistic. Operator action: enable it in the Vercel dashboard.
 
 ### Unchanged by Phase B1
 

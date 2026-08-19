@@ -42,14 +42,18 @@ URL is acceptable *for testing only*.
 
 ### ⚠️ Staging shares production's database — **being removed in Phase B1**
 
-> **Status:** Phase **B1A** (repo-side preparation) is **done** — target verifiers, a Supabase CLI
-> linked-project guard, fail-closed staging bootstrap tooling, and the full operator procedure in
-> [`STAGING_ENVIRONMENT_SETUP.md`](STAGING_ENVIRONMENT_SETUP.md). Phase **B1B** is the operator running
-> that procedure: create the staging Supabase project, re-scope the Vercel Preview variables, and seed
-> staging QA data. **Until B1B lands, everything below still applies.**
+> ## RESOLVED in Phase B1B (2026-08-19)
+>
+> Preview now reads and writes the **dedicated staging project** `kwserenxwjxozztyigmw`
+> ("Mulemark-Staging"), not production. Proven by a short-code pair: a staging-only code resolves on
+> Preview while production-only codes do not exist to it, and a form submitted through Preview landed in
+> staging while production row counts stayed identical. Full evidence in
+> [`STAGING_ENVIRONMENT_SETUP.md`](STAGING_ENVIRONMENT_SETUP.md).
+>
+> The historical description below is kept for context.
 
-Vercel `env ls` shows every variable scoped `Production, Preview` — a preview deployment therefore reads
-and writes the **same Supabase project as production**. Consequences:
+Vercel `env ls` **previously** showed every variable scoped `Production, Preview` — a preview deployment
+therefore read and wrote the **same Supabase project as production**. Consequences at the time:
 
 - All QA data must be created inside the single disposable QA organization seeded by
   `scripts/qa/staging-qa-data.mjs` (fixed id `a6300000-…-0000000a63a0`, name

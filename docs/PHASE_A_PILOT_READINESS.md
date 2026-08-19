@@ -21,7 +21,7 @@ judgement.
 | 2 | Controlled staging / demo | **GO** | — |
 | 3 | Software-only limited pilot | **CONDITIONAL GO** | 4 conditions below (all operator-side) |
 | 4 | Permanent-tag live customer pilot | **NO-GO** | no stable domain; tag-config gate fails by design |
-| 5 | Live notification delivery | **NO-GO** | no Resend domain / SPF / DKIM / DMARC / verified sender |
+| 5 | Live notification delivery | **NO-GO** (narrowed) | provider + DNS now verified; awaiting Production env wiring + B4 integration |
 | 6 | Physical production | **NOT YET ASSESSED** | laser not arrived; no material/durability/scan/economics data |
 
 **There are no software blockers.** Every NO-GO is an external operator gate.
@@ -56,8 +56,7 @@ The two `verify:production-config` warnings are **the deferrals themselves**, co
 warnings locally rather than failures: `site-url` (localhost in this shell) and `sender`
 (`NOTIFICATION_FROM_EMAIL` unset → dry-run email). Neither is a code defect.
 
-**Known non-blocking drift:** the Vercel project builds on **Node 24.x** while the tested baseline is 22.
-Set it to 22.x before any production deploy.
+~~**Known non-blocking drift:** Vercel builds on Node 24.x.~~ **Resolved in B1B** — the Vercel project is now **22.x**.
 
 ---
 
@@ -69,16 +68,17 @@ A test-only Vercel URL is sufficient and is working.
 |---|---|
 | Staging deployment | `https://qr-asset-tags-czvqz3pth-jdapaetz2-s-projects.vercel.app` (preview, commit `b7884a4`) |
 | Labelled test-only | yes — `STAGING_DEPLOYMENT_RUNBOOK.md` header: "TEST-ONLY URL — NEVER PRINT ON A PHYSICAL TAG" |
-| Speed Insights | wired (`app/layout.tsx`); no field data yet (needs real traffic) |
-| QA environment values | Supabase `apeiswnkheiwrpvumder`, `VERCEL_ENV=preview`, `SCAN_IP_HASH_SALT` set |
+| Speed Insights | **CORRECTED (B1B): not collecting.** Present in `app/layout.tsx`, but the browser never requests the script — verified identically on production and preview. Operator must enable it in the Vercel dashboard. |
+| QA environment values | **B1B: Supabase `kwserenxwjxozztyigmw` (dedicated staging)**, `VERCEL_ENV=preview`, staging-specific `SCAN_IP_HASH_SALT` |
 | Dry-run notifications | `RESEND_*` unset on the project → dry-run by configuration |
 | Permanent artifacts produced | **none** — durable-output routes returned `307 → /login` for anonymous callers, and the base-URL guard refuses `*.vercel.app` |
 | Smoke tests | 12 passed; full E2E 68 passed |
 | Device QA on staging | 110 checks, **106 pass** (`REAL_DEVICE_QA.md`) |
 
-**Conditions that remain true for staging use:** QA data must stay inside a disposable, labelled org
-(`npm run qa:staging:data`), the bypass token should be revoked between sessions, and the staging
-Supabase is **shared with production** — see limitation below.
+**Conditions that remain true for staging use:** the bypass token should be revoked between sessions.
+~~The staging Supabase is shared with production.~~ **Resolved in B1B** — staging runs on its own
+project; Preview no longer holds production credentials. Isolation is proven, not assumed
+(`docs/STAGING_ENVIRONMENT_SETUP.md`).
 
 ---
 
@@ -94,8 +94,8 @@ A customer could use the product today on a temporary URL, *if* all four conditi
 2. **No permanent physical tags are produced.** Paper/temporary labels only. Verdict 4 is NO-GO.
 3. **Email is dry-run**, so notifications must be replaced by a documented manual process (the admin
    checks the inbox UI; nobody relies on an email arriving). See `EMAIL_CONFIGURATION_CHECKLIST.md`.
-4. **QA/pilot data is isolated** from other tenants, and the operator accepts that staging currently
-   shares production's Supabase project.
+4. **QA/pilot data is isolated** from other tenants. ~~The operator accepts that staging shares
+   production's Supabase project.~~ **Resolved in B1B** — staging is now a separate project.
 
 **Supporting evidence — P0/P1 software blockers are closed:**
 
@@ -160,9 +160,20 @@ base-URL-guarded (`lib/qr/output-guard.ts`), the `*.vercel.app` rule is unit-tes
 
 ---
 
-## 5. Live notification readiness — **NO-GO**
+## 5. Live notification readiness — **NO-GO** (blocker narrowed)
 
-Dry-run behaviour is verified. **Live deliverability is not claimed and has never been tested.**
+**Update (B1B).** The provider and DNS half is now **operator-verified**: sending domain
+`notify.mulemark.io` verified, DKIM + SPF TXT + return-path MX verified, root DMARC `p=none`, and
+operator-attested **PASS** on the manual provider send, Gmail SPF/DKIM/DMARC alignment, Outlook
+delivery, and Reply-To to `support@mulemark.io`. A sending-only API key restricted to
+`notify.mulemark.io` exists and is stored securely.
+
+**Why this is still NO-GO:** the application sends nothing until `RESEND_API_KEY` and
+`NOTIFICATION_FROM_EMAIL` are set on **Vercel Production**. They are not, so the running product remains
+dry-run. Wiring + end-to-end verification through the app is **Phase B4**. Staging keeps `RESEND_*`
+unset by design.
+
+Dry-run behaviour is verified. **Live deliverability through the application is not claimed.**
 
 **Verified now (dry-run):**
 
@@ -299,8 +310,9 @@ All from the executed suite (`npm run test:security`, 79 tests, real Postgres/Au
 Full list in [`PILOT_LIMITATIONS.md`](PILOT_LIMITATIONS.md). The ones a pilot customer would actually
 notice or inherit:
 
-1. **Staging shares production's Supabase project and service-role key** (Vercel scopes every var
-   `Production, Preview`). Give staging its own project before a paid pilot.
+1. ~~**Staging shares production's Supabase project and service-role key.**~~ **Resolved in Phase B1B** —
+   staging runs on its own project (`kwserenxwjxozztyigmw`) with Preview-scoped Vercel variables;
+   isolation proven by short-code pair + live write test (`docs/STAGING_ENVIRONMENT_SETUP.md`).
 2. **Performance figures are a staging lab baseline**, not field data — 5 samples, one machine, one
    network (`PERFORMANCE_BASELINE.md`).
 3. **Admin tables overflow on phones** — 93 px (assets) / 183 px (submissions) at 412 px.

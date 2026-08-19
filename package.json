@@ -27,6 +27,7 @@
     "verify:production-target": "node scripts/verify-production-target.mjs",
     "verify:linked-project": "node scripts/check-linked-project.mjs",
     "staging:seed": "node scripts/staging/seed-staging-qa.mjs",
+    "staging:verify": "node scripts/staging/verify-staging-workflows.mjs",
     "qa:staging:data": "node scripts/qa/staging-qa-data.mjs",
     "qa:staging:devices": "node scripts/qa/staging-audit.mjs --devices",
     "qa:staging:loops": "node scripts/qa/staging-audit.mjs --loops",

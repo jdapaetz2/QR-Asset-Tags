@@ -3,20 +3,30 @@
 Operator procedure for giving staging its **own** Supabase project, so a Vercel preview deployment stops
 reading and writing production.
 
-**Phase B1A (this repo) is preparation only.** Everything below is written, tested and ready — but no
-Supabase project has been created, no migration applied, and no Vercel variable changed. **Phase B1B is
-you running these steps.**
+> ## Status: **Phase B1B COMPLETE** — staging is live and isolated
+>
+> | | |
+> |---|---|
+> | Staging project | `kwserenxwjxozztyigmw` — "Mulemark-Staging", us-east-1 |
+> | Migrations | **0001-0033 applied**; `db push --dry-run` = "Remote database is up to date" |
+> | Seed data | Northridge demo org (from `0003`/`0004`) + 2 deterministic QA orgs |
+> | QA accounts | owner / customer-admin / customer-staff / second-org admin — password login, no email |
+> | Preview isolation | **proven** (see below) |
+> | Production | **unmutated** — all row counts identical before and after |
+>
+> The steps below remain the procedure for bootstrapping a staging project from scratch.
 
 ## The problem being fixed
 
-Phase A7 recorded it plainly: every Vercel environment variable is currently a single row scoped
-`Production, Preview`. A preview deployment therefore receives the **production Supabase URL, anon key,
-and service-role key**. Any preview — from any branch, including a draft PR — can read and write real
+Phase A7 recorded it plainly: every Vercel environment variable **was** a single row scoped
+`Production, Preview`. A preview deployment therefore received the **production Supabase URL, anon key,
+and service-role key** — any preview, from any branch including a draft PR, could read and write real
 data with full RLS bypass.
 
-Today that blast radius is demo data ("Test Valley Rentals", "Northridge Rentals" — 3 profiles, 11
-assets, 39 submissions; no real customers). That is why this is a planned fix rather than an incident.
-It must land before broader preview QA, demos, or any external pilot.
+That blast radius was demo data ("Test Valley Rentals", "Northridge Rentals" — 3 profiles, 11 assets,
+39 submissions; no real customers), which is why this was a planned fix rather than an incident.
+
+**Resolved in B1B.** Preview now reads and writes the dedicated staging project, proven below.
 
 ## Target architecture
 
@@ -159,10 +169,12 @@ STAGING_QA_PASSWORD=<choose a strong password> \
   npm run staging:seed -- --confirm
 ```
 
-Creates one clearly-labelled organization, two assets with published pages, two **test** QR short codes
-(`stg-qa-public`, `stg-qa-rented`), an active rental session, and three QA logins
-(`qa.owner@` / `qa.admin@` / `qa.staff@ mulemark-staging.invalid` — RFC-2606 `.invalid`, so they can
-never receive real mail). Idempotent; the password is never printed or logged.
+Creates **two** clearly-labelled organizations (org A with exports OFF, org B with exports ON, so both
+sides of the export gate are testable), four assets covering public / rented / private-draft / org-B,
+five QR short codes including a **disabled** one and a staging-only isolation probe, public and private
+documents, an active rental session, four representative submissions, and four QA logins
+(`qa.owner@` / `qa.admin@` / `qa.staff@` / `qa.admin.orgb@ mulemark-staging.invalid` — RFC-2606
+`.invalid`, so they can never receive real mail). Idempotent; the password is never printed or logged.
 
 Run it without `--confirm` first for a dry run.
 
@@ -198,3 +210,47 @@ Against the staging URL:
 - Re-run the A6.3 device + performance passes against isolated staging for a clean baseline.
 
 Still deferred, unchanged by this work: the permanent domain (Phase B3) and live email (Phase B4).
+
+
+---
+
+## B1B isolation evidence (2026-08-19)
+
+The client bundle does **not** inline `NEXT_PUBLIC_SUPABASE_URL` (12 chunks scanned across `/` and
+`/login` — no project ref present), so bundle-grepping cannot prove which database a deployment reads.
+The proof used instead is a **short-code pair**, which needs no secrets and is unambiguous:
+
+| Short code | Exists in | Result on Preview |
+|---|---|---|
+| `stg-only-isolation-probe` | staging only | **RESOLVED** (page rendered) |
+| `stg-qa-public`, `stg-qa-rented` | staging only | **RESOLVED** |
+| `stg-qa-disabled` | staging, link disabled | unavailable notice (correct — reason not disclosed) |
+| `67uqc3q7`, `eb43bf3r` | **production only** | unavailable notice — Preview cannot see them |
+
+Write path, proven live:
+
+- A damage report submitted through Preview returned `SUB-2026-2E9E37`; the row landed in **staging**
+  (id `2e9e3768...`, staging `form_submissions` 4 -> 5).
+- Production `form_submissions` stayed at **39**, with **0** rows matching the test submitter.
+- Preview scans wrote `scan_events` to staging (0 -> 6); production stayed at 3011 with **0 created that
+  day**.
+
+Other Preview checks: Deployment Protection ON (302 without bypass, 200 with) - `verify:tag-config`
+still **exits 1** (permanent tags blocked) - notifications dry-run (`RESEND_*` unset).
+
+### Known gap found during B1B: Speed Insights is not collecting
+
+`<SpeedInsights />` is present in `app/layout.tsx`, and `/_vercel/speed-insights/script.js` returns 200,
+but the script is **never requested by the browser** — no network request, no tag in the live DOM.
+Verified identically on **production and preview**, so this is **pre-existing and not caused by B1B**.
+Earlier phases recorded Speed Insights as "wired, awaiting traffic"; that was optimistic — it has never
+been collecting. **Operator action:** enable Speed Insights for the project in the Vercel dashboard and
+re-verify.
+
+## Routine staging verification
+
+```bash
+npm run verify:staging-target      # target proof
+npm run staging:seed -- --confirm  # idempotent QA fixtures
+npm run staging:verify             # 23 golden-path checks against the deployment
+```

@@ -15,6 +15,13 @@ admin, staff, owner, cross-tenant, and failure/idempotency surfaces.
 > against the resolved project ref before writing anything —
 > see [`STAGING_ENVIRONMENT_SETUP.md`](STAGING_ENVIRONMENT_SETUP.md). Check a shell with
 > `npm run verify:local-target` / `verify:staging-target` / `verify:production-target`.
+>
+> **Phase B1B.** Staging now has its own Supabase project, so staging QA no longer risks production.
+> The Playwright suites still run **against the local stack only** — deliberately. `assertLocal` refuses
+> non-loopback and `seedFixtures()` tears down and recreates organizations, so pointing them at any
+> hosted project would reintroduce the hazard Phase B1 removed. Staging workflow coverage instead comes
+> from `npm run staging:verify` (`scripts/staging/verify-staging-workflows.mjs`) — 23 golden-path checks
+> driven against the deployed Preview using the deterministic staging fixtures.
 
 ## Prerequisites
 
