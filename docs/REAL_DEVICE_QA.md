@@ -30,10 +30,13 @@ Command: `npm run qa:staging:devices` · 110 checks.
 | Run | Result |
 |---|---|
 | A6.3 (2026-07-30) | 106 pass / **4 fail** — all four the same defect, D-1 |
-| **B2 re-run (2026-08-19)** | **108 pass / 0 fail**, 2 N/A |
+| **B2 re-run (2026-08-19)** | **110 pass / 0 fail** |
 
-The two `N/A` are the bulk-action toolbar on the mobile profiles when the seeded inbox happens to have
-nothing selectable; the control itself is present and passes on the desktop profiles.
+The B2 re-run initially returned two `N/A` for the bulk-action toolbar on the mobile profiles. That was
+a real gap, not a fixture artefact: per-row checkboxes live in the cards, but "select all visible" lived
+only in the table's `<thead>`, which does not render below `md`. A matching control was added to the card
+list (inside the same `BulkSelectionProvider`, so it shares state and adds no logic), and the pass is now
+110/110.
 
 | Profile | Engine | Viewport | Notes |
 |---|---|---|---|
