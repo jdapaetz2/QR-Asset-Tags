@@ -44,10 +44,13 @@ Set these in `.env.local` and in Vercel project settings (do not commit secrets)
 - `NEXT_PUBLIC_SITE_URL` (base for permanent QR URLs, e.g. the `/t/{short_code}` host) — production-domain-sensitive
 - `SCAN_IP_HASH_SALT` (server only — salts the scan-event IP hash; **currently fails soft**: empty → weaker
   anonymization, no error. A5 will require it in production)
-- `RESEND_API_KEY` and `NOTIFICATION_FROM_EMAIL` (server only — submission/tag-request
-  notification emails via Resend). Both optional: leave blank to run notifications in
-  dry-run mode (logged, never sent). `NOTIFICATION_FROM_EMAIL` must be a Resend-verified
-  sender. Never commit these.
+- `RESEND_API_KEY`, `NOTIFICATION_FROM_EMAIL`, `NOTIFICATION_REPLY_TO_EMAIL` (server only —
+  submission/tag-request notification emails via Resend REST, no SDK). All optional: leave the first two
+  blank to run notifications in dry-run mode (logged, never sent). `NOTIFICATION_FROM_EMAIL` must be a
+  Resend-verified sender on the sending subdomain (`Mulemark <notifications@notify.mulemark.io>`);
+  `NOTIFICATION_REPLY_TO_EMAIL` points replies at a human mailbox (`support@mulemark.io`) and is omitted
+  from the request when unset. **Production only** — B4 refuses to send from Vercel Preview in code, so a
+  key added there is inert. Never commit these.
 
 **Not environment variables (reconciled in Phase A1):** storage **bucket names are hard-coded** in code
 (`public-assets` / `submissions` / `documents`) — they are not configurable; upload size/type caps are code

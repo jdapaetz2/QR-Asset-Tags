@@ -61,3 +61,53 @@ describe("logNotificationEvent", () => {
     expect(info.mock.calls[0].join(" ")).not.toContain('"outcome":"sent"');
   });
 });
+
+describe("dry-run reason (B4)", () => {
+  it("records WHY a send was dry — the preview rule vs missing configuration", () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    logNotificationEvent({
+      event: "submission",
+      outcome: "dry_run",
+      organizationId: "o",
+      reason: "preview_environment",
+    });
+    logNotificationEvent({
+      event: "submission",
+      outcome: "dry_run",
+      organizationId: "o",
+      reason: "unconfigured",
+    });
+    expect(info.mock.calls[0].join(" ")).toContain('"reason":"preview_environment"');
+    expect(info.mock.calls[1].join(" ")).toContain('"reason":"unconfigured"');
+  });
+
+  it("is null for outcomes that have no reason, rather than absent", () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    logNotificationEvent({ event: "submission", outcome: "sent", organizationId: "o", providerId: "p" });
+    expect(info.mock.calls[0].join(" ")).toContain('"reason":null');
+  });
+
+  /**
+   * The redaction contract has to hold for every field, not just the ones A5 shipped. A new field is
+   * exactly how a full address or a key leaks into logs.
+   */
+  it("still leaks nothing when every optional field is populated", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    logNotificationEvent({
+      event: "tag_status",
+      outcome: "failed_permanent",
+      organizationId: "org-1",
+      reference: "tr-9",
+      recipient: "owner@yard.test",
+      providerId: "resend-1",
+      providerStatus: 422,
+      attempts: 1,
+      failureClass: "http_422",
+      reason: null,
+    });
+    const line = error.mock.calls[0].join(" ");
+    expect(line).not.toContain("owner@yard.test");
+    expect(line).not.toMatch(/re_[A-Za-z0-9]/);
+    expect(line).toContain('"reference":"tr-9"');
+  });
+});

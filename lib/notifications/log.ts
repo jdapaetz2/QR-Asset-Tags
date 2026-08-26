@@ -47,6 +47,12 @@ export type NotificationLogFields = {
   attempts?: number;
   /** Coarse failure class (e.g. "http_500", "timeout", "network", "invalid_from") — never an error body. */
   failureClass?: string | null;
+  /**
+   * Why a `dry_run` happened: `preview_environment` (the environment rule refused to send) vs
+   * `unconfigured` (no provider credentials). Both are healthy; distinguishing them is what tells an
+   * operator whether Production is actually wired up. Null for every other outcome.
+   */
+  reason?: string | null;
 };
 
 export function logNotificationEvent(fields: NotificationLogFields): void {
@@ -62,6 +68,7 @@ export function logNotificationEvent(fields: NotificationLogFields): void {
     providerStatus: fields.providerStatus ?? null,
     attempts: fields.attempts ?? 0,
     failureClass: fields.failureClass ?? null,
+    reason: fields.reason ?? null,
     deploymentContext: deploymentContext(),
   };
   // A genuine failure goes to the error stream; dry-run/skips/sent are informational.

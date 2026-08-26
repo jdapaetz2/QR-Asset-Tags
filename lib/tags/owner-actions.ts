@@ -50,6 +50,7 @@ export async function updateTagRequest(
   // errors, so a notification failure can never block the status update.
   await notifyTagRequestStatus({
     organizationId: data.organization_id as string,
+    tagRequestId,
     status: data.status as string,
   });
 

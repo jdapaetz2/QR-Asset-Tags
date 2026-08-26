@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { MAX_ATTEMPTS, parseRetryAfter, sendNotificationEmail } from "@/lib/notifications/send";
+import {
+  MAX_ATTEMPTS,
+  NOTIFICATION_TOTAL_BUDGET_MS,
+  parseRetryAfter,
+  sendNotificationEmail,
+} from "@/lib/notifications/send";
 
 const CONTENT = { subject: "s", text: "t", html: "<p>h</p>" };
 const noSleep = { sleep: async () => {} };
@@ -24,12 +29,14 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   delete process.env.RESEND_API_KEY;
   delete process.env.NOTIFICATION_FROM_EMAIL;
+  delete process.env.VERCEL_ENV;
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
   delete process.env.RESEND_API_KEY;
   delete process.env.NOTIFICATION_FROM_EMAIL;
+  delete process.env.VERCEL_ENV;
 });
 
 function configure(from = "Mulemark Alerts <alerts@mulemark.test>") {
@@ -158,5 +165,160 @@ describe("parseRetryAfter", () => {
   it("returns null for a missing/garbage value", () => {
     expect(parseRetryAfter(null)).toBeNull();
     expect(parseRetryAfter("soon")).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase B4 — what a LIVE sender needs that a dry-run one did not.
+// ---------------------------------------------------------------------------
+
+function headersOf(call: number): Record<string, string> {
+  return (fetchMock.mock.calls[call][1] as RequestInit).headers as Record<string, string>;
+}
+
+function bodyOf(call: number): Record<string, unknown> {
+  return JSON.parse((fetchMock.mock.calls[call][1] as RequestInit).body as string);
+}
+
+describe("preview never sends live mail (B4)", () => {
+  /**
+   * Before B4 the ONLY thing stopping staging from emailing real customers was the absence of
+   * credentials — a configuration promise. This asserts the code-level rule instead: fully configured,
+   * preview still sends nothing.
+   */
+  it("returns dry_run in preview EVEN WITH a key and sender configured", async () => {
+    process.env.VERCEL_ENV = "preview";
+    configure();
+    const result = await sendNotificationEmail("owner@yard.test", CONTENT, noSleep);
+    expect(result.outcome).toBe("dry_run");
+    expect(result.reason).toBe("preview_environment");
+    expect(result.attempts).toBe(0);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("distinguishes an unconfigured dry-run from the preview rule", async () => {
+    const result = await sendNotificationEmail("owner@yard.test", CONTENT, noSleep);
+    expect(result.outcome).toBe("dry_run");
+    expect(result.reason).toBe("unconfigured");
+  });
+
+  it("still sends in production with the same configuration", async () => {
+    process.env.VERCEL_ENV = "production";
+    configure();
+    fetchMock.mockResolvedValueOnce(resp(200, { id: "prod-1" }));
+    const result = await sendNotificationEmail("owner@yard.test", CONTENT, noSleep);
+    expect(result.outcome).toBe("sent");
+    expect(result.providerId).toBe("prod-1");
+  });
+});
+
+describe("idempotency key (B4)", () => {
+  it("sends the caller's key as the Idempotency-Key header", async () => {
+    configure();
+    fetchMock.mockResolvedValueOnce(resp(200, { id: "x" }));
+    await sendNotificationEmail("owner@yard.test", CONTENT, noSleep, { idempotencyKey: "mm.submission.s1.abcd1234" });
+    expect(headersOf(0)["Idempotency-Key"]).toBe("mm.submission.s1.abcd1234");
+  });
+
+  /**
+   * The reason idempotency exists here. A timeout is the dangerous retry: the provider may have
+   * accepted the message we stopped waiting for. Every attempt must carry the SAME key so the
+   * provider drops the duplicate instead of mailing a real customer twice.
+   */
+  it("reuses ONE key across every retry of a timing-out send", async () => {
+    configure();
+    const abort = new Error("aborted");
+    abort.name = "AbortError";
+    fetchMock.mockRejectedValue(abort);
+    await sendNotificationEmail("owner@yard.test", CONTENT, noSleep, { idempotencyKey: "mm.submission.s1.abcd1234" });
+    expect(fetchMock).toHaveBeenCalledTimes(MAX_ATTEMPTS);
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+      expect(headersOf(i)["Idempotency-Key"]).toBe("mm.submission.s1.abcd1234");
+    }
+  });
+
+  it("reuses the same key across a 500 retry too", async () => {
+    configure();
+    fetchMock.mockResolvedValueOnce(resp(500)).mockResolvedValueOnce(resp(200, { id: "ok" }));
+    await sendNotificationEmail("owner@yard.test", CONTENT, noSleep, { idempotencyKey: "k-1" });
+    expect(headersOf(0)["Idempotency-Key"]).toBe("k-1");
+    expect(headersOf(1)["Idempotency-Key"]).toBe("k-1");
+  });
+
+  it("omits the header entirely when no key is supplied", async () => {
+    configure();
+    fetchMock.mockResolvedValueOnce(resp(200, { id: "x" }));
+    await sendNotificationEmail("owner@yard.test", CONTENT, noSleep);
+    expect(headersOf(0)["Idempotency-Key"]).toBeUndefined();
+  });
+});
+
+describe("reply-to (B4)", () => {
+  it("sends reply_to when configured", async () => {
+    configure();
+    fetchMock.mockResolvedValueOnce(resp(200, { id: "x" }));
+    await sendNotificationEmail("owner@yard.test", CONTENT, noSleep, { replyTo: "support@mulemark.io" });
+    expect(bodyOf(0).reply_to).toBe("support@mulemark.io");
+  });
+
+  it("omits reply_to entirely when unset or blank — never an empty string", async () => {
+    configure();
+    fetchMock.mockResolvedValue(resp(200, { id: "x" }));
+    await sendNotificationEmail("owner@yard.test", CONTENT, noSleep);
+    expect("reply_to" in bodyOf(0)).toBe(false);
+    await sendNotificationEmail("owner@yard.test", CONTENT, noSleep, { replyTo: "   " });
+    expect("reply_to" in bodyOf(1)).toBe(false);
+  });
+
+  it("keeps the payload to the intended fields even with reply_to present", async () => {
+    configure();
+    fetchMock.mockResolvedValueOnce(resp(200, { id: "x" }));
+    await sendNotificationEmail("owner@yard.test", CONTENT, noSleep, { replyTo: "support@mulemark.io" });
+    expect(Object.keys(bodyOf(0)).sort()).toEqual(["from", "html", "reply_to", "subject", "text", "to"]);
+  });
+
+  it("sends one recipient per message — never a bcc field", async () => {
+    configure();
+    fetchMock.mockResolvedValueOnce(resp(200, { id: "x" }));
+    await sendNotificationEmail("owner@yard.test", CONTENT, noSleep);
+    const body = bodyOf(0);
+    expect(body.to).toBe("owner@yard.test");
+    expect("bcc" in body).toBe(false);
+    expect("cc" in body).toBe(false);
+  });
+});
+
+describe("total time budget (B4)", () => {
+  /**
+   * Notifications are awaited inside the renter's submission request. Per-attempt timeouts alone let
+   * three slow attempts plus backoff hold that request for ~30 s and risk the platform function limit,
+   * which would turn a best-effort email into a failed submission.
+   */
+  it("stops retrying once the wall-clock budget is spent, before MAX_ATTEMPTS", async () => {
+    configure();
+    let clock = 0;
+    const now = () => clock;
+    // Each attempt burns most of the budget.
+    fetchMock.mockImplementation(async () => {
+      clock += NOTIFICATION_TOTAL_BUDGET_MS - 100;
+      return resp(500);
+    });
+    const result = await sendNotificationEmail("owner@yard.test", CONTENT, { sleep: async () => {}, now });
+    expect(result.outcome).toBe("failed_transient");
+    expect(result.attempts).toBeLessThan(MAX_ATTEMPTS);
+    expect(result.failureClass).toBe("budget_exhausted");
+  });
+
+  it("does not cut short a send that fits inside the budget", async () => {
+    configure();
+    let clock = 0;
+    const now = () => clock;
+    fetchMock.mockImplementation(async () => {
+      clock += 10;
+      return resp(500);
+    });
+    const result = await sendNotificationEmail("owner@yard.test", CONTENT, { sleep: async () => {}, now });
+    expect(result.attempts).toBe(MAX_ATTEMPTS);
+    expect(result.failureClass).toBe("http_500");
   });
 });

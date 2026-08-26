@@ -36,6 +36,7 @@ const REQUIRED_VARS = [
   "SCAN_IP_HASH_SALT",
   "RESEND_API_KEY",
   "NOTIFICATION_FROM_EMAIL",
+  "NOTIFICATION_REPLY_TO_EMAIL",
 ];
 const SALT_MIN = 32;
 
@@ -199,8 +200,27 @@ try {
   if (from) {
     const ok = /<[^@\s]+@[^@\s]+\.[^@\s]+>/.test(from) || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(from);
     add(ok ? "pass" : "warn", "sender", ok ? "NOTIFICATION_FROM_EMAIL format looks valid" : "NOTIFICATION_FROM_EMAIL format looks off");
+    // Transactional mail should carry one consistent display name across every event (B4, Part E).
+    if (ok && !/^Mulemark\s*</.test(from)) {
+      add("warn", "sender-name", 'NOTIFICATION_FROM_EMAIL display name is not "Mulemark <…>"');
+    }
   } else {
     add("warn", "sender", "NOTIFICATION_FROM_EMAIL unset (dry-run email)");
+  }
+
+  // Reply-To: optional, but a live sender without one points replies at a no-reply address.
+  const replyTo = process.env.NOTIFICATION_REPLY_TO_EMAIL;
+  if (replyTo) {
+    const ok = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(replyTo);
+    add(ok ? "pass" : "warn", "reply-to", ok ? "NOTIFICATION_REPLY_TO_EMAIL format looks valid" : "NOTIFICATION_REPLY_TO_EMAIL format looks off");
+  } else if (from) {
+    add("warn", "reply-to", "NOTIFICATION_REPLY_TO_EMAIL unset — replies go to the sending address");
+  }
+
+  // Live email is production-only. The code refuses to send from preview regardless (send.ts), so a
+  // key here is inert rather than dangerous — but it should not exist, and silence would hide it.
+  if (vercelEnv === "preview" && (process.env.RESEND_API_KEY || from)) {
+    add("warn", "preview-email", "live-email variables present in preview (inert — code forces dry-run — but remove them)");
   }
 }
 

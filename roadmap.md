@@ -326,6 +326,48 @@ The DNS step must not disturb Google Workspace MX/SPF/DKIM/DMARC or the Resend `
 **Not closed by B3:** physical tag material, marking process, durability, contrast and scannability
 (`docs/TAG_PRODUCTION_READINESS.md`). **No metal-tag readiness claim is made.** Live email remains B4.
 
+## Phase B4 — live email integration — **application DONE (2026-08-26); operator step outstanding**
+
+Turns the verified `notify.mulemark.io` sender into something the product can safely switch on.
+
+**Sender:** `Mulemark <notifications@notify.mulemark.io>`, Reply-To `support@mulemark.io`
+(Google Workspace). Transactional only; the apex keeps Workspace MX/SPF and the two SPF records live on
+different hostnames, so neither interferes with the other. DMARC stays `v=DMARC1; p=none;` — B4 does not
+tighten it.
+
+**What the audit found.** Text + HTML parts, provider-id capture, bounded retry, redacted logging and
+environment-derived links were already right. Four things were not, and all four only matter once mail
+is real:
+
+1. **No Reply-To** — replies would have gone to a no-reply sending address. Now
+   `NOTIFICATION_REPLY_TO_EMAIL` → `reply_to`, omitted entirely when unset.
+2. **Retries could duplicate a customer's email.** The dangerous case is a timeout: the provider may
+   have accepted the message we stopped waiting for. Every send now carries a deterministic
+   `Idempotency-Key` (event + canonical record + hashed recipient), reused across every attempt, which
+   Resend dedupes for 24 h. A submission keys on its id; a tag request keys on id + status, so
+   `requested → delivered` sends and a replay of `delivered` does not.
+3. **Preview stayed dry-run only because credentials were absent** — a configuration promise, not a
+   guarantee. Preview now returns `dry_run` *before any credential is read*, asserted with a key
+   deliberately configured.
+4. **Notifications are awaited inside the renter's submission request.** Per-attempt timeouts allowed
+   ~31 s of retries inside that request — enough to hit a serverless function limit and turn a
+   best-effort email into a failed submission. A 15 s total wall-clock budget now bounds the whole call.
+
+**Templates** follow transactional rules: operational subjects naming the asset code
+(`New damage report — EXC-001`, `Support request — …`, `Return checklist submitted — …`,
+`Tag request updated — <Organization>`), a real plain-text part, no images, tracking pixels, shorteners
+or attachments, links straight to `mulemark.io`, and an explicit line saying why the recipient received
+it and where to turn it off.
+
+**Not claimed.** No live message has been sent by the application. Verdict 5 stays **NO-GO** until the
+operator sets the three Production variables and redeploys, confirms the API key is sending-only and
+domain-restricted with tracking off, and runs the live matrix. Outlook's first direct test landed in
+Junk — recorded as an ordinary new-domain placement observation, with `docs/EMAIL_ALLOWLIST_GUIDE.md` as
+the customer fallback. **Inbox placement is never guaranteed.**
+
+**Recorded, not acted on:** the Vercel account is on **Hobby**; Pro is an operator requirement before a
+paid or commercial pilot.
+
 ## Next recommended workstream
 
 **Operator, in parallel and unblocking:** Gate 1 (domain) has the widest downstream effect — it alone

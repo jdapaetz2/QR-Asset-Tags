@@ -21,7 +21,7 @@ judgement.
 | 2 | Controlled staging / demo | **GO** | — |
 | 3 | Software-only limited pilot | **CONDITIONAL GO** | 4 conditions below (all operator-side) |
 | 4 | Permanent-tag live customer pilot | **NO-GO** (narrowed) | domain decided + software gate closed in B3; awaiting DNS/Vercel, live verification, and physical scan QA |
-| 5 | Live notification delivery | **NO-GO** (narrowed) | provider + DNS now verified; awaiting Production env wiring + B4 integration |
+| 5 | Live notification delivery | **NO-GO** (narrowed to one operator step) | application hardened + verified in B4; awaiting the three Production variables + redeploy + the live test |
 | 6 | Physical production | **NOT YET ASSESSED** | laser not arrived; no material/durability/scan/economics data |
 
 **There are no software blockers.** Every NO-GO is an external operator gate.
@@ -93,7 +93,8 @@ A customer could use the product today on a temporary URL, *if* all four conditi
    is chosen. No commitment may depend on URL stability.
 2. **No permanent physical tags are produced.** Paper/temporary labels only. Verdict 4 is NO-GO.
 3. **Email is dry-run**, so notifications must be replaced by a documented manual process (the admin
-   checks the inbox UI; nobody relies on an email arriving). See `EMAIL_CONFIGURATION_CHECKLIST.md`.
+   checks the inbox UI; nobody relies on an email arriving). The application is ready as of B4 — what is
+   missing is the Production environment step in `EMAIL_CONFIGURATION_CHECKLIST.md` §4 and the live test.
 4. **QA/pilot data is isolated** from other tenants. ~~The operator accepts that staging shares
    production's Supabase project.~~ **Resolved in B1B** — staging is now a separate project.
 
@@ -171,51 +172,66 @@ base-URL-guarded (`lib/qr/output-guard.ts`), the `*.vercel.app` rule is unit-tes
 
 ---
 
-## 5. Live notification readiness — **NO-GO** (blocker narrowed)
+## 5. Live notification readiness — **NO-GO** (one operator step away)
 
-**Update (B1B).** The provider and DNS half is now **operator-verified**: sending domain
-`notify.mulemark.io` verified, DKIM + SPF TXT + return-path MX verified, root DMARC `p=none`, and
-operator-attested **PASS** on the manual provider send, Gmail SPF/DKIM/DMARC alignment, Outlook
-delivery, and Reply-To to `support@mulemark.io`. A sending-only API key restricted to
-`notify.mulemark.io` exists and is stored securely.
+**Update (B4).** The application half is now done and tested. The provider half was already verified in
+B1B: sending domain `notify.mulemark.io`, DKIM + SPF TXT + return-path MX verified, root DMARC `p=none`,
+a sending-only API key restricted to that domain, and an operator-attested direct provider test that
+reached Gmail and Outlook.
 
-**Why this is still NO-GO:** the application sends nothing until `RESEND_API_KEY` and
-`NOTIFICATION_FROM_EMAIL` are set on **Vercel Production**. They are not, so the running product remains
-dry-run. Wiring + end-to-end verification through the app is **Phase B4**. Staging keeps `RESEND_*`
-unset by design.
+DNS re-verified independently in B4, read-only against 8.8.8.8:
 
-Dry-run behaviour is verified. **Live deliverability through the application is not claimed.**
+| Record | Host | Value |
+|---|---|---|
+| MX | `mulemark.io` | `smtp.google.com` — Google Workspace intact |
+| SPF | `mulemark.io` | `v=spf1 include:_spf.google.com ~all` — one record, Google only |
+| DMARC | `_dmarc.mulemark.io` | `v=DMARC1; p=none;` — exactly one policy, no stray TXT |
+| SPF | `send.notify.mulemark.io` | `v=spf1 include:amazonses.com ~all` — its own hostname |
+| MX | `send.notify.mulemark.io` | `feedback-smtp.us-east-1.amazonses.com` |
+| DKIM | `resend._domainkey.notify.mulemark.io` | published |
 
-**Verified now (dry-run):**
+**Why this is still NO-GO:** `vercel env ls production` shows neither `RESEND_API_KEY` nor
+`NOTIFICATION_FROM_EMAIL`. The running product sends nothing, so **no live message has ever left the
+application**. Live deliverability through the app is not claimed.
 
-| Check | Evidence |
+**Closed in B4 (code, with tests):**
+
+| Gate | Evidence |
 |---|---|
-| Provider unconfigured | `RESEND_API_KEY` / `NOTIFICATION_FROM_EMAIL` absent from the Vercel project |
-| Submissions never blocked | 24 QA submissions persisted on staging; every renter saw a success page + reference |
-| Outcome is explicit | `logNotificationEvent` emits `"outcome":"dry_run"` (`lib/notifications/log.test.ts:42`) |
-| `dry_run` ≠ delivered | asserted in `lib/notifications/outcome.test.ts:21` |
-| Redacted logging | no full recipient/body/secret/IP in the log line (A5) |
-| Unit coverage | 42 notification tests pass |
+| Reply-To support | `NOTIFICATION_REPLY_TO_EMAIL` → `reply_to`; omitted entirely when unset |
+| Duplicate protection | deterministic `Idempotency-Key`, reused across every retry (`lib/notifications/idempotency.ts`) |
+| Preview cannot send | enforced in `lib/notifications/send.ts` **before** any credential is read — asserted with a key deliberately configured |
+| Submissions stay non-blocking | 15 s total wall-clock budget, not just per-attempt timeouts |
+| Transactional templates | operational subjects, plain-text part, no images/tracking/shorteners, explicit reason line |
+| Redacted logging | no full recipient, body, media URL, key or raw IP — re-asserted with every field populated |
+| Unit coverage | **93 notification tests** (was 42) |
 
-**Unmet conditions** (`EMAIL_CONFIGURATION_CHECKLIST.md` / `EMAIL_DELIVERABILITY_RUNBOOK.md`):
+**Remaining conditions:**
 
 | # | Condition | State |
 |---|---|---|
-| 1 | Resend sending domain verified | ⬜ deferred |
-| 2 | SPF configured | ⬜ deferred |
-| 3 | DKIM configured | ⬜ deferred |
-| 4 | DMARC configured | ⬜ deferred |
-| 5 | `RESEND_API_KEY` set | ⬜ deferred |
-| 6 | `NOTIFICATION_FROM_EMAIL` a verified sender | ⬜ deferred |
-| 7 | Live sender test | ⬜ never run |
-| 8 | Multi-provider inbox delivery test | ⬜ never run |
+| 1 | Resend sending domain verified | ✅ |
+| 2 | SPF configured | ✅ |
+| 3 | DKIM configured | ✅ |
+| 4 | DMARC configured (`p=none`) | ✅ |
+| 5 | API key confirmed sending-only + domain-restricted | ⬜ **operator to confirm in the dashboard** |
+| 6 | Open/click tracking off | ⬜ **operator to confirm — a provider setting code cannot assert** |
+| 7 | Production `RESEND_API_KEY` / `NOTIFICATION_FROM_EMAIL` / `NOTIFICATION_REPLY_TO_EMAIL` + redeploy | ⬜ |
+| 8 | Live send through the application | ⬜ never run |
+| 9 | Multi-provider placement test with the real template | ⬜ never run |
 
-**No one may rely on an email arriving.** Until conditions 1–8 are met, notification is a UI-only
-workflow: the admin sees submissions in the inbox, and any external alerting is manual.
+**Verdict rule for when 7–9 are done** (agreed in the B4 brief, recorded so it is not re-litigated
+later): authentication failure → **NO-GO**. Rejected/bounced mail → **NO-GO** until diagnosed. Gmail
+inbox + Outlook junk with all authentication passing → **CONDITIONAL GO**, with monitoring and
+`EMAIL_ALLOWLIST_GUIDE.md`. Consistent inbox delivery across tested providers → **GO**. **Guaranteed
+inbox placement is never claimed**, at any verdict.
 
-Known measurement gap: the staging runtime `[notifications]` log line was **not** captured (the
-`vercel logs` CLI returns a bounded snapshot). Dry-run rests on configuration + unit coverage, not on a
-first-hand staging log.
+Until 7–9 are met, notification remains a UI-only workflow: the admin sees submissions in the inbox, and
+any external alerting is manual.
+
+Known measurement gap (unchanged): the staging runtime `[notifications]` log line was **not** captured —
+the `vercel logs` CLI returns a bounded snapshot. Dry-run rests on configuration + unit coverage, not on
+a first-hand staging log.
 
 ---
 

@@ -144,12 +144,24 @@ export const serverEnv = {
     }
     return process.env.RESEND_API_KEY ?? "";
   },
-  /** From address for notification emails (e.g. "Mulemark Alerts <alerts@example.com>"). Optional. */
+  /** From address for notification emails (e.g. "Mulemark <notifications@notify.mulemark.io>"). Optional. */
   get notificationFromEmail(): string {
     if (typeof window !== "undefined") {
       throw new Error('Refusing to read server-only env var "NOTIFICATION_FROM_EMAIL" in the browser');
     }
     return process.env.NOTIFICATION_FROM_EMAIL ?? "";
+  },
+  /**
+   * Reply-To for notification emails (Phase B4). Optional and independent of the sender: the `from`
+   * must be on the Resend-verified sending subdomain, while replies should reach a HUMAN mailbox on
+   * the root domain (`support@mulemark.io`, Google Workspace). Unset → the header is omitted entirely
+   * and replies go to the no-reply sending address, which is a worse experience but never an error.
+   */
+  get notificationReplyToEmail(): string {
+    if (typeof window !== "undefined") {
+      throw new Error('Refusing to read server-only env var "NOTIFICATION_REPLY_TO_EMAIL" in the browser');
+    }
+    return process.env.NOTIFICATION_REPLY_TO_EMAIL ?? "";
   },
 };
 

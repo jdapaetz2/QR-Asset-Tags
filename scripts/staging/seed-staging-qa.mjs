@@ -200,8 +200,9 @@ async function seed() {
     const { data, error } = await db.auth.admin.createUser({
       email: u.email,
       password,
-      // Confirmed up front: QA logins must work with password only, because staging has no email
-      // provider configured (RESEND_* unset) and never will while notifications are dry-run.
+      // Confirmed up front: QA logins must work with password only, because staging never sends
+      // notification email — RESEND_* is unset there AND, since B4, the notifier refuses to send from
+      // a preview deployment regardless of configuration (lib/notifications/send.ts).
       email_confirm: true,
     });
     if (error || !data.user) throw new Error(`seed user ${u.email}: ${error?.message}`);

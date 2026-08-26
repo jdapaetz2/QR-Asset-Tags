@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { publicEnv } from "@/lib/env";
+import { publicEnv, serverEnv } from "@/lib/env";
 import { formTypeLabel } from "@/lib/submissions/display";
 import { tagRequestStatusLabel } from "@/lib/tags/tag-requests";
 import {
@@ -13,6 +13,7 @@ import {
   buildSubmissionEmail,
   buildTagStatusEmail,
 } from "@/lib/notifications/email";
+import { notificationIdempotencyKey } from "@/lib/notifications/idempotency";
 import { sendNotificationEmail } from "@/lib/notifications/send";
 import { logNotificationEvent } from "@/lib/notifications/log";
 
@@ -26,6 +27,10 @@ import { logNotificationEvent } from "@/lib/notifications/log";
  *
  * Every function swallows its own errors — a notification must never break the
  * submission or status update that triggered it.
+ *
+ * Phase B4: each event derives a deterministic provider idempotency key from the record it is about,
+ * so a retry (or a replayed server action) cannot produce a second email to a real customer. Every URL
+ * is computed from `publicEnv.siteUrl`, which is the canonical production host after B3.
  */
 
 const NOTIFY_COLUMNS =
@@ -91,6 +96,7 @@ export async function notifySubmission(input: {
 
     const content = buildSubmissionEmail({
       orgName: org.name ?? "Your organization",
+      formType: input.formType,
       formTypeLabel: formTypeLabel(input.formType),
       asset: {
         code: asset?.asset_code ?? null,
@@ -101,9 +107,22 @@ export async function notifySubmission(input: {
       reference: input.reference ?? null,
       summary: input.summary ?? "",
       adminUrl: `${publicEnv.siteUrl}/dashboard/submissions/${input.submissionId}`,
+      settingsUrl: `${publicEnv.siteUrl}/dashboard/settings`,
     });
 
-    const result = await sendNotificationEmail(org.notification_email, content);
+    // A submission notifies exactly once, ever — its id is the whole key.
+    const idempotencyKey = notificationIdempotencyKey({
+      event: "submission",
+      reference: input.submissionId,
+      recipient: org.notification_email,
+    });
+
+    const result = await sendNotificationEmail(
+      org.notification_email,
+      content,
+      {},
+      { idempotencyKey, replyTo: serverEnv.notificationReplyToEmail }
+    );
     logNotificationEvent({
       event: "submission",
       outcome: result.outcome,
@@ -114,6 +133,7 @@ export async function notifySubmission(input: {
       providerStatus: result.status,
       attempts: result.attempts,
       failureClass: result.failureClass,
+      reason: result.reason,
     });
   } catch (err) {
     // Submission-safety backstop: a notification must never break the submission. Log a redacted,
@@ -131,6 +151,8 @@ export async function notifySubmission(input: {
 
 export async function notifyTagRequestStatus(input: {
   organizationId: string;
+  /** Canonical tag-request id — the reference shared with the platform owner, and half the dedupe key. */
+  tagRequestId: string;
   status: string;
 }): Promise<void> {
   try {
@@ -146,6 +168,7 @@ export async function notifyTagRequestStatus(input: {
         event: "tag_status",
         outcome: "skipped_no_recipient",
         organizationId: input.organizationId,
+        reference: input.tagRequestId,
       });
       return;
     }
@@ -154,33 +177,53 @@ export async function notifyTagRequestStatus(input: {
         event: "tag_status",
         outcome: "skipped_disabled",
         organizationId: input.organizationId,
+        reference: input.tagRequestId,
         recipient: org.notification_email,
       });
       return;
     }
 
+    const orgName = org.name ?? "Your organization";
     const content = buildTagStatusEmail({
-      orgName: org.name ?? "Your organization",
+      orgName,
       statusLabel: tagRequestStatusLabel(input.status),
+      reference: input.tagRequestId,
       manageUrl: `${publicEnv.siteUrl}/dashboard/tag-requests`,
+      settingsUrl: `${publicEnv.siteUrl}/dashboard/settings`,
     });
 
-    const result = await sendNotificationEmail(org.notification_email, content);
+    // A tag request notifies on every status CHANGE, so the status is part of the key:
+    // `requested → delivered` is a new email; a replay of `delivered` is not.
+    const idempotencyKey = notificationIdempotencyKey({
+      event: "tag_status",
+      reference: `${input.tagRequestId}:${input.status}`,
+      recipient: org.notification_email,
+    });
+
+    const result = await sendNotificationEmail(
+      org.notification_email,
+      content,
+      {},
+      { idempotencyKey, replyTo: serverEnv.notificationReplyToEmail }
+    );
     logNotificationEvent({
       event: "tag_status",
       outcome: result.outcome,
       organizationId: input.organizationId,
+      reference: input.tagRequestId,
       recipient: org.notification_email,
       providerId: result.providerId,
       providerStatus: result.status,
       attempts: result.attempts,
       failureClass: result.failureClass,
+      reason: result.reason,
     });
   } catch (err) {
     logNotificationEvent({
       event: "tag_status",
       outcome: "failed_transient",
       organizationId: input.organizationId,
+      reference: input.tagRequestId,
       failureClass: "exception",
     });
     void err;

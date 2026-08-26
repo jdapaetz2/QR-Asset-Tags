@@ -28,8 +28,14 @@ Set for **Production** (and Preview where noted). Names only — never commit va
 | `SUPABASE_SERVICE_ROLE_KEY` | Secret (server) | required | never client; bypasses RLS |
 | `NEXT_PUBLIC_SITE_URL` | Public | required | **canonical https production origin**, no trailing slash, no `*.vercel.app`, no localhost. Baked into permanent QR tags. |
 | `SCAN_IP_HASH_SALT` | Secret (server) | required (≥ 32 random chars) | fails closed in production/preview |
-| `RESEND_API_KEY` | Secret (server) | set to send email; unset = intentional dry-run | document the choice |
-| `NOTIFICATION_FROM_EMAIL` | Server | set with a Resend-verified sender | e.g. `Mulemark Alerts <alerts@yourdomain>` |
+| `RESEND_API_KEY` | Secret (server) | set to send email; unset = intentional dry-run | **Production only.** Sending-only key restricted to `notify.mulemark.io` |
+| `NOTIFICATION_FROM_EMAIL` | Server | set with a Resend-verified sender | **Production only.** `Mulemark <notifications@notify.mulemark.io>` |
+| `NOTIFICATION_REPLY_TO_EMAIL` | Server | optional but recommended | **Production only.** `support@mulemark.io` — replies reach a human |
+
+⚠️ **Never add the three email variables to Preview.** Preview points at the staging Supabase project and
+would mail real addresses from test data. Since B4 the code refuses to send from preview regardless
+(`lib/notifications/send.ts` returns `dry_run` with `reason="preview_environment"` before reading any
+credential) — that is a backstop, not a licence to add them.
 
 `VERCEL_ENV` is set by Vercel automatically (production/preview/development) and drives fail-closed validation — do not
 set it manually.
@@ -68,9 +74,20 @@ passes.
   any domain move here with the redirect owner.
 
 ## 7. Resend verification
-- Sending domain verified in Resend; SPF/DKIM/DMARC configured (details are Phase A5).
-- `NOTIFICATION_FROM_EMAIL` is a verified sender. With the key unset, email runs in dry-run (logged, never sent) — that
-  is an intentional, documented state, not a failure.
+- Sending domain `notify.mulemark.io` is **Verified** in Resend, with DKIM, SPF (at
+  `send.notify.mulemark.io`) and the return-path MX. Root DMARC is `v=DMARC1; p=none;`.
+- **Google Workspace owns the apex** (`MX smtp.google.com`, `SPF include:_spf.google.com`) and must not be
+  touched. The two SPF records live on different hostnames — never merge them or publish a second SPF at
+  the same host.
+- `NOTIFICATION_FROM_EMAIL` must be a verified sender on that subdomain; a malformed value yields
+  `failed_configuration` and no send is attempted. With the key unset, email runs in dry-run (logged,
+  never sent) — an intentional, documented state, not a failure.
+- Confirm in the Resend dashboard: the API key is **Sending access** and **domain-restricted**, and
+  **open/click tracking is off** (a provider setting the app cannot control).
+- **Environment variables are read at build time — redeploy after changing them**, or the app keeps
+  running dry-run with `reason="unconfigured"`.
+- Full procedure and the live test matrix: `docs/EMAIL_CONFIGURATION_CHECKLIST.md` and
+  `docs/EMAIL_DELIVERABILITY_RUNBOOK.md` (Phase B4).
 
 ## 8. Speed Insights + logs
 - `@vercel/speed-insights` renders from `app/layout.tsx` (no env var); confirm data appears in the Vercel dashboard.

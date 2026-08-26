@@ -1,56 +1,97 @@
-# Email Configuration Checklist — Mulemark (deferred manual steps)
+# Email Configuration Checklist — Mulemark
 
-These are the **operator** steps to move notifications from dry-run to live email. They are **deferred**
-until Mulemark has a chosen production domain. Nothing here is automated by the app, and none of it is a
-prerequisite for development or preview QA (see
-[`EMAIL_DELIVERABILITY_RUNBOOK.md`](EMAIL_DELIVERABILITY_RUNBOOK.md)).
+Status as of **Phase B4**: the **provider and DNS half is complete and verified**. What remains is the
+Vercel Production wiring and the live application test. Nothing below is automated by the app.
 
-> Do not create a Resend account, configure DNS, or send live email as part of routine development.
+> **Never paste the API key into chat, a command line, a log, a report, a source file, or this document.**
+> It belongs in the Vercel Production environment and the Resend dashboard, nowhere else.
 
-## 1. Domain + sending subdomain
+---
 
-- [ ] Choose the production domain (blocked on trademark/name clearance — see `PILOT_LIMITATIONS.md`
-      "Commercial dependencies").
-- [ ] Choose a **sending subdomain** (e.g. `mail.` or `notifications.`) so the root domain's reputation
-      stays independent of transactional mail.
+## 1. Domain + sending subdomain — ✅ done
 
-## 2. Verify the Resend sending domain
+- [x] Production domain: **`mulemark.io`** (decided in B3; see `PRODUCTION_DOMAIN_CHECKLIST.md`).
+- [x] Sending subdomain: **`notify.mulemark.io`**, so transactional reputation stays separate from the
+      root domain's Google Workspace mail.
+- [x] Human mailbox: `support@mulemark.io` on Google Workspace — **unchanged by any of this**.
 
-- [ ] Create the domain in Resend and add the DNS records it generates.
-- [ ] **SPF** — publish the Resend-provided TXT record on the sending subdomain.
-- [ ] **DKIM** — publish the Resend-provided CNAME/TXT key record(s).
-- [ ] **DMARC** — publish a record starting in **monitoring mode**:
-      `v=DMARC1; p=none; rua=mailto:dmarc@<domain>` (collect reports first; tighten to `quarantine`/`reject`
-      only after SPF+DKIM align cleanly for a while).
-- [ ] Wait for Resend to show the domain **Verified**.
+## 2. Resend sending domain — ✅ verified
 
-## 3. Scoped API key + sender
+Operator-confirmed in the Resend dashboard, and independently confirmed in DNS:
 
-- [ ] Create a **scoped** Resend API key (sending permission only), not a full-access key.
-- [ ] Set `RESEND_API_KEY` in Vercel (production, and preview if you want live preview email).
-- [ ] Set `NOTIFICATION_FROM_EMAIL` to a verified sender on the sending subdomain, e.g.
-      `Mulemark Alerts <alerts@mail.<domain>>`. The app rejects a malformed value as
-      `failed_configuration` (it will not attempt a send).
-- [ ] Redeploy so the new environment variables take effect.
+| Record | Host | Value | State |
+|---|---|---|---|
+| DKIM | `resend._domainkey.notify.mulemark.io` | `p=MIGfMA0…` | ✅ verified |
+| SPF | `send.notify.mulemark.io` | `v=spf1 include:amazonses.com ~all` | ✅ verified |
+| Return-path MX | `send.notify.mulemark.io` | `feedback-smtp.us-east-1.amazonses.com` | ✅ verified |
+| DMARC | `_dmarc.mulemark.io` | `v=DMARC1; p=none;` | ✅ monitoring |
 
-## 4. Deliverability test (multiple providers)
+**Google Workspace is untouched and must stay that way:**
 
-- [ ] Trigger a real notification (e.g. submit a public damage report against a test asset whose org has a
-      `notification_email`).
-- [ ] Send to **multiple mailbox providers**: Gmail, Outlook/Hotmail, and a corporate/custom domain.
-- [ ] **Inspect headers** in each: `Authentication-Results` should show `spf=pass`, `dkim=pass`,
-      `dmarc=pass`.
-- [ ] Check **spam/junk** placement in each provider; adjust content/warm-up if filtered.
-- [ ] Confirm the app logs `"outcome":"sent"` and **record the provider message IDs** from the log
-      (`providerId`) and/or the Resend dashboard.
+| Record | Host | Value |
+|---|---|---|
+| MX | `mulemark.io` | `smtp.google.com` |
+| SPF | `mulemark.io` | `v=spf1 include:_spf.google.com ~all` |
 
-## 5. Only then
+⚠️ **Never publish a second SPF record at the same hostname.** The Resend SPF lives at
+`send.notify.mulemark.io` and the Google SPF at the apex — two different hosts, which is why both are
+valid. Adding an `include:amazonses.com` to the apex record, or a second TXT alongside either, breaks SPF
+for that host.
 
-- [ ] Update `PILOT_LIMITATIONS.md` to mark live email delivery as tested (with the date + providers
-      checked). Until an actual send is verified, do **not** describe email as delivering.
+⚠️ **`_dmarc.mulemark.io` holds exactly one record.** Verified: there is no stray Google
+site-verification TXT there to clean up. If one ever appears, remove it **only** after Google Admin
+confirms the domain is verified by another method, and never remove the DMARC record itself.
+
+## 3. Scoped API key — ⬜ operator confirmation required
+
+- [ ] Confirm in the Resend dashboard that the key used is **Sending access** (not full access) **and
+      restricted to `notify.mulemark.io`**.
+- [ ] If it is broader than that, **rotate it** and use the replacement. Do not copy the old or new value
+      anywhere.
+- [ ] Confirm **open tracking and click tracking are OFF** for the domain. Both are Resend
+      *dashboard* settings — the app sends no pixel and no wrapped link, but it cannot turn off a
+      provider-side rewrite, so this has to be checked by eye.
+
+## 4. Vercel Production variables — ⬜ operator action
+
+Set on the **Production** environment only, then **redeploy** (Next.js reads these at build time):
+
+| Variable | Value |
+|---|---|
+| `RESEND_API_KEY` | the sending-only, domain-restricted key |
+| `NOTIFICATION_FROM_EMAIL` | `Mulemark <notifications@notify.mulemark.io>` |
+| `NOTIFICATION_REPLY_TO_EMAIL` | `support@mulemark.io` |
+
+**Do not add any of these to Preview.** Preview is staging: it points at the staging Supabase project and
+its own site URL, and live mail from it would reach real addresses in test data. Since B4 this is
+enforced in code as well as by configuration — `lib/notifications/send.ts` returns `dry_run` with
+`reason="preview_environment"` before reading a single credential, so a key added to Preview by mistake
+is inert. The configuration rule still stands; the code is the backstop, not the permission.
+
+A malformed `NOTIFICATION_FROM_EMAIL` is reported as `failed_configuration` and **no send is attempted**.
+`NOTIFICATION_REPLY_TO_EMAIL` is optional — omit it and replies go to the no-reply sending address.
+
+## 5. Live application test — ⬜ after step 4
+
+Run the full matrix in `EMAIL_DELIVERABILITY_RUNBOOK.md` → "Live application test plan" against **demo/QA
+data only**. In short: trigger each of the four notification events, plus a disabled notification, a
+missing recipient, a provider failure, and a replay; then confirm the same event on staging still logs
+`dry_run` and sends nothing.
+
+For each live message check headers for `spf=pass`, `dkim=pass`, `dmarc=pass`, confirm the links point at
+`https://mulemark.io`, and record the `providerId` from the log.
+
+Send these **gradually**, not as a burst — a brand-new sending domain earns reputation by behaving like
+a normal correspondent.
+
+## 6. Only then
+
+- [ ] Update `PILOT_LIMITATIONS.md` and `PHASE_A_PILOT_READINESS.md` with the date, the providers
+      tested, and the observed placement. **Until an actual send through the application is verified, do
+      not describe email as delivering** — and never claim guaranteed inbox placement in any provider.
 
 ## Rollback
 
-Live email is best-effort and non-blocking: to revert to dry-run, unset `RESEND_API_KEY` (or
-`NOTIFICATION_FROM_EMAIL`) in Vercel and redeploy. Submissions and status updates are unaffected either
-way.
+Live email is best-effort and non-blocking: to revert to dry-run, remove `RESEND_API_KEY` (or
+`NOTIFICATION_FROM_EMAIL`) from Vercel Production and redeploy. Submissions and status updates are
+unaffected either way.

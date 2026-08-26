@@ -68,7 +68,12 @@ by the executed `npm run test:security` suite instead).
 
 ### Email + media + stability
 - [ ] 📧 **(manual-only)** Trigger a notification (new submission / tag-request status). With Resend configured → email
-      received; unset → logged dry-run, submission still succeeds.
+      received; unset → logged dry-run (`reason":"unconfigured"`), submission still succeeds.
+- [ ] 📧 **(manual-only, live email)** On a configured Production: **exactly one** message arrives; From is
+      `Mulemark <notifications@notify.mulemark.io>`; a reply reaches `support@mulemark.io`; the subject names the asset
+      code (or the organization, for a tag request); links are on `https://mulemark.io`; headers show `spf=pass`,
+      `dkim=pass`, `dmarc=pass`; the log line carries a `providerId` and a redacted recipient. Then **replay the same
+      event** — no second email. Full matrix: `docs/EMAIL_DELIVERABILITY_RUNBOOK.md`.
 - [ ] 🔒 **(manual-only in-browser; storage boundary covered by `test:security`)** Private media: submission images load
       for admin via signed URL; a raw storage path is not publicly listable.
 - [ ] No automatic refresh/poll loop and no repeated network requests on any page (watch the Network tab settle).
