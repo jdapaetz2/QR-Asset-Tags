@@ -1,43 +1,64 @@
 # Email Deliverability Runbook — Mulemark
 
-**Status (B4 operator closeout, 2026-08-31): LIVE on Production, partially verified.** Production is
-wired and has sent real, authenticated email through the application. Two of the four notification
-events are proven end-to-end; **the other two have never sent a live message.** Staging remains
-dry-run. Inbox placement is not guaranteed for any provider.
+**Status (B4 final evidence sync, 2026-08-31): LIVE on Production. All four notification events
+verified end-to-end.** Production sends real, authenticated email; staging sends none, and that is now
+observed rather than inferred. Two gaps remain, both named below. Inbox placement is not guaranteed for
+any provider, and never will be claimed.
 
-### What was actually verified live
+### Verified live on Production
 
 | Check | Result |
 |---|---|
 | Support request → live email | **PASS** |
 | Damage report → live email | **PASS** |
-| Exactly one email per event | **PASS** |
+| Return checklist → live email | **PASS** |
+| Tag-request status → live email | **PASS** |
+| Exactly one email per tested event | **PASS** |
 | Provider message IDs captured | **PASS** |
 | Links use `mulemark.io` | **PASS** |
 | Reply-To reaches `support@mulemark.io` | **PASS** |
 | Gmail SPF / DKIM / DMARC | **PASS** |
 | Outlook SPF / DKIM / DMARC | **PASS** |
-| Outlook placement | Inbox — **in an allowlisted mailbox** (see below) |
-| Staging submission created, no email sent | **PASS** |
+| Outlook delivery | **delivered** — placement caveat below |
 
-The working Reply-To is also proof that the deployed build carries the B4 code: `reply_to` did not
-exist before it.
+All four events are now covered, which matters because they are not variations of one path: the return
+checklist enters through `lib/inspections/submit.ts` rather than the damage/support forms, and the
+tag-request notification uses a different orchestrator, a different subject builder, and the only
+idempotency key that carries a status (`<id>:<status>`).
 
-### What is NOT verified — do not report these as working
+The working Reply-To also proves the deployed build carries the B4 code — `reply_to` did not exist
+before it.
+
+### Verified on staging — the preview hard-stop, first-hand
+
+The earlier closeout could only show `skipped_no_recipient`, which returns *before*
+`sendNotificationEmail` is reached and therefore proved nothing about the environment rule. With a
+recipient configured on a staging org, the rule itself was captured:
+
+```
+[notifications] {
+  event: "submission",  outcome: "dry_run",
+  reference: "SUB-2026-D4D569",
+  recipientDomain: "mulemark.io",  recipientRedacted: "s***@mulemark.io",
+  providerId: null,  attempts: 0,
+  reason: "preview_environment",  deploymentContext: "preview"
+}
+```
+
+That single line carries the whole guarantee: a **real recipient was resolved**, the send layer **was**
+entered, `attempts: 0` and `providerId: null` show no request was made, and `reason` names the
+environment rule as the cause — not missing credentials. Redaction held throughout. Preview also holds
+no Resend credentials, and the rule is covered by unit tests that configure a key deliberately and still
+expect `dry_run`. Three independent safeguards, one of them now observed in production conditions.
+
+### Still NOT verified — do not report these as working
 
 | Gap | Why it matters |
 |---|---|
-| **Return-checklist** notification never sent live | different call site (`lib/inspections/submit.ts`) from the forms that passed |
-| **Tag-request status** notification never sent live | different orchestrator, different subject builder, and the only idempotency key carrying a status (`<id>:<status>`) |
-| **Replay** never tested in production | "one email per event" is not the same measurement; duplicate protection is unit-tested only |
+| **Replay** never tested in production | "exactly one email per event" is a different measurement. Our duplicate protection depends on **Resend honouring the `Idempotency-Key` header**, which we have taken from their documentation and proven only in unit tests against a mocked provider. Nothing has yet confirmed the live API accepts and dedupes on it. |
 | **Provider-failure path** never exercised live | unit-tested only |
-| **Cold-mailbox placement** unmeasured | see Outlook, below |
-
-A further subtlety worth keeping straight: the staging observation logged
-`outcome":"skipped_no_recipient"`, which proves isolation but does **not** exercise the preview
-hard-stop — the no-recipient check in `notify.ts` returns *before* `sendNotificationEmail` is called, so
-the environment rule was never reached. To see `reason":"preview_environment"` first-hand, staging needs
-an org with a `notification_email` set.
+| **Disabled-notification path** never exercised live | unit-tested only |
+| **Cold-mailbox placement** unmeasured | the Outlook mailbox carries an allow/safe-sender rule — see the Outlook section |
 
 ## The sender
 
@@ -46,16 +67,16 @@ an org with a `notification_email` set.
 | From | `Mulemark <notifications@notify.mulemark.io>` |
 | Reply-To | `support@mulemark.io` (Google Workspace, human-monitored) |
 | Sending domain | `notify.mulemark.io` — transactional only |
-| API key | sending-only, restricted to `notify.mulemark.io`. **The value appears nowhere outside Vercel Production and the Resend dashboard.** |
+| API key | sending-only, restricted to `notify.mulemark.io` — **operator-confirmed**. The value appears nowhere outside Vercel Production and the Resend dashboard. |
 | Provider | Resend REST API (`POST https://api.resend.com/emails`), no SDK |
-| Tracking | open/click tracking should be **off** — a provider-side setting the app cannot assert. **Not yet confirmed by the operator at closeout.** |
+| Tracking | open/click tracking should be **off** — a provider-side setting the app cannot assert and this document will not guess at. **Status in the Resend dashboard is unrecorded; check and record the actual value.** The app itself sends no pixel and no wrapped link. |
 
 ## Behaviour by environment
 
 | Environment | Behaviour | Why |
 |---|---|---|
-| **Production** | **LIVE** since the B4 operator closeout | the only environment permitted to send |
-| **Preview / staging** | **Always `dry_run`**, `reason="preview_environment"` | enforced in `lib/notifications/send.ts` **before** any credential is read — a key added to Preview by mistake cannot send |
+| **Production** | **LIVE** — all four events verified | the only environment permitted to send |
+| **Preview / staging** | **Always `dry_run`**, `reason="preview_environment"` — **observed, not just asserted** | enforced in `lib/notifications/send.ts` **before** any credential is read — a key added to Preview by mistake cannot send |
 | **Local / test** | `dry_run` unless a developer deliberately configures a key | `reason="unconfigured"` |
 
 In every dry-run case the notifier **sends nothing, makes no network request, and never blocks** the form
@@ -127,16 +148,19 @@ Run against **demo/QA data only**, after the Production variables are set and th
 |---|---|---|---|
 | 1 | Support request | one email, `outcome":"sent"` + `providerId` | ✅ **PASS** |
 | 2 | Damage report | one email | ✅ **PASS** |
-| 3 | Return checklist (org flag on) | one email | ⬜ **not run** |
-| 4 | Tag-request status update | one email, subject names the organization | ⬜ **not run** |
+| 3 | Return checklist (org flag on) | one email | ✅ **PASS** |
+| 4 | Tag-request status update | one email, subject names the organization | ✅ **PASS** |
 | 5 | Notification type disabled | `skipped_disabled`, no send | ⬜ not run |
 | 6 | Org with no `notification_email` | `skipped_no_recipient`, no send | ✅ observed on staging |
 | 7 | Provider failure | submission still succeeds; `failed_*` logged | ⬜ **not run** |
 | 8 | Replay of the same event | **no second email** (idempotency) | ⬜ **not run** |
+| 9 | Staging submission with a recipient set | `dry_run`, `reason":"preview_environment"`, no send | ✅ **PASS** (log line captured) |
 
-Rows 3, 4, 7 and 8 are the outstanding work. Do not treat 3 and 4 as covered by 1 and 2 — they run
-through different code (a different submit path, and a different orchestrator with the only
-status-bearing idempotency key).
+**Row 8 is the one that matters most of the remaining three.** It is the only check that proves Resend
+actually honours the `Idempotency-Key` we send; everything else about duplicate protection currently
+rests on the provider's documentation plus unit tests against a mocked API. To run it, trigger the same
+event twice inside 24 hours against the same recipient and confirm one message arrives — the second
+request should return the original `providerId` rather than a new one.
 
 For every live message confirm: the database row exists; **exactly one** email arrives; From and Reply-To
 are correct; the canonical reference (`SUB-…` or the tag-request id) is present; links are on
@@ -168,13 +192,17 @@ The first direct provider test landed in Outlook's **Junk**. That is an ordinary
 a brand-new sending domain with no history, not evidence of a broken application — the message was
 delivered, and authentication was in place.
 
-**The follow-up test reached the Inbox — but that mailbox had since been allowlisted** (marked "not
-junk", plus a rule). So the current evidence is *"delivers to the Inbox of a recipient who has
-allowlisted the sender"*, which is consistent with correct authentication and worth having, but is
-**not** a measurement of cold-start placement for a brand-new customer. That is the case that matters at
-pilot, and it is still unmeasured. Either test in a clean, never-allowlisted Outlook mailbox, or accept
-that pilot customers receive [`EMAIL_ALLOWLIST_GUIDE.md`](EMAIL_ALLOWLIST_GUIDE.md) at onboarding and
-that allowlisting is part of the workflow. Both are defensible; pretending the question is closed is not.
+**Outlook has since delivered successfully with SPF, DKIM and DMARC all passing — but that mailbox
+carries an allow/safe-sender rule** (added after the first Junk result). So the standing evidence is
+*"delivers to the Inbox of a recipient who has allowlisted the sender"*. That is consistent with correct
+authentication and genuinely worth having, but it is **not** a measurement of cold-start placement for a
+brand-new customer, which is the case that matters at pilot. The allowlist cannot be un-taught in that
+mailbox, so this specific gap can only be closed from a different, never-allowlisted address.
+
+Two defensible ways to close it: test from a clean Outlook mailbox, **or** decide as policy that pilot
+customers receive [`EMAIL_ALLOWLIST_GUIDE.md`](EMAIL_ALLOWLIST_GUIDE.md) at onboarding and that
+allowlisting is part of the workflow. Pick one and record it. Pretending the question is closed is not
+an option.
 
 Response, in order:
 

@@ -328,7 +328,7 @@ with a staging-only short code that does not resolve on Production. Google Works
 **Not closed by B3:** physical tag material, marking process, durability, contrast and scannability
 (`docs/TAG_PRODUCTION_READINESS.md`). **No metal-tag readiness claim is made.** Live email remains B4.
 
-## Phase B4 — live email integration — **LIVE (operator closeout 2026-08-31); partially verified**
+## Phase B4 — live email integration — **LIVE; all four events verified (2026-08-31)**
 
 Turns the verified `notify.mulemark.io` sender into something the product can safely switch on.
 
@@ -371,18 +371,51 @@ with a provider message ID, `mulemark.io` links, a working Reply-To to `support@
 working Reply-To is incidentally proof the deployed build carries the B4 code — `reply_to` did not exist
 before it.
 
-**Not verified, and not recorded as passing:** the **return-checklist** and **tag-request** notifications
-have never sent live, and they are different code (a different submit path; a different orchestrator with
-the only status-bearing idempotency key). **Replay** was never tested in production — "one email per
-event" is a different measurement — so duplicate protection remains unit-tested only. The provider-failure
-path was not exercised live. And the Outlook Inbox result came from a mailbox that had been **allowlisted**
-after the earlier Junk incident, so cold-start placement is still unmeasured. Two operator confirmations
-stay open: API-key scope and open/click tracking off.
+**Final evidence sync (2026-08-31).** The two event types the closeout refused to infer have now been
+run for real: **return-checklist and tag-request notifications both PASS**, completing all four. The
+Resend API key is operator-confirmed sending-only and domain-restricted.
 
-Verdict 5 moves **NO-GO → CONDITIONAL GO**. **Inbox placement is never guaranteed.**
+**The staging hard-stop is now observed, not inferred.** The earlier evidence was
+`skipped_no_recipient`, which returns *before* the send layer and proved nothing about the environment
+rule. With a recipient configured on a staging org, the rule itself was captured: `outcome":"dry_run"`,
+`reason":"preview_environment"`, `attempts: 0`, `providerId: null`, `deploymentContext":"preview"` — a
+real recipient resolved, the send layer entered, nothing sent, and the environment named as the cause.
+
+**Still unproven, and still not recorded as passing:** **replay** has never been exercised against the
+live provider. That is the one that matters, because duplicate protection depends on Resend actually
+honouring the `Idempotency-Key` we send — taken from their documentation and verified only against a
+mocked API. The provider-failure and disabled-notification paths are unit-tested only. Cold-mailbox
+placement stays unmeasured: Outlook delivered with authentication passing, but that mailbox carries an
+allow/safe-sender rule, so it measures delivery to an allowlisted recipient rather than to a new
+customer. Open/click tracking status is **left unrecorded rather than guessed** — an unverified "off" in
+a runbook is worse than an admitted unknown.
+
+Verdict 5 stays **CONDITIONAL GO**, with the conditions cut from four to two. **Inbox placement is never
+guaranteed.**
 
 **Recorded, not acted on:** the Vercel account is on **Hobby**; Pro is an operator requirement before a
 paid or commercial pilot.
+
+## Pre-B5 cleanup — **DONE (2026-08-31)**
+
+Two prerequisites cleared before B5.
+
+**Secret scan.** CI went red on `a71dcf4`/`0aa205a` with two `generic-api-key` findings in
+`lib/notifications/send.test.ts`. Both were **synthetic idempotency-key fixtures, not credentials** —
+nothing to rotate — but the scanner was right to flag them: an identifier ending in `Key` assigned a
+quoted, random-looking value is exactly the shape of a real leak. Fixed by removing the shape rather
+than silencing the rule: the tests now build the value with `notificationIdempotencyKey()` at runtime.
+Because the literal survives in already-pushed history on a **public** repo, the two historical matches
+are accepted in `.gitleaksignore` by **exact fingerprint** (`commit:path:rule:line`) — no path,
+directory or regex allowlist, and no history rewrite, which would break clones and forks for no security
+benefit. The scan now runs `--redact --verbose`, so a failure names rule and location without printing
+the value. **Both jobs green on `3ec5da8`: `checks` PASS, `secret-scan` PASS.**
+
+**Staging QA logins.** Reported as broken; the diagnosis found otherwise. A new fail-closed
+`npm run staging:qa-password` (target pinned, ref pinned, `.invalid`-only, dry-run by default) showed
+all four QA logins **already succeeding** via a real anon-key sign-in, with profiles and organizations
+active — so no password was written. The correct variable name is `STAGING_QA_PASSWORD`. Staging assets
+and data are present, and a staging notification workflow was exercised without sending mail.
 
 ## Next recommended workstream
 

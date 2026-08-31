@@ -279,8 +279,13 @@ profile and an organization after sign-in, and a disabled profile or a non-activ
 identical to "the login was rejected", but the fix is completely different.
 
 **If both layers are clean, the credential is not the problem.** Look at the environment instead: the
-URL under test (the QA users exist only in staging — production has its own users), a paste error, or
-Vercel Deployment Protection intercepting the request without the bypass header.
+URL under test (the QA users exist only in staging — production has its own users), the variable name
+(it is **`STAGING_QA_PASSWORD`**), a paste error, or Vercel Deployment Protection intercepting the
+request without the bypass header.
+
+> This is exactly how the 2026-08-31 report resolved: all four logins already succeeded, profiles and
+> organizations were active, and no password needed writing. Staging assets and data were present and a
+> staging notification workflow ran without sending mail.
 
 If a password genuinely needs resetting:
 

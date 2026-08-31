@@ -1,7 +1,8 @@
 # Phase A Pilot Readiness — Mulemark
 
-**Phase A7 closeout, revised through the B4 operator closeout (2026-08-31).** Branch
-`pilot-credibility`. Verdicts 3, 4 and 5 carry updates from B1–B4; each says which phase changed it.
+**Phase A7 closeout, revised through the B4 final evidence sync (2026-08-31).** Branch
+`pilot-credibility` @ `3ec5da8`. Verdicts 3, 4 and 5 carry updates from B1–B4; each says which phase
+changed it.
 
 Readiness is **not one number**. The software is in a very different state from the domain, the email
 sender, and the physical tag process, and blending them into a single verdict would either wrongly halt
@@ -22,7 +23,7 @@ judgement.
 | 2 | Controlled staging / demo | **GO** | — |
 | 3 | Software-only limited pilot | **CONDITIONAL GO** | 4 conditions below (all operator-side) |
 | 4 | Permanent-tag live customer pilot | **NO-GO** (narrowed to physical QA) | domain live + software gate closed; **only** the real-phone scan test and physical tag process remain |
-| 5 | Live notification delivery | **CONDITIONAL GO** | live send proven end-to-end; 4 conditions below (2 event types untested, replay untested, Outlook measured in an allowlisted mailbox) |
+| 5 | Live notification delivery | **CONDITIONAL GO** (narrowed) | all 4 event types verified; 2 conditions remain — replay/idempotency unproven against the live provider, cold-mailbox placement unmeasured |
 | 6 | Physical production | **NOT YET ASSESSED** | laser not arrived; no material/durability/scan/economics data |
 
 **There are no software blockers.** Every NO-GO is an external operator gate.
@@ -52,6 +53,13 @@ Repository + database state:
 - No tracked secret: 0 JWT/private-key literals in tracked files; no tracked `.env`.
 - Node aligned: `.nvmrc` = 22, `engines.node` = `22.x`, and `ci` / `e2e` / `security` workflows all on
   `node-version: 22`. Secret scanning runs gitleaks in `ci.yml`.
+- **GitHub CI green on `3ec5da8`** — `checks` PASS, `secret-scan` PASS. The two gitleaks findings that
+  went red on `a71dcf4`/`0aa205a` were **synthetic idempotency-key fixtures, not credentials**: nothing
+  to rotate. The current-tree fixture was rewritten to use the real runtime generator, and the two
+  historical matches are accepted in `.gitleaksignore` by **exact fingerprint**
+  (`commit:path:rule:line`) — no path, directory or regex allowlist, and no history rewrite. The scan
+  now runs `--redact --verbose`, so a future failure names the rule and location without printing the
+  value.
 
 The two `verify:production-config` warnings are **the deferrals themselves**, correctly reported as
 warnings locally rather than failures: `site-url` (localhost in this shell) and `sender`
@@ -93,10 +101,11 @@ A customer could use the product today on a temporary URL, *if* all four conditi
 1. **The customer is told, in writing, that the URL is temporary** and will change when the final domain
    is chosen. No commitment may depend on URL stability.
 2. **No permanent physical tags are produced.** Paper/temporary labels only. Verdict 4 is NO-GO.
-3. **Email is live for damage and support notifications only** (B4 closeout). Return-checklist and
-   tag-request notifications have never sent a live message, so those two must still be covered by the
-   manual process — the admin checks the inbox UI. No commitment may depend on an email arriving, and
-   inbox placement is not guaranteed for any of them. See verdict 5.
+3. **Email is live for all four notification types** (B4 final evidence sync), authenticated and
+   delivering at Gmail and Outlook. Two caveats still bind the customer promise: duplicate protection is
+   unproven against the live provider, and inbox placement is not guaranteed anywhere. So the admin
+   inbox UI remains the system of record — **no commitment may depend on an email arriving**. See
+   verdict 5.
 4. **QA/pilot data is isolated** from other tenants. ~~The operator accepts that staging shares
    production's Supabase project.~~ **Resolved in B1B** — staging is now a separate project.
 
@@ -154,89 +163,83 @@ base-URL-guarded (`lib/qr/output-guard.ts`), the `*.vercel.app` rule is unit-tes
 
 ---
 
-## 5. Live notification readiness — **CONDITIONAL GO**
+## 5. Live notification readiness — **CONDITIONAL GO** (conditions narrowed)
 
-**Update (B4 operator closeout).** The application has now sent real email. This is the first time that
-has been true, and it moves the verdict off NO-GO — but not to GO, for reasons stated plainly below.
+**Update (B4 final evidence sync, 2026-08-31).** The verdict label is unchanged, but the evidence
+behind it moved a long way: **all four notification events are now verified end-to-end on Production**,
+and the staging hard-stop is observed rather than inferred. Two conditions remain, and both are named
+rather than waved past.
 
-### Verified — operator-executed on Production, 2026-08-31
+### Verified — operator-executed on Production
 
 | Check | Result |
 |---|---|
 | Support request → live email | **PASS** |
 | Damage report → live email | **PASS** |
-| Exactly one email per event | **PASS** |
+| Return checklist → live email | **PASS** |
+| Tag-request status → live email | **PASS** |
+| Exactly one email per tested event | **PASS** |
 | Provider message IDs captured | **PASS** |
 | Links use `mulemark.io` | **PASS** |
 | Reply-To reaches `support@mulemark.io` | **PASS** |
 | Gmail SPF / DKIM / DMARC | **PASS** |
 | Outlook SPF / DKIM / DMARC | **PASS** |
-| Staging submission created | **PASS** |
-| No live staging email sent | **PASS** |
+| Outlook delivery | **delivered** (placement caveat below) |
+| Resend API key scope | **confirmed** — sending-only, restricted to `notify.mulemark.io` |
 
-**The Reply-To pass doubles as proof of the deployed commit.** `reply_to` did not exist in the codebase
-before B4, so a working Reply-To could only come from `a71dcf4` or later. The production deployment
-carrying the `mulemark.io` alias is unchanged since that test.
+Event coverage now matters more than the count suggests: the return checklist enters through
+`lib/inspections/submit.ts` rather than the damage/support forms, and the tag-request notification uses
+a different orchestrator, a different subject builder, and the only idempotency key that carries a
+status. Those were the two paths the previous closeout refused to mark as passing on inference, and
+they have now been run for real.
 
-Configuration re-verified read-only at closeout: `RESEND_API_KEY` (Secret), `NOTIFICATION_FROM_EMAIL`
-and `NOTIFICATION_REPLY_TO_EMAIL` are present on **Production only**; **none of the three exists in
-Preview**. DNS unchanged — Workspace `MX smtp.google.com` and apex SPF intact, Resend DKIM published,
-`_dmarc.mulemark.io` still exactly one `p=none` record.
+### Verified — the staging hard-stop, first-hand
 
-### Why this is CONDITIONAL GO and not GO
+The previous closeout could only produce `skipped_no_recipient`, which returns *before* the send layer
+and therefore proved nothing about the environment rule. With a recipient configured on a staging org,
+the rule itself was captured:
 
-Four things are genuinely unproven. None is a defect; each is simply untested, and recording an
-untested path as a pass is how a pilot discovers a broken notification in front of a customer.
+```
+outcome: "dry_run"   reason: "preview_environment"   deploymentContext: "preview"
+attempts: 0          providerId: null                recipientRedacted: "s***@mulemark.io"
+```
 
-**1. Two of the four notification events have never sent a live message.** They are not variations of
-the two that passed — they are different code:
+A real recipient was resolved, the send layer **was** entered, and nothing was sent — with the
+environment named as the cause rather than missing credentials. Preview also holds no Resend
+credentials, and unit tests configure a key deliberately and still expect `dry_run`. Three independent
+safeguards, one of them now observed under production conditions.
 
-| Event | Untested path |
-|---|---|
-| Return checklist | `lib/inspections/submit.ts` — a **different call site** from the damage/support forms |
-| Tag-request status | `notifyTagRequestStatus` — a different orchestrator, a different subject builder (`Tag request updated — <Organization>`), and the **only** idempotency key that includes a status (`<id>:<status>`) |
+### Remaining conditions to reach GO
 
-The operator record is internally inconsistent on the return checklist — notifications for it are
-described as both enabled and not enabled — which is itself a reason to re-run it rather than infer.
-Tag-request notifications were explicitly left off. **Neither is recorded as a pass.**
+**1. Replay/idempotency is unproven against the live provider.** "Exactly one email per event" is a
+different measurement. Duplicate protection depends on **Resend honouring the `Idempotency-Key` header**
+— taken from their documentation and verified only in unit tests against a mocked API. Nothing has yet
+confirmed the live endpoint accepts and dedupes on it. Trigger the same event twice within 24 hours and
+confirm one message arrives, with the second request returning the original `providerId`. This is the
+highest-value check left, because a duplicate notification reaches a real customer.
 
-**2. Replay was never tested in production.** "Exactly one email per event" is not the same measurement:
-it shows one event produced one email, not that a *repeated* event produces none. Idempotency remains
-proven by unit test only — including the case it exists for, a timeout on a request the provider
-accepted.
+**2. Cold-mailbox placement is unmeasured.** Outlook delivered with authentication passing, but that
+mailbox carries an allow/safe-sender rule added after the first Junk result. The standing evidence is
+"delivers to a recipient who has allowlisted the sender" — real, but not the case that matters at pilot.
+The allowlist cannot be un-taught there, so this can only be closed from a different address, or by
+recording a decision that `EMAIL_ALLOWLIST_GUIDE.md` goes out at onboarding.
 
-**3. The provider-failure path was not exercised live.** Unit-tested only.
+Also not yet exercised live, and unit-tested only: the provider-failure path and the
+disabled-notification path. Neither risks a wrong email reaching a customer, which is why they sit below
+the two conditions above.
 
-**4. The Outlook result is measured in a mailbox that has been allowlisted.** After the first direct test
-landed in Junk, that mailbox was marked "not junk" and given a rule. Inbox placement there therefore
-demonstrates *delivery to an allowlisted recipient* — worth having, and consistent with correct
-authentication — but it is **not** evidence of cold-start placement for a brand-new customer, which is
-the case that actually matters at pilot. Gmail's result is the cleaner of the two.
-
-**A note on the staging observation.** The staging log showed `outcome":"skipped_no_recipient"`. That
-confirms isolation and that nothing was sent — but it does **not** exercise the preview hard-stop,
-because the no-recipient check in `notify.ts` returns *before* `sendNotificationEmail` is ever called.
-The code never reached the environment rule. To observe `reason":"preview_environment"` first-hand,
-staging needs an org with a `notification_email` set. Until then the hard-stop rests on unit coverage
-plus the absence of Preview credentials — two real safeguards, but not the direct observation.
-
-### Conditions to reach GO
-
-1. Send a live **return checklist** notification and a live **tag-request status update**, and confirm
-   each produces exactly one correctly-addressed email with its canonical reference.
-2. **Replay one event** and confirm no second email arrives.
-3. Test placement in a **clean, never-allowlisted** Outlook mailbox — or state that pilot customers will
-   receive `EMAIL_ALLOWLIST_GUIDE.md` at onboarding and accept allowlisting as part of the workflow.
-4. Observe `reason":"preview_environment"` on staging with a recipient configured.
+**Open/click tracking status is deliberately unrecorded.** It is a Resend dashboard setting the app
+cannot assert. Writing an unverified "off" into a runbook would be worse than an admitted unknown,
+because it would stop anyone looking.
 
 ### What may and may not be said today
 
-**May:** Mulemark sends live, authenticated transactional email from `notify.mulemark.io`; damage and
-support notifications have been delivered end-to-end with SPF, DKIM and DMARC passing at two providers;
-replies reach a human at `support@mulemark.io`; staging sends nothing.
+**May:** all four Mulemark notification types deliver live, authenticated (SPF/DKIM/DMARC passing at
+Gmail and Outlook), with correct sender, Reply-To, references and `mulemark.io` links; replies reach a
+human; and staging provably sends nothing.
 
-**May not:** that all four notification types are working; that duplicate protection has been proven in
-production; or that any message will land in an Inbox. **Inbox placement is never guaranteed.**
+**May not:** that duplicate protection is proven in production; that open/click tracking is off; or that
+any message will land in an Inbox. **Inbox placement is never guaranteed.**
 
 ---
 
