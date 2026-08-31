@@ -48,8 +48,16 @@ jobs:
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
 
   # Secret scanning (Phase A3.2). Runs the gitleaks release BINARY directly — no marketplace
-  # action, no license key, and nothing about the repository is uploaded anywhere. --redact means a
-  # finding fails the job without printing the value. fetch-depth: 0 so full history is scanned.
+  # action, no license key, and nothing about the repository is uploaded anywhere. fetch-depth: 0 so
+  # full history is scanned.
+  #
+  # --redact + --verbose together (B4 cleanup): --redact keeps the matched VALUE out of the log,
+  # while --verbose prints the rule id, file, line and commit for each finding. Without --verbose a
+  # failure said only "leaks found: N", which meant reproducing the scan locally just to learn where
+  # to look. Redaction is what makes verbose output safe — never drop it.
+  #
+  # Accepted historical findings live in .gitleaksignore as exact per-finding fingerprints
+  # (commit:path:rule:line), never as path or regex allowlists.
   secret-scan:
     runs-on: ubuntu-latest
     steps:
@@ -63,4 +71,4 @@ jobs:
         run: |
           curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o gitleaks.tar.gz
           tar -xzf gitleaks.tar.gz gitleaks
-          ./gitleaks detect --source . --config .gitleaks.toml --redact --no-banner --exit-code 1
+          ./gitleaks detect --source . --config .gitleaks.toml --redact --verbose --no-banner --exit-code 1

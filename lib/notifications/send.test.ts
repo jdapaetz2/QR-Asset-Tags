@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { notificationIdempotencyKey } from "@/lib/notifications/idempotency";
 import {
   MAX_ATTEMPTS,
   NOTIFICATION_TOTAL_BUDGET_MS,
@@ -213,11 +214,24 @@ describe("preview never sends live mail (B4)", () => {
 });
 
 describe("idempotency key (B4)", () => {
+  /**
+   * Built with the real generator rather than pasted in as a literal. Two reasons: it keeps this
+   * send-layer test exercising the ACTUAL key format (so a change to the generator's shape is felt
+   * here), and it avoids parking a random-looking string next to an `idempotencyKey:` assignment —
+   * which a secret scanner is right to treat as suspicious, since that is exactly what a leaked
+   * credential looks like.
+   */
+  const REPLAY_ID = notificationIdempotencyKey({
+    event: "submission",
+    reference: "sub-1",
+    recipient: "owner@yard.test",
+  });
+
   it("sends the caller's key as the Idempotency-Key header", async () => {
     configure();
     fetchMock.mockResolvedValueOnce(resp(200, { id: "x" }));
-    await sendNotificationEmail("owner@yard.test", CONTENT, noSleep, { idempotencyKey: "mm.submission.s1.abcd1234" });
-    expect(headersOf(0)["Idempotency-Key"]).toBe("mm.submission.s1.abcd1234");
+    await sendNotificationEmail("owner@yard.test", CONTENT, noSleep, { idempotencyKey: REPLAY_ID });
+    expect(headersOf(0)["Idempotency-Key"]).toBe(REPLAY_ID);
   });
 
   /**
@@ -230,10 +244,10 @@ describe("idempotency key (B4)", () => {
     const abort = new Error("aborted");
     abort.name = "AbortError";
     fetchMock.mockRejectedValue(abort);
-    await sendNotificationEmail("owner@yard.test", CONTENT, noSleep, { idempotencyKey: "mm.submission.s1.abcd1234" });
+    await sendNotificationEmail("owner@yard.test", CONTENT, noSleep, { idempotencyKey: REPLAY_ID });
     expect(fetchMock).toHaveBeenCalledTimes(MAX_ATTEMPTS);
     for (let i = 0; i < MAX_ATTEMPTS; i++) {
-      expect(headersOf(i)["Idempotency-Key"]).toBe("mm.submission.s1.abcd1234");
+      expect(headersOf(i)["Idempotency-Key"]).toBe(REPLAY_ID);
     }
   });
 

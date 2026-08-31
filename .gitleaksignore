@@ -1,0 +1,29 @@
+# gitleaks — accepted findings, by EXACT fingerprint.
+#
+# Each entry is `<commit>:<path>:<rule>:<line>`. That is deliberately the narrowest possible unit:
+# it accepts one specific match in one specific historical commit. It does NOT allowlist the file,
+# the directory, the rule, or the pattern — a new occurrence anywhere, including the same line in a
+# later commit, still fails the scan. Never add a path or regex here; use `.gitleaks.toml` for a
+# reviewed pattern-level exception, and only with a written justification.
+#
+# ---------------------------------------------------------------------------------------------
+# a71dcf4 (Phase B4) — `generic-api-key` × 2 in lib/notifications/send.test.ts
+#
+# NOT a credential. The flagged value was a hand-written placeholder idempotency key of the shape
+# `mm.<event>.<ref>.<hash>` passed inline to `sendNotificationEmail(..., { idempotencyKey: "..." })`.
+# It is a synthetic string invented for the test; it authenticates nothing, was never issued by any
+# provider, and grants no access. Nothing to rotate or revoke.
+#
+# The rule fired for a good reason and the scanner was not wrong to flag it: an identifier ending in
+# `Key` assigned a quoted, random-looking value (entropy 3.70) is precisely the shape of a leaked
+# credential. The fix in the working tree is therefore to stop writing that shape at all — the tests
+# now build the value with `notificationIdempotencyKey()` at runtime, which both removes the literal
+# and ties the send-layer test to the real key format.
+#
+# These two entries exist only because the literal remains in ALREADY-PUSHED history and this is a
+# public repository. Rewriting published history is a disproportionate response to a fake string:
+# it would break every existing clone and fork reference to no security benefit. Had this been a
+# real credential the response would have been the opposite — revoke first, then purge history and
+# treat the value as compromised regardless.
+a71dcf4a7557b0085ce598fa035706f64107bdf2:lib/notifications/send.test.ts:generic-api-key:219
+a71dcf4a7557b0085ce598fa035706f64107bdf2:lib/notifications/send.test.ts:generic-api-key:233
