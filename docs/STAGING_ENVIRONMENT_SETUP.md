@@ -254,3 +254,46 @@ npm run verify:staging-target      # target proof
 npm run staging:seed -- --confirm  # idempotent QA fixtures
 npm run staging:verify             # 23 golden-path checks against the deployment
 ```
+
+## QA login trouble — check before reseeding
+
+`npm run staging:seed -- --confirm` **deletes both QA organizations and everything under them**
+(assets, QR links, rental sessions, submissions, documents) before recreating them. That is far too
+blunt a response to "a QA login isn't working", and it destroys accumulated QA state.
+
+Diagnose first. This is read-only and writes nothing:
+
+```bash
+npm run staging:qa-password -- --verify-only
+```
+
+It reports two independent layers for each of the four QA users:
+
+1. **Login verification** — a real `signInWithPassword` through the anon key, exactly what a browser
+   does, using `STAGING_QA_PASSWORD` from the untracked `.env.staging.local`.
+2. **Application readiness** — the `profiles` row (role + status) and the organization's status.
+
+The distinction matters because a valid password is *necessary but not sufficient*: the app resolves a
+profile and an organization after sign-in, and a disabled profile or a non-active org gets bounced to
+`/suspended` (and `current_org_id()` returns null, stripping tenant RLS scope). To a person that looks
+identical to "the login was rejected", but the fix is completely different.
+
+**If both layers are clean, the credential is not the problem.** Look at the environment instead: the
+URL under test (the QA users exist only in staging — production has its own users), a paste error, or
+Vercel Deployment Protection intercepting the request without the bypass header.
+
+If a password genuinely needs resetting:
+
+```bash
+npm run staging:qa-password              # dry run — shows the exact blast radius
+npm run staging:qa-password -- --confirm # updates ONLY those four passwords, then verifies login
+```
+
+Fail-closed: it requires `MULEMARK_TARGET=staging`, requires `STAGING_SUPABASE_REF` to equal the
+staging ref pinned in the script, re-resolves the target through `assertTarget` (which treats any
+unrecognised project as production), and refuses any address outside `@mulemark-staging.invalid`. It
+updates auth passwords only — no organization, asset, session, submission, document, or storage object
+is read or written, and it never creates a user.
+
+> `.env.staging.local` must contain the non-secret line `MULEMARK_TARGET=staging`. The target is never
+> inferred; it has to be stated.
