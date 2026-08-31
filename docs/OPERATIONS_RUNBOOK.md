@@ -26,6 +26,10 @@ key, or raw IP). See the outcome glossary in
 - **Preview/staging is ALWAYS dry-run** — `reason":"preview_environment"`. This is enforced in code
   before any credential is read, so it holds even if a key were added to the Vercel Preview environment.
   Live mail from staging is not a failure mode that needs an incident response; it is prevented.
+  *Caveat on the evidence:* the staging line observed at the B4 closeout was `skipped_no_recipient`,
+  which returns **earlier** than the environment rule — so the rule itself is proven by unit test and by
+  the absence of Preview credentials, not yet by a first-hand log line. Set a `notification_email` on a
+  staging org to see `reason":"preview_environment"` directly.
 - **Production dry-run** shows `reason":"unconfigured"` — the Production variables are not set. Healthy
   before B4's operator step, a **misconfiguration afterwards**: check that `RESEND_API_KEY` and
   `NOTIFICATION_FROM_EMAIL` are on Production and that the project was **redeployed** (they are read at
@@ -35,7 +39,12 @@ key, or raw IP). See the outcome glossary in
 - **`skipped_no_recipient` / `skipped_disabled`:** the org has no notification address, or that event
   type's toggle is off. Not a system fault — an org-settings choice.
 
-### Live-email mode incidents (after the checklist is complete)
+### Live-email mode incidents — **this is the current Production steady state**
+
+Since the B4 operator closeout (2026-08-31) Production sends real email. `"outcome":"sent"` with a
+`providerId` is the healthy line for damage and support notifications. A sudden run of `dry_run` with
+`reason":"unconfigured"` on Production means a variable was removed or a deploy lost it — check the
+environment and redeploy.
 
 - **"They got the same email twice."** This should be impossible: every send carries a deterministic
   `Idempotency-Key` and Resend dedupes on it for 24 hours. If it happens, check whether the two messages

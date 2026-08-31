@@ -294,7 +294,7 @@ perfect tag is useless until the domain is stable.
 
 ---
 
-## Phase B3 — permanent QR domain — **software gate CLOSED (2026-08-19); operator work outstanding**
+## Phase B3 — permanent QR domain — **LIVE (operator closeout 2026-08-31)**
 
 Decides the canonical host and closes the *software* half of the permanent-tag gate.
 
@@ -318,15 +318,17 @@ tied tag safety to a literal and broken a future `app.mulemark.io`. Instead the 
 tests, and `metadataBase` now derives canonical/OG URLs from the environment so a preview can never
 advertise the production host.
 
-**Operator work outstanding** (`docs/PRODUCTION_DOMAIN_CHECKLIST.md`): `vercel domains ls` returns **0
-domains** and `mulemark.io` still serves a registrar parking page. DNS + Vercel domains + Production
-`NEXT_PUBLIC_SITE_URL` + redeploy + live route verification + a real-phone scan test all remain.
-The DNS step must not disturb Google Workspace MX/SPF/DKIM/DMARC or the Resend `notify` records.
+**Operator closeout (2026-08-31): done.** `https://mulemark.io` serves over HTTPS, `/t/{shortCode}`
+resolves from Production, `www` redirects path-preservingly to the apex, Production
+`NEXT_PUBLIC_SITE_URL` is the apex, Supabase Site URL and the redirect allowlist use it, and
+Production-generated QR output carries no `localhost` or `vercel.app` host. Staging isolation re-proven
+with a staging-only short code that does not resolve on Production. Google Workspace mail and the Resend
+`notify` records were undisturbed. **Still outstanding: the real-phone scan test** — hardware, not code.
 
 **Not closed by B3:** physical tag material, marking process, durability, contrast and scannability
 (`docs/TAG_PRODUCTION_READINESS.md`). **No metal-tag readiness claim is made.** Live email remains B4.
 
-## Phase B4 — live email integration — **application DONE (2026-08-26); operator step outstanding**
+## Phase B4 — live email integration — **LIVE (operator closeout 2026-08-31); partially verified**
 
 Turns the verified `notify.mulemark.io` sender into something the product can safely switch on.
 
@@ -359,11 +361,25 @@ is real:
 or attachments, links straight to `mulemark.io`, and an explicit line saying why the recipient received
 it and where to turn it off.
 
-**Not claimed.** No live message has been sent by the application. Verdict 5 stays **NO-GO** until the
-operator sets the three Production variables and redeploys, confirms the API key is sending-only and
-domain-restricted with tracking off, and runs the live matrix. Outlook's first direct test landed in
-Junk — recorded as an ordinary new-domain placement observation, with `docs/EMAIL_ALLOWLIST_GUIDE.md` as
-the customer fallback. **Inbox placement is never guaranteed.**
+**Operator closeout (2026-08-31).** Production is wired — `RESEND_API_KEY`, `NOTIFICATION_FROM_EMAIL`
+and `NOTIFICATION_REPLY_TO_EMAIL` on Production only, none in Preview, redeployed — and the application
+has sent real email for the first time.
+
+**Verified live:** support request and damage report each produced exactly one correctly-addressed email
+with a provider message ID, `mulemark.io` links, a working Reply-To to `support@mulemark.io`, and
+`spf`/`dkim`/`dmarc` passing at both Gmail and Outlook. Staging created its record and sent nothing. The
+working Reply-To is incidentally proof the deployed build carries the B4 code — `reply_to` did not exist
+before it.
+
+**Not verified, and not recorded as passing:** the **return-checklist** and **tag-request** notifications
+have never sent live, and they are different code (a different submit path; a different orchestrator with
+the only status-bearing idempotency key). **Replay** was never tested in production — "one email per
+event" is a different measurement — so duplicate protection remains unit-tested only. The provider-failure
+path was not exercised live. And the Outlook Inbox result came from a mailbox that had been **allowlisted**
+after the earlier Junk incident, so cold-start placement is still unmeasured. Two operator confirmations
+stay open: API-key scope and open/click tracking off.
+
+Verdict 5 moves **NO-GO → CONDITIONAL GO**. **Inbox placement is never guaranteed.**
 
 **Recorded, not acted on:** the Vercel account is on **Hobby**; Pro is an operator requirement before a
 paid or commercial pilot.

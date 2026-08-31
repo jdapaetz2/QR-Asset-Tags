@@ -1,6 +1,7 @@
 # Phase A Pilot Readiness — Mulemark
 
-**Phase A7 closeout.** Branch `pilot-credibility` @ `f8a662c` (assessed) — see "Commit assessed" below.
+**Phase A7 closeout, revised through the B4 operator closeout (2026-08-31).** Branch
+`pilot-credibility`. Verdicts 3, 4 and 5 carry updates from B1–B4; each says which phase changed it.
 
 Readiness is **not one number**. The software is in a very different state from the domain, the email
 sender, and the physical tag process, and blending them into a single verdict would either wrongly halt
@@ -20,8 +21,8 @@ judgement.
 | 1 | Development | **GO** | — |
 | 2 | Controlled staging / demo | **GO** | — |
 | 3 | Software-only limited pilot | **CONDITIONAL GO** | 4 conditions below (all operator-side) |
-| 4 | Permanent-tag live customer pilot | **NO-GO** (narrowed) | domain decided + software gate closed in B3; awaiting DNS/Vercel, live verification, and physical scan QA |
-| 5 | Live notification delivery | **NO-GO** (narrowed to one operator step) | application hardened + verified in B4; awaiting the three Production variables + redeploy + the live test |
+| 4 | Permanent-tag live customer pilot | **NO-GO** (narrowed to physical QA) | domain live + software gate closed; **only** the real-phone scan test and physical tag process remain |
+| 5 | Live notification delivery | **CONDITIONAL GO** | live send proven end-to-end; 4 conditions below (2 event types untested, replay untested, Outlook measured in an allowlisted mailbox) |
 | 6 | Physical production | **NOT YET ASSESSED** | laser not arrived; no material/durability/scan/economics data |
 
 **There are no software blockers.** Every NO-GO is an external operator gate.
@@ -92,9 +93,10 @@ A customer could use the product today on a temporary URL, *if* all four conditi
 1. **The customer is told, in writing, that the URL is temporary** and will change when the final domain
    is chosen. No commitment may depend on URL stability.
 2. **No permanent physical tags are produced.** Paper/temporary labels only. Verdict 4 is NO-GO.
-3. **Email is dry-run**, so notifications must be replaced by a documented manual process (the admin
-   checks the inbox UI; nobody relies on an email arriving). The application is ready as of B4 — what is
-   missing is the Production environment step in `EMAIL_CONFIGURATION_CHECKLIST.md` §4 and the live test.
+3. **Email is live for damage and support notifications only** (B4 closeout). Return-checklist and
+   tag-request notifications have never sent a live message, so those two must still be covered by the
+   manual process — the admin checks the inbox UI. No commitment may depend on an email arriving, and
+   inbox placement is not guaranteed for any of them. See verdict 5.
 4. **QA/pilot data is isolated** from other tenants. ~~The operator accepts that staging shares
    production's Supabase project.~~ **Resolved in B1B** — staging is now a separate project.
 
@@ -117,121 +119,124 @@ customer-admin profile writes still use the service role (P1, deferred to its ow
 
 ---
 
-## 4. Permanent-tag live customer pilot readiness — **NO-GO** (blocker narrowed)
+## 4. Permanent-tag live customer pilot readiness — **NO-GO** (narrowed to physical QA)
 
-**Update (B3).** The canonical host is decided — **`https://mulemark.io`** — and the *software* half of
-this gate is closed: the tag-safety guard is a denylist, so the real domain needs no code change; path
-preservation (`/t/{shortCode}` exactly), the `*.vercel.app` block and the localhost block are pinned by
-tests; and canonical metadata is derived from the environment rather than hard-coded.
-`getmulemark.com` and `mulemark.ca` are reserved and documented as never being QR destinations.
+**Update (B3 + its operator closeout).** The canonical host is decided and **live**:
+**`https://mulemark.io`** serves the product over HTTPS, `/t/{shortCode}` resolves from Production,
+`www` redirects path-preservingly to the apex, and Production `NEXT_PUBLIC_SITE_URL` is the apex.
+Production-generated QR output and public URLs use `mulemark.io/t/*` with no `localhost` or
+`vercel.app` host. Staging isolation was re-proven with a staging-only short code that does not resolve
+on Production. `getmulemark.com` and `mulemark.ca` are reserved and documented as never being QR
+destinations.
 
-**Why this is still NO-GO:** none of the external work has happened. `vercel domains ls` returns **0
-domains** and `mulemark.io` still serves a registrar parking page. Until DNS, the Vercel domains, the
-Production `NEXT_PUBLIC_SITE_URL`, and the redeploy are done, `verify:tag-config` continues to fail by
-design — and a real-phone scan test has not been run.
+The *software* half was already closed in B3: the tag-safety guard is a denylist, so the real domain
+needed no code change; path preservation, the `*.vercel.app` block and the localhost block are pinned
+by tests; and canonical metadata derives from the environment.
 
-Not cleared, and the software refuses to pretend otherwise.
-
-**The gate, executed:**
-
-```
-$ npm run verify:tag-config
-Permanent-tag configuration gate
-
-  BLOCKED  NEXT_PUBLIC_SITE_URL (http://localhost:3000) must use https.
-
-  Permanent tag production: NOT CLEARED.
-  This is an expected DEFERRED OPERATOR GATE, not a code defect
-EXIT=1
-```
-
-The staging URL is refused too — which is the important case, because it *passes* the deployment config
-check:
-
-```
-  BLOCKED  NEXT_PUBLIC_SITE_URL (https://qr-asset-tags-...vercel.app)
-           is a Vercel preview/deploy host (disposable — tags made from it would break).
-EXIT=1
-```
-
-**Unmet conditions** (all in `PRODUCTION_DOMAIN_CHECKLIST.md`):
+**Why this is still NO-GO.** Everything that software and DNS can settle is settled. What remains is
+**physical**, and no amount of correct code substitutes for it:
 
 | # | Condition | State |
 |---|---|---|
-| 1 | Stable production domain exists | 🟡 **decided (B3): `mulemark.io`** — owned, but not yet connected to Vercel |
-| 2 | `npm run verify:tag-config` passes | ⬜ **exits 1 by design** |
-| 3 | Path-preserving `/t/*` redirect obligation documented + owned | 🟡 **documented (B3)** in `QR_DOMAIN_STRATEGY.md` + `PRODUCTION_DOMAIN_CHECKLIST.md`; owner still to be named |
-| 4 | Physical QR scan tests pass on real phones | ⬜ not run |
+| 1 | Stable production domain exists and serves `/t/*` | ✅ **live** |
+| 2 | `verify:tag-config` passes against Production | ✅ against the Production value (it still exits 1 locally, by design, on the unset/localhost value) |
+| 3 | Path-preserving `/t/*` redirect obligation documented + owned | 🟡 documented in `QR_DOMAIN_STRATEGY.md`; **owner still to be named** |
+| 4 | Physical QR scan tests pass on real phones | ⬜ **not run** — needs hardware |
+| 5 | Tag material, marking, durability, contrast, scannability | ⬜ separate gate — `TAG_PRODUCTION_READINESS.md` (verdict 6) |
+
+**Do not produce permanent metal tags yet.** Conditions 4 and 5 are the whole remaining risk, and they
+are the expensive kind to get wrong: a tag that does not scan in the field is scrap.
 
 **Defence in depth already in place:** durable-output routes are auth-gated (307 for anonymous) *and*
 base-URL-guarded (`lib/qr/output-guard.ts`), the `*.vercel.app` rule is unit-tested
-(`lib/qr/production.test.ts:33`), and short codes are domain-independent (`lib/qr/url.ts` computes from
+(`lib/qr/production.test.ts`), and short codes are domain-independent (`lib/qr/url.ts` computes from
 `NEXT_PUBLIC_SITE_URL`), so a later domain change needs no data migration.
-
-**This is not a software defect.** The code is ready for a domain; the domain does not exist yet.
 
 ---
 
-## 5. Live notification readiness — **NO-GO** (one operator step away)
+## 5. Live notification readiness — **CONDITIONAL GO**
 
-**Update (B4).** The application half is now done and tested. The provider half was already verified in
-B1B: sending domain `notify.mulemark.io`, DKIM + SPF TXT + return-path MX verified, root DMARC `p=none`,
-a sending-only API key restricted to that domain, and an operator-attested direct provider test that
-reached Gmail and Outlook.
+**Update (B4 operator closeout).** The application has now sent real email. This is the first time that
+has been true, and it moves the verdict off NO-GO — but not to GO, for reasons stated plainly below.
 
-DNS re-verified independently in B4, read-only against 8.8.8.8:
+### Verified — operator-executed on Production, 2026-08-31
 
-| Record | Host | Value |
-|---|---|---|
-| MX | `mulemark.io` | `smtp.google.com` — Google Workspace intact |
-| SPF | `mulemark.io` | `v=spf1 include:_spf.google.com ~all` — one record, Google only |
-| DMARC | `_dmarc.mulemark.io` | `v=DMARC1; p=none;` — exactly one policy, no stray TXT |
-| SPF | `send.notify.mulemark.io` | `v=spf1 include:amazonses.com ~all` — its own hostname |
-| MX | `send.notify.mulemark.io` | `feedback-smtp.us-east-1.amazonses.com` |
-| DKIM | `resend._domainkey.notify.mulemark.io` | published |
-
-**Why this is still NO-GO:** `vercel env ls production` shows neither `RESEND_API_KEY` nor
-`NOTIFICATION_FROM_EMAIL`. The running product sends nothing, so **no live message has ever left the
-application**. Live deliverability through the app is not claimed.
-
-**Closed in B4 (code, with tests):**
-
-| Gate | Evidence |
+| Check | Result |
 |---|---|
-| Reply-To support | `NOTIFICATION_REPLY_TO_EMAIL` → `reply_to`; omitted entirely when unset |
-| Duplicate protection | deterministic `Idempotency-Key`, reused across every retry (`lib/notifications/idempotency.ts`) |
-| Preview cannot send | enforced in `lib/notifications/send.ts` **before** any credential is read — asserted with a key deliberately configured |
-| Submissions stay non-blocking | 15 s total wall-clock budget, not just per-attempt timeouts |
-| Transactional templates | operational subjects, plain-text part, no images/tracking/shorteners, explicit reason line |
-| Redacted logging | no full recipient, body, media URL, key or raw IP — re-asserted with every field populated |
-| Unit coverage | **93 notification tests** (was 42) |
+| Support request → live email | **PASS** |
+| Damage report → live email | **PASS** |
+| Exactly one email per event | **PASS** |
+| Provider message IDs captured | **PASS** |
+| Links use `mulemark.io` | **PASS** |
+| Reply-To reaches `support@mulemark.io` | **PASS** |
+| Gmail SPF / DKIM / DMARC | **PASS** |
+| Outlook SPF / DKIM / DMARC | **PASS** |
+| Staging submission created | **PASS** |
+| No live staging email sent | **PASS** |
 
-**Remaining conditions:**
+**The Reply-To pass doubles as proof of the deployed commit.** `reply_to` did not exist in the codebase
+before B4, so a working Reply-To could only come from `a71dcf4` or later. The production deployment
+carrying the `mulemark.io` alias is unchanged since that test.
 
-| # | Condition | State |
-|---|---|---|
-| 1 | Resend sending domain verified | ✅ |
-| 2 | SPF configured | ✅ |
-| 3 | DKIM configured | ✅ |
-| 4 | DMARC configured (`p=none`) | ✅ |
-| 5 | API key confirmed sending-only + domain-restricted | ⬜ **operator to confirm in the dashboard** |
-| 6 | Open/click tracking off | ⬜ **operator to confirm — a provider setting code cannot assert** |
-| 7 | Production `RESEND_API_KEY` / `NOTIFICATION_FROM_EMAIL` / `NOTIFICATION_REPLY_TO_EMAIL` + redeploy | ⬜ |
-| 8 | Live send through the application | ⬜ never run |
-| 9 | Multi-provider placement test with the real template | ⬜ never run |
+Configuration re-verified read-only at closeout: `RESEND_API_KEY` (Secret), `NOTIFICATION_FROM_EMAIL`
+and `NOTIFICATION_REPLY_TO_EMAIL` are present on **Production only**; **none of the three exists in
+Preview**. DNS unchanged — Workspace `MX smtp.google.com` and apex SPF intact, Resend DKIM published,
+`_dmarc.mulemark.io` still exactly one `p=none` record.
 
-**Verdict rule for when 7–9 are done** (agreed in the B4 brief, recorded so it is not re-litigated
-later): authentication failure → **NO-GO**. Rejected/bounced mail → **NO-GO** until diagnosed. Gmail
-inbox + Outlook junk with all authentication passing → **CONDITIONAL GO**, with monitoring and
-`EMAIL_ALLOWLIST_GUIDE.md`. Consistent inbox delivery across tested providers → **GO**. **Guaranteed
-inbox placement is never claimed**, at any verdict.
+### Why this is CONDITIONAL GO and not GO
 
-Until 7–9 are met, notification remains a UI-only workflow: the admin sees submissions in the inbox, and
-any external alerting is manual.
+Four things are genuinely unproven. None is a defect; each is simply untested, and recording an
+untested path as a pass is how a pilot discovers a broken notification in front of a customer.
 
-Known measurement gap (unchanged): the staging runtime `[notifications]` log line was **not** captured —
-the `vercel logs` CLI returns a bounded snapshot. Dry-run rests on configuration + unit coverage, not on
-a first-hand staging log.
+**1. Two of the four notification events have never sent a live message.** They are not variations of
+the two that passed — they are different code:
+
+| Event | Untested path |
+|---|---|
+| Return checklist | `lib/inspections/submit.ts` — a **different call site** from the damage/support forms |
+| Tag-request status | `notifyTagRequestStatus` — a different orchestrator, a different subject builder (`Tag request updated — <Organization>`), and the **only** idempotency key that includes a status (`<id>:<status>`) |
+
+The operator record is internally inconsistent on the return checklist — notifications for it are
+described as both enabled and not enabled — which is itself a reason to re-run it rather than infer.
+Tag-request notifications were explicitly left off. **Neither is recorded as a pass.**
+
+**2. Replay was never tested in production.** "Exactly one email per event" is not the same measurement:
+it shows one event produced one email, not that a *repeated* event produces none. Idempotency remains
+proven by unit test only — including the case it exists for, a timeout on a request the provider
+accepted.
+
+**3. The provider-failure path was not exercised live.** Unit-tested only.
+
+**4. The Outlook result is measured in a mailbox that has been allowlisted.** After the first direct test
+landed in Junk, that mailbox was marked "not junk" and given a rule. Inbox placement there therefore
+demonstrates *delivery to an allowlisted recipient* — worth having, and consistent with correct
+authentication — but it is **not** evidence of cold-start placement for a brand-new customer, which is
+the case that actually matters at pilot. Gmail's result is the cleaner of the two.
+
+**A note on the staging observation.** The staging log showed `outcome":"skipped_no_recipient"`. That
+confirms isolation and that nothing was sent — but it does **not** exercise the preview hard-stop,
+because the no-recipient check in `notify.ts` returns *before* `sendNotificationEmail` is ever called.
+The code never reached the environment rule. To observe `reason":"preview_environment"` first-hand,
+staging needs an org with a `notification_email` set. Until then the hard-stop rests on unit coverage
+plus the absence of Preview credentials — two real safeguards, but not the direct observation.
+
+### Conditions to reach GO
+
+1. Send a live **return checklist** notification and a live **tag-request status update**, and confirm
+   each produces exactly one correctly-addressed email with its canonical reference.
+2. **Replay one event** and confirm no second email arrives.
+3. Test placement in a **clean, never-allowlisted** Outlook mailbox — or state that pilot customers will
+   receive `EMAIL_ALLOWLIST_GUIDE.md` at onboarding and accept allowlisting as part of the workflow.
+4. Observe `reason":"preview_environment"` on staging with a recipient configured.
+
+### What may and may not be said today
+
+**May:** Mulemark sends live, authenticated transactional email from `notify.mulemark.io`; damage and
+support notifications have been delivered end-to-end with SPF, DKIM and DMARC passing at two providers;
+replies reach a human at `support@mulemark.io`; staging sends nothing.
+
+**May not:** that all four notification types are working; that duplicate protection has been proven in
+production; or that any message will land in an Inbox. **Inbox placement is never guaranteed.**
 
 ---
 
