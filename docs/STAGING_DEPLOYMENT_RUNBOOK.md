@@ -80,6 +80,33 @@ npx vercel deploy --project qr-asset-tags --yes
 
 Never `--prod` — that promotes the build to the public production URL.
 
+## Staging smoke (Phase B5)
+
+After every staging deploy, and before promoting anything to production:
+
+```bash
+npm run smoke:staging
+```
+
+28 checks across public scan, both public forms, the renter return checklist, the acknowledgement, all
+four logins, submissions, rentals, export gating both ways, cross-tenant denial, staff guards, and sign
+out. It refuses to run against anything but a Vercel preview host — and refuses **before the first
+request** — so it can never be pointed at `mulemark.io`.
+
+**Bounded writes, by design.** It submits a support and a damage report to the seeded QA org, tagged with
+a `B5 smoke <timestamp>` marker so the rows are identifiable in the staging inbox. Those are INSERTs into
+`form_submissions`; scanning a page also INSERTs a `scan_events` row. Nothing else is written.
+
+**Outbound and staff-return are checked for reachability only, never completed.** Completing them would
+close the rental session on the rented fixture, and the *next* run's acknowledgement check depends on
+that session being open — a smoke suite that degrades its own fixtures manufactures false failures. Those
+transitions are covered by the local E2E suite, which reseeds.
+
+It reads `QA_BASE_URL`, `STAGING_QA_PASSWORD` and `VERCEL_AUTOMATION_BYPASS_SECRET` from the untracked
+`.env.staging.local`; the bypass secret is used only as a request header and is never printed, never put
+in a filename, and never placed on a command line. Failure artifacts (screenshot + HTML) go to the
+gitignored `smoke-artifacts/`.
+
 ## Reaching an SSO-protected preview during QA
 
 Preview deployments sit behind Vercel Deployment Protection. For device QA, enable

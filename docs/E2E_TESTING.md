@@ -131,6 +131,24 @@ used instead); multi-browser / visual-regression.
 4. `sign-out.spec.ts` — account menu → Sign out → `/login`.
 5. `auth-required.spec.ts` — unauthenticated `/dashboard` → `/login`.
 
+## Deployment smoke is a different tool (Phase B5)
+
+`npm run smoke:staging` and `npm run smoke:production` are **not** part of this suite and must not be
+confused with it.
+
+| | E2E (`test:e2e`) | Smoke (`smoke:*`) |
+|---|---|---|
+| Target | local stack, loopback-guarded | a deployed environment |
+| Question | "does the behaviour hold?" | "is *this deployment* serving, with its guards closed?" |
+| Fixtures | reseeded every run (destructive) | reused; staging writes are bounded and repeatable |
+| Retries | yes (2 in CI) | **none** — a retry could duplicate a form write |
+| Production | never | read-only, credential-free |
+
+This suite stays loopback-only on purpose: `tests/security/setup/stack.ts#assertLocal` refuses a
+non-loopback host, and `global-setup.ts` tears down and recreates organizations. Pointing it at a hosted
+project would reintroduce exactly the hazard Phase B1 removed. Smoke exists so a deployed environment can
+be checked *without* that seeder.
+
 ## Artifacts
 
 On failure Playwright writes to `test-results/` (screenshots, `trace.zip`, `error-context.md`) and an

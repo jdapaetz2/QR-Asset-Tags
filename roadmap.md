@@ -417,6 +417,40 @@ all four QA logins **already succeeding** via a real anon-key sign-in, with prof
 active — so no password was written. The correct variable name is `STAGING_QA_PASSWORD`. Staging assets
 and data are present, and a staging notification workflow was exercised without sending mail.
 
+## Phase B5 — deployment smoke — **DONE (2026-08-31)**
+
+Closes the last manual-only verification gap: `PRODUCTION_SMOKE_TEST.md` was a 40-row hand checklist, and
+the Playwright suite deliberately never leaves the local stack (its seeder destroys and recreates
+organizations).
+
+```bash
+npm run smoke:staging      # 28 checks, bounded writes on the seeded QA orgs
+npm run smoke:production    # 14 checks, read-only, credential-free
+```
+
+**Target safety is URL-based, not credential-based.** `scripts/lib/smoke-target.mjs` classifies a
+deployment from its host alone — which is what lets production smoke run with **no Supabase credential of
+any kind**, unlike the B1A verifiers that need `NEXT_PUBLIC_SUPABASE_URL`. Any unrecognised public host
+classifies as production (fail closed), and crossover is refused **before the first request**, proven in
+both directions. A second, behavioural check backs it up: the staging-only short code must resolve on
+staging and must not on production.
+
+**The finding that shaped production smoke.** `app/t/[shortCode]/page.tsx` calls `recordScan`, which
+INSERTs a `scan_events` row on every view — so "just load the scan page" is not read-only on production;
+it lands in a customer's analytics. The scan check therefore runs only against an operator-designated
+`PRODUCTION_SMOKE_SHORT_CODE` and is **SKIPPED, never silently passed**, when unset.
+
+**Staging deliberately stops short of completing the outbound and staff-return workflows.** Completing
+them closes the rental session the next run's acknowledgement check depends on; a smoke suite that
+degrades its own fixtures manufactures false failures. Those transitions stay with the local E2E suite,
+which reseeds.
+
+No retries (a retry could duplicate a form write), no polling, no migrations, no CLI relink. SKIP is
+reported separately from PASS so an unverified check can never read as a green one.
+
+**Not built:** `smoke:production:email` and production login. Both need explicit operator approval — a
+production email send and a production QA account respectively — and neither was given.
+
 ## Next recommended workstream
 
 **Operator, in parallel and unblocking:** Gate 1 (domain) has the widest downstream effect — it alone

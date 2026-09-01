@@ -4,14 +4,43 @@ Run against the **production URL** after every deploy (see `docs/PRODUCTION_DEPL
 rental session / test org — never real customer data. Record pass/fail + tester + commit. Stop and roll back on any P0
 failure (auth, public scan, private-media leak, export leak, request loop).
 
-**Automated vs manual (A6.2).** The Playwright golden-path suite (`docs/E2E_TESTING.md`) now automates most of this
-matrix **against a local stack** — Auth, Public scan (✅ automated), Customer admin, Customer staff + staff scan
-workflow, Submissions/evidence, Owner, and Conditional customer export sections all have equivalent browser specs.
-This production checklist still runs manually **against the real production URL** after each deploy, because the
-automated suite deliberately never touches production. Rows that remain **manual-only even locally** (not automated by
-A6.2): live **email delivery** (the suite runs notifications dry-run — 📧 below), the production QR `?unsafe=1`
-base-URL safety rows (🏭), and private-media signed-URL loading in a real browser (🔒 — the storage boundary is covered
-by the executed `npm run test:security` suite instead).
+**Automated vs manual (B5).** Two automated runners now cover the environments this checklist used to
+reach only by hand:
+
+```bash
+npm run smoke:production   # read-only, no credentials, no login — safe after every deploy
+npm run smoke:staging      # bounded writes on the seeded QA orgs
+```
+
+`smoke:production` verifies serving, the `www` → apex path-preserving redirect, the unavailable-notice
+behaviour and its non-disclosure, and that every authenticated and durable-output route refuses an
+anonymous caller. It also asserts the **staging-only short code does not resolve on production** — a
+behavioural check that production is reading the production database.
+
+**It does not log in, submit anything, or send email**, and it uses no Supabase credential of any kind.
+Those remain manual and are listed below.
+
+⚠️ **Why there is no automated production scan-page check by default.** `app/t/[shortCode]/page.tsx`
+calls `recordScan`, which **inserts a `scan_events` row on every view** — it lands in that asset's
+analytics and last-scanned time. So the scan check runs only against `PRODUCTION_SMOKE_SHORT_CODE`, an
+operator-designated **test-only** asset, and is **SKIPPED** (never silently passed) when that is unset.
+It never guesses a short code.
+
+The Playwright golden-path suite (`docs/E2E_TESTING.md`) still runs against a **local** stack only, and
+deliberately so — its seeder tears down and recreates organizations, which must never touch a hosted
+project. Smoke and E2E are different tools: E2E proves behaviour, smoke proves *this deployment* is
+serving and its guards are closed.
+
+**Still manual, even after B5** (each needs a human, a real account, or an approval):
+
+| Row | Why it stays manual |
+|---|---|
+| Live **email** delivery 📧 | sending from production requires operator approval per event |
+| Production **login** as each role | there is no production QA account; creating one is a production change |
+| `?unsafe=1` base-URL safety 🏭 | owner-authenticated, and touches durable-output routes |
+| Private-media signed URLs 🔒 | needs an authenticated browser; storage boundary is covered by `npm run test:security` |
+| Suspended-org redirect | needs a suspended production org |
+| Real-phone scan of a printed tag | hardware |
 
 ## Accounts needed
 - Platform owner; a customer **admin**; a customer **staff**; and an anonymous device (phone) for public scan.

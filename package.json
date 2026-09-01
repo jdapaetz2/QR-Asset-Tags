@@ -29,6 +29,8 @@
     "staging:seed": "node scripts/staging/seed-staging-qa.mjs",
     "staging:verify": "node --env-file=.env.staging.local scripts/staging/verify-staging-workflows.mjs",
     "staging:qa-password": "node --env-file=.env.staging.local scripts/staging/reset-staging-qa-passwords.mjs",
+    "smoke:staging": "node --env-file=.env.staging.local scripts/smoke/staging.mjs",
+    "smoke:production": "node --env-file-if-exists=.env.production-smoke.local scripts/smoke/production.mjs",
     "qa:overflow": "node --env-file=.env.staging.local scripts/qa/measure-responsive-overflow.mjs",
     "qa:staging:data": "node --env-file=.env.staging.local scripts/qa/staging-qa-data.mjs",
     "qa:staging:devices": "node --env-file=.env.staging.local scripts/qa/staging-audit.mjs --devices",

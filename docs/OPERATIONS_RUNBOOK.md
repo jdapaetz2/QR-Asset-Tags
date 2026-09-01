@@ -86,6 +86,33 @@ environment and redeploy.
 - Do not tighten DMARC to `quarantine`/`reject` during an incident. It cannot fix a placement problem and
   can silently destroy Google Workspace mail.
 
+## Deployment smoke (Phase B5)
+
+Two fixed commands, one per environment:
+
+```bash
+npm run smoke:staging      # bounded writes on the seeded QA orgs
+npm run smoke:production   # read-only, credential-free, safe to run any time
+```
+
+Both fail closed on target mismatch **before making any request** — a URL-based gate
+(`scripts/lib/smoke-target.mjs`) that treats any unrecognised public host as production. Each also
+carries a behavioural crossover check: the staging-only short code must resolve on staging and must
+**not** resolve on production. If that production check ever fails, treat it as a P0 — it means
+production is reading the staging database.
+
+`smoke:production` never logs in, submits, or sends email, and uses no Supabase credential. The only
+write it can make is a `scan_events` row, and only when `PRODUCTION_SMOKE_SHORT_CODE` names a test-only
+asset; otherwise that check is SKIPPED rather than passed.
+
+**SKIP is not PASS.** The report separates them and says so. A green run with skips still has unverified
+ground — read the notes.
+
+Failure artifacts (screenshot + HTML) go to the gitignored `smoke-artifacts/`. There are no retries: a
+retry could duplicate a form write, so a smoke check either passes first time or it is a finding.
+
+When to run: `docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md` §5.
+
 ## Rate limiting / abuse (Phase A4)
 
 Public-intake abuse controls emit `[rate-limit]` logs; the limiter fails open on infra error so it never

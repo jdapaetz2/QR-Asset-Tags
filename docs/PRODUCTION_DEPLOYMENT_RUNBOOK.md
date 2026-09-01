@@ -58,8 +58,38 @@ Current state (Phase A2): 0001–0031 are **operator-verified applied**; no push
   approval-gated step above.
 
 ## 5. Post-deploy smoke
-Run `docs/PRODUCTION_SMOKE_TEST.md` against the production URL. Do not announce the release until the smoke matrix
-passes.
+
+**Run first, always:**
+
+```bash
+npm run smoke:production
+```
+
+Read-only, credential-free, ~15 s. It fails closed if pointed anywhere but `https://mulemark.io`, and it
+refuses **before making any request**. It verifies serving, the `www` → apex path-preserving redirect,
+the unavailable-notice non-disclosure, every anonymous auth/durable-output guard, and that the
+staging-only short code does **not** resolve here. Failure artifacts land in `smoke-artifacts/`.
+
+It performs **no writes** — unless `PRODUCTION_SMOKE_SHORT_CODE` names a test-only asset, in which case
+loading that one scan page records a `scan_events` row. Without that variable the scan check is
+**SKIPPED**, never quietly passed.
+
+Then work `docs/PRODUCTION_SMOKE_TEST.md` for the rows that still need a human: login per role, live
+email, `?unsafe=1` tag safety, private media, suspended-org redirect.
+
+### When to run which
+
+| Trigger | Run |
+|---|---|
+| After a **staging/Preview deploy** | `npm run smoke:staging` |
+| **Before promoting** to production | `npm run smoke:staging` (green) → deploy → `npm run smoke:production` |
+| After a **production deploy** | `npm run smoke:production` |
+| After a **migration** (applied manually, per §3) | both — staging first |
+| After a **domain change** | `npm run smoke:production` — it checks the apex, `www`, and canonical-host leakage |
+| After a **notification change** | `npm run smoke:staging`, then confirm `dry_run` / `preview_environment` in the Vercel log; live email needs `docs/EMAIL_DELIVERABILITY_RUNBOOK.md` and approval |
+
+**The smoke runners never apply migrations and never relink the Supabase CLI.** Schema remains an
+explicit, approval-gated operator step (§3).
 
 ## 6. QR domain verification (durability)
 - **Canonical host (Phase B3): `https://mulemark.io`.** Production `NEXT_PUBLIC_SITE_URL` must be exactly
