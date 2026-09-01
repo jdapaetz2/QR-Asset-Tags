@@ -1,8 +1,12 @@
 # Phase A Pilot Readiness — Mulemark
 
 **Phase A7 closeout, revised through the B4 final evidence sync (2026-08-31).** Branch
-`pilot-credibility` @ `3ec5da8`. Verdicts 3, 4 and 5 carry updates from B1–B4; each says which phase
-changed it.
+`pilot-credibility`. Verdicts 3, 4 and 5 carry updates from B1–B4; each says which phase changed it.
+
+> **Superseded for Phase B.** Engineering Phase B closed on 2026-08-31 and its verdicts are re-derived
+> from freshly executed gates in
+> [`PHASE_B_ENGINEERING_READINESS.md`](PHASE_B_ENGINEERING_READINESS.md) @ `dc260cc`. **Read that first**
+> — this document is the Phase A record and the historical reasoning behind each gate.
 
 Readiness is **not one number**. The software is in a very different state from the domain, the email
 sender, and the physical tag process, and blending them into a single verdict would either wrongly halt
@@ -82,7 +86,7 @@ A test-only Vercel URL is sufficient and is working.
 | Dry-run notifications | `RESEND_*` unset on the project → dry-run by configuration |
 | Permanent artifacts produced | **none** — durable-output routes returned `307 → /login` for anonymous callers, and the base-URL guard refuses `*.vercel.app` |
 | Smoke tests | 12 passed; full E2E 68 passed |
-| Device QA on staging | 110 checks, **106 pass** (`REAL_DEVICE_QA.md`) |
+| Device QA on staging | 110 checks — **106 pass at A6.3; 110/110 after B2 closed D-1** (`REAL_DEVICE_QA.md`) |
 
 **Conditions that remain true for staging use:** the bypass token should be revoked between sessions.
 ~~The staging Supabase is shared with production.~~ **Resolved in B1B** — staging runs on its own
@@ -120,11 +124,13 @@ A customer could use the product today on a temporary URL, *if* all four conditi
 | Orphaned-media cleanup | ✅ A4 |
 | Notification reliability + redacted logging | ✅ A5 (delivery still deferred) |
 | Browser golden paths + role boundaries | ✅ 68 E2E tests (A6.2) |
-| Real-device QA | ⚠️ automated pass done; **physical-device matrix not executed** |
+| Real-device QA | ⚠️ automated matrix complete (110/110, B2); **physical-device matrix not executed** |
 
-**Residual risks the customer inherits** (documented, accepted, not blockers): admin data tables overflow
-horizontally on phones (D-1, S3); the 30 s inbox auto-refresh re-prefetches row links (D-3, S3);
-customer-admin profile writes still use the service role (P1, deferred to its own migration).
+**Residual risks the customer inherits** (documented, accepted, not blockers): ~~admin data tables
+overflow horizontally on phones (D-1)~~ — **closed in B2**, automated matrix now 110/110; the 30 s inbox
+auto-refresh re-prefetches row links (D-3, S3); customer-admin profile writes still use the service role
+(P1, deferred to its own migration); and the **physical-device matrix is still unexecuted**, so camera
+scan and real iOS Safari behaviour are unverified.
 
 ---
 

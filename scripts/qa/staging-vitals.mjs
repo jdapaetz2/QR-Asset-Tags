@@ -29,9 +29,12 @@ const args = Object.fromEntries(
   })
 );
 
-const BASE = String(args.base || "").replace(/\/$/, "");
+// `--base` still works, but the target defaults to QA_BASE_URL from the env file so the npm script is a
+// FIXED command with no inline argument — the same rule the other staging/smoke runners follow.
+const BASE = String(args.base || process.env.QA_BASE_URL || "").replace(/\/$/, "");
 if (!BASE) {
   console.error("usage: staging-vitals.mjs --base=https://<staging> [--samples=5]");
+  console.error("   or: set QA_BASE_URL in .env.staging.local and run `npm run qa:staging:vitals`");
   process.exit(1);
 }
 const SAMPLES = Number(args.samples ?? 5);
@@ -102,8 +105,13 @@ const range = (xs) => {
 const ms = (n) => (n == null ? "—" : `${Math.round(n)} ms`);
 
 async function signIn(context) {
-  const email = process.env.QA_ADMIN_EMAIL;
-  const password = process.env.QA_PASSWORD;
+  // Defaults to the seeded staging QA admin. The address is a reserved-by-RFC-2606 `.invalid` account,
+  // hard-coded in the seeder and the smoke runners too — public, and not a credential.
+  const email = process.env.QA_ADMIN_EMAIL || "qa.admin@mulemark-staging.invalid";
+  // STAGING_QA_PASSWORD is the canonical name (.env.staging.local); QA_PASSWORD is the legacy alias.
+  // Without this the authenticated routes silently skip — which matters, because the admin tables are
+  // exactly where a B2 responsive regression would show up.
+  const password = process.env.STAGING_QA_PASSWORD || process.env.QA_PASSWORD;
   if (!email || !password) return false;
   const page = await context.newPage();
   await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });

@@ -5,7 +5,8 @@
 > These are **lab measurements from a temporary staging deployment**. They are useful for spotting
 > regressions and gross outliers. They are **not**:
 >
-> - **not** production performance — the final Mulemark domain does not exist yet;
+> - **not** production performance — these are staging numbers; the production domain
+>   (`https://mulemark.io`, live since the B3 closeout) has **never** been baselined;
 > - **not** field data — no real users, devices, or networks are represented;
 > - **not** statistically meaningful — 5 samples per route, one machine, one network, one location;
 > - **not** measured with live email — notifications ran in dry-run, so no provider latency is included;
@@ -13,6 +14,35 @@
 >
 > **The pilot's real performance story requires a re-baseline on the final domain, with Vercel Speed
 > Insights field data (p75 across real users).** Treat this document as a starting reference only.
+
+## B6 re-measurement (2026-08-31) — no regression
+
+Re-run on the current staging deployment with `npm run qa:staging:vitals`, same method and sample size,
+to answer one question: **did B2's responsive work slow anything down?** It did not. Every route improved
+in both classes; the admin tables B2 actually changed improved the most.
+
+| Route | Mobile LCP: A6.3 → B6 | Desktop LCP: A6.3 → B6 |
+|---|---|---|
+| public scan | 1924 → **644 ms** | not captured → **188 ms** |
+| damage form | 1268 → **356 ms** | 732 → **260 ms** |
+| renter return checklist | 1472 → **328 ms** | 1448 → **192 ms** |
+| login | 592 → **248 ms** | 216 → **208 ms** |
+| dashboard | 2860 → **1128 ms** | 1008 → **696 ms** |
+| assets | 2552 → **1096 ms** | 880 → **564 ms** |
+| submissions | 2700 → **1148 ms** | 940 → **608 ms** |
+| rentals | 2320 → **1008 ms** | 1000 → **536 ms** |
+
+CLS stayed 0.000 everywhere. The A6.3 desktop return-checklist outlier (an 11 s LCP tail) did not recur.
+
+**Do not read the improvement as a code win.** Between the two runs the deployment changed, staging moved
+to its **own** Supabase project (B1B — no longer contending with production), and the machine and network
+were not controlled. The supportable claim is the negative one: **nothing regressed**, and the routes B2
+touched are not slower. Attributing the speed-up to any single cause would be guessing.
+
+Authenticated routes are measured again because B6 fixed the runner: it now defaults to
+`STAGING_QA_PASSWORD` and the seeded QA admin address, so `npm run qa:staging:vitals` is a fixed command.
+Previously those rows silently reported "no QA credentials supplied" — which meant the routes most likely
+to regress were the ones never measured.
 
 ## What was measured
 
@@ -24,8 +54,8 @@
 | Samples | **5 per route per device class** (median reported, LCP range shown) |
 | Mobile class | Pixel 7 viewport, **4× CPU throttling** |
 | Desktop class | 1280×720, no throttling |
-| Data source | staging Supabase (shared with production), disposable QA org |
-| Speed Insights | wired (`app/layout.tsx`) — **no meaningful field data yet; needs real traffic** |
+| Data source | staging Supabase (**shared with production at the time — separated in B1B**), disposable QA org |
+| Speed Insights | present in `app/layout.tsx` but **CORRECTED (B1B): not collecting** — the browser never requests the script. Operator must enable it in the Vercel dashboard. |
 
 ## Results
 

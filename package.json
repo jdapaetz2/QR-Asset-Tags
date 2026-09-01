@@ -22,6 +22,7 @@
     "test:e2e:reset": "supabase db reset --local",
     "verify:production-config": "node scripts/verify-production-config.mjs",
     "verify:tag-config": "node scripts/verify-tag-config.mjs",
+    "verify:tag-config:production": "node --env-file-if-exists=.env.production-smoke.local scripts/verify-tag-config.mjs",
     "verify:local-target": "node scripts/verify-local-target.mjs",
     "verify:staging-target": "node scripts/verify-staging-target.mjs",
     "verify:production-target": "node scripts/verify-production-target.mjs",

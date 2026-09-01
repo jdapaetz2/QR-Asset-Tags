@@ -451,21 +451,60 @@ reported separately from PASS so an unverified check can never read as a green o
 **Not built:** `smoke:production:email` and production login. Both need explicit operator approval — a
 production email send and a production QA account respectively — and neither was given.
 
+## Engineering Phase B — **CLOSED (B6, 2026-08-31)**
+
+Full evidence and the six verdicts: [`docs/PHASE_B_ENGINEERING_READINESS.md`](docs/PHASE_B_ENGINEERING_READINESS.md).
+Branch `pilot-credibility` @ `dc260cc`.
+
+| Phase | Outcome |
+|---|---|
+| **B1A/B1B** — staging isolation | ✅ dedicated staging Supabase project; Preview holds no production credential |
+| **B2** — responsive + device matrix | ✅ D-1 closed; automated matrix 110/110 |
+| **B3** — permanent QR domain | ✅ `https://mulemark.io` live; tag-config gate **executed** and passing |
+| **B4** — live email | ✅ all four notification types verified live; staging provably silent |
+| **B5** — deployment smoke | ✅ staging + production runners, target-gated both ways |
+| **B6** — closeout | ✅ this report; three stale documents corrected |
+
+| # | Readiness | Verdict |
+|---|---|---|
+| 1 | Continued development | **GO** |
+| 2 | Controlled staging / demo | **GO** |
+| 3 | Software-only limited pilot | **CONDITIONAL GO** |
+| 4 | Permanent-tag live pilot | **NO-GO** — physical scan QA + a named redirect owner |
+| 5 | Live notification | **CONDITIONAL GO** — replay + cold placement |
+| 6 | Physical production | **NOT YET ASSESSED** |
+
+**No software blocker remains.** Every open item is external, physical, or a deliberate pilot decision.
+
 ## Next recommended workstream
 
-**Operator, in parallel and unblocking:** Gate 1 (domain) has the widest downstream effect — it alone
-lifts the permanent-tag and live-pilot verdicts and enables a real performance re-baseline.
+**Recommendation: pilot onboarding readiness.**
 
-**Engineering, not blocked by any gate**, in priority order:
+Every software gate is closed and the automated evidence has stopped being the constraint. The remaining
+blockers are the kind a real first customer surfaces faster and more cheaply than further engineering
+would — and three of the five candidate workstreams below are *unblocked by* a pilot rather than
+competing with one.
 
-1. ~~**Give staging its own Supabase project + preview-scoped env.**~~ → **Phase B1, below.**
-2. **Set the Vercel project to Node 22.x** to match the tested baseline (currently 24.x).
-3. **Execute the physical-device QA matrix** (`docs/REAL_DEVICE_QA.md` Part 2) — needs hardware, not code.
-4. **Fix D-1**: admin data tables overflow on phones (93 px / 183 px at 412 px).
-5. **Take customer-admin profile writes off the service role** (the queued caller-aware SECURITY DEFINER
-   RPC — the last P1 security item).
+Ranked, with the reasoning rather than just the order:
 
----
+1. **Pilot onboarding** — highest value. Verdict 3 is CONDITIONAL GO *today*, on a temporary-URL basis
+   with paper labels and the inbox UI as the system of record. A pilot yields the physical-device pass
+   (blocker for verdicts 3 and 4), a cold-mailbox placement result (blocker for verdict 5), and the first
+   real performance data — all as by-products of use.
+2. **Physical-tag validation** — the long-lead item. Material, marking, durability and scannability are
+   entirely unstarted and gate verdicts 4 and 6. Worth starting **in parallel** because it is bounded by
+   hardware arrival, not by engineering. Do **not** produce permanent tags first: the redirect obligation
+   still has no owner.
+3. **Remaining product defects** — the last P1 (customer-admin profile writes off the service role, via
+   the queued caller-aware SECURITY DEFINER RPC) and D-3 (the inbox auto-refresh re-prefetching row
+   links). Neither blocks a pilot; both are cheap and reduce inherited risk.
+4. **Storage lifecycle** — no quota or retention enforcement exists. Not yet justified: with no
+   customers, there is no evidence about real media volume. Trigger it on pilot data, not on speculation.
+5. **Commercial readiness** — trademark clearance, pricing, collateral. Real work, but it is a business
+   workstream and should not be started automatically by engineering. Note the **Vercel Hobby → Pro**
+   upgrade is a prerequisite for any *paid* pilot.
+
+**Not started automatically:** commercial and physical-product work both need an explicit decision.
 
 ## Phase B1 — isolate the staging environment
 

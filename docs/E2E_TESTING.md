@@ -157,9 +157,10 @@ HTML report to `playwright-report/`. Both are gitignored. Open a trace with
 
 ## Preview execution
 
-To run against a preview/QA deployment instead of the local app: set `PLAYWRIGHT_BASE_URL` (A6.2 will wire
-this) and provide `E2E_PASSWORD` + the target's Supabase creds via env, and seed that QA project
-separately. Never a production URL.
+**Don't.** This suite is loopback-only by design and there is no longer a reason to point it elsewhere:
+`npm run smoke:staging` (B5) covers a deployed preview, with a target gate, bounded repeatable writes and
+no destructive seeding. Use that instead. Pointing this suite at a hosted project would run
+`global-setup.ts`, which deletes and recreates organizations.
 
 ## CI behavior — deferred to A6.2 (documented blocker)
 

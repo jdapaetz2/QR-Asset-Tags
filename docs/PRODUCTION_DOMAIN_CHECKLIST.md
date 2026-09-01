@@ -34,19 +34,26 @@ notifications is the verified Resend subdomain `notify.mulemark.io` — **Phase 
 |---|---|---|
 | 1. Domain purchased | ✅ done | `mulemark.io`, `getmulemark.com`, `mulemark.ca` all operator-owned |
 | 2. Stable application hostname decided | ✅ done (B3) | **apex `mulemark.io`** — see the table above |
-| 3. Add `mulemark.io` to the production Vercel project | ⬜ **operator** | `vercel domains ls` currently returns **0 domains** |
-| 4. Add `www.mulemark.io` + set it to redirect to the apex | ⬜ **operator** | path-preserving |
-| 5. Add the DNS records **Vercel displays** | ⬜ **operator** | do not invent values; see the preservation warning below |
-| 6. HTTPS certificate issued and valid | ⬜ **operator** | the guard rejects `http:` |
-| 7. Production `NEXT_PUBLIC_SITE_URL=https://mulemark.io` | ⬜ **operator** | Production scope only, no trailing slash |
-| 8. Preview `NEXT_PUBLIC_SITE_URL` left on the staging URL | ⬜ **operator — verify unchanged** | preserves B1B isolation |
-| 9. Redeploy production | ⬜ **operator** | env is read at **build** time; an existing deployment keeps old values |
-| 10. Confirm deployed commit + Node 22.x | ⬜ **operator** | project is already on 22.x as of B1B |
-| 11. Redirect obligation documented + owned | ⬜ **operator** | section below — the one people forget |
-| 12. `npm run verify:tag-config` passes against Production | ⬜ **blocked on 3–9** | currently exits 1 by design |
-| 13. Live route verification on the custom domain | ⬜ **blocked on 3–9** | Part E list below |
-| 14. Permanent QR scan test on real phones | ⬜ **operator, needs hardware** | `docs/REAL_DEVICE_QA.md` |
+| 3. Add `mulemark.io` to the production Vercel project | ✅ done | the production deployment carries the `mulemark.io` alias |
+| 4. Add `www.mulemark.io` + set it to redirect to the apex | ✅ done | verified **308, path preserved** by `npm run smoke:production` |
+| 5. Add the DNS records **Vercel displays** | ✅ done | mail records confirmed undisturbed — see the warning below |
+| 6. HTTPS certificate issued and valid | ✅ done | `https://mulemark.io` serves; smoke asserts 200 |
+| 7. Production `NEXT_PUBLIC_SITE_URL=https://mulemark.io` | ✅ done | Production scope only |
+| 8. Preview `NEXT_PUBLIC_SITE_URL` left on the staging URL | ✅ verified | `vercel env ls preview` — still Preview-scoped; B1B isolation intact |
+| 9. Redeploy production | ✅ done | the live deployment was built after the variable was set |
+| 10. Confirm deployed commit + Node 22.x | ✅ done | `vercel inspect` → `nodeVersion: 22.x` |
+| 11. Redirect obligation documented + owned | 🟡 documented, **owner not yet named** | `QR_DOMAIN_STRATEGY.md`; assign a person |
+| 12. `verify:tag-config` passes against Production | ✅ **executed (B6)** | `npm run verify:tag-config:production` → `PASS … tag-safe production origin` |
+| 13. Live route verification on the custom domain | ✅ **automated (B5)** | `npm run smoke:production` — 13 checks, 0 fail |
+| 14. Permanent QR scan test on real phones | ⬜ **operator, needs hardware** | `docs/REAL_DEVICE_QA.md` Part 2 |
 | 15. Physical-tag material/process QA | ⬜ **separate gate** | `docs/TAG_PRODUCTION_READINESS.md` — *not* closed by B3 |
+
+**Items 3–10 and 13 were completed by the operator during the B3 closeout; this table was not updated at
+the time and understated reality until Phase B6 corrected it.** Items 12 and 13 are now executed gates
+rather than assertions.
+
+> **Two items block permanent tags, and only two: 11 and 14** (plus the separate physical gate, 15).
+> Everything software and DNS can settle is settled.
 
 ### ⚠️ Adding an apex record must not disturb mail
 
