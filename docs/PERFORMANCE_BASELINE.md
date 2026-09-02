@@ -15,6 +15,23 @@
 > **The pilot's real performance story requires a re-baseline on the final domain, with Vercel Speed
 > Insights field data (p75 across real users).** Treat this document as a starting reference only.
 
+## Superseded for Production by Phase C0 (2026-09-02)
+
+> **This document is STAGING lab data.** The first real **Production** baseline lives in
+> [`PHASE_C_BASELINE.md`](PHASE_C_BASELINE.md), measured on `https://mulemark.io` with a
+> fail-closed harness (`npm run perf:baseline:production`), 10 warm samples per route per device class,
+> across public **and** authenticated routes.
+>
+> Two things learned there change how this document should be read:
+>
+> 1. **TTFB is not server work in this app.** The pages stream, so `responseStart` is 24–32 ms on every
+>    route including the slowest. Every TTFB column below measures the shell flush, not data work. The
+>    Production baseline reports `responseEnd − requestStart` (stream close) instead.
+> 2. **Vercel serves from `pdx1` (Oregon)** — measured from `x-vercel-id`, not assumed.
+>
+> Staging numbers remain useful for regression spotting. They are not Production performance and never
+> were.
+
 ## B6 re-measurement (2026-08-31) — no regression
 
 Re-run on the current staging deployment with `npm run qa:staging:vitals`, same method and sample size,
