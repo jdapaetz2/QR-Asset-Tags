@@ -1,5 +1,6 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import { recordScan } from "@/lib/scan/record";
+import { time } from "@/lib/diagnostics/server-timing";
 import { resolvePublicEquipment } from "@/lib/public/resolve";
 import { getPublicDocuments } from "@/lib/public/documents";
 import { getProfile } from "@/lib/auth/session";
@@ -20,12 +21,16 @@ export default async function PublicScanPage({
   const resolved = await resolvePublicEquipment(supabase, shortCode);
   if (!resolved) return <UnavailableNotice />;
 
-  // Best-effort scan log (never breaks rendering).
-  await recordScan(supabase, {
-    qrLinkId: resolved.qrLinkId,
-    assetId: resolved.assetId,
-    organizationId: resolved.organizationId,
-  });
+  // Best-effort scan log (never breaks rendering). Awaited here — C0 measured 294 ms of server time
+  // above the dynamic floor on this route and could not isolate this write's share; the timing wrapper
+  // (inert unless MULEMARK_DIAGNOSTIC_TIMING=1) is what will separate it. Behaviour is unchanged.
+  await time("scan", "scan.record", () =>
+    recordScan(supabase, {
+      qrLinkId: resolved.qrLinkId,
+      assetId: resolved.assetId,
+      organizationId: resolved.organizationId,
+    })
+  );
 
   // Public documents (RLS restricts to public docs of this public asset).
   const documents = await getPublicDocuments(supabase, resolved.assetId);

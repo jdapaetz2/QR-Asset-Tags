@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { publicEnv } from "@/lib/env";
+import { time } from "@/lib/diagnostics/server-timing";
 
 /**
  * Refreshes the Supabase auth session on protected routes and redirects
@@ -35,9 +36,11 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
 
   // Do not run code between createServerClient and getUser(); it must be the
   // first await so the session is refreshed before any redirect decision.
+  // The time() wrapper is inert unless MULEMARK_DIAGNOSTIC_TIMING=1 (Phase C0); it returns the same
+  // value and rethrows the same errors, so the ordering guarantee above is unaffected.
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await time("proxy", "auth.session", () => supabase.auth.getUser());
 
   if (!user) {
     const url = request.nextUrl.clone();

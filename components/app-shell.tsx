@@ -6,6 +6,7 @@ import { ROLES } from "@/lib/auth/roles";
 import type { Profile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { countNewSubmissions } from "@/lib/submissions/counts";
+import { time } from "@/lib/diagnostics/server-timing";
 import { NavLinks } from "@/components/nav-links";
 import { AccountMenu } from "@/components/account-menu";
 import { BrandLockup } from "@/components/brand/brand";
@@ -32,7 +33,9 @@ export async function AppShell({
   let submissionsNew = 0;
   if (profile.role !== ROLES.PLATFORM_OWNER && profile.organization_id) {
     const supabase = await createClient();
-    submissionsNew = await countNewSubmissions(supabase);
+    submissionsNew = await time("app-shell", "nav.submission_count", () =>
+      countNewSubmissions(supabase)
+    );
   }
 
   return (

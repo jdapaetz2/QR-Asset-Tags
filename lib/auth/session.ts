@@ -5,6 +5,7 @@ import { ROLES, type Role, isRole } from "@/lib/auth/roles";
 import { isAuthorized, landingPathForRole } from "@/lib/auth/policy";
 import { sessionAllowedForStatus } from "@/lib/auth/invitations";
 import { isOrgActive } from "@/lib/org/status";
+import { time } from "@/lib/diagnostics/server-timing";
 
 /** Where suspended-org customer users are sent. See migration 0019 + Wave 5E.1. */
 export const SUSPENDED_PATH = "/suspended";
@@ -38,16 +39,21 @@ const PROFILE_COLUMNS =
  */
 export async function getProfile(): Promise<Profile | null> {
   const supabase = await createClient();
+  // Phase C0 instrumentation. Inert unless MULEMARK_DIAGNOSTIC_TIMING=1; returns the same values and
+  // rethrows the same errors, so no gate below changes. Deliberately NOT deduplicated here — measuring
+  // the duplication is the point; removing it is a later, separately-approved slice.
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await time("auth", "auth.session", () => supabase.auth.getUser());
   if (!user) return null;
 
-  const { data } = await supabase
-    .from("profiles")
-    .select(PROFILE_COLUMNS)
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
+  const { data } = await time("auth", "auth.profile", async () =>
+    supabase
+      .from("profiles")
+      .select(PROFILE_COLUMNS)
+      .eq("auth_user_id", user.id)
+      .maybeSingle()
+  );
 
   if (!data || !isRole(data.role) || !sessionAllowedForStatus(data.status)) {
     return null;
@@ -82,11 +88,13 @@ export async function ownOrgActive(profile: Profile): Promise<boolean> {
   if (profile.role === ROLES.PLATFORM_OWNER) return true;
   if (!profile.organization_id) return false;
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("organizations")
-    .select("status")
-    .eq("id", profile.organization_id)
-    .maybeSingle();
+  const { data } = await time("auth", "auth.org_status", async () =>
+    supabase
+      .from("organizations")
+      .select("status")
+      .eq("id", profile.organization_id as string)
+      .maybeSingle()
+  );
   return isOrgActive(data?.status);
 }
 
