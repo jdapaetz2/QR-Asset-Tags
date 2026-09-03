@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
@@ -36,12 +37,24 @@ const PROFILE_COLUMNS =
  * profile is **disabled**. Returning null for a disabled profile is the real access
  * revocation: every gate (`requireProfile`/`requireRole`/`requireOrgId`) funnels
  * through here, so a disabled user is redirected to /login. See migration 0017.
+ *
+ * REQUEST-SCOPED (Phase C1). Wrapped in React `cache()`, so the layout guard and the page guard in one
+ * render resolve it ONCE instead of twice. C0 measured that duplication on Production at 57 ms
+ * (`auth.getUser`) + 51 ms (`profiles`) per extra call.
+ *
+ * The cache lives for a single render pass and nothing longer: it is not `unstable_cache`, not
+ * `"use cache"`, and holds no module-level state, so **one user's profile can never be served to
+ * another request or another user**. It also cannot span the Proxy, which is a separate invocation —
+ * that `getUser` remains, by construction.
+ *
+ * Only this read is cached, never a guard. `requireProfile`/`requireRole`/`requireOrgContext` call
+ * `redirect()`, which throws; React `cache` replays a cached rejection within the same request, and a
+ * replayed redirect is not something to design around when leaving the guards uncached costs nothing.
  */
-export async function getProfile(): Promise<Profile | null> {
+export const getProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
   // Phase C0 instrumentation. Inert unless MULEMARK_DIAGNOSTIC_TIMING=1; returns the same values and
-  // rethrows the same errors, so no gate below changes. Deliberately NOT deduplicated here — measuring
-  // the duplication is the point; removing it is a later, separately-approved slice.
+  // rethrows the same errors, so no gate below changes.
   const {
     data: { user },
   } = await time("auth", "auth.session", () => supabase.auth.getUser());
@@ -59,7 +72,7 @@ export async function getProfile(): Promise<Profile | null> {
     return null;
   }
   return data as Profile;
-}
+});
 
 /** Require a signed-in user with a profile, else redirect to /login. */
 export async function requireProfile(): Promise<Profile> {
@@ -87,16 +100,38 @@ export async function requireRole(...allowed: Role[]): Promise<Profile> {
 export async function ownOrgActive(profile: Profile): Promise<boolean> {
   if (profile.role === ROLES.PLATFORM_OWNER) return true;
   if (!profile.organization_id) return false;
+  return orgIsActive(profile.organization_id);
+}
+
+/**
+ * The org-status read itself, request-scoped (Phase C1). C0 measured this at 38 ms and running TWICE
+ * per authenticated render — once in the `(admin)` layout's `requireActiveOrg`, once in the page's
+ * `requireOrgContext`.
+ *
+ * Keyed on the organization id STRING, deliberately. React `cache` compares arguments by identity, so
+ * caching `ownOrgActive(profile)` directly would only dedupe while the profile object happened to be
+ * reference-identical — true today because `getProfile` is cached, but a silent coupling that would
+ * break the moment a caller constructed its own profile object. A primitive key is correct regardless
+ * of how the caller got there.
+ *
+ * The key is also what keeps tenants apart: two organizations are two different keys, so a cached
+ * `true` for one org can never answer for another. And the cache is per-render, so it cannot outlive
+ * the request that created it.
+ *
+ * Still RLS-scoped: a suspended org is unreadable through `current_org_id()` (migration 0019), so the
+ * row comes back null and this returns false — the same result as before, reached the same way.
+ */
+const orgIsActive = cache(async (organizationId: string): Promise<boolean> => {
   const supabase = await createClient();
   const { data } = await time("auth", "auth.org_status", async () =>
     supabase
       .from("organizations")
       .select("status")
-      .eq("id", profile.organization_id as string)
+      .eq("id", organizationId)
       .maybeSingle()
   );
   return isOrgActive(data?.status);
-}
+});
 
 /**
  * Require a customer whose organization is active, else redirect to /suspended. This is
