@@ -32,6 +32,7 @@
     "staging:verify": "node --env-file=.env.staging.local scripts/staging/verify-staging-workflows.mjs",
     "staging:qa-password": "node --env-file=.env.staging.local scripts/staging/reset-staging-qa-passwords.mjs",
     "perf:baseline:production": "node --env-file-if-exists=.env.production-perf.local scripts/perf/baseline.mjs --env=production",
+    "perf:timing:production": "node scripts/perf/collect-timing.mjs --env=production",
     "perf:baseline:staging": "node --env-file=.env.staging.local scripts/perf/baseline.mjs --env=staging",
     "smoke:staging": "node --env-file=.env.staging.local scripts/smoke/staging.mjs",
     "smoke:production": "node --env-file-if-exists=.env.production-smoke.local scripts/smoke/production.mjs",

@@ -192,6 +192,63 @@ machine and one network, and must not be quoted as field performance.
 
 ---
 
+## 9b. Server-phase attribution — measured on Production
+
+Instrumentation enabled on Production (`MULEMARK_DIAGNOSTIC_TIMING=1`, deployment `as1bfta71`,
+commit `9e07773`), then an authenticated pass driven through the baseline harness.
+Collected with `npm run perf:timing:production`.
+
+| Phase | samples | median | min | max |
+|---|---|---|---|---|
+| `auth.session` (`auth.getUser()`) | 216 | **57.0 ms** | 41.0 | 104.5 |
+| `auth.profile` (`profiles` select) | 16 | **51.0 ms** | 44.7 | 57.0 |
+| `auth.org_status` (`organizations` select) | 16 | **38.4 ms** | 34.1 | 42.6 |
+| `nav.submission_count` | 8 | **49.9 ms** | 36.9 | 62.9 |
+| `scan.record` (public scan) | — | **71–104 ms** | | |
+
+`auth.session` has far more samples than the others because it also fires on anonymous traffic, where
+`getUser()` returns null and no profile query follows.
+
+### The duplication, observed rather than reasoned about
+
+Phase occurrences within a single log entry hold a stable ratio:
+
+| Phase | relative occurrences |
+|---|---|
+| `auth.session` | **3** |
+| `auth.profile` | **2** |
+| `auth.org_status` | **2** |
+| `nav.submission_count` | **1** |
+
+That is exactly the predicted shape: `getUser()` three times (proxy, layout, page), `profiles` and
+`organizations` twice each (layout `requireActiveOrg()` and page `requireOrgContext()`), and the nav
+count once.
+
+**One honest qualification.** The raw counts per log entry were 12 / 8 / 8 / 4 — a clean 4× of the
+ratio above, which means Vercel batched roughly four requests into each entry. **The ratio is the
+finding; the absolute per-request counts are not**, and are not claimed here.
+
+### What C1 could actually recover
+
+The proxy's `getUser()` runs in a **separate invocation** and cannot be deduplicated with the render.
+What *is* duplicated is the layout↔page pair:
+
+| Duplicated work | Cost |
+|---|---|
+| 1 × `auth.session` | 57 ms |
+| 1 × `auth.profile` | 51 ms |
+| 1 × `auth.org_status` | 38 ms |
+| **Recoverable total** | **≈146 ms per authenticated request** |
+
+Against server times of 404–735 ms, that is **20–36 %** of server time on the lighter routes — a real
+result, and one C0 could only bound at "≤342 ms including page data" before this measurement.
+
+**Caveats.** Taken with instrumentation enabled, so each phase carries a small `console.info` cost;
+absolute route timings from this pass are marginally inflated and the §3 baseline remains the reference.
+`auth.profile`/`auth.org_status` rest on 16 samples each. And ~146 ms is what the *duplication* costs —
+not a promise that C1 recovers all of it, since `cache()` dedupes within a render but the first call
+still pays full price.
+
 ## 10. Top three measured bottlenecks
 
 **1. The Assets serial query chain — 274 ms, isolated.**
@@ -199,7 +256,7 @@ machine and one network, and must not be quoted as field performance.
 rentals→assets delta attributes 274 ms to it with the auth floor held constant. Highest-confidence
 finding in this document.
 
-**2. Repeated identity work on every authenticated render — bounded ≤342 ms, not isolated.**
+**2. Repeated identity work on every authenticated render — ≈146 ms recoverable, NOW ISOLATED (§9b).**
 There is **no `cache()` anywhere in the repo**, so one authenticated render performs roughly
 **3 × `auth.getUser()`** (proxy, layout, page), **2 × `profiles`**, **2 × `organizations`**, plus the
 AppShell submission count — largely serial, before the page's own queries. `getProfile()` and
@@ -207,10 +264,11 @@ AppShell submission count — largely serial, before the page's own queries. `ge
 via `requireOrgContext()`. Layout↔page duplication is dedupable; the proxy call is a separate runtime
 invocation and is not.
 
-**3. The public scan path — 294 ms above the dynamic floor.**
+**3. The public scan path — 294 ms above the dynamic floor, of which `scan.record` is 71–104 ms (§9b).**
 `app/t/[shortCode]/page.tsx` runs resolve → **`await recordScan`** → documents → `getProfile()`, all
 serial. Scan logging is `await`ed before the page renders, on the product's most latency-sensitive
-route. How much of the 294 ms is the scan write specifically is **not yet isolated**.
+route, and now measures **71–104 ms** — roughly a third of the excess, and entirely off the critical
+path if it were not awaited.
 
 ## 11. Top three perceived-responsiveness issues
 
@@ -247,9 +305,9 @@ that exists, unlike a "page speed" number.
 | Slice | Rule | Decision |
 |---|---|---|
 | **C2 — Assets serial path** | recommend only if materially serial | **RUN FIRST.** 8 serial awaits, 274 ms isolated. Highest confidence, smallest blast radius. |
-| **C1 — repeated auth/profile/org** | recommend only if material | **RUN, isolate first.** Bounded ≤342 ms and structurally certain (no `cache()` exists), but not yet measured precisely. First task: enable the timing helper and isolate the split. |
+| **C1 — repeated auth/profile/org** | recommend only if material | **RUN — now isolated (§9b): ≈146 ms per authenticated request is duplicated layout↔page work, and the 3:2:2:1 phase ratio was observed directly. Material by any reading. Ranks alongside C2.** |
 | **C3 — Submissions serial path** | recommend only if materially serial | **RUN.** 7 serial awaits, 542–626 ms, highest request count. |
-| **C5 — awaited scan logging** | only if it materially delays the public page | **RUN, isolate first.** 294 ms above floor on the most latency-sensitive route; the scan write's share is not yet separated. |
+| **C5 — awaited scan logging** | only if it materially delays the public page | **RUN — now isolated (§9b): `scan.record` is 71–104 ms, awaited before render on the scan route. Material.** |
 
 | Slice | Decision |
 |---|---|
@@ -290,9 +348,38 @@ organization row (children cascade) and the auth user.
 **Two consequences, stated not buried:** the QA asset has QR coverage so it **counts as a covered asset**
 in the commercial model; and each measured scan writes a `scan_events` row — **to this asset only**.
 
-## 16. Instrumentation
+## 16. Instrumentation — ENABLED on Production
 
-`lib/diagnostics/server-timing.ts` was added and is **disabled by default and wired into nothing**. It
+`lib/diagnostics/server-timing.ts` is **disabled by default in code** and is now **switched on in the
+Production runtime** (`MULEMARK_DIAGNOSTIC_TIMING=1`, operator-approved) so §9b could be measured.
+It is wired into six phases: proxy session, `getProfile`'s session + profile read, `ownOrgActive`'s
+org read, the nav badge count, and the awaited scan write. Assets is deliberately not instrumented —
+its 274 ms is already isolated by the rentals→assets delta, and per-query wrapping belongs to C2.
+
+**To retire it:** remove `MULEMARK_DIAGNOSTIC_TIMING` from Production and redeploy (env changes need a
+redeploy to reach the runtime). The code then goes inert with no further change.
+
+### A failure worth remembering
+
+The flag was set, every listing showed it present, and nothing was emitted. The value had been piped in
+from a shell, which appends a newline — CRLF on Windows — and the check was a strict `=== "1"`. A stored
+`1
+` fails that silently: no error, no warning, just a diagnostic that does nothing while appearing
+configured. It cost a deploy cycle. Fixed with `.trim()` plus a regression test over `"1
+"`, `"1
+"`,
+`" 1 "`, `"	1"` (and `"11"` still false, so trimming did not loosen the check), and the variable
+re-added as `--type config` so its value can be read back — a write-only diagnostic flag cannot be
+debugged when it misbehaves.
+
+Also confirmed during deployment, because it was a real hazard: `vercel promote` on a Preview reports
+*"A new deployment will be built using your production environment"* — it **rebuilds** rather than
+aliasing, so a Preview build's inlined `NEXT_PUBLIC_*` (staging Supabase, staging site URL) never
+reaches `mulemark.io`. Aliasing one would have been an incident.
+
+The original description follows.
+
+`lib/diagnostics/server-timing.ts` was added and is **disabled by default**. It
 logs one structured line per phase, carries a closed union of phase names, accepts no ids/names/emails/
 form text/URLs, returns its wrapped value unchanged, and propagates rejections untouched. Enabling it
 needs `MULEMARK_DIAGNOSTIC_TIMING=1` and a redeploy — **an operator decision, not taken in C0**.
