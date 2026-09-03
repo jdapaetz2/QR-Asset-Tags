@@ -249,6 +249,61 @@ absolute route timings from this pass are marginally inflated and the §3 baseli
 not a promise that C1 recovers all of it, since `cache()` dedupes within a render but the first call
 still pays full price.
 
+## 9c. C1 result — deduplication proven; latency win NOT demonstrated
+
+Deployed to Production as `eurgffcyh` (commit `a5ab581`), then re-measured with the same harness.
+
+### Call counts — the acceptance evidence
+
+| Phase | C0 ratio | C1 ratio |
+|---|---|---|
+| `auth.session` | 3 | **2** |
+| `auth.profile` | 2 | **1** |
+| `auth.org_status` | 2 | **1** |
+| `nav.submission_count` | 1 | 1 |
+
+Exactly as designed. Sample counts over a comparable window corroborate it independently:
+`auth.profile` 16 → **8**, `auth.org_status` 16 → **8** — the same traffic doing half the calls.
+
+**Two database round trips and one auth round trip are removed from every authenticated render.**
+The remaining `auth.session` is the Proxy's, which no render-scoped cache can reach.
+
+### Wall-clock — inconclusive, and not claimed
+
+**The control routes moved, which invalidates a straight before/after.** `/login` does no auth and no
+data work; the landing page is static. Both got slower between runs:
+
+| Control | C0 | C1 | Δ |
+|---|---|---|---|
+| `/login` server (desktop) | 62 ms | 102 ms | **+40** |
+| landing server (desktop) | 36 ms | 53 ms | **+17** |
+| shell TTFB (all routes) | 25–31 ms | 44–51 ms | **+~20** |
+
+Static content cannot have been slowed by an auth change, so the environment itself shifted — network,
+machine load, or platform variance. Authenticated routes moved −33 ms to +52 ms, which is inside the
+band the controls themselves demonstrate. **No latency improvement is claimed from this run.**
+
+### Why the saving may genuinely be smaller than 146 ms
+
+C0's ≈146 ms assumed the duplicated calls were **serial**. They may not be: Next.js renders the layout
+and the page as one React tree, and React can work on them concurrently. If the layout's
+`requireActiveOrg()` and the page's `requireOrgContext()` overlapped in time, two 51 ms profile reads
+cost ~51 ms of wall-clock, not 102 ms — so removing one halves the *work* while saving little *latency*.
+
+That is a hypothesis, not a measurement, and it is recorded as one. It would explain the result without
+requiring the call-count evidence to be wrong.
+
+### What this means for the change
+
+Duplicate reads are **provably** gone: fewer queries, fewer auth calls, less database load per request.
+That benefit is real and grows with concurrency and data volume, neither of which this single-client lab
+run exercises. What is *not* demonstrated is a faster page for one user on a quiet system.
+
+**Recommended: keep, on resource grounds, with the latency claim withheld** until a controlled A/B —
+both deployments measured in the same minutes on the same machine — either shows a win or does not.
+Reverting a strictly-less-work change with unchanged semantics because ambient latency drifted would be
+the wrong call; so would banking a speed-up that has not been shown.
+
 ## 10. Top three measured bottlenecks
 
 **1. The Assets serial query chain — 274 ms, isolated.**
