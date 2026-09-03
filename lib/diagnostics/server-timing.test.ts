@@ -22,6 +22,20 @@ describe("diagnostic timing — default off", () => {
     expect(_internal.enabled()).toBe(true);
   });
 
+  /**
+   * Regression: setting this through a shell pipe appends a newline (CRLF on Windows). A strict
+   * equality check then no-ops silently while every listing shows the variable "set" — which is
+   * exactly how this was lost for a deploy cycle. Whitespace must not disable a diagnostic.
+   */
+  it("tolerates surrounding whitespace from shell-set values", () => {
+    for (const raw of ["1\n", "1\r\n", " 1 ", "\t1"]) {
+      process.env.MULEMARK_DIAGNOSTIC_TIMING = raw;
+      expect(_internal.enabled()).toBe(true);
+    }
+    process.env.MULEMARK_DIAGNOSTIC_TIMING = "11";
+    expect(_internal.enabled()).toBe(false);
+  });
+
   it("logs nothing when disabled", async () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
     await time("/dashboard/assets", "auth.profile", async () => "value");

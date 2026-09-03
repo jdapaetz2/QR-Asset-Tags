@@ -38,7 +38,11 @@ export type TimingPhase =
  * request, so caching would make the flag unturnoffable for the life of a warm instance.
  */
 function enabled(): boolean {
-  return process.env.MULEMARK_DIAGNOSTIC_TIMING === "1";
+  // `.trim()` is not cosmetic. Setting this variable through a shell pipe appends a newline, and on
+  // Windows a CRLF — a strict `=== "1"` then silently fails and the diagnostic no-ops while every
+  // dashboard and listing shows it "set". That exact failure cost a deploy cycle to find, because an
+  // invisible character produces no error, just silence.
+  return process.env.MULEMARK_DIAGNOSTIC_TIMING?.trim() === "1";
 }
 
 /**
