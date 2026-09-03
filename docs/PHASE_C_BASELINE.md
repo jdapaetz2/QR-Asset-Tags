@@ -299,10 +299,15 @@ Duplicate reads are **provably** gone: fewer queries, fewer auth calls, less dat
 That benefit is real and grows with concurrency and data volume, neither of which this single-client lab
 run exercises. What is *not* demonstrated is a faster page for one user on a quiet system.
 
-**Recommended: keep, on resource grounds, with the latency claim withheld** until a controlled A/B —
-both deployments measured in the same minutes on the same machine — either shows a win or does not.
-Reverting a strictly-less-work change with unchanged semantics because ambient latency drifted would be
-the wrong call; so would banking a speed-up that has not been shown.
+**DECIDED (operator, 2026-09-03): keep, on resource grounds. The latency claim stays withheld.**
+
+The change removes provably duplicated work with unchanged semantics, and that benefit grows with
+concurrency and data volume — neither of which a single-client lab run exercises. Reverting it because
+ambient latency drifted would have been the wrong call.
+
+What must not follow from that decision: **C1 may not be cited as a page-speed improvement.** No such
+result was measured. If a latency figure is ever needed, it requires a controlled A/B — both
+deployments measured in the same minutes on the same machine — not this run.
 
 ## 10. Top three measured bottlenecks
 
