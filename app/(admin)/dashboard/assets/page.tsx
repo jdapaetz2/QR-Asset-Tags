@@ -18,6 +18,7 @@ import { deriveAssetStatus } from "@/lib/ui/status-view";
 import { PlanUsage } from "@/components/plan-usage";
 import { getCoveredCount } from "@/lib/plans/coverage-query";
 import { getOrgCategories } from "@/lib/assets/categories";
+import { time } from "@/lib/diagnostics/server-timing";
 import { closeRentalSession } from "@/lib/rentals/actions";
 import { MarkRentedButton } from "@/components/mark-rented-button";
 import {
@@ -119,6 +120,11 @@ export default async function AssetsPage({
   }
   query = query.order(params.sort, { ascending: params.sort !== "created_at" });
 
+  // Phase C2 Deploy A — the group wrapper goes in BEFORE parallelizing, so the serial duration is
+  // measured by the same instrument that will measure the parallel one. C1's wall-clock comparison was
+  // inconclusive because ambient latency drifted between runs; a server-side group duration is immune
+  // to that. Inert unless MULEMARK_DIAGNOSTIC_TIMING=1.
+  const assetsGroup = await time("assets", "page.primary_queries", async () => {
   const { data } = await query;
   const allRows = (data ?? []) as AssetRow[];
 
@@ -176,6 +182,31 @@ export default async function AssetsPage({
     .from("organizations")
     .select("plan_name, asset_limit")
     .maybeSingle();
+
+    return {
+      allRows,
+      qrByAsset,
+      pageByAsset,
+      activeSessionByAsset,
+      unresolvedByAsset,
+      openDamageByAsset,
+      categories,
+      coveredCount,
+      planOrg,
+    };
+  });
+
+  const {
+    allRows,
+    qrByAsset,
+    pageByAsset,
+    activeSessionByAsset,
+    unresolvedByAsset,
+    openDamageByAsset,
+    categories,
+    coveredCount,
+    planOrg,
+  } = assetsGroup;
 
   const rows = allRows
     .map((asset) => {
