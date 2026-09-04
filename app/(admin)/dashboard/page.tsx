@@ -19,6 +19,7 @@ import { assetPageStatus } from "@/lib/assets/list";
 import { formTypeLabel } from "@/lib/submissions/display";
 import { firstImagePath, submissionReference } from "@/lib/submissions/inbox";
 import { canQuickResolveReturn } from "@/lib/submissions/returns";
+import { signPaths } from "@/lib/storage/signed-urls";
 import {
   buildAttentionItems,
   buildBandStats,
@@ -271,18 +272,26 @@ export default async function DashboardPage({
   }
 
   // Sign one representative photo per attention asset (the latest submission's first image).
-  const thumbByAsset = new Map<string, string>();
-  await Promise.all(
-    attention.map(async (i) => {
-      const sub = latestSubByAsset.get(i.assetId);
-      const path = sub ? firstImagePath(sub.media_urls) : null;
-      if (!path) return;
-      const { data: signed } = await supabase.storage
-        .from(SUBMISSIONS_BUCKET)
-        .createSignedUrl(path, 3600);
-      if (signed?.signedUrl) thumbByAsset.set(i.assetId, signed.signedUrl);
-    })
+  // C4: ONE batch request for the bounded attention queue, not one per item.
+  const thumbPathByAsset = new Map<string, string>();
+  for (const i of attention) {
+    const sub = latestSubByAsset.get(i.assetId);
+    const path = sub ? firstImagePath(sub.media_urls) : null;
+    if (path) thumbPathByAsset.set(i.assetId, path);
+  }
+  const signedThumbByPath = await signPaths(
+    supabase,
+    SUBMISSIONS_BUCKET,
+    [...thumbPathByAsset.values()],
+    3600,
+    "dashboard-attention"
   );
+  const thumbByAsset = new Map<string, string>();
+  for (const [assetId, path] of thumbPathByAsset) {
+    const url = signedThumbByPath.get(path);
+    // Only a real URL is set — a failed signature leaves the item without a thumbnail.
+    if (url) thumbByAsset.set(assetId, url);
+  }
 
   const queueItems: QueueItem[] = attention.map((item) => {
     const subs = subsByAsset.get(item.assetId) ?? [];

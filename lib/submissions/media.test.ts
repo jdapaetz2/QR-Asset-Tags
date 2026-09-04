@@ -16,37 +16,46 @@ describe("collectMediaPaths", () => {
 });
 
 describe("signMediaPaths", () => {
-  function fakeClient(sign: (path: string) => string | null) {
-    return {
-      storage: {
-        from: (bucket: string) => ({
-          createSignedUrl: async (path: string) => {
-            expect(bucket).toBe(SUBMISSIONS_BUCKET);
-            const url = sign(path);
-            return url ? { data: { signedUrl: url }, error: null } : { data: null, error: new Error("nope") };
-          },
+  /**
+   * Phase C4 changed the mechanism from one `createSignedUrl` per path to a single `createSignedUrls`
+   * batch. The CONTRACT is unchanged — path→url map, de-duplicated, null on failure, no I/O when empty
+   * — so these tests assert the contract, plus the one new guarantee: it is one request, not N.
+   */
+  function batchClient(sign: (path: string) => string | null) {
+    const createSignedUrls = vi.fn(async (paths: string[], ttl: number) => {
+      expect(ttl).toBe(3600);
+      return {
+        data: paths.map((path) => {
+          const url = sign(path);
+          return { error: url ? null : "nope", path, signedUrl: url };
         }),
+        error: null,
+      };
+    });
+    const client = {
+      storage: {
+        from: (bucket: string) => {
+          expect(bucket).toBe(SUBMISSIONS_BUCKET);
+          return { createSignedUrls };
+        },
       },
     } as never;
+    return { client, createSignedUrls };
   }
 
-  it("returns a path→url map, de-duplicating paths and signing once each", async () => {
-    const createSignedUrl = vi.fn(async (path: string) => ({
-      data: { signedUrl: `https://signed/${path}` },
-      error: null,
-    }));
-    const client = {
-      storage: { from: () => ({ createSignedUrl }) },
-    } as never;
-
+  it("returns a path→url map, de-duplicating paths, in ONE batch request", async () => {
+    const { client, createSignedUrls } = batchClient((p) => `https://signed/${p}`);
     const map = await signMediaPaths(client, ["x/1.jpg", "x/1.jpg", "x/2.jpg"]);
     expect(map.get("x/1.jpg")).toBe("https://signed/x/1.jpg");
     expect(map.get("x/2.jpg")).toBe("https://signed/x/2.jpg");
-    expect(createSignedUrl).toHaveBeenCalledTimes(2); // de-duped
+    // One request for both paths — the point of C4 — and the duplicate was collapsed.
+    expect(createSignedUrls).toHaveBeenCalledTimes(1);
+    expect(createSignedUrls).toHaveBeenCalledWith(["x/1.jpg", "x/2.jpg"], 3600);
   });
 
   it("maps a failed signing to null and skips empty/blank paths", async () => {
-    const client = fakeClient((p) => (p === "bad" ? null : `https://signed/${p}`));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { client } = batchClient((p) => (p === "bad" ? null : `https://signed/${p}`));
     const map = await signMediaPaths(client, ["good", "bad", "", "good"]);
     expect(map.get("good")).toBe("https://signed/good");
     expect(map.get("bad")).toBeNull();
@@ -55,10 +64,10 @@ describe("signMediaPaths", () => {
   });
 
   it("no paths → empty map, no I/O", async () => {
-    const createSignedUrl = vi.fn();
-    const client = { storage: { from: () => ({ createSignedUrl }) } } as never;
+    const createSignedUrls = vi.fn();
+    const client = { storage: { from: () => ({ createSignedUrls }) } } as never;
     const map = await signMediaPaths(client, []);
     expect(map.size).toBe(0);
-    expect(createSignedUrl).not.toHaveBeenCalled();
+    expect(createSignedUrls).not.toHaveBeenCalled();
   });
 });

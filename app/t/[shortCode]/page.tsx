@@ -2,7 +2,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { recordScan } from "@/lib/scan/record";
 import { time } from "@/lib/diagnostics/server-timing";
 import { resolvePublicEquipment } from "@/lib/public/resolve";
-import { getPublicDocuments } from "@/lib/public/documents";
+import { getPublicDocuments } from "@/lib/public/documents-server";
 import { getProfile } from "@/lib/auth/session";
 import { PublicEquipmentPage } from "@/components/public/public-equipment-page";
 import { UnavailableNotice } from "@/components/public/unavailable-notice";

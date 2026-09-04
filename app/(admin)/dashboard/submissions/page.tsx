@@ -50,6 +50,7 @@ import { submissionStatusTone } from "@/lib/ui/status";
 import { submissionStatusLabel } from "@/lib/ui/status-labels";
 import { time } from "@/lib/diagnostics/server-timing";
 import { logQueryFailure, throwOnEssentialFailure } from "@/lib/diagnostics/query-failure";
+import { signPaths } from "@/lib/storage/signed-urls";
 
 const SUBMISSIONS_BUCKET = "submissions";
 
@@ -100,8 +101,8 @@ export default async function SubmissionsPage({
    * cannot, because it signs only the POST-FILTER visible rows. That dependency is real and preserved:
    * batch of six, then in-memory filtering, then signing.
    *
-   * BOUNDED: a fixed batch of six. The per-row signing below is unchanged and still covers visible
-   * rows only, never the whole organization.
+   * BOUNDED: a fixed batch of six. Signing below covers visible rows only, never the whole
+   * organization, and since C4 it is one batch request rather than one per row.
    */
   const inboxGroup = await time("submissions", "page.primary_queries", async () => {
     // The status filter is built before the batch so the row query can join it. resolveStatusFilter
@@ -183,17 +184,22 @@ export default async function SubmissionsPage({
     // DEPENDENT — signed thumbnails for the VISIBLE rows only (post-filter), never the whole org.
     // Private bucket; the storage SELECT policy scopes these to the caller's organization and the URLs
     // are short-lived (3600s). This is why the batch above is six and not seven.
-    const thumbs = new Map<string, string>();
-    await Promise.all(
-      rows.map(async (r) => {
-        const path = firstImagePath(r.media_urls);
-        if (!path) return;
-        const { data: signed } = await supabase.storage
-          .from(SUBMISSIONS_BUCKET)
-          .createSignedUrl(path, 3600);
-        if (signed?.signedUrl) thumbs.set(r.id, signed.signedUrl);
-      })
+    // ONE batch request for the visible rows (C4), not one per row.
+    const thumbPathByRow = new Map<string, string>();
+    for (const r of rows) {
+      const path = firstImagePath(r.media_urls);
+      if (path) thumbPathByRow.set(r.id, path);
+    }
+    const signedByPath = await time("submissions", "media.signed_urls", () =>
+      signPaths(supabase, SUBMISSIONS_BUCKET, [...thumbPathByRow.values()], 3600, "inbox-thumbnails")
     );
+    const thumbs = new Map<string, string>();
+    for (const [rowId, path] of thumbPathByRow) {
+      const url = signedByPath.get(path);
+      // Only a real URL is set; a failed signature leaves the row without a thumbnail rather than
+      // rendering a broken image or leaking the raw path.
+      if (url) thumbs.set(rowId, url);
+    }
 
     return {
       canExportSubmissions,

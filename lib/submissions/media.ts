@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { signPaths } from "@/lib/storage/signed-urls";
+
 /**
  * Shared private-media signing for submission attachments (Wave 3N.3). Both the admin session-evidence page
  * and the admin/staff submission-detail surfaces store media as storage paths in the private `submissions`
@@ -21,22 +23,17 @@ export function collectMediaPaths(
 }
 
 /**
- * Sign every path into a `Map<path, signedUrl | null>` (null when signing fails). One `createSignedUrl` per
- * unique path, run concurrently. Empty input → empty map (no I/O).
+ * Sign every path into a `Map<path, signedUrl | null>` (null when signing fails). Empty input → empty
+ * map (no I/O).
+ *
+ * Phase C4: this used to issue one `createSignedUrl` per unique path, concurrently — a bounded N+1 of
+ * N Storage round trips to render N photos. It now delegates to the shared batch helper, which does it
+ * in ONE request. The signature, the returned map and the null-on-failure contract are unchanged, so
+ * all four evidence/detail callers are untouched.
  */
 export async function signMediaPaths(
   supabase: SupabaseClient,
   paths: readonly string[]
 ): Promise<Map<string, string | null>> {
-  const unique = Array.from(new Set(paths.filter((p) => typeof p === "string" && p.length > 0)));
-  const signedByPath = new Map<string, string | null>();
-  await Promise.all(
-    unique.map(async (path) => {
-      const { data } = await supabase.storage
-        .from(SUBMISSIONS_BUCKET)
-        .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
-      signedByPath.set(path, data?.signedUrl ?? null);
-    })
-  );
-  return signedByPath;
+  return signPaths(supabase, SUBMISSIONS_BUCKET, paths, SIGNED_URL_TTL_SECONDS, "submission-media");
 }

@@ -13,6 +13,7 @@ import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 import { documentLinkTone } from "@/lib/ui/status";
 import { sanitizeReturnTo, withReturnTo } from "@/lib/nav/return-to";
 import { AssetSubnav } from "@/components/assets/asset-subnav";
+import { signPaths } from "@/lib/storage/signed-urls";
 
 const DOCUMENTS_BUCKET = "documents";
 
@@ -71,15 +72,20 @@ export default async function DocumentsPage({
   const documents = (data ?? []) as DocumentRow[];
 
   // Short-lived signed URLs for hosted files (private bucket). External docs use url.
-  const links = await Promise.all(
-    documents.map(async (doc) => {
-      if (!doc.storage_path) return { id: doc.id, href: doc.url, hosted: false };
-      const { data: signed } = await supabase.storage
-        .from(DOCUMENTS_BUCKET)
-        .createSignedUrl(doc.storage_path, 3600);
-      return { id: doc.id, href: signed?.signedUrl ?? null, hosted: true };
-    })
+  // C4: one batch request for the hosted paths instead of one per document.
+  const signedByPath = await signPaths(
+    supabase,
+    DOCUMENTS_BUCKET,
+    documents.filter((d) => d.storage_path).map((d) => d.storage_path as string),
+    3600,
+    "asset-documents"
   );
+  const links = documents.map((doc) => {
+    if (!doc.storage_path) return { id: doc.id, href: doc.url, hosted: false };
+    // `?? null` keeps the previous contract: a hosted doc that could not be signed has no href, and
+    // never falls back to the raw storage path.
+    return { id: doc.id, href: signedByPath.get(doc.storage_path) ?? null, hosted: true };
+  });
   const linkById = new Map(links.map((l) => [l.id, l]));
 
   return (

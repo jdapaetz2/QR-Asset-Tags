@@ -448,6 +448,84 @@ elimination and nothing else — it says nothing about how this route behaves un
 volume, where the unbounded row load and the in-memory filtering are the things that would matter.
 **These numbers must not be quoted as evidence that the inbox scales.**
 
+## 9f. C4 result — signed-media URL batching
+
+### What this section can and cannot claim
+
+C2 and C3 each carried a measured latency win because there was real work to parallelize. **C4 does
+not, and the reason is stated first so no later reader mistakes silence for a result.** The Production
+QA organization holds effectively no submission media and no hosted documents, so at current data
+volume there is nothing to sign — the two-deploy method that made C2 and C3 attributable would compare
+zero against zero. **No latency number from this environment may be quoted as a C4 speed-up.**
+
+C4 therefore proceeds on the second clause of the C0 gate — "an obvious bounded N+1 risk on visible
+lists/evidence pages" — and its claim is structural and test-proven, not measured:
+**N Storage round trips per call site become 1.**
+
+### The inventory, and the one that mattered
+
+| Call site | Bucket | Before | After |
+|---|---|---|---|
+| `lib/submissions/media.ts#signMediaPaths` (4 evidence/detail callers) | `submissions` | N parallel | **1** |
+| Submissions inbox thumbnails | `submissions` | N parallel | **1** |
+| Dashboard attention thumbnails | `submissions` | N parallel | **1** |
+| Asset documents | `documents` | N parallel | **1** |
+| **Public documents (`/t/[shortCode]`)** | `documents` | **N SEQUENTIAL, in a `for` loop** | **1** |
+
+The public-documents loop was the only *serial* N+1 in the product, and it sat on the scan page — the
+route a renter reaches from a physical tag, measured in C0 at 356 ms server with 294 ms above the
+dynamic floor. It was not in the C0 priority list; it was found by taking the inventory rather than
+trusting it. Every other site at least issued its N requests concurrently.
+
+`grep -rn "createSignedUrl(" app/ lib/` now returns nothing: no per-path call site remains.
+
+### Security is unchanged, deliberately
+
+`createSignedUrls` (plural) exists in the installed `@supabase/storage-js` **2.108.2** — verified in
+`dist/index.d.mts`, not assumed from a different SDK version — and requires the same `objects: select`
+permission as the single-path call. The helper takes the caller's **RLS-scoped** client, never the
+service-role client, so a path the caller cannot read still does not get signed. The bucket stays
+private, the TTL stays at the existing 3600 s, nothing is cached beyond the call, no path is signed
+before the visible-row filter, and no raw storage path reaches a response.
+
+**Results are mapped by returned `path`, never by array index.** The response type is
+`{ error, path: string | null, signedUrl: string | null }[]` and nothing in its contract promises input
+order. Index alignment would have passed every test written against an ordered stub and could have
+handed one row the signed URL for another row's private photo — rows that may belong to different
+assets. A test asserts correct mapping against a deliberately reordered response.
+
+Logging takes counts and a call site as numbers and a literal, never the values: a storage path
+identifies a private object and encodes the owning organization, and a signed URL *is* an access
+credential for its TTL. A test asserts no path and no URL fragment appears in the log line.
+
+### A build failure worth recording
+
+Marking the helper `server-only` broke the build — correctly. `lib/public/documents.ts` is imported by
+`public-scanner-view.tsx` for `findDocumentHref` and `isDocumentOpenable` as **runtime values**, so it
+is part of the scan page's *client* bundle, and the new import pulled a server-only module into a
+Client Component graph. The fix was to split the Supabase read and signing into
+`lib/public/documents-server.ts` and leave the pure helpers client-safe. Turbopack caught a layering
+mistake that no test would have; the split also stops shipping that function's code to the browser on
+`/t/`, where the standing rule is no new client JS.
+
+### Evidence
+
+13 unit tests in `lib/storage/signed-urls.test.ts`, including: many paths signed in **exactly one**
+call with the per-path method **never** invoked; empty input performs no I/O at all; de-duplication and
+trimming before the request; TTL passed through unchanged; stable mapping under a reordered response;
+an uninvited response entry ignored rather than widening the map; per-entry error, whole-call error,
+thrown transport error and an omitted path each resolving to explicit `null`; and the two logging
+assertions above. `lib/submissions/media.test.ts` was updated to the batch contract and now also
+asserts the single call.
+
+`null` is the point of the return shape: it renders as "unavailable" and cannot be mistaken for a
+usable URL, unlike a raw path or an empty string. A partial signing failure never produces a broken or
+unauthorized link, and never takes down an otherwise healthy page.
+
+Gates: lint, typecheck, **1213 unit tests**, build, **79 security/RLS tests**, **68 E2E** — all green.
+The `media.signed_urls` timing phase now wraps the inbox signing, so the duration will be recorded
+once real media exists.
+
 ## 10. Top three measured bottlenecks
 
 **1. The Assets serial query chain — 274 ms, isolated.**
