@@ -33,7 +33,11 @@ try {
   // Every argument here is a literal from this file — no user input reaches the command line.
   raw = execFileSync(
     "npx",
-    ["vercel", "logs", "--environment", environment, "--since", since, "--query", "timing", "--limit", "200", "--json"],
+    // limit 1000, not 200. `auth.session` fires on anonymous traffic too and produces an order of
+    // magnitude more lines than any other phase, so a small limit fills up with it and silently drops
+    // the phases you are actually measuring — which is exactly what happened to page.primary_queries
+    // during C2 and briefly looked like the instrumentation had failed.
+    ["vercel", "logs", "--environment", environment, "--since", since, "--query", "timing", "--limit", "1000", "--json"],
     { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, shell: process.platform === "win32" }
   );
 } catch (err) {

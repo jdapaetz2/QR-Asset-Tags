@@ -309,6 +309,71 @@ What must not follow from that decision: **C1 may not be cited as a page-speed i
 result was measured. If a latency figure is ever needed, it requires a controlled A/B — both
 deployments measured in the same minutes on the same machine — not this run.
 
+## 9d. C2 result — Assets parallelization, measured cleanly
+
+C1's comparison was inconclusive because the control routes drifted. C2 was measured in **two deploys
+with the same instrument**, which removes that problem: deploy A added the group timer around the
+*still-serial* reads, deploy B parallelized them.
+
+### Server-side group duration — the direct measurement
+
+| | `page.primary_queries` median |
+|---|---|
+| Serial (deploy A, `fa572c3`) | **395.9 ms** (324–730) |
+| Parallel (deploy B, `2bd8d87`) | **86.3 ms** (58.7–290) |
+| **Change** | **−310 ms, −78 %** |
+
+### Route level, with controls that held this time
+
+| Route | Serial | Parallel | Δ |
+|---|---|---|---|
+| **assets** (changed) | **627 ms** | **391 ms** | **−236 ms (−38 %)** |
+| assets p75 | 665 ms | 409 ms | −256 ms |
+| dashboard (control) | 530 ms | 529 ms | −1 ms |
+| submissions (control) | 537 ms | 526 ms | −11 ms |
+| analytics (control) | 423 ms | 414 ms | −9 ms |
+| rentals (control) | 363 ms | 327 ms | −36 ms |
+| login (control, no auth) | 66 ms | 59 ms | −7 ms |
+| landing (control, static) | 32 ms | 28 ms | −4 ms |
+
+**Unchanged routes moved −1 to −36 ms; Assets moved −236 ms.** That is an order of magnitude outside
+the drift the controls demonstrate, so unlike C1 this result is attributable.
+
+LCP was roughly flat (684 → 698 ms), which is expected: LCP is dominated by client rendering after the
+stream, and C2 shortens the server half. Request count and row count are unchanged — the same reads
+return the same rows.
+
+### Why the group drop exceeds the route drop
+
+−310 ms in the group versus −236 ms on the route. The route total also carries auth, render and network
+transit, none of which C2 touches, plus ordinary run-to-run variance. The group number is the cleaner
+measurement of what actually changed.
+
+### Error semantics were fixed as part of this
+
+Every read was `const { data } = await …` then `data ?? []`, so a failed `assets` query rendered as
+"no assets" — a page confidently stating something false, indistinguishable to an operator from an
+organization that owns no equipment. Parallelizing eight silently-failing reads would have made that
+worse, so it was fixed here: the essential read throws to a new `assets/error.tsx`, secondary reads
+degrade and log route + read + Postgres **code** (never the message, which quotes database internals,
+and never row data or search terms).
+
+### A measurement-tool defect worth recording
+
+`perf:timing:production` capped its log query at 200 lines. `auth.session` fires on anonymous traffic
+too and produces an order of magnitude more lines than any other phase, so it saturated the limit and
+silently dropped `page.primary_queries` — which briefly looked like the instrumentation had failed.
+Raised to 1000. A truncating measurement tool that reports nothing looks identical to a broken system.
+
+### Left alone, deliberately
+
+- `getCoveredCount` re-reads `qr_links`, already fetched by the batch. One query out of eight running
+  concurrently — no measurable wall clock — against rewiring a commercial number.
+- **Unbounded loading**: the route reads every asset, QR link, equipment page, active session and
+  unresolved submission in the organization, with no `limit`. A genuine scale risk, but C0 did not
+  measure it as the current latency source (production holds 3 organizations and small tables), so no
+  pagination was smuggled into C2. It needs its own approved scope.
+
 ## 10. Top three measured bottlenecks
 
 **1. The Assets serial query chain — 274 ms, isolated.**
