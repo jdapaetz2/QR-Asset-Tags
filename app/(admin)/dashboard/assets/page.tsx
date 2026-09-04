@@ -19,6 +19,7 @@ import { PlanUsage } from "@/components/plan-usage";
 import { getCoveredCount } from "@/lib/plans/coverage-query";
 import { getOrgCategories } from "@/lib/assets/categories";
 import { time } from "@/lib/diagnostics/server-timing";
+import { logQueryFailure, throwOnEssentialFailure } from "@/lib/diagnostics/query-failure";
 import { closeRentalSession } from "@/lib/rentals/actions";
 import { MarkRentedButton } from "@/components/mark-rented-button";
 import {
@@ -124,64 +125,77 @@ export default async function AssetsPage({
   // measured by the same instrument that will measure the parallel one. C1's wall-clock comparison was
   // inconclusive because ambient latency drifted between runs; a server-side group duration is immune
   // to that. Inert unless MULEMARK_DIAGNOSTIC_TIMING=1.
+  const ROUTE = "/dashboard/assets";
+
+  /**
+   * Phase C2. Every read below is independent: none filters by the ids returned from the base `assets`
+   * query — the joins are built in memory afterwards — so there is no waterfall to preserve. They ran
+   * one after another purely by construction, which C0 measured at 274 ms of the route's server time.
+   *
+   * BOUNDED: a fixed batch of eight. Never per-asset concurrency; the maps below are still built from
+   * whole-organization reads in memory, so no N+1 is introduced.
+   *
+   * RLS is unchanged — each read uses the same caller-scoped client and the same filters as before.
+   */
   const assetsGroup = await time("assets", "page.primary_queries", async () => {
-  const { data } = await query;
-  const allRows = (data ?? []) as AssetRow[];
+    const [
+      assetsRes,
+      qrRes,
+      pageRes,
+      rentalRes,
+      openSubsRes,
+      categoriesRes,
+      coveredRes,
+      planRes,
+    ] = await Promise.all([
+      query,
+      supabase.from("qr_links").select("asset_id, status"),
+      supabase.from("equipment_pages").select("asset_id, is_published"),
+      supabase.from("asset_rental_sessions").select("asset_id, id").eq("status", "active"),
+      supabase
+        .from("form_submissions")
+        .select(OPEN_DAMAGE_COLUMNS)
+        .in("status", UNRESOLVED_STATUSES as readonly string[]),
+      getOrgCategories(supabase),
+      getCoveredCount(supabase),
+      supabase.from("organizations").select("plan_name, asset_limit").maybeSingle(),
+    ]);
 
-  // QR + page status come from per-org lookups (joins are filtered in JS).
-  const { data: qrData } = await supabase
-    .from("qr_links")
-    .select("asset_id, status");
-  const qrByAsset = new Map<string, { hasActive: boolean }>();
-  for (const q of (qrData ?? []) as { asset_id: string; status: string }[]) {
-    const prev = qrByAsset.get(q.asset_id);
-    qrByAsset.set(q.asset_id, {
-      hasActive: (prev?.hasActive ?? false) || q.status === "active",
-    });
-  }
+    // ESSENTIAL. A failed list must never render as "no assets" — that is a page confidently stating
+    // something false, and it is what this route did before C2. Throwing surfaces ./error.tsx instead.
+    throwOnEssentialFailure(ROUTE, "assets", assetsRes.error);
+    const allRows = (assetsRes.data ?? []) as AssetRow[];
 
-  const { data: pageData } = await supabase
-    .from("equipment_pages")
-    .select("asset_id, is_published");
-  const pageByAsset = new Map<string, boolean>();
-  for (const p of (pageData ?? []) as {
-    asset_id: string;
-    is_published: boolean;
-  }[]) {
-    pageByAsset.set(p.asset_id, p.is_published);
-  }
+    // SECONDARY. These may degrade: a missing QR badge is a worse-but-honest page. Each failure is
+    // logged with the route, the read and the Postgres code — never the message or any row data.
+    logQueryFailure(ROUTE, "qr_links", qrRes.error);
+    const qrByAsset = new Map<string, { hasActive: boolean }>();
+    for (const q of (qrRes.data ?? []) as { asset_id: string; status: string }[]) {
+      const prev = qrByAsset.get(q.asset_id);
+      qrByAsset.set(q.asset_id, {
+        hasActive: (prev?.hasActive ?? false) || q.status === "active",
+      });
+    }
 
-  // Active rental session per asset (one query, mapped by asset_id — no N+1). RLS
-  // scopes to the caller's organization.
-  const { data: rentalData } = await supabase
-    .from("asset_rental_sessions")
-    .select("asset_id, id")
-    .eq("status", "active");
-  const activeSessionByAsset = new Map<string, string>();
-  for (const r of (rentalData ?? []) as { asset_id: string; id: string }[]) {
-    activeSessionByAsset.set(r.asset_id, r.id);
-  }
+    logQueryFailure(ROUTE, "equipment_pages", pageRes.error);
+    const pageByAsset = new Map<string, boolean>();
+    for (const p of (pageRes.data ?? []) as { asset_id: string; is_published: boolean }[]) {
+      pageByAsset.set(p.asset_id, p.is_published);
+    }
 
-  // Unresolved (new/reviewed) submissions per asset — one RLS-scoped query, grouped in memory (NO N+1).
-  // The same rows drive BOTH the pre-rent warning count and the open-damage indicator.
-  const { data: openSubs } = await supabase
-    .from("form_submissions")
-    .select(OPEN_DAMAGE_COLUMNS)
-    .in("status", UNRESOLVED_STATUSES as readonly string[]);
-  const openRows = (openSubs ?? []) as OpenDamageRow[];
-  const unresolvedByAsset = countUnresolvedByAsset(openRows);
-  const openDamageByAsset = openDamageSummaryByAsset(openRows);
+    logQueryFailure(ROUTE, "rental_sessions", rentalRes.error);
+    const activeSessionByAsset = new Map<string, string>();
+    for (const r of (rentalRes.data ?? []) as { asset_id: string; id: string }[]) {
+      activeSessionByAsset.set(r.asset_id, r.id);
+    }
 
-  // Distinct, normalized categories for the filter dropdown (own org only).
-  const categories = await getOrgCategories(supabase);
+    // The same rows drive BOTH the pre-rent warning count and the open-damage indicator.
+    logQueryFailure(ROUTE, "open_submissions", openSubsRes.error);
+    const openRows = (openSubsRes.data ?? []) as OpenDamageRow[];
+    const unresolvedByAsset = countUnresolvedByAsset(openRows);
+    const openDamageByAsset = openDamageSummaryByAsset(openRows);
 
-  // Compact covered-asset usage indicator (RLS-scoped, display only — enforcement
-  // stays server-side in createQrLink / createTagRequest + DB trigger).
-  const coveredCount = await getCoveredCount(supabase);
-  const { data: planOrg } = await supabase
-    .from("organizations")
-    .select("plan_name, asset_limit")
-    .maybeSingle();
+    logQueryFailure(ROUTE, "organization_plan", planRes.error);
 
     return {
       allRows,
@@ -190,9 +204,14 @@ export default async function AssetsPage({
       activeSessionByAsset,
       unresolvedByAsset,
       openDamageByAsset,
-      categories,
-      coveredCount,
-      planOrg,
+      // Distinct, normalized categories for the filter dropdown (own org only).
+      categories: categoriesRes,
+      // Display-only usage indicator — enforcement stays in createQrLink / createTagRequest + the DB
+      // trigger. `getCoveredCount` re-reads qr_links, which the batch already fetched; once the group
+      // is parallel that redundancy costs no wall clock, and rewiring a commercial number for no
+      // measurable gain is not a trade worth making. Recorded in PHASE_C_BASELINE, not hidden.
+      coveredCount: coveredRes,
+      planOrg: planRes.data,
     };
   });
 
