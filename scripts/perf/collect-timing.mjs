@@ -19,6 +19,15 @@ import { execFileSync } from "node:child_process";
 const args = process.argv.slice(2);
 const since = (args.find((a) => a.startsWith("--since=")) ?? "--since=30m").split("=")[1];
 const environment = (args.find((a) => a.startsWith("--env=")) ?? "--env=production").split("=")[1];
+/**
+ * Optional: scope to ONE deployment.
+ *
+ * Phase C5 needed this. `--environment preview` aggregates every preview deployment, so an A/B where
+ * both sides are previews silently blends them — the deploy-A medians came back carrying deploy-B
+ * traffic, which is exactly the kind of quietly-wrong number the two-deploy method exists to avoid.
+ * `vercel logs -d <url>` filters server-side, so each side is measured alone.
+ */
+const deployment = (args.find((a) => a.startsWith("--deployment=")) ?? "--deployment=").split("=")[1];
 
 if (environment !== "production" && environment !== "preview") {
   console.error("\n[perf:timing] --env must be production or preview.\n");
@@ -37,7 +46,18 @@ try {
     // magnitude more lines than any other phase, so a small limit fills up with it and silently drops
     // the phases you are actually measuring — which is exactly what happened to page.primary_queries
     // during C2 and briefly looked like the instrumentation had failed.
-    ["vercel", "logs", "--environment", environment, "--since", since, "--query", "timing", "--limit", "1000", "--json"],
+    [
+      "vercel",
+      "logs",
+      ...(deployment ? ["--deployment", deployment] : ["--environment", environment]),
+      "--since",
+      since,
+      "--query",
+      "timing",
+      "--limit",
+      "1000",
+      "--json",
+    ],
     { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, shell: process.platform === "win32" }
   );
 } catch (err) {

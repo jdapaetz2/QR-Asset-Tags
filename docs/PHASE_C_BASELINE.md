@@ -526,6 +526,114 @@ Gates: lint, typecheck, **1213 unit tests**, build, **79 security/RLS tests**, *
 The `media.signed_urls` timing phase now wraps the inbox signing, so the duration will be recorded
 once real media exists.
 
+## 9g. C5 result — deferred scan logging, and a corrected estimate
+
+### The headline, stated before the tables
+
+The change works and is safe: the `scan_events` insert no longer blocks the renter's page, the record
+still lands, exactly once, correctly attributed. **But the win on Production is much smaller than C0
+predicted, because C0's estimate of the write's cost was too high.** §9b put `scan.record` at
+71-104 ms. Measured on Production today, with the same instrument, it is **28.9 ms**. Deferring a
+29 ms write cannot save 100 ms, and the route measurement agrees that it did not.
+
+### Production, before and after (one promotion, same harness)
+
+| Route | Before | After | Δ | control-adjusted |
+|---|---|---|---|---|
+| **public scan, desktop** | **307 ms** | **290 ms** | **−17 ms** | **≈ −27 ms** |
+| **public scan, mobile** | **347 ms** | **274 ms** | **−73 ms** | **≈ −60 ms** |
+| public scan LCP, desktop | 438 ms | 448 ms | +10 ms | flat |
+| public scan LCP, mobile | 744 ms | 590 ms | −154 ms | noisy, see below |
+
+Controls (desktop) drifted **+10 ms** on average across the run — dashboard 559→546, assets 398→382,
+submissions 368→410, rentals 310→342, analytics 375→397, login 63→58 — which is what the
+"control-adjusted" column subtracts.
+
+**The desktop figure is the one to trust.** −27 ms adjusted matches the 28.9 ms the write actually
+costs, which is the strongest possible internal consistency check: the route got faster by exactly the
+thing that was removed from it. The mobile drop is larger than deferral alone can explain and rests on
+n=10 with a visibly wider LCP range; it is reported, not claimed.
+
+### Server phases on Production, after
+
+| Phase | median | on the response path? |
+|---|---|---|
+| `page.primary_queries` (resolve) | **128.3 ms** | yes — essential |
+| `page.secondary_queries` (documents ‖ profile) | **30.4 ms** | yes — essential |
+| `scan.record` | **28.9 ms** | **no — now runs after the response** |
+
+### Staging A/B — deploy A serial, deploy B changed, deployment-scoped
+
+| Phase | A (serial) | B (deferred + parallel) |
+|---|---|---|
+| `page.primary_queries` | 467.3 ms | 463.5 ms |
+| `page.secondary_queries` | 252.5 ms | 269.3 ms |
+| `scan.record` | 103.8 ms **blocking** | 123.5 ms **after the response** |
+
+Route level (staging desktop): **1042 ms → 960 ms (−82 ms)** against ~+9 ms control drift. Staging's
+database is slower, so its insert costs ~104 ms there and the saving is correspondingly larger. **The
+size of this win is simply the cost of the write in that environment** — which is the honest general
+statement, and the reason the Production and Staging numbers differ without either being wrong.
+
+### The parallelization delivered nothing measurable, and here is why
+
+`page.secondary_queries` did not improve — 252.5 → 269.3 ms on staging, i.e. noise in the wrong
+direction. The cause is visible in the data: on `/t/`, `auth.session` runs in **0.1-0.5 ms**. An
+anonymous renter carries no session cookie, so `getProfile()` returns without a network call, and
+`Promise.all([documents, profile])` is just `documents` with extra syntax.
+
+It is not wasted — a signed-in staff viewer *does* pay for the profile read, and for them the two reads
+now overlap. But **for the renter, the population this route exists for, the parallelization is worth
+approximately zero**, and no part of the measured improvement should be attributed to it.
+
+### Reliability — 20 scans on a disposable staging QR
+
+`npm run staging:scan-reliability -- --confirm --scans=20`, fail-closed on both the credential target
+and the site URL, creating and then removing its own organization:
+
+| Check | Result |
+|---|---|
+| scans returning a rendered page | **20 / 20** |
+| scan events recorded | **exactly 20** — no loss, no duplicates |
+| distinct rows | 20 unique ids |
+| attribution (asset / QR / organization) | **20 / 20** |
+| `ip_hash` hashed-or-absent, never an address | **0 suspect** |
+| **appearance delay after the last scan** | **291 ms** |
+
+E2E adds the same guarantee deterministically in CI against a real production build
+(`tests/e2e/public/scan-logging.spec.ts`): N scans → exactly N rows, and an unavailable tag records
+nothing at all.
+
+### Confirming `after()` actually runs after the response
+
+Three independent signals, because one would not settle it: the `scan.record` phase is still emitted on
+Production (the callback executes); the rows land, 20/20, on staging (the work completes); and the
+server stream closes ~29 ms sooner (the work is no longer inside the response). Row-level verification
+was run on **staging only** — confirming rows on Production would require production database reads
+beyond this phase's read-only timing scope.
+
+### Two measurement failures worth recording
+
+**The exactly-once test was vacuous, and a mutation proved it.** The first version reset the module
+between "requests" via `vi.resetModules()` — which also resets a module-level `let`, so a global-latch
+bug passed cleanly. Replacing the request-scoped latch with `const globalLatch = {…}` was still green.
+The mock was rewritten to model request scopes *within one module instance*; the same mutation now fails
+three tests. A test that cannot fail is worse than no test, because it is counted as protection.
+
+**`vercel logs --environment preview` blends every preview deployment.** The first deploy-A medians
+carried deploy-B traffic. `collect-timing.mjs` now takes `--deployment=<url>` and filters server-side,
+so each side of an A/B is measured alone. Separately, the 1000-entry limit **saturates on
+`auth.session`** — the C0 lesson recurring one size up: the first Production collection showed *no*
+scan phases at all and looked exactly like broken instrumentation, when the phases had simply been
+truncated out. Deployment scoping plus a tight window is what made them appear.
+
+### What this leaves as the scan route's real cost
+
+`page.primary_queries` is now **128 ms of the ~290 ms**, and it is the resolver's four sequential
+queries: `qr_links` → `assets` → `equipment_pages` → `organizations`. Only the first is a genuine
+dependency — the asset id is needed before the rest. **The last three could run together.** That is the
+next real bottleneck on this route, and it is recorded here rather than acted on, because it is not C5.
+
 ## 10. Top three measured bottlenecks
 
 **1. The Assets serial query chain — 274 ms, isolated.**
@@ -584,7 +692,7 @@ that exists, unlike a "page speed" number.
 | **C2 — Assets serial path** | recommend only if materially serial | **RUN FIRST.** 8 serial awaits, 274 ms isolated. Highest confidence, smallest blast radius. |
 | **C1 — repeated auth/profile/org** | recommend only if material | **RUN — now isolated (§9b): ≈146 ms per authenticated request is duplicated layout↔page work, and the 3:2:2:1 phase ratio was observed directly. Material by any reading. Ranks alongside C2.** |
 | **C3 — Submissions serial path** | recommend only if materially serial | **RUN.** 7 serial awaits, 542–626 ms, highest request count. |
-| **C5 — awaited scan logging** | only if it materially delays the public page | **RUN — now isolated (§9b): `scan.record` is 71–104 ms, awaited before render on the scan route. Material.** |
+| **C5 — awaited scan logging** | only if it materially delays the public page | **RAN — see §9g. Done, and the estimate was corrected downward: the write costs 28.9 ms on Production, not 71–104 ms, so the measured saving is ≈27 ms (desktop, control-adjusted), not ≈100 ms.** |
 
 | Slice | Decision |
 |---|---|

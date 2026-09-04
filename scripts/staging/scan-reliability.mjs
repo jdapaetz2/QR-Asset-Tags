@@ -101,9 +101,11 @@ async function setup() {
   const { error: orgErr } = await db.from("organizations").insert({
     id: created.organizationId,
     name: "Mulemark C5 scan-reliability probe — disposable",
+    // slug is NOT NULL UNIQUE; derive it from the generated id so two runs can never collide.
+    slug: `c5-scan-probe-${created.organizationId.slice(0, 8)}`,
     status: "active",
   });
-  if (orgErr) fail(`could not create the probe organization: ${orgErr.message}`);
+  if (orgErr) throw new Error(`could not create the probe organization: ${orgErr.message}`);
 
   const { error: assetErr } = await db.from("assets").insert({
     id: created.assetId,
@@ -112,7 +114,7 @@ async function setup() {
     asset_name: "C5 scan reliability probe",
     public_status: "public",
   });
-  if (assetErr) fail(`could not create the probe asset: ${assetErr.message}`);
+  if (assetErr) throw new Error(`could not create the probe asset: ${assetErr.message}`);
 
   const { error: pageErr } = await db.from("equipment_pages").insert({
     asset_id: created.assetId,
@@ -120,7 +122,7 @@ async function setup() {
     headline: "C5 scan reliability probe",
     is_published: true,
   });
-  if (pageErr) fail(`could not publish the probe page: ${pageErr.message}`);
+  if (pageErr) throw new Error(`could not publish the probe page: ${pageErr.message}`);
 
   const { data: qr, error: qrErr } = await db
     .from("qr_links")
@@ -133,7 +135,7 @@ async function setup() {
     })
     .select("id")
     .single();
-  if (qrErr || !qr?.id) fail(`could not create the probe QR: ${qrErr?.message ?? "no id returned"}`);
+  if (qrErr || !qr?.id) throw new Error(`could not create the probe QR: ${qrErr?.message ?? "no id returned"}`);
   created.qrLinkId = qr.id;
 }
 
@@ -156,7 +158,6 @@ async function run() {
   // ---- Issue the scans ------------------------------------------------------
   const url = `${base}/t/${created.shortCode}`;
   let rendered = 0;
-  const startedAt = Date.now();
   for (let i = 0; i < SCANS; i++) {
     const res = await fetch(url, { headers, redirect: "follow" });
     const body = await res.text();
@@ -164,6 +165,10 @@ async function run() {
     // scan total look "lost" when in fact nothing was ever eligible to be recorded.
     if (res.status === 200 && body.includes("C5 scan reliability probe")) rendered++;
   }
+  // Measured from the LAST scan, not the first: the scans are issued sequentially and take seconds in
+  // total, so "elapsed since the first scan" would report the loop's own duration as if it were write
+  // lag — a number that looks alarming and means nothing.
+  const lastScanAt = Date.now();
   record(`all ${SCANS} scans returned a rendered equipment page`, rendered === SCANS, `${rendered}/${SCANS}`);
 
   // ---- Wait for the deferred rows ------------------------------------------
@@ -175,10 +180,10 @@ async function run() {
       .from("scan_events")
       .select("id, qr_link_id, asset_id, organization_id, ip_hash")
       .eq("asset_id", created.assetId);
-    if (error) fail(`could not read scan_events: ${error.message}`);
+    if (error) throw new Error(`could not read scan_events: ${error.message}`);
     rows = data ?? [];
     if (rows.length >= SCANS) {
-      appearedMs = Date.now() - startedAt;
+      appearedMs = Date.now() - lastScanAt;
       break;
     }
     await sleep(POLL_INTERVAL_MS);
@@ -195,7 +200,7 @@ async function run() {
   record(
     `exactly ${SCANS} scan events recorded (no loss, no duplicates)`,
     rows.length === SCANS,
-    `${rows.length} rows${appearedMs !== null ? `, all present within ${appearedMs} ms of the first scan` : ", TIMED OUT waiting"}`
+    `${rows.length} rows${appearedMs !== null ? `, all present ${appearedMs} ms after the last scan` : ", TIMED OUT waiting"}`
   );
 
   const distinctIds = new Set(rows.map((r) => r.id));
