@@ -374,6 +374,80 @@ Raised to 1000. A truncating measurement tool that reports nothing looks identic
   measure it as the current latency source (production holds 3 organizations and small tables), so no
   pagination was smuggled into C2. It needs its own approved scope.
 
+## 9e. C3 result — Submissions parallelization
+
+Two deploys, one instrument, as in C2. Deploy A (`c3cc059`) wrapped the still-serial group; deploy B
+(`839670b`) parallelized six of the seven reads.
+
+### Server-side group duration
+
+| | `page.primary_queries` (submissions) |
+|---|---|
+| Serial (deploy A) | **248.5 ms** (195.6–407.6, n=12) |
+| Parallel (deploy B) | **82.3 ms** (59.5–124.8, n=20) |
+| **Change** | **−166 ms, −67 %** |
+
+### Route level
+
+| Route | Serial | Parallel | Δ |
+|---|---|---|---|
+| **submissions** (changed) | **531 ms** | **351 ms** | **−180 ms (−34 %)** |
+| submissions p75 | 562 ms | 405 ms | −157 ms |
+| submissions LCP | 728 ms | 436 ms | −292 ms |
+| dashboard (control) | 552 ms | 530 ms | −22 ms |
+| assets (control, C2 already applied) | 387 ms | 380 ms | −7 ms |
+| analytics (control) | 441 ms | 414 ms | −27 ms |
+| login (control, no auth) | 81 ms | 63 ms | −18 ms |
+| landing (control, static) | 36 ms | 32 ms | −4 ms |
+| **rentals (control)** | 344 ms | **490 ms** | **+146 ms** |
+
+**The group drop (−166 ms) and the route drop (−180 ms) agree to within 14 ms.** They measure the same
+thing from opposite ends — one inside the server, one from the browser — so their agreement is the
+strongest evidence here, stronger than either number alone.
+
+**One control went the wrong way and is reported, not hidden.** `/dashboard/rentals` rose 146 ms, with
+its range widening from 332–504 ms to 400–900 ms. Nothing in C3 touches that route. It is most likely a
+slow or contended instance during the second run. It does not undermine the result — the changed route
+moved −180 ms while five other controls moved −4 to −27 ms, and the independent group measurement
+agrees — but a control moving that much means this run was noisier than C2's, and the conclusion rests
+on the group number rather than the route number.
+
+Browser request count moved 43 → 47. No query was added; that count includes client prefetches and
+varies run to run.
+
+### What is dependent, and stayed that way
+
+Signed thumbnails cover only the **post-filter visible rows**, so signing cannot start until
+search/media/attention filtering has run. Batch of six, then filtering, then signing — the dependency is
+real and preserved. This is the structural difference from C2, where all eight reads were independent.
+
+### Export flags fail closed
+
+Every other secondary read may degrade to empty. This one may not: if the flags row is unreadable,
+`toExportFlags(null)` yields every flag false, so the button and the route both deny. A read failure
+must never grant access it could not confirm. Covered by `lib/export/access.test.ts` and
+`lib/export/types.test.ts`.
+
+### Deliberately not done
+
+- **The AppShell double count.** `countNewSubmissions` runs twice per request on this route — once in
+  the layout's nav badge, once in the page (46–75 ms). Dedupable with the same `cache()` C1 used, but
+  the fix is in shared layout code touching **every** authenticated route. C1 already deferred AppShell
+  to C8; widening C3 to save one count would be scope creep. **C8.**
+- **In-memory filtering.** `matchesSearch` spans joined asset fields **and the computed
+  `SUB-YYYY-XXXXXX` reference**, which is derived in application code and has no column to filter on;
+  the media test is a jsonb-array length check. Moving either into PostgREST risks changing which rows
+  match. Left alone.
+- **Unbounded row loading**, no `limit`. Same scale risk as Assets, same reasoning: not measurable at
+  current volume, needs its own scope.
+
+### The measurement's real limit
+
+The Production QA organization holds **effectively no submissions**. So C3 demonstrates round-trip
+elimination and nothing else — it says nothing about how this route behaves under real submission
+volume, where the unbounded row load and the in-memory filtering are the things that would matter.
+**These numbers must not be quoted as evidence that the inbox scales.**
+
 ## 10. Top three measured bottlenecks
 
 **1. The Assets serial query chain — 274 ms, isolated.**
