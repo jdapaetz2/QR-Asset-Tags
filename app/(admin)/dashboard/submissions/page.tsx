@@ -48,6 +48,7 @@ import {
 } from "@/lib/submissions/returns";
 import { submissionStatusTone } from "@/lib/ui/status";
 import { submissionStatusLabel } from "@/lib/ui/status-labels";
+import { time } from "@/lib/diagnostics/server-timing";
 
 const SUBMISSIONS_BUCKET = "submissions";
 
@@ -91,6 +92,10 @@ export default async function SubmissionsPage({
 
   const supabase = await createClient();
 
+  // Phase C3 Deploy A — the group wrapper goes in BEFORE parallelizing, so the serial duration is
+  // measured by the same instrument that will measure the parallel one (the C2 method).
+  // Inert unless MULEMARK_DIAGNOSTIC_TIMING=1.
+  const inboxGroup = await time("submissions", "page.primary_queries", async () => {
   // The inbox CSV is a customer data export: owner-enabled, customer-admin-only, and requires the
   // `submissions` type (Phase A3.1). Mirrors the route guard exactly so the button and the route
   // can never disagree.
@@ -179,6 +184,19 @@ export default async function SubmissionsPage({
     .from("form_submissions")
     .select("id", { count: "exact", head: true });
   const hasAnySubmissions = (totalCount ?? 0) > 0;
+
+    return { canExportSubmissions, assets, rows, rentedAssetIds, thumbs, newCount, hasAnySubmissions };
+  });
+
+  const {
+    canExportSubmissions,
+    assets,
+    rows,
+    rentedAssetIds,
+    thumbs,
+    newCount,
+    hasAnySubmissions,
+  } = inboxGroup;
 
   /**
    * Per-row view data, derived ONCE (Phase B2). The desktop table and the mobile card list are two
