@@ -306,6 +306,35 @@ export async function countSubmissions(assetId: string, formType?: string): Prom
   return count ?? 0;
 }
 
+export type ScanEventRow = {
+  qr_link_id: string;
+  asset_id: string;
+  organization_id: string;
+  ip_hash: string | null;
+};
+
+/**
+ * Every scan_events row for an asset (service read) — for the Phase C5 exactly-once assertions.
+ *
+ * The scan insert now runs AFTER the response via `after()`, so a caller must poll this rather than
+ * read it once: a row that has not appeared yet is not the same as a row that was lost.
+ */
+export async function readScanEvents(assetId: string): Promise<ScanEventRow[]> {
+  const { data, error } = await admin()
+    .from("scan_events")
+    .select("qr_link_id, asset_id, organization_id, ip_hash")
+    .eq("asset_id", assetId);
+  if (error) throw new Error(`readScanEvents: ${error.message}`);
+  return (data ?? []) as ScanEventRow[];
+}
+
+/** The active QR link id for an asset — so scan rows can be checked for correct attribution. */
+export async function readQrLinkId(assetId: string): Promise<string> {
+  const { data } = await admin().from("qr_links").select("id").eq("asset_id", assetId).maybeSingle();
+  if (!data?.id) throw new Error("readQrLinkId: no qr link for asset");
+  return data.id as string;
+}
+
 /** The asset's current active_rental_session_id (null when available) — for outbound "created a session". */
 export async function readAssetActiveSession(assetId: string): Promise<string | null> {
   const { data } = await admin().from("assets").select("active_rental_session_id").eq("id", assetId).maybeSingle();
