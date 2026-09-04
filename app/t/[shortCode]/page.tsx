@@ -18,7 +18,13 @@ export default async function PublicScanPage({
   const { shortCode } = await params;
   const supabase = createPublicClient();
 
-  const resolved = await resolvePublicEquipment(supabase, shortCode);
+  // Phase C5 deploy A — instrumentation only, no behaviour change. C0 measured this route at 294 ms
+  // above the dynamic floor and isolated only `scan.record` (71-104 ms) inside it. These two wrappers
+  // split the rest, and deploy B keeps the SAME instrument so the change is attributable rather than
+  // compared against a differently-measured baseline.
+  const resolved = await time("scan", "page.primary_queries", () =>
+    resolvePublicEquipment(supabase, shortCode)
+  );
   if (!resolved) return <UnavailableNotice />;
 
   // Best-effort scan log (never breaks rendering). Awaited here — C0 measured 294 ms of server time
@@ -32,12 +38,16 @@ export default async function PublicScanPage({
     })
   );
 
-  // Public documents (RLS restricts to public docs of this public asset).
-  const documents = await getPublicDocuments(supabase, resolved.assetId);
-
-  // Show the staff workflow link ONLY to an authenticated member of this asset's organization.
-  // getProfile() uses the cookie-scoped client; anon visitors resolve to null (no link, no leak).
-  const profile = await getProfile();
+  // Still SERIAL on purpose in deploy A. These two reads are independent, but parallelizing them is
+  // the deploy-B change; measuring them serially first is what makes that change attributable.
+  const [documents, profile] = await time("scan", "page.secondary_queries", async () => {
+    // Public documents (RLS restricts to public docs of this public asset).
+    const docs = await getPublicDocuments(supabase, resolved.assetId);
+    // Show the staff workflow link ONLY to an authenticated member of this asset's organization.
+    // getProfile() uses the cookie-scoped client; anon visitors resolve to null (no link, no leak).
+    const prof = await getProfile();
+    return [docs, prof] as const;
+  });
   const isStaffViewer = !!profile && profile.organization_id === resolved.organizationId;
 
   return (
