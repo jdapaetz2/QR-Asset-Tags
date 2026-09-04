@@ -49,6 +49,7 @@ import {
 import { submissionStatusTone } from "@/lib/ui/status";
 import { submissionStatusLabel } from "@/lib/ui/status-labels";
 import { time } from "@/lib/diagnostics/server-timing";
+import { logQueryFailure, throwOnEssentialFailure } from "@/lib/diagnostics/query-failure";
 
 const SUBMISSIONS_BUCKET = "submissions";
 
@@ -92,100 +93,117 @@ export default async function SubmissionsPage({
 
   const supabase = await createClient();
 
-  // Phase C3 Deploy A — the group wrapper goes in BEFORE parallelizing, so the serial duration is
-  // measured by the same instrument that will measure the parallel one (the C2 method).
-  // Inert unless MULEMARK_DIAGNOSTIC_TIMING=1.
+  const ROUTE = "/dashboard/submissions";
+
+  /**
+   * Phase C3. Six independent reads start together; the seventh — signed thumbnails — genuinely
+   * cannot, because it signs only the POST-FILTER visible rows. That dependency is real and preserved:
+   * batch of six, then in-memory filtering, then signing.
+   *
+   * BOUNDED: a fixed batch of six. The per-row signing below is unchanged and still covers visible
+   * rows only, never the whole organization.
+   */
   const inboxGroup = await time("submissions", "page.primary_queries", async () => {
-  // The inbox CSV is a customer data export: owner-enabled, customer-admin-only, and requires the
-  // `submissions` type (Phase A3.1). Mirrors the route guard exactly so the button and the route
-  // can never disagree.
-  const { data: exportOrg } = await supabase
-    .from("organizations")
-    .select(
-      "customer_exports_enabled, export_assets_enabled, export_qr_mapping_enabled, export_documents_enabled, export_submissions_enabled"
-    )
-    .eq("id", orgId)
-    .maybeSingle();
-  const exportFlags = toExportFlags(exportOrg);
-  const canExportSubmissions =
-    canCustomerUseExport({ role: profile.role, flags: exportFlags }) &&
-    isExportTypeEnabled(exportFlags, "submissions");
+    // The status filter is built before the batch so the row query can join it. resolveStatusFilter
+    // remains the single source of truth for the new+reviewed default.
+    let query = supabase
+      .from("form_submissions")
+      .select(
+        "id, created_at, form_type, status, submission_origin, submitted_by_name, submitted_by_email, submitted_by_phone, submission_data_json, media_urls, asset_id, asset:assets(asset_code, asset_name)"
+      )
+      .order("created_at", { ascending: false });
 
-  // RLS-scoped: only this organization's assets and submissions are visible.
-  const { data: assetData } = await supabase
-    .from("assets")
-    .select("id, asset_code, asset_name")
-    .order("asset_code", { ascending: true });
-  const assets = (assetData ?? []) as AssetOption[];
+    const statusFilter = resolveStatusFilter(filters.status);
+    if (statusFilter.mode === "single") {
+      query = query.eq("status", statusFilter.status);
+    } else {
+      query = query.in("status", statusFilter.statuses as readonly string[]);
+    }
+    if (filters.formType) query = query.eq("form_type", filters.formType);
+    if (filters.assetId) query = query.eq("asset_id", filters.assetId);
 
-  let query = supabase
-    .from("form_submissions")
-    .select(
-      "id, created_at, form_type, status, submission_origin, submitted_by_name, submitted_by_email, submitted_by_phone, submission_data_json, media_urls, asset_id, asset:assets(asset_code, asset_name)"
-    )
-    .order("created_at", { ascending: false });
+    const [exportRes, assetRes, rowsRes, sessionRes, newCountValue, totalRes] = await Promise.all([
+      // The inbox CSV is a customer data export: owner-enabled, customer-admin-only, and requires the
+      // `submissions` type (Phase A3.1). Mirrors the route guard exactly so the button and the route
+      // can never disagree.
+      supabase
+        .from("organizations")
+        .select(
+          "customer_exports_enabled, export_assets_enabled, export_qr_mapping_enabled, export_documents_enabled, export_submissions_enabled"
+        )
+        .eq("id", orgId)
+        .maybeSingle(),
+      // RLS-scoped: only this organization's assets are visible.
+      supabase.from("assets").select("id, asset_code, asset_name").order("asset_code", { ascending: true }),
+      query,
+      // Assets with an ACTIVE rental session — one batched RLS-scoped query, no N+1. Drives
+      // authoritative "Mark returned & resolve" eligibility (renter return + still Rented only).
+      supabase.from("asset_rental_sessions").select("asset_id").eq("status", "active"),
+      // Same shared helper as the nav badge, so the "X new" pill and the badge can never disagree.
+      countNewSubmissions(supabase),
+      // Total for the org (any status) → distinguishes "nothing yet" from "nothing matches".
+      supabase.from("form_submissions").select("id", { count: "exact", head: true }),
+    ]);
 
-  // No status → the Unresolved default (new + reviewed). "all_active" adds resolved;
-  // archived shows only when deliberately selected. resolveStatusFilter is the source of truth.
-  const statusFilter = resolveStatusFilter(filters.status);
-  if (statusFilter.mode === "single") {
-    query = query.eq("status", statusFilter.status);
-  } else {
-    query = query.in("status", statusFilter.statuses as readonly string[]);
-  }
-  if (filters.formType) query = query.eq("form_type", filters.formType);
-  if (filters.assetId) query = query.eq("asset_id", filters.assetId);
+    // ESSENTIAL. A failed query must never render as an empty inbox — indistinguishable to an operator
+    // from "no submissions", and this route did exactly that before C3. ./error.tsx already exists.
+    throwOnEssentialFailure(ROUTE, "submissions", rowsRes.error);
+    let rows = (rowsRes.data ?? []) as unknown as SubmissionRow[];
 
-  const { data } = await query;
-  let rows = (data ?? []) as unknown as SubmissionRow[];
+    // EXPORT FLAGS FAIL CLOSED, not "degrade to empty". toExportFlags(null) yields every flag false,
+    // so an unreadable row denies export rather than widening it. A read failure must never grant
+    // access it could not confirm.
+    logQueryFailure(ROUTE, "export_flags", exportRes.error);
+    const exportFlags = toExportFlags(exportRes.data);
+    const canExportSubmissions =
+      canCustomerUseExport({ role: profile.role, flags: exportFlags }) &&
+      isExportTypeEnabled(exportFlags, "submissions");
 
-  // Text search + "has attachments" run in memory over the RLS-scoped, org-bounded
-  // result. Search spans joined asset fields + the computed reference, which a single
-  // SQL filter can't; jsonb-array length (media) is also awkward in PostgREST.
-  if (filters.q) rows = rows.filter((r) => matchesSearch(r, filters.q));
-  if (filters.hasMedia) rows = rows.filter((r) => hasMedia(r.media_urls));
-  // attention=damage narrows to OPEN damage rows only (damage reports + damaged returns), never
-  // broadened to undamaged returns. Applied in memory over the already-RLS-scoped rows.
-  if (filters.attention === "damage") rows = rows.filter((r) => isOpenDamageRow(r));
+    logQueryFailure(ROUTE, "asset_options", assetRes.error);
+    const assets = (assetRes.data ?? []) as AssetOption[];
 
-  // Assets that still have an ACTIVE rental session (Phase 3C.2) — one batched RLS-scoped query, no N+1.
-  // Drives authoritative "Mark returned & resolve" eligibility (renter return + still Rented only).
-  const { data: activeSessions } = await supabase
-    .from("asset_rental_sessions")
-    .select("asset_id")
-    .eq("status", "active");
-  const rentedAssetIds = new Set(
-    ((activeSessions ?? []) as { asset_id: string | null }[])
-      .map((s) => s.asset_id)
-      .filter((id): id is string => Boolean(id))
-  );
+    // Text search + "has attachments" run in memory over the RLS-scoped, org-bounded result. Search
+    // spans joined asset fields + the computed reference, which a single SQL filter can't; jsonb-array
+    // length (media) is also awkward in PostgREST. Unchanged by C3 — see PHASE_C_BASELINE.
+    if (filters.q) rows = rows.filter((r) => matchesSearch(r, filters.q));
+    if (filters.hasMedia) rows = rows.filter((r) => hasMedia(r.media_urls));
+    // attention=damage narrows to OPEN damage rows only, never broadened to undamaged returns.
+    if (filters.attention === "damage") rows = rows.filter((r) => isOpenDamageRow(r));
 
-  // Signed image thumbnails for the VISIBLE rows only (post-filter) — never for the
-  // whole org. Private bucket; the storage SELECT policy scopes these to the caller's
-  // organization and the URLs are short-lived (3600s). Admin route only.
-  const thumbs = new Map<string, string>();
-  await Promise.all(
-    rows.map(async (r) => {
-      const path = firstImagePath(r.media_urls);
-      if (!path) return;
-      const { data: signed } = await supabase.storage
-        .from(SUBMISSIONS_BUCKET)
-        .createSignedUrl(path, 3600);
-      if (signed?.signedUrl) thumbs.set(r.id, signed.signedUrl);
-    })
-  );
+    logQueryFailure(ROUTE, "rental_sessions", sessionRes.error);
+    const rentedAssetIds = new Set(
+      ((sessionRes.data ?? []) as { asset_id: string | null }[])
+        .map((s) => s.asset_id)
+        .filter((id): id is string => Boolean(id))
+    );
 
-  // Same shared helper as the nav badge, so the "X new" pill and the badge can never disagree (Phase 3C.4).
-  const newCount = await countNewSubmissions(supabase);
+    logQueryFailure(ROUTE, "total_count", totalRes.error);
+    const hasAnySubmissions = (totalRes.count ?? 0) > 0;
 
-  // Total submissions for the org (any status) → distinguishes "nothing yet" from
-  // "nothing matches the current filters" for the empty state.
-  const { count: totalCount } = await supabase
-    .from("form_submissions")
-    .select("id", { count: "exact", head: true });
-  const hasAnySubmissions = (totalCount ?? 0) > 0;
+    // DEPENDENT — signed thumbnails for the VISIBLE rows only (post-filter), never the whole org.
+    // Private bucket; the storage SELECT policy scopes these to the caller's organization and the URLs
+    // are short-lived (3600s). This is why the batch above is six and not seven.
+    const thumbs = new Map<string, string>();
+    await Promise.all(
+      rows.map(async (r) => {
+        const path = firstImagePath(r.media_urls);
+        if (!path) return;
+        const { data: signed } = await supabase.storage
+          .from(SUBMISSIONS_BUCKET)
+          .createSignedUrl(path, 3600);
+        if (signed?.signedUrl) thumbs.set(r.id, signed.signedUrl);
+      })
+    );
 
-    return { canExportSubmissions, assets, rows, rentedAssetIds, thumbs, newCount, hasAnySubmissions };
+    return {
+      canExportSubmissions,
+      assets,
+      rows,
+      rentedAssetIds,
+      thumbs,
+      newCount: newCountValue,
+      hasAnySubmissions,
+    };
   });
 
   const {

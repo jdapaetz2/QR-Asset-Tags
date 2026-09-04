@@ -19,6 +19,7 @@ import "server-only";
 
 /** The reads a route can report on. A closed union, so a caller cannot label a log with user data. */
 export type QueryGroupRead =
+  // Assets (C2)
   | "assets"
   | "qr_links"
   | "equipment_pages"
@@ -26,7 +27,13 @@ export type QueryGroupRead =
   | "open_submissions"
   | "categories"
   | "covered_count"
-  | "organization_plan";
+  | "organization_plan"
+  // Submissions inbox (C3)
+  | "submissions"
+  | "asset_options"
+  | "new_count"
+  | "total_count"
+  | "export_flags";
 
 type SupabaseishError = { code?: string | null } | null | undefined;
 
