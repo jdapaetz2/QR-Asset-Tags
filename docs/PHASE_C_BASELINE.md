@@ -169,6 +169,9 @@ than estimated.
 
 ## 6. Action latency
 
+**Not measured in C0 — measured in C6.** See §9h and `scripts/perf/form-action.mjs`. The original C0
+text is kept below because the gap it records is what C6 had to close first.
+
 **Not measured in C0.** The harness measures navigation; action instrumentation (click → pending →
 response → final content, plus background email and scan-event completion) is not built. Acceptance
 check 9 is therefore **not met by C0**, and this is stated rather than papered over. It is the first
@@ -634,6 +637,98 @@ queries: `qr_links` → `assets` → `equipment_pages` → `organizations`. Only
 dependency — the asset id is needed before the rest. **The last three could run together.** That is the
 next real bottleneck on this route, and it is recorded here rather than acted on, because it is not C5.
 
+## 9h. C6 result — deferred notification delivery, and what the numbers do and do not support
+
+### The gate was not met, so C6 built the missing measurement first
+
+C6's condition was that C0 had measured notification handling as material. **It had not.** §6 records
+action latency as *"Not measured in C0 … the first task of whichever slice runs next"*, §13 defers C6
+for that reason, and `notify.send` had sat declared-but-unwired in the `TimingPhase` union since C0.
+Deploy 1 wired it and added `scripts/perf/form-action.mjs`, the action harness C0 never built.
+
+### Part A — the live path, measured
+
+| | Staging (Preview → dry-run) | Production (live Resend) |
+|---|---|---|
+| `notify.send` | **0 ms** (n=11) | **178.7 ms** median, 153.8–287.4 (n=10) |
+| outcomes | dry_run | **10 / 10 `sent`** |
+| POST, no media | 1720 ms | **1010 ms** |
+| click → confirm | 2389 ms | **1261 ms** |
+
+Staging's 0 ms is itself a finding: **Preview makes no provider request at all**, so staging can never
+measure this path — the environment rule refuses before a credential is read. The live numbers required
+setting the Production QA organization's recipient to Resend's sandbox `delivered@resend.dev`
+(operator-approved, reversible, and **cleared again afterwards** — `npm run production:qa-recipient`).
+
+**Inbox arrival delay was NOT measured.** The sandbox recipient accepts and simulates delivery; no human
+inbox is involved. Stated, not estimated.
+
+### The decision, and an honest account of what decided it
+
+The rule was pre-committed **before** any number arrived: choose B if the worst case remains reachable
+on the renter's success path. It does, *by construction* — 3 attempts × an 8 s timeout under a 15 s
+budget — so **the rule was determinative before the measurement existed**, and the measurement's real
+job was to size the win. That is said plainly rather than presenting the numbers as though they made
+the choice.
+
+The tail is now **verified rather than asserted**: `lib/notifications/send.test.ts` drives a stalled
+provider and shows a single send consuming **≥ 8 s** of the caller's request. Awaited, every one of
+those milliseconds was spent in front of a renter whose submission was *already committed*.
+
+**Path C was never on the table.** `EMAIL_DELIVERABILITY_RUNBOOK.md` had already decided against a
+durable notification table. Reopening that inside a latency phase is exactly the smuggling Part E
+forbids.
+
+### Part F — before and after on Production
+
+| No-media submission | Before | After (2 runs) | Δ |
+|---|---|---|---|
+| POST duration | **1010 ms** | **577 ms / 488 ms** | **≈ −480 ms** |
+| click → confirmation | **1261 ms** | **847 ms / 690 ms** | **≈ −490 ms** |
+
+**How much of that is C6, honestly.** The removed work is `notify.send` (**179–202 ms**, measured) plus
+two service-role reads inside `notifySubmission` — the organization's settings and the asset — which
+`notify.send` does not cover and which run ~32 ms each on this project. **That accounts for roughly
+250–270 ms.** The remaining ≈ 210 ms is **not attributed**: before and after were measured ~40 minutes
+apart on shared infrastructure with no interleaved control on this route. **The defensible claim is
+≈250–270 ms off the renter's confirmation, not 480 ms**, plus the removal of a ≥ 8 s tail.
+
+**The small-media shape was not measured after the change.** Both attempts were fully rate-limited —
+public intake allows only 3 media submissions per minute and 15 per hour, and the before-run had already
+spent most of the hour's allowance. It is recorded as not measured; the no-media shape is the
+comparable pair.
+
+### Reliability after deferral — the check that mattered most
+
+Re-measured on the promoted deployment: **6 submissions → 6 `notify.send` phases → 6 `sent` outcomes.**
+One notification per submission, none lost, none duplicated, provider ids and structured logs intact.
+`after()` demonstrably executes post-response on Vercel and the provider is genuinely contacted.
+
+### What changed, and what deliberately did not
+
+Unchanged: the deterministic idempotency key, bounded attempts and the 15 s budget, structured logging
+and provider ids, the Preview refusal, and the transaction boundary — rate limit → resolve → validate →
+upload → insert → reference → duplicate handling all still precede confirmation, and
+`revalidateSubmissionSurfaces()` still runs **before** the redirect. Only *when* the provider attempt
+happens changed.
+
+The boundary is no longer only a code-reading claim: tests assert a notification is scheduled **only**
+after a successful insert, and **not** on the duplicate (23505), insert-failure, rate-limited, or
+unresolvable-asset paths — a duplicate POST yields one submission and one logical email.
+
+**`after()` is not a durable queue, and no delivery guarantee is claimed.** If the invocation dies the
+attempt is lost. Both runbooks now say so. Deferring nonetheless *improves* the worst case: the 15 s
+budget could always collide with the function limit, and awaited, that collision turned a committed
+submission into a failed-looking page. The form routes now set `maxDuration = 60` so the deferred send
+has a defined window rather than an inherited default — validated by the deploy accepting it.
+
+### Recorded, not fixed
+
+`lib/inspections/submit.ts` does **not** call `revalidateSubmissionSurfaces()`, though a return
+inspection also creates a `status='new'` submission. If that is a real gap the admin nav badge goes
+stale after a return checklist. Noticed while wiring C6; changing it is a behaviour fix, not a latency
+one, so it is recorded here rather than folded in.
+
 ## 10. Top three measured bottlenecks
 
 **1. The Assets serial query chain — 274 ms, isolated.**
@@ -697,7 +792,7 @@ that exists, unlike a "page speed" number.
 | Slice | Decision |
 |---|---|
 | **C4 — per-row signed URLs** | **DEFER.** Submissions' request count implicates it, but the per-row cost was never isolated. Fold the measurement into C3; run C4 only if it survives. |
-| **C6 — notification in the form path** | **DEFER.** Structurally real (`await notifySubmission` before redirect) but **action latency was never measured**, so the rule's condition is unproven. Measure first. |
+| **C6 — notification in the form path** | **RAN — see §9h.** The measurement C0 lacked was built first: the live provider call was 178.7 ms median with a ≥8 s verified tail on the renter's success path. Deferred via `after()` (path B); ≈250–270 ms attributable off confirmation, tail removed. |
 | **C7 — polling** | **NARROW.** Hidden-tab polling is already correct. Only the visible-idle unconditional refresh is in scope. Low value; run after C1–C3. |
 | **C8 — perceived inertness** | **DEFER** until action latency exists. |
 | **C9 — database/indexes** | **SKIP.** C1–C3 have not been attempted; no hot query has been shown. Adding indexes now would be speculative — explicitly forbidden. |
