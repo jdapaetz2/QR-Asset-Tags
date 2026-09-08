@@ -34,4 +34,17 @@ describe("every submission mutation revalidates the surfaces", () => {
   it("public submission creation calls it", () => {
     expect(read("../forms/submit.ts")).toContain("revalidateSubmissionSurfaces()");
   });
+
+  /**
+   * Phase C6.1. The public guided RETURN checklist was missing from this list, and so was the call —
+   * the row committed and the admin's badge stayed stale until a manual reload. The hole in this test
+   * was the same shape as the defect, which is exactly why a "list of paths" test has to be complete.
+   *
+   * This is a source-text assertion and is deliberately NOT the proof: the behaviour is proved in
+   * lib/inspections/submit.test.ts, which fails if the call is removed. This one is the net that catches
+   * a NEW submission path being added without one.
+   */
+  it("public guided return checklist creation calls it", () => {
+    expect(read("../inspections/submit.ts")).toContain("revalidateSubmissionSurfaces()");
+  });
 });

@@ -9,13 +9,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // worse than not announcing one that does.
 
 // Hoisted so the vi.mock factories (also hoisted) can safely reference these mocks.
-const { checkRateLimit, resolvePublicEquipment, createPublicClient, scheduleSubmissionNotification, redirect } =
+const {
+  checkRateLimit,
+  resolvePublicEquipment,
+  createPublicClient,
+  scheduleSubmissionNotification,
+  revalidateSubmissionSurfaces,
+  redirect,
+} =
   vi.hoisted(() => ({
     checkRateLimit: vi.fn(),
     resolvePublicEquipment: vi.fn(),
     createPublicClient: vi.fn(),
     // Phase C6: the core now SCHEDULES the notification instead of awaiting it.
     scheduleSubmissionNotification: vi.fn(),
+    // Phase C6.1: asserted here so the damage/support paths are proved UNCHANGED by the return fix.
+    revalidateSubmissionSurfaces: vi.fn(),
     redirect: vi.fn((url: string) => {
       throw new Error(`REDIRECT:${url}`);
     }),
@@ -25,7 +34,7 @@ vi.mock("@/lib/ratelimit/limiter", () => ({ checkRateLimit }));
 vi.mock("@/lib/public/resolve", () => ({ resolvePublicEquipment }));
 vi.mock("@/lib/supabase/public", () => ({ createPublicClient }));
 vi.mock("@/lib/notifications/schedule", () => ({ scheduleSubmissionNotification }));
-vi.mock("@/lib/submissions/revalidate", () => ({ revalidateSubmissionSurfaces: vi.fn() }));
+vi.mock("@/lib/submissions/revalidate", () => ({ revalidateSubmissionSurfaces }));
 vi.mock("next/navigation", () => ({ redirect }));
 
 import { submitPublicForm, type PublicFormConfig } from "@/lib/forms/submit";
@@ -177,5 +186,55 @@ describe("C6 — a notification is scheduled only after a durable commit", () =>
 
     expect(result?.error).toBeTruthy();
     expect(scheduleSubmissionNotification).not.toHaveBeenCalled();
+  });
+});
+
+describe("C6.1 — damage/support revalidation behaviour is unchanged", () => {
+  /**
+   * The return-checklist fix must not have altered the paths that were already correct. These mirror the
+   * assertions in lib/inspections/submit.test.ts so the two public submission cores are held to one rule.
+   */
+  it("revalidates exactly once on a successful insert", async () => {
+    const { client } = makeClient({ error: null });
+    createPublicClient.mockReturnValue(client);
+
+    const { redirectedTo } = await run(formWithPhoto());
+
+    expect(revalidateSubmissionSurfaces).toHaveBeenCalledTimes(1);
+    expect(redirectedTo).toContain("/thanks?ref=SUB-");
+  });
+
+  it("does not revalidate on a duplicate submit", async () => {
+    const { client } = makeClient({ error: { code: "23505" } });
+    createPublicClient.mockReturnValue(client);
+
+    await run(formWithPhoto());
+
+    expect(revalidateSubmissionSurfaces).not.toHaveBeenCalled();
+  });
+
+  it("does not revalidate on an insert failure", async () => {
+    const { client } = makeClient({ error: { code: "23503" } });
+    createPublicClient.mockReturnValue(client);
+
+    await run(formWithPhoto());
+
+    expect(revalidateSubmissionSurfaces).not.toHaveBeenCalled();
+  });
+
+  it("does not revalidate when rate limited", async () => {
+    checkRateLimit.mockResolvedValue({ allowed: false, shortCodeHash: "h" });
+
+    await run(formWithPhoto());
+
+    expect(revalidateSubmissionSurfaces).not.toHaveBeenCalled();
+  });
+
+  it("does not revalidate when the asset is unavailable", async () => {
+    resolvePublicEquipment.mockResolvedValue(null);
+
+    await run(formWithPhoto());
+
+    expect(revalidateSubmissionSurfaces).not.toHaveBeenCalled();
   });
 });

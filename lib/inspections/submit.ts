@@ -16,6 +16,7 @@ import { RATE_LIMITED_MESSAGE } from "@/lib/ratelimit/policy";
 import { logAbuseEvent } from "@/lib/ratelimit/log";
 import { scheduleSubmissionNotification } from "@/lib/notifications/schedule";
 import { submissionReference } from "@/lib/submissions/inbox";
+import { revalidateSubmissionSurfaces } from "@/lib/submissions/revalidate";
 import { resolveReturnTemplate } from "@/lib/inspections/resolve";
 import { getAssetReturnTemplate } from "@/lib/inspections/org-templates-data";
 import {
@@ -234,6 +235,17 @@ export async function submitReturnInspectionCore(
     submissionId,
     reference,
   });
+
+  // A completed return checklist is a `status='new'` submission exactly like a damage or support report,
+  // so the authenticated surfaces must be marked stale here too (Phase C6.1). This call was missing: the
+  // row committed, the renter saw their confirmation, and the admin's nav badge and inbox went on showing
+  // the old count until a full browser reload — which is precisely the reload this helper exists to make
+  // unnecessary. Mirrors lib/forms/submit.ts.
+  //
+  // Placement is deliberate: after a SUCCESSFUL insert only (every failure path above has already
+  // returned or redirected), and independent of the notification — `scheduleSubmissionNotification`
+  // merely registers an `after()` callback and returns, so neither this nor the redirect waits on email.
+  revalidateSubmissionSurfaces();
 
   redirect(`${thanks}?ref=${reference}`);
 }

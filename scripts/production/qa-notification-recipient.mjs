@@ -32,14 +32,29 @@ const QA_ORG_ID = "c0000000-0000-4000-8000-00000000c0a1";
 
 /**
  * Resend's sandbox address: accepted and simulated by the provider, delivered to no human inbox.
- * An allowlist of one — see refusal 3.
+ * The default, and the right choice whenever provider timing is all that is being measured.
  */
 const SANDBOX_RECIPIENT = "delivered@resend.dev";
+
+/**
+ * Our own support mailbox — the ONLY real inbox this tool may target, added in C6.1 so a human can
+ * confirm an email actually lands, with the right From/Reply-To and a working link. Provider evidence
+ * alone cannot show that.
+ *
+ * **This stays an allowlist.** Adding a second entry does not make it a free-text field: a customer's
+ * address is still unreachable through this script, which is the property that matters. Anything not
+ * listed here is refused.
+ */
+const SUPPORT_RECIPIENT = "support@mulemark.io";
+
+const ALLOWED_RECIPIENTS = new Set([SANDBOX_RECIPIENT, SUPPORT_RECIPIENT]);
 
 const args = process.argv.slice(2);
 const wantsSet = args.includes("--set");
 const wantsClear = args.includes("--clear");
 const confirmed = args.includes("--confirm");
+/** `--support` targets the real support mailbox; the default stays the no-human sandbox. */
+const wantsSupport = args.includes("--support");
 
 function fail(message, hints = []) {
   console.error(`\n[qa-recipient] ${message}`);
@@ -65,7 +80,12 @@ try {
   fail(err.message);
 }
 
-const nextValue = wantsSet ? SANDBOX_RECIPIENT : null;
+const nextValue = wantsSet ? (wantsSupport ? SUPPORT_RECIPIENT : SANDBOX_RECIPIENT) : null;
+// Belt and braces: the value is chosen from constants above, so this can only fail if someone edits the
+// constants to something unapproved — which is precisely when a refusal is worth having.
+if (nextValue !== null && !ALLOWED_RECIPIENTS.has(nextValue)) {
+  fail(`refusing to set an address that is not on the allowlist.`);
+}
 
 console.log(`\n[qa-recipient] target verified: PRODUCTION (host: ${target.host})`);
 console.log(`[qa-recipient] organization: ${QA_ORG_ID} (QA only)`);
@@ -89,7 +109,7 @@ if (!before) fail(`the QA organization ${QA_ORG_ID} does not exist on this proje
 
 // Refuse to overwrite an address this script did not set. If something other than the sandbox is
 // present, a human put it there and it is not this tool's to clobber.
-if (before.notification_email && before.notification_email !== SANDBOX_RECIPIENT) {
+if (before.notification_email && !ALLOWED_RECIPIENTS.has(before.notification_email)) {
   fail(
     "the QA organization already has a notification address that this script did not set.",
     ["Refusing to overwrite it. Inspect and clear it by hand if that is genuinely intended."]
