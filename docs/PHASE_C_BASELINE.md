@@ -779,7 +779,8 @@ authorized admin opened this specific image. The mechanism is covered genericall
 suite and the evidence E2E; this particular object was not opened in-session, and that is stated rather
 than implied.
 
-**Real mailbox — provider side verified, arrival is the operator's to confirm:**
+**Real mailbox — verified end to end** (send and provider evidence here, arrival confirmed by the
+operator from the received message):
 
 | | |
 |---|---|
@@ -790,9 +791,30 @@ than implied.
 | `notify.send` | 207.7 ms |
 | sent at | 14:15:47 PT |
 
-**Arrival, `From`, `Reply-To`, the reference and the link are NOT verified here** — that mailbox cannot
-be read from this session. Provider-to-inbox delay is therefore **unrecorded**, not estimated. This is an
-operator verification, and it is **not** a claim that inbox delivery is guaranteed.
+**Arrival CONFIRMED by the operator** from the delivered message's own headers:
+
+| Checked | Result |
+|---|---|
+| delivered to | `support@mulemark.io` |
+| `From` | `Mulemark <notifications@notify.mulemark.io>` — exactly as specified |
+| `Reply-To` | `support@mulemark.io` |
+| subject | *New damage report — PROD-QA-PERF* |
+| reference in the body | `SUB-2026-137FCA` — **matches the provider log exactly** |
+| link | `https://mulemark.io/dashboard/submissions/…` — correct host, and the id's first six hex characters are the reference, so the two are consistent by construction |
+| duplicates | **none** — one message, one `Message-ID` |
+| **provider → inbox** | **≈ 3 s** (provider accepted 14:15:47.9 PT; the receiving server logged it at 14:15:51 PT) |
+
+**Authentication passed on every mechanism**, which is the first live confirmation of what
+`EMAIL_DELIVERABILITY_RUNBOOK.md` describes: `dkim=pass` with **`d=notify.mulemark.io`** (strict
+alignment with the From domain), a second `dkim=pass` from the sending infrastructure, `spf=pass` on the
+return path under `send.notify.mulemark.io`, and `dmarc=pass`.
+
+DMARC remains `p=NONE` — monitoring only. The runbook's stated precondition for even *considering*
+enforcement is consistent alignment evidence over a meaningful period; **this is one message, which is
+not that.** No policy change is proposed here.
+
+**This is an operator verification of one message. It is NOT a claim that inbox delivery is guaranteed** —
+`after()` is not a durable queue, and a lost invocation still loses the attempt silently.
 
 **The QA recipient is cleared.** The Production QA organization is back to sending nothing.
 
