@@ -16,6 +16,7 @@ import {
 import { notificationIdempotencyKey } from "@/lib/notifications/idempotency";
 import { sendNotificationEmail } from "@/lib/notifications/send";
 import { logNotificationEvent } from "@/lib/notifications/log";
+import { time } from "@/lib/diagnostics/server-timing";
 
 /**
  * Notification orchestration. Reads an organization's notification settings with
@@ -117,11 +118,16 @@ export async function notifySubmission(input: {
       recipient: org.notification_email,
     });
 
-    const result = await sendNotificationEmail(
-      org.notification_email,
-      content,
-      {},
-      { idempotencyKey, replyTo: serverEnv.notificationReplyToEmail }
+    // Phase C6 instrumentation. Inert unless MULEMARK_DIAGNOSTIC_TIMING=1; returns the same result and
+    // rethrows nothing new. This is the "provider acceptance" number C0 never took — the whole basis for
+    // deciding whether this call belongs on the renter's critical path.
+    const result = await time("notify", "notify.send", () =>
+      sendNotificationEmail(
+        org.notification_email as string,
+        content,
+        {},
+        { idempotencyKey, replyTo: serverEnv.notificationReplyToEmail }
+      )
     );
     logNotificationEvent({
       event: "submission",
@@ -200,11 +206,16 @@ export async function notifyTagRequestStatus(input: {
       recipient: org.notification_email,
     });
 
-    const result = await sendNotificationEmail(
-      org.notification_email,
-      content,
-      {},
-      { idempotencyKey, replyTo: serverEnv.notificationReplyToEmail }
+    // Phase C6 instrumentation. Inert unless MULEMARK_DIAGNOSTIC_TIMING=1; returns the same result and
+    // rethrows nothing new. This is the "provider acceptance" number C0 never took — the whole basis for
+    // deciding whether this call belongs on the renter's critical path.
+    const result = await time("notify", "notify.send", () =>
+      sendNotificationEmail(
+        org.notification_email as string,
+        content,
+        {},
+        { idempotencyKey, replyTo: serverEnv.notificationReplyToEmail }
+      )
     );
     logNotificationEvent({
       event: "tag_status",

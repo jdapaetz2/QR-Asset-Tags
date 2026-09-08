@@ -30,6 +30,9 @@ export type TimingPhase =
   | "page.secondary_queries"
   | "media.signed_urls"
   | "scan.record"
+  // Declared in C0, wired for the first time in C6. The pre-commit boundary is deliberately NOT given
+  // its own phase: it is derived as (POST duration − notify.send) from the action harness, which avoids
+  // restructuring a data-committing path with early returns purely to instrument it.
   | "notify.send"
   | "request.total";
 
