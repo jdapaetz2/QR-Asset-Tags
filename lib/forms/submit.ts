@@ -13,7 +13,7 @@ import { cleanupUploadedMedia } from "@/lib/forms/cleanup";
 import { checkRateLimit } from "@/lib/ratelimit/limiter";
 import { RATE_LIMITED_MESSAGE, type RateLimitAction } from "@/lib/ratelimit/policy";
 import { logAbuseEvent } from "@/lib/ratelimit/log";
-import { notifySubmission } from "@/lib/notifications/notify";
+import { scheduleSubmissionNotification } from "@/lib/notifications/schedule";
 import { submissionReference } from "@/lib/submissions/inbox";
 import { revalidateSubmissionSurfaces } from "@/lib/submissions/revalidate";
 
@@ -220,9 +220,12 @@ export async function submitPublicForm(
     cleanup: "none",
   });
 
-  // Best-effort email alert. notifySubmission swallows its own errors, so a notification failure can
-  // never block the submission OR delete its committed media (the media stays regardless).
-  await notifySubmission({
+  // Best-effort email alert, scheduled to run AFTER the response (Phase C6). The row above is already
+  // committed and IS the system of record; the email is an alert about a record that already exists.
+  // Measured live on Production, the provider call was 178.7 ms median on the renter's critical path,
+  // with a 15 s worst case sitting on their success path. It never blocked the submission and it still
+  // does not; it no longer delays the confirmation either. See lib/notifications/schedule.ts.
+  scheduleSubmissionNotification({
     organizationId: resolved.organizationId,
     formType: config.formType,
     assetId: resolved.assetId,

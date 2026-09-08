@@ -120,8 +120,28 @@ customer. The same key goes out on every attempt, so it cannot.
 Transient failures (429, 5xx, network, timeout) are retried up to 3 attempts with capped exponential
 backoff, honouring a capped `Retry-After`.
 
-Notifications are awaited **inside** the renter's submission request, so attempt-level timeouts alone are
-not enough — three slow attempts plus backoff could hold that request long enough to hit the platform's
+**Phase C6 changed WHEN this runs, not whether it may fail.** The provider call is now scheduled with
+`after()` and executes once the renter's response has been sent (`lib/notifications/schedule.ts`).
+Measured live on Production before the change, the call was **178.7 ms median** (153.8–287.4 ms) on the
+renter's critical path — and, far more importantly, a stalled provider costs **at least 8 s** of that
+request (verified by test in `lib/notifications/send.test.ts`). That ceiling sat on the renter's
+*success* path, for an email about a submission that was already durably committed.
+
+**`after()` is NOT a durable queue.** If the invocation dies — a platform fault, or the route's max
+duration expiring mid-send — the attempt is lost, with no retry and no dead-letter. **Delivery is not
+guaranteed and must never be described as guaranteed.** The system of record is the committed
+`form_submissions` row, which the admin inbox reads; the email is an alert about a record that already
+exists. The failure mode is therefore a missing email beside a present submission — visible in the
+inbox, and in the `[notifications]` logs.
+
+The form routes set `export const maxDuration = 60` precisely so the deferred send has a defined window
+rather than whichever platform default applies: 60 s comfortably contains ~1 s of upload + insert plus
+the full 15 s notification budget.
+
+The budget below still applies, and still matters — it now bounds work that no longer delays anyone.
+
+Notifications were previously awaited **inside** the renter's submission request, so attempt-level
+timeouts alone were not enough — three slow attempts plus backoff could hold that request long enough to hit the platform's
 function limit and turn a best-effort email into a failed submission. `NOTIFICATION_TOTAL_BUDGET_MS`
 (15 s) bounds the whole call: an attempt is never started if it cannot finish inside the budget, and the
 result is reported as `failed_transient` with `failureClass="budget_exhausted"`.

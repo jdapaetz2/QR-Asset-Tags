@@ -3,14 +3,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Behavioral tests for the public submit core's Phase A4 guarantees, with the DB/storage/limiter mocked:
 // no upload after a preflight reject; cleanup after insert failure; PK-conflict → cleanup + idempotent
 // success; committed submission survives a notification step (media never deleted after commit).
+//
+// Phase C6 adds the transaction-boundary guarantee that deferral makes load-bearing: a notification is
+// scheduled ONLY once a row is durably committed. Announcing a submission that does not exist would be
+// worse than not announcing one that does.
 
 // Hoisted so the vi.mock factories (also hoisted) can safely reference these mocks.
-const { checkRateLimit, resolvePublicEquipment, createPublicClient, notifySubmission, redirect } =
+const { checkRateLimit, resolvePublicEquipment, createPublicClient, scheduleSubmissionNotification, redirect } =
   vi.hoisted(() => ({
     checkRateLimit: vi.fn(),
     resolvePublicEquipment: vi.fn(),
     createPublicClient: vi.fn(),
-    notifySubmission: vi.fn(),
+    // Phase C6: the core now SCHEDULES the notification instead of awaiting it.
+    scheduleSubmissionNotification: vi.fn(),
     redirect: vi.fn((url: string) => {
       throw new Error(`REDIRECT:${url}`);
     }),
@@ -19,7 +24,7 @@ const { checkRateLimit, resolvePublicEquipment, createPublicClient, notifySubmis
 vi.mock("@/lib/ratelimit/limiter", () => ({ checkRateLimit }));
 vi.mock("@/lib/public/resolve", () => ({ resolvePublicEquipment }));
 vi.mock("@/lib/supabase/public", () => ({ createPublicClient }));
-vi.mock("@/lib/notifications/notify", () => ({ notifySubmission }));
+vi.mock("@/lib/notifications/schedule", () => ({ scheduleSubmissionNotification }));
 vi.mock("@/lib/submissions/revalidate", () => ({ revalidateSubmissionSurfaces: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect }));
 
@@ -64,7 +69,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   checkRateLimit.mockResolvedValue({ allowed: true, retryAfter: 0, shortCodeHash: "sch" });
   resolvePublicEquipment.mockResolvedValue({ organizationId: "org1", assetId: "asset1" });
-  notifySubmission.mockResolvedValue(undefined);
+  scheduleSubmissionNotification.mockReturnValue(undefined);
 });
 
 describe("preflight rate limit", () => {
@@ -113,6 +118,64 @@ describe("committed submission survives notification", () => {
     const { redirectedTo } = await run(formWithPhoto());
     expect(redirectedTo).toContain("/forms/short1/damage/thanks");
     expect(remove).not.toHaveBeenCalled();
-    expect(notifySubmission).toHaveBeenCalledTimes(1);
+    // C6: the notification is now scheduled rather than awaited. The guarantee under test is unchanged —
+    // committed media is never deleted on account of the notification step.
+    expect(scheduleSubmissionNotification).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("C6 — a notification is scheduled only after a durable commit", () => {
+  /**
+   * The transaction boundary, asserted from the outside. Each of these paths ends without a committed
+   * row, so each must announce nothing: an email naming a submission the admin cannot open is a support
+   * call, and on the duplicate path a second email for one logical submission is a duplicate to a real
+   * customer.
+   */
+  it("schedules on a successful insert", async () => {
+    const { client } = makeClient({ error: null });
+    createPublicClient.mockReturnValue(client);
+    const { redirectedTo } = await run(formWithPhoto());
+
+    expect(redirectedTo).toContain("/thanks?ref=SUB-");
+    expect(scheduleSubmissionNotification).toHaveBeenCalledTimes(1);
+    // Exactly the immutable values derived during the request — no client, no FormData, no request handle.
+    const arg = scheduleSubmissionNotification.mock.calls[0][0] as Record<string, unknown>;
+    expect(arg).toMatchObject({ organizationId: "org1", assetId: "asset1", formType: "damage_report" });
+    expect(String(arg.reference)).toMatch(/^SUB-\d{4}-[0-9A-F]{6}$/);
+  });
+
+  it("does NOT schedule when the insert fails", async () => {
+    const { client } = makeClient({ error: { code: "23503" } });
+    createPublicClient.mockReturnValue(client);
+    const { result } = await run(formWithPhoto());
+
+    expect(result?.error).toBeTruthy();
+    expect(scheduleSubmissionNotification).not.toHaveBeenCalled();
+  });
+
+  it("does NOT schedule on a duplicate submit — one submission, one logical email", async () => {
+    const { client } = makeClient({ error: { code: "23505" } });
+    createPublicClient.mockReturnValue(client);
+    const { redirectedTo } = await run(formWithPhoto());
+
+    // The renter still gets their confirmation; the original submission already announced itself.
+    expect(redirectedTo).toContain("/thanks?ref=SUB-");
+    expect(scheduleSubmissionNotification).not.toHaveBeenCalled();
+  });
+
+  it("does NOT schedule when the rate limiter rejects the request", async () => {
+    checkRateLimit.mockResolvedValue({ allowed: false, shortCodeHash: "h" });
+    const { result } = await run(formWithPhoto());
+
+    expect(result?.error).toBe(RATE_LIMITED_MESSAGE);
+    expect(scheduleSubmissionNotification).not.toHaveBeenCalled();
+  });
+
+  it("does NOT schedule when the asset is not publicly resolvable", async () => {
+    resolvePublicEquipment.mockResolvedValue(null);
+    const { result } = await run(formWithPhoto());
+
+    expect(result?.error).toBeTruthy();
+    expect(scheduleSubmissionNotification).not.toHaveBeenCalled();
   });
 });

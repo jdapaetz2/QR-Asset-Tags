@@ -14,7 +14,7 @@ import { resolveSubmissionId } from "@/lib/forms/submit";
 import { checkRateLimit } from "@/lib/ratelimit/limiter";
 import { RATE_LIMITED_MESSAGE } from "@/lib/ratelimit/policy";
 import { logAbuseEvent } from "@/lib/ratelimit/log";
-import { notifySubmission } from "@/lib/notifications/notify";
+import { scheduleSubmissionNotification } from "@/lib/notifications/schedule";
 import { submissionReference } from "@/lib/submissions/inbox";
 import { resolveReturnTemplate } from "@/lib/inspections/resolve";
 import { getAssetReturnTemplate } from "@/lib/inspections/org-templates-data";
@@ -224,7 +224,9 @@ export async function submitReturnInspectionCore(
     limiter: "allowed", fileCount: allFiles.length, totalBytes, cleanup: "none",
   });
 
-  await notifySubmission({
+  // Best-effort email alert, after the response (Phase C6) — same reasoning as lib/forms/submit.ts:
+  // the inspection row is committed above and is the system of record.
+  scheduleSubmissionNotification({
     organizationId: resolved.organizationId,
     formType: "return_checklist",
     assetId: resolved.assetId,

@@ -8,7 +8,12 @@ the staging-specific record and safeguards in
 
 ## Guiding guarantee
 
-**Email is always best-effort and never blocks a submission.** A public form, a submission, or a status
+**Email is always best-effort and never blocks a submission.** Since Phase C6 it does not *delay* the
+renter's confirmation either: the provider call runs after the response via `after()`. A consequence
+worth knowing before an incident — if the serverless invocation dies mid-send, that attempt is simply
+lost, because `after()` is not a durable queue. **A submission with no email is expected behaviour under
+failure, not a lost submission.** Confirm the row in the admin inbox, then read the `[notifications]`
+log line for the outcome. A public form, a submission, or a status
 update succeeds regardless of the notification outcome. Notification code is wrapped so it can never throw
 into the request path.
 

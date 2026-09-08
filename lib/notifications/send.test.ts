@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { notificationIdempotencyKey } from "@/lib/notifications/idempotency";
 import {
   MAX_ATTEMPTS,
+  NOTIFICATION_TIMEOUT_MS,
   NOTIFICATION_TOTAL_BUDGET_MS,
   parseRetryAfter,
   sendNotificationEmail,
@@ -334,5 +335,52 @@ describe("total time budget (B4)", () => {
     const result = await sendNotificationEmail("owner@yard.test", CONTENT, { sleep: async () => {}, now });
     expect(result.attempts).toBe(MAX_ATTEMPTS);
     expect(result.failureClass).toBe("http_500");
+  });
+});
+
+describe("C6 — how long a renter could actually be made to wait", () => {
+  /**
+   * C6 chose to defer this call under a TAIL-BASED rule, so the tail has to be demonstrated rather than
+   * asserted. This measures the simulated wall clock a single send can consume.
+   *
+   * The stub advances the clock by the PER-ATTEMPT timeout on each attempt, which is what a hung
+   * provider connection costs before the abort fires. The claim being substantiated is deliberately the
+   * conservative one — **a single stalled attempt alone costs `NOTIFICATION_TIMEOUT_MS`** — because a
+   * stub cannot faithfully reproduce the budget-capped shortening of later attempts, and a number
+   * inflated by that artifact would be a number this suite had invented.
+   */
+  it("a stalled provider consumes seconds of the caller's request, not milliseconds", async () => {
+    configure();
+    let clock = 0;
+    const now = () => clock;
+    fetchMock.mockImplementation(async () => {
+      // A connection that hangs until the AbortController fires.
+      clock += NOTIFICATION_TIMEOUT_MS;
+      const err = new Error("aborted");
+      err.name = "AbortError";
+      throw err;
+    });
+
+    const result = await sendNotificationEmail("owner@yard.test", CONTENT, {
+      sleep: async (ms: number) => {
+        clock += ms;
+      },
+      now,
+    });
+
+    expect(result.outcome).toBe("failed_transient");
+    // Awaited, every one of these milliseconds was spent in front of a renter who had already submitted.
+    expect(clock).toBeGreaterThanOrEqual(NOTIFICATION_TIMEOUT_MS);
+    expect(clock).toBeGreaterThanOrEqual(8_000);
+  });
+
+  /**
+   * The constants ARE the tail. If someone later raises them, the wait a renter can experience grows
+   * with them, and this is the test that should force that to be a deliberate decision.
+   */
+  it("pins the constants that define the tail", () => {
+    expect(NOTIFICATION_TIMEOUT_MS).toBe(8_000);
+    expect(MAX_ATTEMPTS).toBe(3);
+    expect(NOTIFICATION_TOTAL_BUDGET_MS).toBe(15_000);
   });
 });
