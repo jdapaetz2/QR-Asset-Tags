@@ -216,6 +216,33 @@ async function run() {
       .catch(() => false);
     record("the new row appears in the unresolved inbox", rowVisible, reference);
 
+    // ---- DIAGNOSTIC ONLY. This is not, and is never reported as, proof. -----
+    // A reload refetches everything and so passes whether or not revalidation works. Its only job here
+    // is to separate two very different explanations of a failure above:
+    //   * the row is not visible to this admin at all  → a data/authorization problem;
+    //   * the row is visible after a reload but not before → the admin's CLIENT router cache is stale,
+    //     which server-side revalidatePath in someone else's request cannot reach.
+    // Recorded as an observation, never as a PASS.
+    if (!rowVisible || after !== before + 1) {
+      await admin.reload({ waitUntil: "domcontentloaded" });
+      const afterReload = await readBadge(admin);
+      const rowAfterReload = await admin
+        .getByText(reference)
+        .first()
+        .isVisible()
+        .catch(() => false);
+      console.log(
+        `  [DIAGNOSTIC — not proof] after a hard reload: badge ${afterReload}, row visible ${rowAfterReload}`
+      );
+      console.log(
+        `  [DIAGNOSTIC — not proof] ${
+          rowAfterReload && afterReload === before + 1
+            ? "data IS correct and authorized; the staleness is in the admin's client router cache."
+            : "the data itself did not reach this admin — investigate before blaming caching."
+        }`
+      );
+    }
+
     // ---- Exactly one submission ---------------------------------------------
     const { data: rows, error } = await db
       .from("form_submissions")

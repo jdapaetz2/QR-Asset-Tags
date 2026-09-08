@@ -722,12 +722,110 @@ budget could always collide with the function limit, and awaited, that collision
 submission into a failed-looking page. The form routes now set `maxDuration = 60` so the deferred send
 has a defined window rather than an inherited default — validated by the deploy accepting it.
 
-### Recorded, not fixed
+### C6.1 — the recorded gap, fixed, and the two blocked items closed
+
+**The revalidation gap is fixed.** `lib/inspections/submit.ts` now calls `revalidateSubmissionSurfaces()`
+after a successful insert and before the redirect, matching `lib/forms/submit.ts`. It is independent of
+the notification: `scheduleSubmissionNotification` only registers an `after()` callback, so neither the
+refresh nor the redirect waits on email.
+
+Two things had let it through, and both are closed: there was **no test file for that core at all**, and
+`revalidate.test.ts` listed the staff-return and damage/support paths but **not** this one — a coverage
+hole the same shape as the defect. A new behavioural suite asserts revalidate-and-notify exactly once on
+a committed insert and **neither** on the duplicate, insert-failure, rate-limited, unavailable-asset,
+upload-failure and validation-failure paths. **Verified by mutation:** removing the call fails two tests.
+
+### Staging runtime freshness — the check FAILED, and the reason matters for C7
+
+Run twice on staging with the fix deployed, admin navigating by **clicking in-app links only**:
+
+| | |
+|---|---|
+| starting badge | 58 |
+| after the renter's return checklist, via soft navigation | **58 — unchanged** |
+| the new row in the inbox, via soft navigation | **not present** |
+| *(diagnostic only, not proof)* after a hard reload | **59, row present** |
+
+**The submission is correct, committed and authorized to that admin** — the reload proves that. What
+does not happen is the already-open admin tab noticing. The renter submits from a different browser, and
+server-side `revalidatePath()` executed in *the renter's request* cannot invalidate *another browser's*
+client-side router cache; the payload the admin's tab holds (including the prefetched nav layout that
+carries the badge) predates the submission.
+
+**So C6.1's acceptance check 1 is met in the server-side sense and NOT in the runtime sense.** The fix is
+still right — it restores parity with every other submission path and keeps server-side caches
+consistent — but it must not be described as making a cross-device submission appear in an open admin
+tab. **That is exactly C7's territory** (the visible-idle `router.refresh()`), and it is recorded here
+rather than acted on.
+
+The hard reload above was used **only to distinguish "not visible to this admin" from "visible but
+stale"**. It is never reported as proof that revalidation works, because a reload passes either way.
+
+### The two C6 items that were blocked
+
+**Small media — now verified**, against the QA asset only, one submission:
+
+| | |
+|---|---|
+| reference | `SUB-2026-47C13B` |
+| files / bytes | **1 file, 70 bytes**, `cleanup: "none"` — the media was retained, so the insert succeeded |
+| notification | **exactly one**, `sent`, HTTP 200, `attempts: 1` |
+| `notify.send` | 182.1 ms |
+| POST / click→confirm | **704 ms / 949 ms** |
+
+**Those two timings are one observation each and are not a performance comparison** — they are recorded
+to show the media path behaves, not to compare with anything. *Not directly verified:* that an
+authorized admin opened this specific image. The mechanism is covered generically by the storage-policy
+suite and the evidence E2E; this particular object was not opened in-session, and that is stated rather
+than implied.
+
+**Real mailbox — provider side verified, arrival is the operator's to confirm:**
+
+| | |
+|---|---|
+| reference | `SUB-2026-137FCA` (no media, QA asset) |
+| recipient | `s***@mulemark.io` — the support mailbox, set and **cleared immediately** afterwards |
+| outcome | **exactly one** `sent`, HTTP 200, `attempts: 1` |
+| provider id | `635a9335-631a-4703-8cd1-ece54fd09c90` |
+| `notify.send` | 207.7 ms |
+| sent at | 14:15:47 PT |
+
+**Arrival, `From`, `Reply-To`, the reference and the link are NOT verified here** — that mailbox cannot
+be read from this session. Provider-to-inbox delay is therefore **unrecorded**, not estimated. This is an
+operator verification, and it is **not** a claim that inbox delivery is guaranteed.
+
+**The QA recipient is cleared.** The Production QA organization is back to sending nothing.
+
+### A rate-limiter behaviour worth knowing before the next QA run
+
+The action harness kept reporting media submissions as rate-limited. The cause is not a bug: public
+intake keys its bucket on `(action, ip, short code)` — **one bucket shared by both shapes** — while
+applying the stricter media rules (3/min, 15/hour) whenever a file is attached. Running both shapes
+therefore spends the scarce media allowance on no-media samples. The harness gained `--shape` and
+`--no-warmup` so a single deliberate event can be issued without consuming four. **The limiter itself was
+not touched.**
+
+### Unchanged by C6.1
+
+Email remains **best-effort**; `after()` remains **not a durable queue**, so a dead invocation loses the
+attempt; the **committed row remains the system of record** and the admin inbox reads it. Idempotency,
+retry limits, provider logging, the rate limiter, media limits, schema and RLS are untouched, and the
+`after()` architecture is unchanged.
+
+**The C6 performance claim is unchanged: ≈250–270 ms attributable off confirmation, plus removal of the
+provider-failure tail. C6.1 adds no performance claim of its own.**
+
+### Recorded, not fixed — *resolved in C6.1, see above*
 
 `lib/inspections/submit.ts` does **not** call `revalidateSubmissionSurfaces()`, though a return
 inspection also creates a `status='new'` submission. If that is a real gap the admin nav badge goes
 stale after a return checklist. Noticed while wiring C6; changing it is a behaviour fix, not a latency
 one, so it is recorded here rather than folded in.
+
+**Resolved in C6.1.** The call was genuinely missing and is now in place. The C6.1 section above also
+records what the fix does *not* buy: it restores server-side consistency, but it cannot refresh an admin
+tab that is already open on another device — which turned out to be a client-router-cache matter, and
+belongs to C7.
 
 ## 10. Top three measured bottlenecks
 

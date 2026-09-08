@@ -48,6 +48,22 @@ const SAMPLES = Math.max(1, Math.min(50, Number(flag("samples", "5")) || 5));
  * media requests available in an hour. Space the two runs, or the second one measures rejections.
  */
 const INTERVAL_MS = Math.max(0, Number(flag("interval-ms", "22000")) || 22000);
+/**
+ * Which shape(s) to run: `both` (default), `no-media`, or `media`.
+ *
+ * Public intake keys its bucket on (action, ip, short code) — ONE bucket shared by both shapes — while
+ * applying the stricter media rules whenever a file is attached. So running both shapes spends the
+ * scarce media allowance (3/min, 15/hour) on no-media samples too. When a single deliberate event is
+ * what is wanted, running one shape is the difference between a measurement and a rate-limit rejection.
+ */
+const SHAPE = flag("shape", "both");
+/**
+ * Skip the discarded warm-up submission. The warm-up exists so a median is not inflated by first-request
+ * compilation, but it is a REAL submission: it writes a row and, on a configured organization, triggers a
+ * real notification. For a single deliberate QA event ("submit exactly one thing and look at it"), a
+ * warm-up would double both.
+ */
+const NO_WARMUP = args.includes("--no-warmup");
 const IS_PROD = MODE === "production";
 const PRODUCTION_QA = args.includes("--production-qa");
 
@@ -169,19 +185,28 @@ async function measureOne(context, withMedia) {
 const browser = await chromium.launch();
 const context = await browser.newContext({ extraHTTPHeaders: BYPASS });
 
+const ALL_SHAPES = [
+  { key: "no media", withMedia: false, id: "no-media" },
+  { key: "small media (1 image)", withMedia: true, id: "media" },
+];
+const SHAPES = SHAPE === "both" ? ALL_SHAPES : ALL_SHAPES.filter((s) => s.id === SHAPE);
+if (SHAPES.length === 0) refuse(`--shape must be one of: both, no-media, media (got "${SHAPE}").`);
+
 const rows = [];
-for (const shape of [
-  { key: "no media", withMedia: false },
-  { key: "small media (1 image)", withMedia: true },
-]) {
+for (const shape of SHAPES) {
   const post = [];
   const confirm = [];
   let failures = 0;
   const errors = [];
 
   // One discarded warm-up per shape: the first submit pays route compilation and connection setup, and
-  // including it would inflate the median with a cost no real renter pays twice.
-  await measureOne(context, shape.withMedia);
+  // including it would inflate the median with a cost no real renter pays twice. Skipped with
+  // --no-warmup when the run must produce exactly one submission (and, on a configured organization,
+  // exactly one email).
+  if (!NO_WARMUP) {
+    await measureOne(context, shape.withMedia);
+    await sleep(INTERVAL_MS);
+  }
 
   let limited = 0;
   for (let i = 0; i < SAMPLES; i++) {
