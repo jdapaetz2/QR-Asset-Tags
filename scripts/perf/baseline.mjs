@@ -94,6 +94,27 @@ const DEVICE_CLASSES = [
   { key: "desktop", descriptor: devices["Desktop Chrome"], cpuThrottle: 1 },
 ];
 
+/**
+ * Optional route filter, e.g. `--routes=dashboard` (Phase C9.1).
+ *
+ * WHY IT EXISTS AND WHY IT FILTERS BOTH LISTS. A dashboard-only benchmark must not visit `/t/<code>`,
+ * because every view of that route WRITES a `scan_events` row — which is precisely one of the inputs the
+ * dashboard then reads back over a 7-day window. Left unfiltered, the benchmark would inflate the thing
+ * it is measuring, a little more on every run.
+ *
+ * So the filter is applied to the PUBLIC list as well as the authenticated one, and when no public route
+ * survives, the anonymous block is skipped in full. The guarantee is structural rather than a convention
+ * someone has to remember.
+ */
+const ROUTE_FILTER = (() => {
+  const raw = (args.find((a) => a.startsWith("--routes=")) ?? "").split("=").slice(1).join("=").trim();
+  if (!raw) return null;
+  const keys = raw.split(",").map((k) => k.trim()).filter(Boolean);
+  return keys.length > 0 ? new Set(keys) : null;
+})();
+
+const keepRoute = (route) => ROUTE_FILTER === null || ROUTE_FILTER.has(route.key);
+
 const PUBLIC_ROUTES = [
   { key: "landing", path: "/", role: "anon" },
   { key: "public scan", path: `/t/${SHORT_CODE}`, role: "anon" },
@@ -107,6 +128,26 @@ const AUTH_ROUTES = [
   { key: "rentals", path: "/dashboard/rentals", role: "customer_admin" },
   { key: "analytics", path: "/dashboard/analytics", role: "customer_admin" },
 ];
+
+if (ROUTE_FILTER !== null) {
+  const known = new Set([...PUBLIC_ROUTES, ...AUTH_ROUTES].map((r) => r.key));
+  const unknown = [...ROUTE_FILTER].filter((k) => !known.has(k));
+  if (unknown.length > 0) {
+    console.error(
+      `
+[perf:${MODE}] REFUSING TO RUN
+
+  --routes named ${unknown.join(", ")}, which is not a route key.
+` +
+        `  Known keys: ${[...known].join(", ")}.
+
+` +
+        `  Refusing rather than silently measuring nothing — an empty run that exits 0 reads as a pass.
+`
+    );
+    process.exit(1);
+  }
+}
 
 const run = createRun({
   environment: MODE,
@@ -206,10 +247,14 @@ async function signIn(context, cls) {
 for (const cls of DEVICE_CLASSES) {
   run.note(`--- ${cls.key} ---`);
 
-  // Public routes: anonymous context.
-  {
+  // Public routes: anonymous context. Skipped ENTIRELY when the filter leaves none — that is what keeps
+  // a dashboard-only run from ever touching /t/ and writing a scan_events row.
+  const publicRoutes = PUBLIC_ROUTES.filter(keepRoute);
+  if (publicRoutes.length === 0) {
+    run.note(`${cls.key}: public routes skipped by --routes — no anonymous context, no scan events written`);
+  } else {
     const ctx = await newContext(cls);
-    for (const route of PUBLIC_ROUTES) {
+    for (const route of publicRoutes) {
       for (let i = 0; i < WARMUP_NAVIGATIONS; i++) await measure({ context: ctx, cls, route, phase: "warmup-discarded" });
       let ok = 0;
       for (let i = 0; i < WARM_SAMPLES; i++) {
@@ -231,7 +276,8 @@ for (const cls of DEVICE_CLASSES) {
     if (!authed) {
       run.fail(`${cls.key}: authenticated routes NOT measured — sign-in failed. Coverage is incomplete.`);
     } else {
-      for (const route of AUTH_ROUTES) {
+      const authRoutes = AUTH_ROUTES.filter(keepRoute);
+      for (const route of authRoutes) {
         for (let i = 0; i < WARMUP_NAVIGATIONS; i++) await measure({ context: ctx, cls, route, phase: "warmup-discarded" });
         let ok = 0;
         for (let i = 0; i < WARM_SAMPLES; i++) {

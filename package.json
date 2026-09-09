@@ -35,6 +35,7 @@
     "staging:scan-reliability":"node --env-file=.env.staging.local scripts/staging/scan-reliability.mjs",
     "staging:qa-password": "node --env-file=.env.staging.local scripts/staging/reset-staging-qa-passwords.mjs",
     "perf:baseline:production": "node --env-file-if-exists=.env.production-perf.local scripts/perf/baseline.mjs --env=production",
+    "perf:dashboard:production": "node --env-file=.env.production-perf.local scripts/perf/baseline.mjs --env=production --routes=dashboard",
     "perf:feedback:staging": "node --env-file=.env.staging.local scripts/perf/perceived-feedback.mjs",
     "perf:inbox:staging": "node --env-file=.env.staging.local scripts/perf/inbox-freshness.mjs",
     "perf:action:staging": "node --env-file=.env.staging.local scripts/perf/form-action.mjs --env=staging",
