@@ -849,6 +849,109 @@ records what the fix does *not* buy: it restores server-side consistency, but it
 tab that is already open on another device — which turned out to be a client-router-cache matter, and
 belongs to C7.
 
+## 9i. C7 result — efficient submission freshness
+
+### The gate, and what was actually costing the requests
+
+C0 §11 recorded the behaviour without counting it: the inbox *"polls a full-page `router.refresh()`
+every 30 s while visible whether or not anything changed"*. §13 scoped C7 to exactly that. Measured on
+staging over **90 idle seconds**, with every request classified:
+
+| Tab state | total | rsc | prefetch | freshness | other |
+|---|---|---|---|---|---|
+| **visible, before** | **81** | 3 | **63** | 0 | 15 |
+| hidden, before | **0** | 0 | 0 | 0 | 0 |
+
+The three RSC requests are the three 30-second refreshes — the configured interval, confirmed by
+observation rather than by reading the prop. **The other 78 requests are their consequence**: each
+full re-render re-primed every row link (~21 prefetches) and re-ran the client's Supabase work. The
+hidden zero confirms C0's claim that hidden-tab polling was already correct, so that machinery was kept
+rather than rewritten.
+
+### After
+
+| Tab state | total | rsc | prefetch | freshness | other |
+|---|---|---|---|---|---|
+| **visible, after** | **1** | **0** | **0** | 1 | 0 |
+| hidden, after | **0** | 0 | 0 | 0 | 0 |
+
+**81 → 1 request** in 90 idle seconds. One tiny JSON read per minute replaces three full page renders and
+the 78 requests they dragged behind them.
+
+*Transferred bytes are not quoted.* `content-length` is absent on most of these responses, so the
+harness's byte total is not trustworthy and reporting it would be inventing precision.
+
+### Part E — answered by the measurement, and the answer was "change nothing"
+
+Row links were the obvious suspect: the inbox renders an `Open` link per row on **both** the desktop
+table and the mobile card, so a 25-row page can prime ~50 targets. The instinct was to set
+`prefetch={false}`.
+
+**The measurement said not to.** Prefetch went **63 → 0 with no prefetch change at all**, because the
+prefetch storm was never independent — it was downstream of the refresh. Disabling row prefetch now
+would slow the first click into every submission and save nothing, so **prefetch is untouched**, and it
+is untouched on evidence rather than on preference.
+
+### Part B — why the token has two fields
+
+| Candidate | What it misses |
+|---|---|
+| `max(created_at)` alone | every status change — a row moving `new → reviewed` in another tab |
+| `count(status='new')` alone | an arrival that coincides with a resolution: the count is identical while a new row sits unseen |
+
+The token is **both**: `{ newCount, latest }`. Each covers the other's blind spot, and both values are
+already on screen for the same admin, so it discloses nothing new. `countNewSubmissions()` is reused, so
+the badge, the pill and the token cannot disagree.
+
+### Part C — the endpoint
+
+`GET /api/submissions/freshness`, `no-store`, RLS-scoped client, **service role never imported** (a test
+asserts it). It returns exactly two fields and never a row. **Every refusal returns the identical
+`{ ok: false }`** — signed-out, platform owner, org-less and suspended are indistinguishable, so the
+endpoint cannot be used to probe whether an organization exists or is suspended.
+
+### Part D — notify, don't reload
+
+Unchanged token → **nothing happens at all**. Changed → a quiet `N new — Load` beside Refresh; rows
+reload only on click. Interval 60 s, hidden pause, one timer, capped backoff, and polling stops after
+four consecutive failures rather than hammering a broken endpoint.
+
+**The bulk-selection hazard is removed by construction, not by detection.** Nothing reloads without a
+click, so a poll cannot land mid-selection — which is a stronger guarantee than trying to notice a
+pending mutation and skip that tick.
+
+### Testing the behaviour rather than the source
+
+This project has no jsdom or testing-library, and the local habit for component tests is asserting on
+source text — which cannot show that a timer stopped. The poll loop was therefore extracted to
+`lib/ui/freshness-poller.ts` with its timers and fetch **injected**, and the component reduced to a thin
+adapter over it, so the acceptance properties are exercised: zero polls while hidden, never a second
+timer across toggles, unchanged token → no callback, no overlapping requests, backoff, give-up, and a
+late response after teardown changing nothing.
+
+### Runtime verification — and this is what closes C6.1
+
+C6.1 ended on a real limitation: server-side revalidation cannot refresh an admin's already-open tab.
+C7 is the mechanism that can. Verified end to end on staging, with the admin sitting on the inbox and
+**no reload and no navigation**:
+
+> `[PASS] an open inbox surfaces a new submission by itself` — offered **"1 new — Load"**
+> `[PASS] clicking Load brings the new row into the inbox`
+
+**A limitation that remains, stated plainly:** this makes the **inbox page** self-aware. The nav badge
+lives in the shared layout, and in a tab parked on a *different* page it still shows a stale count until
+navigation or reload. C7 did not fix that and does not claim to.
+
+### A flaky assertion, and why it is recorded
+
+The "clicking Load" check failed, passed, failed, passed. The tempting reading was a product defect. A
+diagnostic settled it instead: on every passing run the stamp moved `Updated 1 min ago → just now` and
+reference-shaped rows went `120 → 122`. The refresh was working every time — the inbox renders each
+reference **twice** (desktop table plus mobile card, one hidden by CSS), so `.first()` was resolving to
+the hidden copy and waiting for it to become visible. Filtering to a visible match made it deterministic;
+two consecutive clean runs confirm it. **An intermittent test is not evidence of an intermittent
+product**, and the difference is worth the diagnostic it took to establish.
+
 ## 10. Top three measured bottlenecks
 
 **1. The Assets serial query chain — 274 ms, isolated.**
@@ -913,7 +1016,7 @@ that exists, unlike a "page speed" number.
 |---|---|
 | **C4 — per-row signed URLs** | **DEFER.** Submissions' request count implicates it, but the per-row cost was never isolated. Fold the measurement into C3; run C4 only if it survives. |
 | **C6 — notification in the form path** | **RAN — see §9h.** The measurement C0 lacked was built first: the live provider call was 178.7 ms median with a ≥8 s verified tail on the renter's success path. Deferred via `after()` (path B); ≈250–270 ms attributable off confirmation, tail removed. |
-| **C7 — polling** | **NARROW.** Hidden-tab polling is already correct. Only the visible-idle unconditional refresh is in scope. Low value; run after C1–C3. |
+| **C7 — polling** | **RAN — see §9i.** Visible-idle traffic **81 → 1 request** per 90 s; hidden stayed at zero. Prefetch fell 63 → 0 as a consequence of removing the refresh, so no prefetch change was made. An open inbox now notices a new submission by itself. |
 | **C8 — perceived inertness** | **DEFER** until action latency exists. |
 | **C9 — database/indexes** | **SKIP.** C1–C3 have not been attempted; no hot query has been shown. Adding indexes now would be speculative — explicitly forbidden. |
 
