@@ -43,6 +43,11 @@ export async function expectNoHorizontalOverflow(page: Page): Promise<void> {
  */
 export async function answerConditionStage(page: Page, opts: { damage: boolean }): Promise<void> {
   const groups = page.locator('fieldset[id^="field-"]:visible');
+  // Wait for the stage to actually be on screen before counting. This helper used to count immediately,
+  // which silently returned ZERO groups whenever anything stood between navigation and the form — it
+  // then answered nothing and the failure surfaced later, somewhere else. Phase C8's route-level loading
+  // skeleton made that latent race visible; the assumption was always unsafe.
+  await groups.first().waitFor({ state: "visible", timeout: 30_000 });
   const count = await groups.count();
   for (let i = 0; i < count; i++) {
     const group = groups.nth(i);

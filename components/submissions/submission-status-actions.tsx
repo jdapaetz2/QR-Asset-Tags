@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 
 import {
   setSubmissionStatus,
@@ -8,6 +9,7 @@ import {
 } from "@/lib/submissions/actions";
 import { nextStatusActions } from "@/lib/submissions/status-actions";
 import { submissionStatusActionClasses } from "@/lib/ui/status";
+import { statusPendingLabel } from "@/lib/ui/pending-labels";
 
 /**
  * Direct, state-aware status buttons (Phase 3C.4) — replaces the status <select>. One form, one shared action
@@ -28,7 +30,7 @@ export function SubmissionStatusActions({
   redirectTo: string;
 }) {
   const action = setSubmissionStatus.bind(null, submissionId);
-  const [state, formAction, pending] = useActionState<SubmissionActionState, FormData>(action, {});
+  const [state, formAction] = useActionState<SubmissionActionState, FormData>(action, {});
   const actions = nextStatusActions(status, { hideResolve });
 
   return (
@@ -36,28 +38,7 @@ export function SubmissionStatusActions({
       <form action={formAction} className="flex flex-wrap gap-2 sm:justify-end">
         <input type="hidden" name="redirect_to" value={redirectTo} />
         {actions.map((a) => (
-          <button
-            key={a.status}
-            type="submit"
-            name="status"
-            value={a.status}
-            disabled={pending}
-            onClick={
-              a.tone === "archive"
-                ? (e) => {
-                    if (
-                      !window.confirm(
-                        "Archive this submission? It will leave the active queue."
-                      )
-                    )
-                      e.preventDefault();
-                  }
-                : undefined
-            }
-            className={submissionStatusActionClasses(a.status)}
-          >
-            {a.label}
-          </button>
+          <StatusButton key={a.status} status={a.status} label={a.label} tone={a.tone} />
         ))}
       </form>
       {state.error ? (
@@ -66,5 +47,52 @@ export function SubmissionStatusActions({
         </p>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * One status button, reading `useFormStatus` so it knows not just THAT the form is submitting but WHICH
+ * button was pressed — the hook exposes the submitted `FormData`, and each button carries its target as
+ * `name="status"`.
+ *
+ * Phase C8. Acknowledgement was already prompt (measured at 57 ms) but indiscriminate: pressing Resolve
+ * greyed out Resolve, Reviewed and Archive identically, so the operator could see that something was
+ * happening but not what. Only the pressed button now takes the pending wording; the others simply
+ * disable, which is still the correct duplicate-submit guard.
+ *
+ * The label says "Resolving…", never "Resolved". The server has not answered yet.
+ */
+function StatusButton({
+  status,
+  label,
+  tone,
+}: {
+  status: string;
+  label: string;
+  tone?: string;
+}) {
+  const { pending, data } = useFormStatus();
+  const submittingThis = pending && data?.get("status") === status;
+  const pendingLabel = statusPendingLabel(status);
+
+  return (
+    <button
+      type="submit"
+      name="status"
+      value={status}
+      disabled={pending}
+      aria-busy={submittingThis}
+      onClick={
+        tone === "archive"
+          ? (e) => {
+              if (!window.confirm("Archive this submission? It will leave the active queue."))
+                e.preventDefault();
+            }
+          : undefined
+      }
+      className={submissionStatusActionClasses(status)}
+    >
+      {submittingThis && pendingLabel ? pendingLabel : label}
+    </button>
   );
 }

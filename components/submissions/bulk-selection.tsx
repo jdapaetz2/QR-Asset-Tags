@@ -12,6 +12,7 @@ import {
 
 import { bulkSetSubmissionStatus } from "@/lib/submissions/actions";
 import { submissionStatusActionClasses } from "@/lib/ui/status";
+import { bulkPendingLabel } from "@/lib/ui/pending-labels";
 
 type SelectionContextValue = {
   selected: Set<string>;
@@ -115,11 +116,17 @@ function BulkToolbar() {
   const { selected, viewingArchived, clear, setSelected } = useSelection();
   const [pending, startTransition] = useTransition();
   const [banner, setBanner] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
+  /**
+   * Which bulk action is running (Phase C8). "Working…" was truthful but told an operator nothing about
+   * what they had started — and on a long selection the scope is exactly what they want confirmed.
+   */
+  const [running, setRunning] = useState<{ status: string; count: number } | null>(null);
   const count = selected.size;
 
   function run(target: string, confirmMsg?: string) {
     if (confirmMsg && !window.confirm(confirmMsg)) return;
     const ids = [...selected];
+    setRunning({ status: target, count: ids.length });
     startTransition(async () => {
       const res = await bulkSetSubmissionStatus(target, ids);
       if (res.ok) {
@@ -128,6 +135,7 @@ function BulkToolbar() {
       } else {
         setBanner({ text: res.error, tone: "error" });
       }
+      setRunning(null);
     });
   }
 
@@ -202,7 +210,11 @@ function BulkToolbar() {
           Clear selection
         </button>
       </div>
-      {pending ? <p className="text-xs text-muted-foreground">Working…</p> : null}
+      {pending ? (
+        <p role="status" className="text-xs text-muted-foreground">
+          {running ? bulkPendingLabel(running.status, running.count) : "Working…"}
+        </p>
+      ) : null}
       {banner ? (
         <p
           role="status"

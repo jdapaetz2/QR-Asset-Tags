@@ -19,12 +19,21 @@ export function ActionButton({
   children,
   variant = "primary",
   confirm,
+  pendingLabel,
 }: {
   action: ActionFn;
   children: React.ReactNode;
   variant?: "primary" | "outline" | "destructive";
   /** When set, a native confirm must be accepted before the action runs. */
   confirm?: string;
+  /**
+   * Wording while the action runs, e.g. "Publishing…" (Phase C8). Optional and defaulting to the idle
+   * children, so every existing caller keeps its current behaviour until it opts in — the button was
+   * already disabled while pending, which is the duplicate-submit guard; this only adds the words.
+   *
+   * Must describe work in progress, never an outcome: the server has not answered yet.
+   */
+  pendingLabel?: React.ReactNode;
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     action,
@@ -45,12 +54,13 @@ export function ActionButton({
       <button
         type="submit"
         disabled={pending}
+        aria-busy={pending}
         className={`${base} ${styles}`}
         onClick={(e) => {
           if (confirm && !window.confirm(confirm)) e.preventDefault();
         }}
       >
-        {children}
+        {pending && pendingLabel ? pendingLabel : children}
       </button>
       {state.error ? (
         <span role="alert" className="text-xs text-destructive">
