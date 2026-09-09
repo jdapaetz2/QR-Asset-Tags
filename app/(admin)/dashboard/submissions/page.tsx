@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireOrgContext } from "@/lib/auth/session";
 import { canCustomerUseExport } from "@/lib/export/access";
 import { isExportTypeEnabled, toExportFlags } from "@/lib/export/types";
-import { countNewSubmissions } from "@/lib/submissions/counts";
+import { countNewSubmissions, latestSubmissionAt } from "@/lib/submissions/counts";
 import { currentListHref, withReturnTo } from "@/lib/nav/return-to";
 import { RelativeTime } from "@/components/relative-time";
 import {
@@ -40,6 +40,7 @@ import { ListCard, ListCardGroup, ListCardMeta } from "@/components/ui/list-card
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { RefreshControls } from "@/components/refresh-controls";
+import { FRESHNESS_POLL_MS } from "@/lib/ui/freshness";
 import { MarkReturnedResolveButton } from "@/components/mark-returned-resolve-button";
 import { ReturnDoneNotice } from "@/components/return-done-notice";
 import {
@@ -123,7 +124,8 @@ export default async function SubmissionsPage({
     if (filters.formType) query = query.eq("form_type", filters.formType);
     if (filters.assetId) query = query.eq("asset_id", filters.assetId);
 
-    const [exportRes, assetRes, rowsRes, sessionRes, newCountValue, totalRes] = await Promise.all([
+    const [exportRes, assetRes, rowsRes, sessionRes, newCountValue, totalRes, latestValue] =
+      await Promise.all([
       // The inbox CSV is a customer data export: owner-enabled, customer-admin-only, and requires the
       // `submissions` type (Phase A3.1). Mirrors the route guard exactly so the button and the route
       // can never disagree.
@@ -144,6 +146,9 @@ export default async function SubmissionsPage({
       countNewSubmissions(supabase),
       // Total for the org (any status) → distinguishes "nothing yet" from "nothing matches".
       supabase.from("form_submissions").select("id", { count: "exact", head: true }),
+      // Second half of the C7 freshness token. Joins the existing parallel group rather than adding a
+      // serial await — this page's whole point since C3 is that its independent reads run together.
+      latestSubmissionAt(supabase),
     ]);
 
     // ESSENTIAL. A failed query must never render as an empty inbox — indistinguishable to an operator
@@ -208,6 +213,7 @@ export default async function SubmissionsPage({
       rentedAssetIds,
       thumbs,
       newCount: newCountValue,
+      latest: latestValue,
       hasAnySubmissions,
     };
   });
@@ -219,6 +225,7 @@ export default async function SubmissionsPage({
     rentedAssetIds,
     thumbs,
     newCount,
+    latest,
     hasAnySubmissions,
   } = inboxGroup;
 
@@ -292,7 +299,17 @@ export default async function SubmissionsPage({
         actions={
           <>
             <Badge tone={newCount ? "info" : "neutral"}>{newCount ?? 0} new</Badge>
-            <RefreshControls renderedAt={renderedAt} pollMs={30000} />
+            {/*
+              Phase C7. The poll no longer re-renders this page on a timer; it reads a two-number token
+              and only offers to reload when that token moves. `initialToken` is this render's own
+              baseline, so an unchanged queue costs one tiny request per minute and nothing else.
+            */}
+            <RefreshControls
+              renderedAt={renderedAt}
+              pollMs={FRESHNESS_POLL_MS}
+              freshnessUrl="/api/submissions/freshness"
+              initialToken={{ newCount: newCount ?? 0, latest }}
+            />
             {canExportSubmissions ? (
               <a href={exportHref} className={secondaryActionClass}>
                 Export CSV

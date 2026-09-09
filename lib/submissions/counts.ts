@@ -17,3 +17,26 @@ export async function countNewSubmissions(supabase: ServerClient): Promise<numbe
     .eq("status", "new");
   return count ?? 0;
 }
+
+/**
+ * The newest submission's `created_at` for the caller's organization, or null when there are none.
+ *
+ * Phase C7. This is the second half of the inbox freshness token, and it exists because **the count
+ * alone is not sufficient**: if one submission arrives while another is resolved in the same interval,
+ * the `status='new'` count is unchanged and a count-only token would report "nothing happened" while a
+ * new row sat unseen in the inbox.
+ *
+ * Conversely a timestamp alone would miss every status change, so neither value is dropped. Both are
+ * already visible to this same admin in the inbox, so the pair discloses nothing new.
+ *
+ * One row, one column, RLS-scoped, no service role.
+ */
+export async function latestSubmissionAt(supabase: ServerClient): Promise<string | null> {
+  const { data } = await supabase
+    .from("form_submissions")
+    .select("created_at")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ created_at: string }>();
+  return data?.created_at ?? null;
+}
