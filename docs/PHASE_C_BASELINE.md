@@ -1222,6 +1222,23 @@ measurement tooling.
 acceptance is satisfied, but the variable is still live from C0 — removing it (and redeploying) is the
 operator step §16 describes, and it is left as an explicit open item rather than silently dropped.
 
+### Final state, measured after the revert
+
+Production `jswtabswl` (instrumentation removed), same command, same host, same account:
+
+| Device | Server med | Server p75 | LCP med | Nav med | Reqs |
+|---|---|---|---|---|---|
+| desktop (no throttle) | **681 ms** | 721 ms | 812 ms | 897 ms | 44 |
+| mobile (4× throttle) | 688 ms | 787 ms | 982 ms | 1061 ms | 44 |
+
+Unchanged from the instrumented baseline within variance (desktop 674 → 681 ms), confirming the revert
+cost nothing. Production smoke after the revert: 13 pass, 0 fail, 1 documented skip.
+
+**Worth noting against the "mobile is over a second" concern**: this run measured mobile navigation at
+**1061 ms and LCP at 982 ms**, against 1395 ms and 1362 ms an hour earlier on the same code. The
+throttled mobile figure swings by ~30 % between runs on the same build, which is itself the argument
+for not treating it as a launch gate.
+
 ### Launch limitation, stated precisely
 
 **The >1 s mobile figure is synthetic.** It is Pixel-7 emulation under **4× CPU throttling** on a
