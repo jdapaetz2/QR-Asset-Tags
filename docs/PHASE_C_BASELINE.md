@@ -1034,6 +1034,95 @@ stays inside the 100 ms lab budget (67–99 ms). Login acknowledgement at 121 ms
 figure includes click dispatch, React re-render and the harness observing visibility, and it is reported
 as measured rather than rounded down.
 
+## 9k. C9 decision — NOT RUN, and why
+
+C9 is conditional: *"Run C9 only if the approved C0 budgets remain unmet after all justified low-risk
+slices."* Reconfirmed on Production on 2026-09-09, that condition was **not satisfied**, and Part A's own
+escape clause applies. **No index, RPC, cache, migration or paid-plan change was made.**
+
+### The five reasons
+
+**1. Three finished slices were not deployed.** C6.1, C7 and C8 were committed and pushed while
+Production still ran the C6-era build (`rlai68sx6`). The gate says "after all justified low-risk slices";
+they existed and were unapplied, so C9 was premature by its own terms. **They have now been promoted**
+(`es2w09ieu`) — see below.
+
+**2. The index option had no target.** Every hot dashboard query already has a matching composite
+index: `scan_events_org_scanned_at_idx`, `form_submissions_org_created_at_idx`,
+`asset_rental_sessions_org_started_idx` (migrations 0020, 0031). Adding one without a measured query is
+prohibited, and there was no unindexed query to point at.
+
+**3. The RPC option failed its own precondition.** Part E permits one only when "existing TypeScript
+composition cannot meet the target". `app/(admin)/dashboard/page.tsx` already issues **all 17 reads in a
+single `Promise.all`** — it is not a serial chain, so there was nothing for an RPC to collapse that C2's
+and C3's pattern had not already done.
+
+**4. The cheaper hypothesis was untested.** Two of those 17 reads are **unbounded**: a 7-day
+`scan_events` select, and the unresolved-submissions select pulling full `submission_data_json` +
+`media_urls` with no `.limit()`. Bounding them is a small code change and must be tried before anything
+reaches for infrastructure.
+
+**5. The number is partly an artefact of measuring it.** Dashboard desktop read **530 / 559 / 546 ms**
+across three Sept 4 runs and **663 ms** on Sept 9 — outside the earlier cluster. Every production
+baseline run writes ~24 `scan_events` rows to the QA asset, and it has run repeatedly, so a plausible
+150–250 rows now sit inside the very 7-day window the dashboard reads unbounded. **Production row counts
+were not enumerated**, so this is a supported inference, not a measured fact.
+
+### The deployment, and what it did and did not change
+
+`12daf5c` promoted to Production. Both slices verified live rather than assumed: the C7 freshness
+endpoint answers **401** to an anonymous caller (a 404 would mean absent), and C8's `"Signing in…"` label
+is present in the deployed client bundle. Production smoke: 13 pass, 0 fail, 1 documented skip.
+
+| Route (desktop) | before (C6-era) | after (C8-era) |
+|---|---|---|
+| public scan | 285 ms | **242 ms** |
+| dashboard | 663 ms | 699 ms |
+| assets | 438 ms | 435 ms |
+| submissions | 512 ms · **69.5 req** | 581 ms · **71 req** |
+| rentals | 409 ms | 402 ms |
+| analytics | 442 ms | 446 ms |
+
+**A correction to what this document expected.** The C9 plan predicted the submissions *request count*
+would fall from ~69.5 once C7 shipped. **It did not — it is 71.** That prediction was wrong, and the
+reason matters: **C7 reduced IDLE traffic (81 → 1 request per 90 seconds of sitting still), never
+initial page load.** The ~70 requests here are the first render plus its link prefetches, which C7 never
+targeted and never claimed. C7's verified claim stands exactly as §9i records it; the expectation set
+against it in the C9 plan was mistaken.
+
+Nothing else moved cleanly. Public scan improved on desktop (285 → 242 ms) but worsened on mobile
+(295 → 310 ms), so even that is not a clean win — **run-to-run variance dominates at n=10 on shared
+infrastructure**, and no line in that table should be read as an attributable effect of this deployment.
+
+### Budget status after the deployment
+
+| Approved budget | Status |
+|---|---|
+| Public scan server stream < 500 ms | **Met** — 242 ms desktop / 310 ms mobile |
+| Public scan LCP < 1.5 s | **Met** — 448 / 702 ms |
+| Warm route navigation < 1.0 s | **Met desktop** (max 962 ms); **missed mobile** — 1201 / 1116 / 1589 ms |
+| No warm route > 2.0 s | **Met** on navigation (max 1589 ms); mobile submissions **LCP p75 2168 ms** exceeds it |
+| Hidden tabs: zero polling | **Met** |
+| Visible idle: no unconditional full refresh | **Now met** — C7 live |
+| No repeated profile/org query per render | **Met** — C1 |
+| Pressed feedback < 100 ms | **Now met** — C8 live (67–99 ms measured) |
+| *Recommended, never ratified:* server stream < 500 ms on every authenticated route | **Missed** — dashboard 699/684 ms, submissions 581/624 ms |
+
+**On the mobile misses, stated with their caveat.** The mobile class runs at **4× CPU throttle**, which
+makes it sensitive to load on the measuring host — and this host had been running builds, test suites
+and browser automation throughout the session. Mobile navigation is worse than C0 recorded (939 → 1201 ms
+on dashboard), but **that is not attributable to the product without a controlled re-run on an idle
+machine.** It is recorded as an open question, not as a regression.
+
+### What comes next, and what it is not
+
+The one substantive remaining gap is **dashboard (~700 ms) and submissions (~580 ms) against the
+recommended 500 ms server-stream addition** — a target that was proposed in §12 and **never ratified**.
+
+The next step is a **candidate code slice, explicitly not C9**: bound the two unbounded dashboard reads
+and re-measure on an idle host. Only if that fails to close the gap does Part E's "dashboard briefing"
+RPC acquire the evidence it requires — and it would still need the `EXPLAIN` work of Part C first.
+
 ## 10. Top three measured bottlenecks
 
 **1. The Assets serial query chain — 274 ms, isolated.**
@@ -1079,6 +1168,20 @@ path if it were not awaited.
 | No repeated identical profile/org query per render | ✓ | **not met** — 2× profile, 2× org | Keep as a target. |
 | Immediate visual response < 150 ms / pressed feedback < 100 ms | ✓ | **unmeasured** | Keep; measure before judging. |
 
+### Post-Phase-C status, measured on Production 2026-09-09 (`es2w09ieu`, C1–C8 all live)
+
+| Budget | Then (C0) | Now | Verdict |
+|---|---|---|---|
+| Public scan server stream < 500 ms | 356 ms | **242 ms** desktop / 310 ms mobile | **Met** |
+| Public scan LCP < 1.5 s | 438 / 646 ms | 448 / 702 ms | **Met** |
+| Warm route navigation < 1.0 s | 100–940 ms | desktop ≤ 962 ms; **mobile 1116–1589 ms** | **Met desktop, missed mobile** — see the CPU-throttle caveat in §9k |
+| No warm route > 2.0 s | max 940 ms | nav max 1589 ms; mobile submissions **LCP p75 2168 ms** | **Met on navigation, exceeded on one mobile LCP p75** |
+| Hidden tabs: zero polling | met | 0 requests / 90 s | **Met** |
+| Visible idle: no unconditional full refresh | **not met** | 1 request / 90 s | **Now met (C7)** |
+| No repeated identical profile/org query | **not met** (3:2:2:1) | 2:1:1:1 | **Now met (C1)** |
+| Immediate response < 150 ms / pressed < 100 ms | **unmeasured** | 67–99 ms actions; 121 ms sign-in | **Now met, and now measured (C8)** |
+| *Recommended, never ratified:* server stream < 500 ms every authenticated route | assets 678 ms | assets 435, rentals 402, analytics 446 — **dashboard 699, submissions 581** | **Partly met.** The two misses are the open item §9k hands to a future code slice. |
+
 **Recommended budget addition:** *server stream median < 500 ms on every authenticated route.* Assets
 (678 ms) and, at p75, dashboard and submissions currently exceed it. It is measurable with the harness
 that exists, unlike a "page speed" number.
@@ -1100,7 +1203,7 @@ that exists, unlike a "page speed" number.
 | **C6 — notification in the form path** | **RAN — see §9h.** The measurement C0 lacked was built first: the live provider call was 178.7 ms median with a ≥8 s verified tail on the renter's success path. Deferred via `after()` (path B); ≈250–270 ms attributable off confirmation, tail removed. |
 | **C7 — polling** | **RAN — see §9i.** Visible-idle traffic **81 → 1 request** per 90 s; hidden stayed at zero. Prefetch fell 63 → 0 as a consequence of removing the refresh, so no prefetch change was made. An open inbox now notices a new submission by itself. |
 | **C8 — perceived inertness** | **RAN — see §9j.** Audit found 22 of 30 submit components already correct and left them alone. Sign-in had no pending state at all and 1.7–4.6 s of unchanged screen; it now acknowledges in **121 ms**. Loading UI added only to `/forms/*` (1660 ms measured). The layout does **not** block the loading file, so no Suspense and no nav-badge change. |
-| **C9 — database/indexes** | **SKIP.** C1–C3 have not been attempted; no hot query has been shown. Adding indexes now would be speculative — explicitly forbidden. |
+| **C9 — database/indexes** | **NOT RUN — decision recorded in §9k.** C1–C8 all shipped and the condition still was not met: every hot query already has a matching composite index (0020, 0031), the dashboard is already one `Promise.all` of 17 reads so an RPC has nothing to collapse, and the cheaper untested hypothesis (bound two unbounded reads) comes first. No index, RPC, cache, migration or plan change was made. |
 
 ---
 
