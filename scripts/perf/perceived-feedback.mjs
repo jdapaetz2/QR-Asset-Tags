@@ -137,8 +137,18 @@ try {
   await page.getByLabel(/password/i).fill(PASSWORD);
   const loginAt = Date.now();
   await page.getByRole("button", { name: /sign in|log in/i }).click();
+  // Phase C8 added the pending state. What matters is not how long sign-in takes but how long the user
+  // stares at an unchanged screen — measure the acknowledgement separately from the completion.
+  let loginAck = null;
+  try {
+    await page.getByRole("button", { name: /Signing in…|Sending link…/ }).waitFor({ state: "visible", timeout: 5_000 });
+    loginAck = Date.now() - loginAt;
+  } catch {
+    loginAck = null; // either no pending state, or the redirect beat it
+  }
   await page.waitForURL(/\/dashboard/, { timeout: 60_000 });
-  record("login: click → dashboard", `${Date.now() - loginAt} ms (no pending state today)`);
+  record("login: click → acknowledgement", loginAck === null ? "none observed" : `${loginAck} ms`);
+  record("login: click → dashboard", `${Date.now() - loginAt} ms`);
 
   // ---- 2. HARD LOAD: does the layout's auth work delay the skeleton? ----
   const cold = await context.newPage();

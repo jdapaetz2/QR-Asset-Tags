@@ -952,6 +952,88 @@ the hidden copy and waiting for it to become visible. Filtering to a visible mat
 two consecutive clean runs confirm it. **An intermittent test is not evidence of an intermittent
 product**, and the difference is worth the diagnostic it took to establish.
 
+## 9j. C8 result — truthful progressive feedback
+
+### The audit came back mostly clean, and that shaped the slice
+
+C0 §11 left this unmeasured and §13 deferred C8 for it. The operator reported **no specific screen that
+feels inert**, so the scope came from an audit instead of a hunch — and the audit found **22 of 30**
+client components with a submit button already carrying both action-specific pending wording and a
+disabled state. **Those were left alone.** Changing them would have been churn dressed as a phase.
+
+Three `loading.tsx` files already existed, `/dashboard/loading.tsx` already covered every dashboard child
+route, and there was **no `Suspense` anywhere** in the codebase.
+
+### Measured before touching anything
+
+| | before | after (warm) |
+|---|---|---|
+| **login: click → acknowledgement** | **none — nothing changed on screen** | **121 ms** |
+| login: click → dashboard | 4566 ms | 1711–1946 ms |
+| hard load `/dashboard/assets`: skeleton → content | 806 → 1157 ms | 1092 → 1281 ms |
+| soft nav → Assets: skeleton → content | 105 → 1446 ms | 226 → 1052 ms |
+| public damage form: interactive | **1660 ms**, no loading file | 1092 ms, skeleton first |
+| status action acknowledgement | 57 ms | 67–99 ms |
+
+**Sign-in was the worst defect in the product** and the only action with no pending state whatsoever:
+between 1.7 and 4.6 seconds of an unchanged screen after the click. A user with no feedback for that
+long reasonably concludes the click missed and clicks again — a duplicate authentication attempt.
+
+**C8 did not make sign-in faster and does not claim to.** It made the wait *acknowledged*, at 121 ms.
+The login-duration improvement in the table is run-to-run variance on a shared environment, not a C8
+effect; a pending label cannot speed up authentication.
+
+### Part B — verified, not assumed, and the answer was "do nothing"
+
+The authenticated layout awaits `requireActiveOrg()` before any child route's loading UI can render, so
+the obvious hypothesis was that it blocks the loading file. **It does not.** The skeleton leads content
+on a cold load (806 → 1157 ms) *and* on soft navigation (105 → 1446 ms).
+
+So no Suspense restructuring was performed, and — per the operator's "only if measured" instruction —
+**the nav submission badge was left exactly as it is.** At 34–50 ms it is not what delays anything, and
+streaming it would have risked the layout shift the brief explicitly prohibits, in exchange for nothing.
+
+### What actually changed
+
+**Loading UI, only where a wait was measured.** `/forms/[shortCode]/*` had none and sat at 1660 ms to
+interactive on the rank-1 renter surface — a renter at a machine who has just tapped "Report damage".
+The three form routes now have a skeleton whose dimensions match `PublicFormLayout` exactly, so the real
+form replaces it in place. **Their `/thanks` children deliberately did not get one**: they render no
+remote data, and a skeleton on an instant route is a flash of furniture.
+
+**Per-button pending on status actions.** Acknowledgement was already prompt but indiscriminate —
+pressing Resolve greyed out Resolve, Mark reviewed and Archive identically. `useFormStatus` exposes the
+submitted `FormData`, so the pressed button is identifiable by its `name="status"`; only it takes the
+wording, the rest merely disable.
+
+**Bulk actions** gained the same verb plus the scope ("Resolving 12 submissions…" rather than
+"Working…"). **`ActionButton`** gained an optional `pendingLabel` defaulting to its existing children, so
+no current caller changes behaviour.
+
+### The rule that keeps this truthful
+
+Every pending label is **present continuous**, and a test enforces it across all of them: "Resolving…",
+never "Resolved". The server has not answered yet, and **a pending label that states the outcome is a
+false optimistic success wearing a spinner**. Nothing renders success before the server returns, no
+authorization path was touched, and failed actions still surface their `role="alert"` error unchanged.
+
+### A latent test race the loading file exposed
+
+The full E2E came back with one flaky spec on the return form. Rather than accept a flake, it was
+isolated: **14/14 clean with the new `return/loading.tsx` removed, 13/1 with it present.** The cause was
+in the shared helper, not the product — `answerConditionStage` counted visible fieldsets *immediately*
+after navigation, so anything standing between `goto` and the form made it find **zero groups, answer
+nothing, and fail later somewhere else**. The assumption was always unsafe; the skeleton only made it
+visible. Fixed where it lived, in the helper. 39/39 public specs stable on repeat, full suite 75/75 clean.
+
+### No regression
+
+The C7 inbox measurement was re-run because C8 touches the same page: **still 1 request visible per 90 s,
+0 hidden.** Route completion times are equal or better than the before column, and status acknowledgement
+stays inside the 100 ms lab budget (67–99 ms). Login acknowledgement at 121 ms sits just above it — that
+figure includes click dispatch, React re-render and the harness observing visibility, and it is reported
+as measured rather than rounded down.
+
 ## 10. Top three measured bottlenecks
 
 **1. The Assets serial query chain — 274 ms, isolated.**
@@ -1017,7 +1099,7 @@ that exists, unlike a "page speed" number.
 | **C4 — per-row signed URLs** | **DEFER.** Submissions' request count implicates it, but the per-row cost was never isolated. Fold the measurement into C3; run C4 only if it survives. |
 | **C6 — notification in the form path** | **RAN — see §9h.** The measurement C0 lacked was built first: the live provider call was 178.7 ms median with a ≥8 s verified tail on the renter's success path. Deferred via `after()` (path B); ≈250–270 ms attributable off confirmation, tail removed. |
 | **C7 — polling** | **RAN — see §9i.** Visible-idle traffic **81 → 1 request** per 90 s; hidden stayed at zero. Prefetch fell 63 → 0 as a consequence of removing the refresh, so no prefetch change was made. An open inbox now notices a new submission by itself. |
-| **C8 — perceived inertness** | **DEFER** until action latency exists. |
+| **C8 — perceived inertness** | **RAN — see §9j.** Audit found 22 of 30 submit components already correct and left them alone. Sign-in had no pending state at all and 1.7–4.6 s of unchanged screen; it now acknowledges in **121 ms**. Loading UI added only to `/forms/*` (1660 ms measured). The layout does **not** block the loading file, so no Suspense and no nav-badge change. |
 | **C9 — database/indexes** | **SKIP.** C1–C3 have not been attempted; no hot query has been shown. Adding indexes now would be speculative — explicitly forbidden. |
 
 ---
