@@ -15,6 +15,24 @@
 > **The pilot's real performance story requires a re-baseline on the final domain, with Vercel Speed
 > Insights field data (p75 across real users).** Treat this document as a starting reference only.
 
+## Phase C9.1 addendum (2026-09-09) — the dashboard's real critical path
+
+The Production dashboard was attributed **per read** for the first time. Two things this document and
+the C9 closeout had assumed turned out to be wrong, so they are corrected here rather than left to be
+re-derived:
+
+- the dashboard makes **16** concurrent reads, not 17 (C9 said 17);
+- the two reads C9 flagged as "potentially wasteful" — the 7-day scan transfer and the unresolved
+  submission payload — are **not** on the critical path.
+
+**The slowest read is `scan_events … order(scanned_at desc).limit(20)`**, measured at **250 ms and
+305 ms** in two independent runs, against a field of 43–150 ms. Because the 16 reads share one
+`Promise.all`, the group is bounded by that single read, and improving any other one saves **zero**
+route time.
+
+Full detail, including why both C9.1 candidates were rejected and the measurement's limitations, is in
+`PHASE_C_BASELINE.md` §9l. **No dashboard code was changed.**
+
 ## Superseded for Production by Phase C0 (2026-09-02)
 
 > **This document is STAGING lab data.** The first real **Production** baseline lives in

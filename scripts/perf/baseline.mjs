@@ -157,7 +157,20 @@ const run = createRun({
 
 console.log(`\n[perf:${MODE}] target verified: ${MODE.toUpperCase()} (${resolved.host})`);
 console.log(`[perf:${MODE}] method: ${WARMUP_NAVIGATIONS} warm-ups discarded, ${WARM_SAMPLES} measured warm samples`);
-console.log(`[perf:${MODE}] writes: ${IS_PROD ? "none beyond the scan_events row on the approved QA asset" : "bounded QA writes permitted"}\n`);
+// Describe what THIS run writes, not what the harness writes in general. With the public routes
+// filtered out there is no /t view and therefore no scan_events row, so announcing one would be simply
+// false — and the dashboard-only benchmark exists precisely because that write would contaminate the
+// 7-day scan window the dashboard reads back.
+const WRITES_SCAN_ROW = PUBLIC_ROUTES.filter(keepRoute).some((r) => r.key === "public scan");
+console.log(
+  `[perf:${MODE}] writes: ${
+    IS_PROD
+      ? WRITES_SCAN_ROW
+        ? "none beyond the scan_events row on the approved QA asset"
+        : "NONE — the public scan route is filtered out, so no scan_events row is created"
+      : "bounded QA writes permitted"
+  }\n`
+);
 
 const browser = await chromium.launch();
 

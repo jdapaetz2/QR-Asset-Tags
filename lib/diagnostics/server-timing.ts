@@ -34,32 +34,6 @@ export type TimingPhase =
   // its own phase: it is derived as (POST duration − notify.send) from the action harness, which avoids
   // restructuring a data-committing path with early returns purely to instrument it.
   | "notify.send"
-  // ---- TEMPORARY, Phase C9.1 -------------------------------------------------------------------
-  // Per-read attribution for the dashboard briefing, added to find which of its 16 concurrent reads
-  // actually bounds the group. Durations OVERLAP by design — the reads run inside one Promise.all, so
-  // the slowest is the one that matters and the rest are free.
-  //
-  // These names are single-use and are REMOVED once C9.1 decides. Leaving 16 dashboard-specific phases
-  // in a closed union that every other phase shares would be permanent cost for a one-off diagnosis.
-  | "dash.org"
-  | "dash.assets"
-  | "dash.qr_links"
-  | "dash.equipment_pages"
-  | "dash.unresolved_submissions"
-  | "dash.open_tag_requests"
-  | "dash.scan_7d"
-  | "dash.recent_scans"
-  | "dash.recent_submissions"
-  | "dash.recent_tags"
-  | "dash.recent_rentals"
-  | "dash.count_scans_30d"
-  | "dash.count_submissions"
-  | "dash.count_resolved"
-  | "dash.count_returns"
-  | "dash.count_photo_backed"
-  | "dash.signed_thumbnails"
-  | "dash.total"
-  // ---- end TEMPORARY ---------------------------------------------------------------------------
   | "request.total";
 
 /**

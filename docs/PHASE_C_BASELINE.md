@@ -1053,11 +1053,12 @@ index: `scan_events_org_scanned_at_idx`, `form_submissions_org_created_at_idx`,
 prohibited, and there was no unindexed query to point at.
 
 **3. The RPC option failed its own precondition.** Part E permits one only when "existing TypeScript
-composition cannot meet the target". `app/(admin)/dashboard/page.tsx` already issues **all 17 reads in a
-single `Promise.all`** — it is not a serial chain, so there was nothing for an RPC to collapse that C2's
+composition cannot meet the target". `app/(admin)/dashboard/page.tsx` already issues **all 16 reads in a
+single `Promise.all`** (C9 said 17; recounted and corrected in §9l) — it is not a serial chain, so there was nothing for an RPC to collapse that C2's
 and C3's pattern had not already done.
 
-**4. The cheaper hypothesis was untested.** Two of those 17 reads are **unbounded**: a 7-day
+**4. The cheaper hypothesis was untested.** Two of those reads are **unbounded** (and the count is
+**16**, not 17 as first written — recounted in §9l): a 7-day
 `scan_events` select, and the unresolved-submissions select pulling full `submission_data_json` +
 `media_urls` with no `.limit()`. Bounding them is a small code change and must be tried before anything
 reaches for infrastructure.
@@ -1122,6 +1123,111 @@ recommended 500 ms server-stream addition** — a target that was proposed in §
 The next step is a **candidate code slice, explicitly not C9**: bound the two unbounded dashboard reads
 and re-measure on an idle host. Only if that fails to close the gap does Part E's "dashboard briefing"
 RPC acquire the evidence it requires — and it would still need the `EXPLAIN` work of Part C first.
+
+## 9l. C9.1 result — bounded dashboard trial, NO change retained
+
+An optional, time-boxed launch-polish pass. It produced the per-read attribution C9 lacked, and that
+attribution **rejected both of the candidates C9.1 was authorized to try**. No dashboard code was
+changed, no migration, index, RPC, cache or plan change was made.
+
+### Corrections to what this document previously said
+
+- **The dashboard makes 16 concurrent reads, not 17.** §9k said 17; recounted from
+  `app/(admin)/dashboard/page.tsx`. Corrected here rather than left standing.
+- **The two reads §9k called "potentially wasteful" are not on the critical path.** That hypothesis was
+  reasoned from row counts and payload shape without measurement. Measurement disagreed.
+
+### Clean dashboard-only baseline
+
+`npm run perf:dashboard:production` — a `--routes` filter added to the existing harness. The filter
+applies to the **public** route list as well as the authenticated one and skips the anonymous block
+entirely when nothing survives, so a dashboard run **cannot** view `/t/` and **cannot** write a
+`scan_events` row. That matters because those rows are an input the dashboard reads back over a 7-day
+window: an unfiltered benchmark would inflate the very thing it measures, a little more each run.
+
+| Device | n | Server med | Server p75 | LCP med | Nav med | Reqs |
+|---|---|---|---|---|---|---|
+| desktop (no throttle) | 10 | **674 ms** | 761 ms | 840 ms | 880 ms | 43.5 |
+| mobile (4× CPU throttle) | 10 | 779 ms | 991 ms | 1362 ms | 1395 ms | 44 |
+
+Emulation: mobile = Pixel 7 descriptor + **4× CPU throttling**, no network shaping; desktop = Desktop
+Chrome, **no throttling**. Desktop is the engineering comparison; mobile is a stress indicator.
+
+### Per-read attribution — two independent runs
+
+| Phase | run 1 | run 2 |
+|---|---|---|
+| **`recent_scans`** — `scan_events … order(scanned_at desc).limit(20)` | **304.7 ms** | **249.7 ms** |
+| `count_scans_30d` | 180.7 | 149.4 |
+| `count_submissions` | 136.7 | 129.4 |
+| `count_photo_backed` | 149.4 | 107.2 |
+| **`scan_7d`** — *C9.1 candidate 1* | 156.9 | **99.2** |
+| `signed_thumbnails` *(sequential, after the group)* | 144.5 | 87.7 |
+| `count_resolved` / `count_returns` | 134.4 / 132.6 | 88.0 / 88.9 |
+| `recent_submissions` / `open_tag_requests` | 125.7 / 125.3 | 82.5 / 81.7 |
+| `assets` / `recent_rentals` / `qr_links` | 126.1 / 127.1 / 109.3 | 69.5 / 66.0 / 63.9 |
+| **`unresolved_submissions`** — *C9.1 candidate 2* | 127.9 | **63.4** |
+| `equipment_pages` / `recent_tags` / `org` | 130.1 / 104.5 / 109.1 | 61.9 / 60.2 / 43.5 |
+
+**A limitation, stated because the numbers would otherwise be over-read.** The collector reports
+"20 samples" per phase, but `min == median == max` on every row means it is counting **one distinct log
+line** repeated, not twenty independent observations. Each figure is effectively a **single sample**.
+Confidence comes from **two independent runs agreeing on the ranking**, not from the sample label.
+
+### Why both candidates were rejected
+
+**Candidate 1 — the 7-day scan trend — fails on semantics *and* materiality.** `analytics_daily_activity`
+buckets by **`America/Vancouver` calendar day** over 7 calendar days; `scanTrend`
+(`lib/dashboard/briefing.ts`) buckets by **UTC day** — its own comment calls that *"a viz approximation,
+not a reporting figure"* — over a rolling `now − 7×86 400 000` window. Those disagree at every day
+boundary, so the swap would change the displayed 7-day total and trend, which C9.1 forbids. PostgREST
+cannot express a same-semantics daily aggregate without a new RPC, also forbidden. And at 99–157 ms it
+is not the slowest read anyway.
+
+**Candidate 2 — the unresolved submission payload — fails on materiality.** At **63.4 ms** in run 2 it
+sits essentially at the floor (`org` 43.5 ms, `recent_tags` 60.2 ms). Trimming its columns could recover
+perhaps 10–20 ms of a 674 ms route. C9.1's own instruction — *"if this query is not a material
+contributor, leave it unchanged"* — applies directly.
+
+**The structural reason neither could ever have worked.** The 16 reads run **concurrently** in one
+`Promise.all`, so the group's duration is its **slowest** member. Neither candidate is that member.
+Making either one instantaneous would have improved the route by **zero milliseconds**. This is the
+finding per-read measurement exists to produce, and it is why C9's row-count reasoning was not enough.
+
+### What the measurement did find, and deliberately did not pursue
+
+The route decomposes roughly as auth (~100 ms) + the concurrent group (**bounded by `recent_scans`**)
++ sequential thumbnail signing (88–145 ms) + render.
+
+Two genuine opportunities are **recorded and handed forward, not started** — pursuing either would mean
+query-plan analysis or restructuring, which is C9 territory and a second architecture iteration, both
+explicitly out of scope here:
+
+1. **`recent_scans` is 2.4× slower than any sibling** while reading the same table as `scan_7d`, which
+   is faster despite matching more rows. The difference is the `ORDER BY scanned_at DESC` with `limit(20)`.
+   Whether the `(organization_id, scanned_at)` index is being used for that ordering under the RLS
+   policy's `is_platform_owner() OR …` predicate is **unverified** — establishing it needs `EXPLAIN`.
+2. **Thumbnail signing is sequential after the whole group**, though it depends on only two of the
+   sixteen reads. Starting it once those two resolve would overlap it with the other fourteen.
+
+### Outcome
+
+No change retained; the retention threshold (≥100 ms or ≥15 %) was never reachable by either authorized
+candidate, so no implementation was written to be measured against it. The diagnostic instrumentation
+has been **removed** — the temporary `dash.*` phase names are gone and `lib/diagnostics/server-timing.ts`
+is back to its prior union. The `--routes` filter and the accurate per-run write disclosure are kept as
+measurement tooling.
+
+**`MULEMARK_DIAGNOSTIC_TIMING` remains set in the Production environment.** The code is default-off, so
+acceptance is satisfied, but the variable is still live from C0 — removing it (and redeploying) is the
+operator step §16 describes, and it is left as an explicit open item rather than silently dropped.
+
+### Launch limitation, stated precisely
+
+**The >1 s mobile figure is synthetic.** It is Pixel-7 emulation under **4× CPU throttling** on a
+developer laptop, and it has **never been observed on a real device**. It is not evidence that a real
+user waits that long, and it is not a launch blocker. The dashboard at ~674 ms desktop server stream,
+with the loading skeleton appearing first (C8), is the honest current state.
 
 ## 10. Top three measured bottlenecks
 
@@ -1203,7 +1309,7 @@ that exists, unlike a "page speed" number.
 | **C6 — notification in the form path** | **RAN — see §9h.** The measurement C0 lacked was built first: the live provider call was 178.7 ms median with a ≥8 s verified tail on the renter's success path. Deferred via `after()` (path B); ≈250–270 ms attributable off confirmation, tail removed. |
 | **C7 — polling** | **RAN — see §9i.** Visible-idle traffic **81 → 1 request** per 90 s; hidden stayed at zero. Prefetch fell 63 → 0 as a consequence of removing the refresh, so no prefetch change was made. An open inbox now notices a new submission by itself. |
 | **C8 — perceived inertness** | **RAN — see §9j.** Audit found 22 of 30 submit components already correct and left them alone. Sign-in had no pending state at all and 1.7–4.6 s of unchanged screen; it now acknowledges in **121 ms**. Loading UI added only to `/forms/*` (1660 ms measured). The layout does **not** block the loading file, so no Suspense and no nav-badge change. |
-| **C9 — database/indexes** | **NOT RUN — decision recorded in §9k.** C1–C8 all shipped and the condition still was not met: every hot query already has a matching composite index (0020, 0031), the dashboard is already one `Promise.all` of 17 reads so an RPC has nothing to collapse, and the cheaper untested hypothesis (bound two unbounded reads) comes first. No index, RPC, cache, migration or plan change was made. |
+| **C9 — database/indexes** | **NOT RUN — decision recorded in §9k.** C1–C8 all shipped and the condition still was not met: every hot query already has a matching composite index (0020, 0031), the dashboard is already one `Promise.all` of 16 reads (§9l corrects the 17 stated here) so an RPC has nothing to collapse, and the cheaper untested hypothesis (bound two unbounded reads) comes first. No index, RPC, cache, migration or plan change was made. |
 
 ---
 

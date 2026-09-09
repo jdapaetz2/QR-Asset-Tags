@@ -20,7 +20,6 @@ import { formTypeLabel } from "@/lib/submissions/display";
 import { firstImagePath, submissionReference } from "@/lib/submissions/inbox";
 import { canQuickResolveReturn } from "@/lib/submissions/returns";
 import { signPaths } from "@/lib/storage/signed-urls";
-import { time } from "@/lib/diagnostics/server-timing";
 import {
   buildAttentionItems,
   buildBandStats,
@@ -118,104 +117,72 @@ export default async function DashboardPage({
     { count: returnsCompleted },
     { count: photoBacked },
   ] = await Promise.all([
-    time("dashboard", "dash.org", async () =>
-      supabase
-        .from("organizations")
-        .select("name, asset_limit")
-        .eq("id", profile.organization_id)
-        .maybeSingle()
-    ),
-    time("dashboard", "dash.assets", async () =>
-      supabase
-        .from("assets")
-        .select("id, asset_code, asset_name, public_status, archived_at, active_rental_session_id")
-    ),
-    time("dashboard", "dash.qr_links", async () =>
-      supabase.from("qr_links").select("asset_id, status")
-    ),
-    time("dashboard", "dash.equipment_pages", async () =>
-      supabase.from("equipment_pages").select("asset_id, is_published")
-    ),
-    time("dashboard", "dash.unresolved_submissions", async () =>
-      supabase
-        .from("form_submissions")
-        .select(
-          "id, asset_id, form_type, status, created_at, submission_data_json, media_urls, submitted_by_name, submitted_by_email, submitted_by_phone"
-        )
-        .in("status", UNRESOLVED as readonly string[])
-        .order("created_at", { ascending: false })
-    ),
-    time("dashboard", "dash.open_tag_requests", async () =>
-      supabase
-        .from("tag_requests")
-        .select("id", { count: "exact", head: true })
-        .in("status", OPEN_TAG_STATUSES as readonly string[])
-    ),
-    time("dashboard", "dash.scan_7d", async () =>
-      supabase
-        .from("scan_events")
-        .select("scanned_at")
-        .gte("scanned_at", sevenDaysAgo)
-    ),
-    time("dashboard", "dash.recent_scans", async () =>
-      supabase
-        .from("scan_events")
-        .select("asset_id, scanned_at")
-        .order("scanned_at", { ascending: false })
-        .limit(20)
-    ),
-    time("dashboard", "dash.recent_submissions", async () =>
-      supabase
-        .from("form_submissions")
-        .select("asset_id, form_type, created_at")
-        .order("created_at", { ascending: false })
-        .limit(15)
-    ),
-    time("dashboard", "dash.recent_tags", async () =>
-      supabase
-        .from("tag_requests")
-        .select("status, created_at")
-        .order("created_at", { ascending: false })
-        .limit(10)
-    ),
-    time("dashboard", "dash.recent_rentals", async () =>
-      supabase
-        .from("asset_rental_sessions")
-        .select("asset_id, started_at, returned_at")
-        .order("started_at", { ascending: false })
-        .limit(10)
-    ),
+    supabase
+      .from("organizations")
+      .select("name, asset_limit")
+      .eq("id", profile.organization_id)
+      .maybeSingle(),
+    supabase
+      .from("assets")
+      .select("id, asset_code, asset_name, public_status, archived_at, active_rental_session_id"),
+    supabase.from("qr_links").select("asset_id, status"),
+    supabase.from("equipment_pages").select("asset_id, is_published"),
+    supabase
+      .from("form_submissions")
+      .select(
+        "id, asset_id, form_type, status, created_at, submission_data_json, media_urls, submitted_by_name, submitted_by_email, submitted_by_phone"
+      )
+      .in("status", UNRESOLVED as readonly string[])
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("tag_requests")
+      .select("id", { count: "exact", head: true })
+      .in("status", OPEN_TAG_STATUSES as readonly string[]),
+    supabase
+      .from("scan_events")
+      .select("scanned_at")
+      .gte("scanned_at", sevenDaysAgo),
+    supabase
+      .from("scan_events")
+      .select("asset_id, scanned_at")
+      .order("scanned_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("form_submissions")
+      .select("asset_id, form_type, created_at")
+      .order("created_at", { ascending: false })
+      .limit(15),
+    supabase
+      .from("tag_requests")
+      .select("status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("asset_rental_sessions")
+      .select("asset_id, started_at, returned_at")
+      .order("started_at", { ascending: false })
+      .limit(10),
     // Part D — "captured so far" head counts (count-only; no rows transferred).
-    time("dashboard", "dash.count_scans_30d", async () =>
-      supabase
-        .from("scan_events")
-        .select("id", { count: "exact", head: true })
-        .gte("scanned_at", thirtyDaysAgo)
-    ),
-    time("dashboard", "dash.count_submissions", async () =>
-      supabase
-        .from("form_submissions")
-        .select("id", { count: "exact", head: true })
-    ),
-    time("dashboard", "dash.count_resolved", async () =>
-      supabase
-        .from("form_submissions")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "resolved")
-    ),
-    time("dashboard", "dash.count_returns", async () =>
-      supabase
-        .from("form_submissions")
-        .select("id", { count: "exact", head: true })
-        .eq("form_type", "return_checklist")
-        .eq("status", "resolved")
-    ),
-    time("dashboard", "dash.count_photo_backed", async () =>
-      supabase
-        .from("form_submissions")
-        .select("id", { count: "exact", head: true })
-        .neq("media_urls", "{}")
-    ),
+    supabase
+      .from("scan_events")
+      .select("id", { count: "exact", head: true })
+      .gte("scanned_at", thirtyDaysAgo),
+    supabase
+      .from("form_submissions")
+      .select("id", { count: "exact", head: true }),
+    supabase
+      .from("form_submissions")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "resolved"),
+    supabase
+      .from("form_submissions")
+      .select("id", { count: "exact", head: true })
+      .eq("form_type", "return_checklist")
+      .eq("status", "resolved"),
+    supabase
+      .from("form_submissions")
+      .select("id", { count: "exact", head: true })
+      .neq("media_urls", "{}"),
   ]);
 
   const assets = (assetData ?? []) as AssetRow[];
@@ -312,14 +279,12 @@ export default async function DashboardPage({
     const path = sub ? firstImagePath(sub.media_urls) : null;
     if (path) thumbPathByAsset.set(i.assetId, path);
   }
-  const signedThumbByPath = await time("dashboard", "dash.signed_thumbnails", () =>
-    signPaths(
-      supabase,
-      SUBMISSIONS_BUCKET,
-      [...thumbPathByAsset.values()],
-      3600,
-      "dashboard-attention"
-    )
+  const signedThumbByPath = await signPaths(
+    supabase,
+    SUBMISSIONS_BUCKET,
+    [...thumbPathByAsset.values()],
+    3600,
+    "dashboard-attention"
   );
   const thumbByAsset = new Map<string, string>();
   for (const [assetId, path] of thumbPathByAsset) {
