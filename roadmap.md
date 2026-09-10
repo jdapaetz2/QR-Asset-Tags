@@ -514,7 +514,7 @@ that is the business roadmap and is untouched by this work.
 database backups** — recommended to fix (Supabase Pro) before a pilot holds real customer data; operator
 decision, not taken.
 
-## Engineering Phase D (actionable notifications) — **D0 DESIGNED (2026-09-10)**
+## Engineering Phase D (actionable notifications) — **D0.1 DECISIONS LOCKED (2026-09-10)**
 
 Audit, design and phased implementation plan:
 [`docs/ACTIONABLE_NOTIFICATION_DESIGN.md`](docs/ACTIONABLE_NOTIFICATION_DESIGN.md).
@@ -534,13 +534,20 @@ reported equipment state or response need.
 | Slice | Scope | Status |
 |---|---|---|
 | **D0** — audit, design, deferred-roadmap reconciliation | documentation only | ✅ designed |
-| **D1** — brief projected from the committed row, deterministic priority, text-first email | no form, schema or media change | not started |
-| **D2** — reported equipment state, response need and issue type on the public damage and support forms | JSON fields, no migration | not started |
-| **D3** — urgent escalation address, return-checklist mode, staff-return exception emails, tag status-change-only | migration 0034 | not started |
-| **D4** — up to three inline photo previews, metadata-stripped, text-only fallback | new `sharp` dependency (operator approval) | not started |
-| **D5** — live operator test matrix and closeout | operator | not started |
+| **D0.1** — operator decisions locked into the design | documentation only | ✅ locked |
+| **D1** — server-authoritative saved-record brief, deterministic priority, actionable text-first HTML/plain-text email | no new form fields, no image previews | not started |
+| **D2** — optional triage questions, admin "Reported" labels, urgent confirmation call button | JSON fields, no migration | not started |
+| **D3A** — routing/settings migration, independent urgent route, return modes, photo-preview switch, log schema, tag-status correctness | migration 0034 | not started |
+| **D3B** — daily return-exceptions summary, secured schedule, missed-run catch-up, quiet-day behaviour | migration 0035, first scheduled job | not started |
+| **D4** — up to three bounded inline photo previews, metadata-stripped, text-only fallback | approved direct `sharp` dependency | not started |
+| **D5** — live QA and Engineering Phase D closeout | operator | not started |
 
-Ten operator decision points gate D1–D4 (design doc §16). **Recorded separately, not part of Phase D:** an
+**All operator decisions are locked** (design doc §16): priority subject prefixes, tap-to-call and tap-to-email
+contact links, optional unselected triage questions (renter damage severity displayed but never raising
+priority), a call-now confirmation for immediate answers, a separate urgent route (switch + address), return
+modes `instant_renter` / `daily_exceptions` / `off`, a 6:00–6:59 AM Pacific daily summary of return exceptions
+(staff returns are never emailed individually), and photo previews on by default. Vercel schedules run in UTC
+with hourly precision on Hobby, so D3B must verify a DST-safe schedule or stop with the trade-off. **Recorded separately, not part of Phase D:** an
 operational hold / out-of-service workflow — newly triggered by the incident examples that shaped this
 phase (`docs/ROADMAP_DEFERRED.md` #3). `docs/ROADMAP_DEFERRED.md` was reconciled against the product in
 the same slice.
@@ -732,7 +739,7 @@ Build only what repeated pilot evidence justifies.
 | Item | Build trigger | Current disposition |
 |---|---|---|
 | Storage quotas and archival | Before storage cost becomes material or before broad photo rollout | High priority after Phase A |
-| Multi-recipient notifications | First pilot needs different operations/service recipients | Partially promoted — one optional urgent escalation address is designed in Engineering Phase D (D0, 2026-09-10); full multi-recipient routing stays deferred |
+| Multi-recipient notifications | First pilot needs different operations/service recipients | Partially promoted — a separate urgent route (switch + address) is locked for Engineering Phase D (D0.1, 2026-09-10); general multi-recipient routing stays deferred |
 | SMS | Email proves too slow for urgent damage or support | Deferred |
 | Notification center | Event volume makes email/log review insufficient | Deferred |
 | Out-of-service/hold state | A pilot needs to block damaged equipment from rental | **Newly triggered candidate** (Phase D0 incident examples: rollover, immobilized, unsafe) — a separate future phase, **not** Engineering Phase D; see `docs/ROADMAP_DEFERRED.md` #3 |

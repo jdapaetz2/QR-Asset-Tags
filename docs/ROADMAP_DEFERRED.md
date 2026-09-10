@@ -39,7 +39,7 @@ The short backlog bullets in [`COMMERCIAL_MODEL.md`](COMMERCIAL_MODEL.md) and
 
 | Item | Status | Notes |
 |---|---|---|
-| **Actionable incident notifications** | **Active — Engineering Phase D** (D0 designed 2026-09-10) | [`ACTIONABLE_NOTIFICATION_DESIGN.md`](ACTIONABLE_NOTIFICATION_DESIGN.md). Promotes one narrow slice of the roadmap's "multi-recipient notifications" backlog item: a single optional urgent escalation address. Full multi-recipient routing remains deferred. |
+| **Actionable incident notifications** | **Active — Engineering Phase D** (D0 designed, D0.1 decisions locked 2026-09-10) | [`ACTIONABLE_NOTIFICATION_DESIGN.md`](ACTIONABLE_NOTIFICATION_DESIGN.md). Promotes one narrow slice of the roadmap's "multi-recipient notifications" backlog item: a separate urgent route (switch + address). Adds a daily return-exceptions summary. Neither is a general notification queue; full multi-recipient routing remains deferred. |
 | **Operational hold / out-of-service workflow** | **Newly triggered candidate — separate future phase** | Extends #3. See R3. Explicitly **not** part of Engineering Phase D: Phase D must never change an asset's rental or service state from a report. |
 
 ---

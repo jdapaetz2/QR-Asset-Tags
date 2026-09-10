@@ -1,7 +1,7 @@
 # Actionable Notification Design — Engineering Phase D
 
-**Status: D0 DESIGNED (2026-09-10). Nothing in this document is built.** Branch `pilot-credibility` @
-`ee29113`. Production deployment `jswtabswl` → `mulemark.io`.
+**Status: D0 designed (2026-09-10, `0415d81`) · D0.1 operator decisions locked (2026-09-10). Nothing in this
+document is built.** Branch `pilot-credibility`. Production deployment `jswtabswl` → `mulemark.io`.
 
 > **This is Engineering Phase D (actionable notifications).** It is *not* the business roadmap's
 > "Phase D - Controlled pilots" in `roadmap.md`, which is untouched by this work.
@@ -13,7 +13,42 @@ anyone needs to act now, who to contact, and whether photographs exist — witho
 secure incident brief, not a second uncontrolled copy of the entire submission.
 
 Every claim about current behaviour below was read from the repository on 2026-09-10 and carries a
-`file:line` reference. Where something was not verified, it says so.
+`file:line` reference. Where something was not verified, it says so. Every operator decision is final and
+recorded in §16; no open recommendations remain.
+
+---
+
+## Phase-wide guardrails
+
+**Canonical record and reliability**
+
+- The committed Mulemark submission is the system of record; email is a best-effort operational alert.
+- The existing `after()` submission-notification architecture, provider idempotency, bounded retry, provider
+  IDs, redacted logs and Preview dry-run are preserved.
+- No durable general notification queue is added in Phase D.
+- Notification success is never a condition of public submission success.
+- The database record is never altered after email rendering to make an email look correct.
+- Priority is never inferred from free text.
+
+**Security and privacy — never**
+
+- make the submissions bucket public, or put signed/expiring media URLs or storage object paths in email;
+- include raw `submission_data_json`, or trust a notification summary supplied by the browser;
+- log names, addresses, phone numbers, descriptions, paths, image bytes or email bodies;
+- expose recipient addresses to one another, or let public users choose recipients;
+- let customer staff change organization notification settings;
+- weaken RLS, role enforcement, suspension checks or tenant isolation;
+- add email links that change workflow state without authenticated authorization.
+
+**Triage language.** Renter-provided values are always labelled *Reported equipment state*, *Reported response
+need*, *Reported damage severity*, *Reported issue type*. Renter input is never described as a verified
+mechanical, damage, recovery or safety determination. **Priority is a presentation and routing result — not a
+safety certification — and never changes an asset's state.**
+
+**Environment.** Preview never sends live email. Production variables stay Production-scoped. Before any
+migration: prove the linked project, list migrations, dry run, show the exact plan, stop for approval. Never a
+remote `db reset`, never migration repair, never a Production migration applied in the same unreviewed step
+that creates it.
 
 ---
 
@@ -25,16 +60,16 @@ Every claim about current behaviour below was read from the repository on 2026-0
 4. Canonical projection
 5. Priority rules
 6. Event matrix
-7. Email wireframes
+7. Wireframes
 8. Photo strategy
-9. Routing strategy
+9. Routing strategy and the daily return summary
 10. Privacy and security rules
 11. Backward compatibility
 12. Phased file plan
 13. Acceptance criteria
 14. Explicit non-goals
 15. Operator test matrix
-16. Operator decision points
+16. Locked operator decisions
 
 ---
 
@@ -44,13 +79,15 @@ Every claim about current behaviour below was read from the repository on 2026-0
 
 | Item | Finding | How known |
 |---|---|---|
-| Branch / HEAD | `pilot-credibility` @ `ee29113`, clean, synced with origin | `git status`, `git rev-parse` |
+| Branch / HEAD | `pilot-credibility` @ `ee29113` at D0, clean, synced with origin | `git status`, `git rev-parse` |
 | Production deployment | `jswtabswl` (`dpl_AHM9…`), created 2026-09-09 16:20 PDT, CLI-deployed so it carries no git SHA. Its runtime tree equals HEAD: the only later non-documentation change is two `package.json` script registrations (C10). | `vercel inspect mulemark.io`, `git diff --stat 11063a1 HEAD` |
 | Notification env | `RESEND_API_KEY` (secret), `NOTIFICATION_FROM_EMAIL`, `NOTIFICATION_REPLY_TO_EMAIL` — **Production only**; none on Preview | `vercel env ls production` (names only, values never printed) |
 | Sender / Reply-To | `Mulemark <notifications@notify.mulemark.io>` / `support@mulemark.io` | `EMAIL_DELIVERABILITY_RUNBOOK.md` |
 | Per-organization recipients on Production | **Not queried.** Reading them needs a service-role query that would print addresses. Last recorded state: the QA org recipient was cleared to NULL after C6.1. | — |
-| Migration ledger | CLI is linked to **staging**; `supabase migration list` there shows **0001–0033 matched** today. Production was last verified 0001–0033 in Phase A6.3 and was not re-verified (the CLI is deliberately not relinked). | `supabase migration list`, `MIGRATION_LEDGER.md` |
+| Migration ledger | CLI is linked to **staging**; `supabase migration list` there shows **0001–0033 matched**. Production was last verified 0001–0033 in Phase A6.3 and was not re-verified (the CLI is deliberately not relinked). | `supabase migration list`, `MIGRATION_LEDGER.md` |
 | Resend open/click tracking | **Still unrecorded** — a provider-side setting the app cannot assert | `EMAIL_DELIVERABILITY_RUNBOOK.md:72` |
+| Organization timezone | **None.** Analytics already defaults to `America/Vancouver`. | `0020_analytics_aggregation.sql:10-12` |
+| Vercel cron (fetched 2026-09-10) | Timezone **always UTC**; invoked only against the **production** deployment URL (GET, `vercel-cron/1.0`, `x-vercel-cron-schedule` header); Hobby: 100 jobs per project, **once per day each**, invoked **anywhere within the scheduled hour**; delivery **best effort** with **no retries**, runs may be **missed or duplicated**; several jobs may share one path; `CRON_SECRET` arrives as `Authorization: Bearer …` | vercel.com/docs/cron-jobs, `/manage-cron-jobs`, `/usage-and-pricing` |
 
 ### 1.2 Which events send today
 
@@ -162,29 +199,30 @@ image, pixel, attachment, style block, shortener or signed media URL (`email.tes
 happened, how serious it is, whether anyone must act now, how the submitter wants to be reached, or
 whether photos exist.
 
-### 1.5 Findings recorded by D0 (not fixed here)
+### 1.5 Findings recorded by D0 (not fixed in D0 or D0.1)
 
 | # | Finding | Evidence | Disposition |
 |---|---|---|---|
 | F1 | The summary plumbing is dead: `ScheduledNotification` has no `summary` field, so `notifySubmission` always passes `""` | `schedule.ts:42-49`, `notify.ts:56,109` | Replaced by the projection in D1 |
 | F2 | Submitter contact in the email comes from browser form values passed through the scheduler, not from the committed row | `lib/forms/submit.ts:232`, `inspections/submit.ts:234` | D1 reads the row |
-| F3 | The damage form's urgency **defaults to `medium`**, so a stored `medium` is not evidence of a renter's choice | `components/public/damage-form.tsx:17` | D2 removes the default; D1 never escalates on `medium` |
+| F3 | The damage form's urgency **defaults to `medium`**, so a stored `medium` is not evidence of a renter's choice | `components/public/damage-form.tsx:17` | D2 replaces the question with optional, unselected triage; D1 never escalates on `medium` |
 | F4 | `damageSeverityLabel` uses damage-report **urgency** as severity, conflating the two concepts this phase separates | `lib/submissions/damage.ts:62-65` | D2 |
-| F5 | The tag-request notifier runs on **every save**, including notes-only saves; dedupe holds only for Resend's 24 h window, so a later notes-only save re-sends. `delivered_at` is re-stamped on every save while delivered. | `lib/tags/owner-actions.ts:35-55`, `idempotency.ts:6-8` | D3: notify only on an actual status change |
+| F5 | The tag-request notifier runs on **every save**, including notes-only saves; dedupe holds only for Resend's 24 h window, so a later notes-only save re-sends. `delivered_at` is re-stamped on every save while delivered. | `lib/tags/owner-actions.ts:35-55`, `idempotency.ts:6-8` | D3A: notify only on an actual status change |
 | F6 | `scripts/production/qa-notification-recipient.mjs` also writes `notify_damage_reports = true` on `--set`, contrary to its own "exactly one column" header | `:19`, `:119-122` | Documentation fix at the next touch |
-| F7 | `parseAnswerValues` stores values for fields hidden by `visible_when`; only visible fields are validated | `lib/inspections/validate.ts:98-99,120-125` | Any email projection must apply visibility (§10) |
+| F7 | `parseAnswerValues` stores values for fields hidden by `visible_when`; only visible fields are validated | `lib/inspections/validate.ts:98-99,120-125` | The projection applies visibility (§10) |
 | F8 | CSV export and the dashboard card summary read only V1 flat keys, so they show blanks for V2 returns | `lib/submissions/csv.ts:31-37,77-96`, `app/(admin)/dashboard/page.tsx:70-73` | Out of Phase D scope; recorded |
-| F9 | Uploaded photos are stored exactly as sent — no resize, no EXIF/GPS strip | `lib/forms/submit.ts:148-154`, `inspections/submit.ts:142-148` | Email previews must strip metadata (§8); storage itself unchanged |
+| F9 | Uploaded photos are stored exactly as sent — no resize, no EXIF/GPS strip | `lib/forms/submit.ts:148-154`, `inspections/submit.ts:142-148` | Email previews strip metadata (§8); storage itself unchanged |
 | F10 | The `audience` type comment says staff outbound inspections carry `audience:"staff"`; outbound never writes it | `lib/inspections/types.ts:158-160`, `outbound-submit.ts:157-163` | Comment fix at the next touch |
-| F11 | The staff return route exports no `maxDuration`, unlike the public form routes (`maxDuration = 60`) | `app/forms/[shortCode]/{damage,support,return}/page.tsx` | Verify before D3 schedules work there |
+| F11 | The staff return route exports no `maxDuration`, unlike the public form routes (`maxDuration = 60`) | `app/forms/[shortCode]/{damage,support,return}/page.tsx` | No longer blocks Phase D: staff returns are never emailed individually (§16 #11–12). The summary route sets its own `maxDuration` (D3B). |
 | F12 | No length or size limit is enforced on subject, text or HTML | `send.ts:135-143` | D1 adds caps (§13) |
+| F13 | The public confirmation page says the team "has been notified", which is not guaranteed; its call link puts the raw stored phone into `tel:` | `components/public/form-thanks.tsx:55,65` | D2 (§16 #7–8) |
 
 ---
 
 ## 2. Data inventory
 
 Legend: **Server** = server-authoritative (derived or validated server-side, not trusted browser text).
-**Email** = recommended email treatment. **Now** = included in today's email.
+**Email** = locked email treatment. **Now** = included in today's email.
 
 ### 2.1 Damage report
 
@@ -195,7 +233,7 @@ Legend: **Server** = server-authoritative (derived or validated server-side, not
 | `asset_code`, `asset_name`, `category` | text | chip | Server lookup | Yes | Yes | name/category nullable | No |
 | `submitted_by_name` | text | Name | Browser, required (`validate.ts:48`) | Yes, contact block | Yes | — | **PII** |
 | `submitted_by_email` | text | Email | Browser, regex-checked (`validate.ts:51`) | Yes, `mailto:` only if valid | Yes | nullable | **PII** |
-| `submitted_by_phone` | text | Phone | Browser, format **not** validated | Yes, `tel:` only after sanitizing | Yes | nullable | **PII** |
+| `submitted_by_phone` | text | Phone | Browser, format **not** validated | Yes, `tel:` only after normalizing | Yes | nullable | **PII** |
 | `submission_data_json.urgency` | `low`/`medium`/`high`/null | "Urgency" badge | Browser enum, app-checked only; **defaults to medium** | Legacy only, as "Reported urgency" | No | No DB CHECK; F3 | No |
 | `submission_data_json.description` | string | Description | Browser, required, no length cap | Yes, excerpt ≤ 300 chars | No | — | Free text, may contain PII |
 | `media_urls` | path[] | Attachments (n) | Server-built paths | Count only; never paths | No | — | Paths are internal |
@@ -227,15 +265,15 @@ Columns: `submitted_by_*` optional (browser; admin/staff viewers get a pre-fill,
 | `flags.accessories_missing` | boolean | "Accessories missing" | Server | **Yes** | No | V1: `accessories_returned === "no"` | No |
 | `answers.values.accessories.<item>` | `returned`/`missing`/`na` | item list | Browser, validated | Missing item labels only | No | custom templates vary | No |
 | `answers.values.damage_location` | short text | "Where is the damage?" | Browser, required when visible | Yes, ≤ 120 chars | No | system templates only | Free text |
-| `answers.values.damage_severity` | `minor`/`moderate`/`severe` | "Severity" | Browser, validated select | Yes, as "Reported damage severity" | No | absent on custom templates | No |
+| `answers.values.damage_severity` | `minor`/`moderate`/`severe` | "Severity" | Browser, validated select | Yes, as "Reported damage severity" (display only) | No | absent on custom templates | No |
 | `answers.values.damage_description` | long text | "Describe the damage" | Browser | Yes, excerpt ≤ 300 | No | system templates only | Free text |
-| `pass_fail_na` answers = `fail` | enum | field label + "Fail" | Browser, validated | **Failed check labels** (visible fields only) | No | any template, detected by field type | No |
-| `starts_operates` / `powers_on` = `no` | yes/no | field label | Browser | "Reported not starting / not powering on" | No | system template ids only | No |
+| `pass_fail_na` answers = `fail` | enum | field label + "Fail" | Browser, validated | **Failed check labels** (visible fields only; required vs optional distinguished, §5) | No | built-in checks always required (`field-builders.ts:23-25`); custom may be optional (`org-templates.ts:111`) | No |
+| `starts_operates` / `powers_on` = `no` | yes/no | field label | Browser | "Reported not starting / not operating" | No | system template ids only | No |
 | `fuel_or_charge_level` | free string | Fuel / charge level | **Not validated server-side** (`validate.ts:171`) | **No** (app-only) | No | — | No |
 | `engine_hours`, `run_hours` | number | meter | Browser | No (app-only) | No | — | No |
 | `cleaned`, other yes/no, long-text notes | mixed | labels | Browser | No (app-only) | No | V1 `condition_notes` | Free text |
 | `answers.photos.<slot>[]` | `{path, caption}` | slot label | path server-built; caption = slot label | Counts + slot labels; paths never | No | absent in V1 | Paths internal |
-| `flags.damage_photos_missing`, `flags.condition_photos_missing`, `missing_recommended_photo_slots` | boolean / slot ids | "Evidence" note | Server, counted from validated uploads | "Evidence gap" line | No | absent before 3C.1 / 3C.1.1 | No |
+| `flags.damage_photos_missing`, `flags.condition_photos_missing`, `missing_recommended_photo_slots` | boolean / slot ids | "Evidence" note | Server, counted from validated uploads | "Photos missing" line | No | absent before 3C.1 / 3C.1.1 | No |
 | `photo_omission_acknowledged` | true | acknowledged note | Server decides need; browser sends ack | No (app-only) | No | legacy `damage_photo_omission_acknowledged` | No |
 | `answers.values.attestation` | `yes`/`no` | skipped in summary | Browser | No | No | — | No |
 | `rental_session_id` (column) | uuid | session link | Trigger | "Linked to an active rental" line only | No | null when not rented / pre-0024 | No |
@@ -246,16 +284,16 @@ Same V2 shape as 2.3, plus:
 
 | Field | Type | Current label | Server? | Email | Sensitive |
 |---|---|---|---|---|---|
-| `submission_origin='staff'`, `audience:"staff"` | enum | "Staff return checklist" (`origin.ts:44`) | Server / RPC | Yes, event label | No |
-| `submitted_by_name`, `submitted_by_email` | text | "Performed by" | Server, from the authenticated profile | Name only; staff email **omitted** | Staff PII |
-| `status` | `new` if flagged, else `resolved` | badge | Server | No | No |
+| `submission_origin='staff'`, `audience:"staff"` | enum | "Staff return checklist" (`origin.ts:44`) | Server / RPC | Daily summary item label only | No |
+| `submitted_by_name`, `submitted_by_email` | text | "Performed by" | Server, from the authenticated profile | Name only, in the daily summary; staff email **never** | Staff PII |
+| `status` | `new` if flagged, else `resolved` | badge | Server | Current status label in the daily summary | No |
 | Template | system return template without attestation (`staff-return-templates.ts:17-40`) | — | Server | — | — |
 
 ### 2.5 Outbound inspection
 
 | Field | Type | Current label | Server? | Email | Sensitive |
 |---|---|---|---|---|---|
-| `form_type='pre_use_inspection'`, `status='resolved'` | enum | "Outbound inspection" (`origin.ts:42`); the notifier label would say "Pre-use inspection" (`display.ts:26`) | Server | Not notified | No |
+| `form_type='pre_use_inspection'`, `status='resolved'` | enum | "Outbound inspection" (`origin.ts:42`); the notifier label would say "Pre-use inspection" (`display.ts:26`) | Server | Never notified | No |
 | `answers.values.condition_notes` | long text | "Existing condition notes" | Browser | — | Free text |
 | `flags.damage_observed` (from `existing_damage`) | yes/no | Existing damage | Server | — | No |
 | accessories `issued`/`not_issued`/`na` | enum | item list | Browser | — | No |
@@ -267,10 +305,14 @@ Same V2 shape as 2.3, plus:
 |---|---|---|---|---|---|---|
 | `status` | 6-value CHECK (`0010:15-16`) | `tagRequestStatusLabel` (`tag-requests.ts:30-41`) | Server whitelist | Yes | Yes | No |
 | `id` | uuid | reference | Server | Yes | Yes | No |
-| `material`, `mounting_method`, `tag_size`, `quantity_notes` | free text | request detail | Browser (customer admin) | One summary line, optional (D3) | No | No |
-| `tag_request_assets.quantity` | int | per-asset quantity | Browser | Total count, optional (D3) | No | No |
+| `material`, `mounting_method`, `tag_size`, `quantity_notes` | free text | request detail | Browser (customer admin) | One summary line, optional (D3A) | No | No |
+| `tag_request_assets.quantity` | int | per-asset quantity | Browser | Total count, optional (D3A) | No | No |
 | `production_notes` | text | internal | Platform owner | **Never** | No | Internal |
 | `requested_by_profile_id` | uuid | — | Server | No | No | No |
+
+No tag-request status asks the customer to act: Mulemark reviews, produces and ships
+(`app/(admin)/dashboard/tag-requests/page.tsx:51`; statuses `requested`, `in_review`, `in_production`, `ready`,
+`delivered`, `cancelled`, `lib/tags/tag-requests.ts:13-37`).
 
 ---
 
@@ -281,236 +323,315 @@ Same V2 shape as 2.3, plus:
 - Damage: reported urgency (legacy), description.
 - Support: preferred contact method, description.
 - Returns (renter and staff): damage flag, damage location, severity and description; missing
-  accessories and which items; failed checks; "does not start / power on"; photo-evidence gaps.
+  accessories and which items; failed checks; "does not start / operate"; photo-evidence gaps.
 - All submissions: photo count and, for returns, which slots have photos; submission origin; whether the
   record is linked to an active rental.
 - Canonical event label ("Renter return checklist" / "Staff return checklist").
 
-### 3.2 Not captured at all
+### 3.2 Not captured at all (captured from D2 where noted)
 
-- **Reported equipment state** (operating, limited, not operating, immobilized, unsafe) — no form asks.
-- **Reported response need** (routine, prompt, immediate) — damage urgency is a partial, default-biased
-  stand-in (F3); support requests capture nothing.
-- **Issue type** for support requests (breakdown, stuck, rollover/safety, operating question).
-- **Damage severity on damage reports** — deliberately still not captured (§16 DP-1).
-- **Organization timezone** — which is why the brief carries no absolute timestamp.
+- **Reported equipment state** on damage reports — optional question, D2.
+- **Reported response need** on damage and support — optional question, D2. The legacy damage urgency is a
+  partial, default-biased stand-in (F3).
+- **Reported issue type** on support requests — optional question, D2.
+- **Reported damage severity** on damage reports — optional question, D2; displayed, never raises priority.
+- **Organization timezone** — not added in Phase D; the brief carries no absolute timestamp and the daily
+  summary uses Pacific time.
 
-### 3.3 Should remain app-only
+### 3.3 Remains app-only
 
 Full checklist answers; meter readings; fuel/charge level; template name/version and snapshot; acknowledgement
 and attestation detail; internal notes; `production_notes`; rental reference and renter label; staff email
-addresses; status history and related records; **every storage path, bucket name and signed URL**; the
-full description beyond the excerpt; original full-resolution photos.
+addresses; status history and related records; **every storage path, bucket name and signed URL**; raw
+`submission_data_json`; the full description beyond the excerpt; original full-resolution photos.
 
 ---
 
 ## 4. Canonical projection
 
-One server-only, pure-after-load projection per notification. It is built from the **committed row plus
-trusted server lookups**, never from browser input carried across the commit.
+Two server-only projections, both built from **committed rows plus trusted server lookups**, never from browser
+input carried across the commit.
+
+### 4.1 Individual notification brief
 
 ```ts
-type NotificationPriority = "immediate" | "prompt" | "routine" | "record";
+type NotificationPriority = "immediate" | "follow_up" | "routine" | "record";
 
 type NotificationBrief = {
-  event: "damage_report" | "support_request" | "renter_return" | "staff_return" | "tag_status";
+  event: "damage_report" | "support_request" | "renter_return" | "tag_status";
   eventLabel: string;               // "Damage report", "Renter return checklist", … (submissionTypeLabel)
   reference: string;                // SUB-YYYY-XXXXXX, or the tag request id
   organizationName: string;
   asset: { code: string | null; name: string | null; category: string | null } | null;
   priority: NotificationPriority;
-  headline: string;                 // deterministic phrase from the winning priority rule (§5.4)
-  reported: {                       // renter/staff selections, always presented as "Reported …"
-    issueType: IssueType | null;    // null = not asked on this event
-    equipmentState: EquipmentState | null;
-    responseNeed: ResponseNeed | null;
-    damageSeverity: DamageSeverity | null;
-    legacyUrgency: "low" | "medium" | "high" | null;
+  headline: string;                 // deterministic phrase from the winning rule (§5.4)
+  reported: {                       // null = omitted by the submitter, or not asked on this event
+    issueType: IssueType | null;            // support requests
+    equipmentState: EquipmentState | null;  // damage reports
+    responseNeed: ResponseNeed | null;      // damage and support
+    damageSeverity: DamageSeverity | null;  // damage reports (display only)
+    legacyUrgency: "low" | "medium" | "high" | null;  // rows without triage_version
   };
   descriptionExcerpt: string | null;  // ≤ 300 chars, whitespace-collapsed, control chars stripped
-  exceptions: string[];               // return checklists only; visible fields only; labels, not values dumps
-  evidenceGaps: string[];             // return checklists only; never raises priority above routine
+  exceptions: string[];               // return checklists: Follow-up conditions only (§5.2)
+  routineNotes: string[];             // return checklists: failed optional checks, missing photos
   contact: {
     name: string | null;
     preferredMethod: "email" | "phone" | "text" | null;
-    phone: string | null;             // display form
-    phoneHref: string | null;         // "tel:+16045550100", only when sanitizable
+    phoneLabel: string | null;        // as submitted, escaped
+    phoneHref: string | null;         // "tel:+16045550100" — only when normalizable (§10)
     email: string | null;             // only when it passes the existing regex
-  } | null;                           // staff events: name only
+  } | null;
   linkedToActiveRental: boolean;
   photos: {
-    count: number;                    // images on the record
-    slotLabels: string[];             // return checklists
-    previewCandidates: string[];      // storage paths, SERVER-ONLY: never rendered, never logged (§8)
+    count: number;
+    slotLabels: string[];
+    previewCandidates: string[];      // storage paths — SERVER-ONLY: never rendered, never logged (§8)
   };
-  links: { record: string; settings: string };   // publicEnv.siteUrl only
+  links: { record: string; settings: string };   // record = primary CTA; publicEnv.siteUrl only
 };
 ```
 
-**Construction rules**
+Staff return checklists and outbound inspections have **no** individual brief: staff returns appear only in the
+daily summary; outbound inspections never notify.
 
-1. The scheduler payload shrinks to identifiers: `{ organizationId, submissionId }` (plus `event` for
-   staff returns). Browser-derived `submittedBy` is no longer passed.
-2. The notifier loads the row with the existing service-role client, filtered by **both** `id` and
-   `organization_id`, selecting only the columns the projection needs. A missing row sends nothing and
-   logs `failed_transient` with `failureClass: "record_missing"` (no new outcome value).
-3. Projection is a **pure function** of `(row, asset, organization)` so every rule is unit-testable.
-4. `previewCandidates` never leaves the server process: not rendered, not logged, not placed in an
-   idempotency key.
-5. The brief is built **once** per notification and reused for every recipient.
+### 4.2 Daily return summary
 
-Why not the example shape in the Phase D brief verbatim: `occurredAt` is dropped (no organization
-timezone; see 3.2), `submitter` becomes `contact` with sanitized action hrefs, `primaryAction` /
-`settingsAction` collapse into `links` because there is exactly one action surface, and
-`preferredPhotoPaths` is renamed `previewCandidates` to make its server-only status explicit.
+```ts
+type ReturnSummary = {
+  organizationName: string;
+  scope: "staff_only" | "renter_and_staff";   // instant_renter → staff_only; daily_exceptions → both
+  sincePhrase: string;              // e.g. "since Tuesday 6 AM Pacific" — never a raw UTC timestamp
+  items: Array<{
+    reference: string;
+    asset: { code: string | null; name: string | null };
+    eventLabel: "Renter return checklist" | "Staff return checklist";
+    statusLabel: "New" | "Reviewed" | "Resolved" | "Archived";   // current status when the summary is built
+    exceptions: string[];           // Follow-up return conditions only
+    photoCount: number;             // count only — no previews, no paths
+    performedBy: string | null;     // staff name for staff returns; never an email address
+    recordLink: string;
+  }>;
+  links: { inbox: string; settings: string };
+};
+```
+
+**Construction rules (both)**
+
+1. The individual scheduler payload shrinks to identifiers: `{ organizationId, submissionId }`. Browser-derived
+   `submittedBy` is no longer passed.
+2. Rows are loaded with the existing service-role client, filtered by `organization_id` as well as `id` or time
+   window, selecting only needed columns. A missing individual row sends nothing and logs `failed_transient`
+   with `failureClass: "record_missing"`.
+3. Projection is a **pure function** of loaded data so every rule is unit-testable.
+4. `previewCandidates` never leaves the server process: not rendered, not logged, not in an idempotency key.
+5. A brief is built **once** and reused for every recipient; the database is never written to make an email
+   read correctly.
 
 ---
 
 ## 5. Priority rules
 
-### 5.1 Triage vocabulary (kept separate on purpose)
+### 5.1 Reported triage vocabulary
 
-| Concept | Values |
+| Concept | Where asked | Values |
+|---|---|---|
+| Reported equipment state | Damage form (optional) | operating · operating with limitations · not operating · cannot be moved · unsafe to operate |
+| Reported response need | Damage and support forms (optional) | no immediate response needed (`routine`) · follow up soon (`prompt`) · help needed now (`immediate`) |
+| Reported damage severity | Damage form (optional) | minor · moderate · major |
+| Reported issue type | Support form (optional) | breakdown or no-start · stuck or needs recovery · rollover or safety incident · operating question · other |
+
+No answer is pre-selected. Exact renter-facing wording is finalized in D2. If D2 offers a "Not sure" option, it
+is stored as unknown and behaves exactly like an omitted answer. Answers are stored in `submission_data_json`
+with `triage_version: 1`.
+
+### 5.2 Rules — applied in this order
+
+**Immediate attention** — when any explicit new field says:
+
+- response need = immediate
+- equipment state = cannot be moved
+- equipment state = unsafe to operate
+- support issue type = rollover or safety incident
+
+Return checklists never become immediate-attention email.
+
+**Follow up** — when any explicit or canonical field says:
+
+- response need = prompt
+- equipment state = not operating
+- equipment state = operating with limitations
+- support issue type = breakdown/no-start
+- support issue type = stuck/recovery
+- legacy damage urgency = high
+- return checklist has damage
+- return checklist has a failed required condition
+- return checklist says equipment does not start/operate
+- return checklist has a missing required accessory
+
+**Routine review** — for:
+
+- every damage report not mapped above
+- every support request not mapped above
+- a return checklist whose only exception is missing recommended photos
+- unknown or omitted optional triage values
+
+A damage report is never below routine review.
+
+**Record only** — for:
+
+- a clean return checklist
+- a tag-request status update (no status in the existing tag workflow requires customer action — §2.6)
+
+**Damage severity rule.** Reported damage severity is displayed but does not by itself raise notification
+priority. A renter's visual estimate is useful context but is not a reliable response-timing decision.
+
+### 5.3 Deterministic definitions
+
+| Rule term | Definition |
 |---|---|
-| Issue type | `damage_impact`, `breakdown`, `stuck_recovery`, `rollover_safety`, `operating_question`, `other`, `unknown` |
-| Reported equipment state | `operating`, `operating_limited`, `not_operating`, `immobilized`, `unsafe`, `unknown` |
-| Reported response need | `routine`, `prompt`, `immediate`, `unknown` |
-| Damage severity (only where damage is relevant) | `minor`, `moderate`, `major`, `unknown` |
+| explicit new field | a triage value stored on a row carrying `triage_version: 1` |
+| legacy damage urgency = high | `submission_data_json.urgency === "high"` on a damage report **without** `triage_version`; ignored once triage exists |
+| return checklist has damage | V2 `flags.damage_observed === "yes"`; V1 `damage_observed === "yes"` |
+| failed required condition | a **visible** `pass_fail_na` field answered `fail` whose `required` is true, or whose `required_when` condition holds. Every built-in check is required. |
+| failed optional check | a visible `pass_fail_na` field answered `fail` that is not required (custom templates only) — **Routine review, not a return exception, not in the daily summary** (§16 #15) |
+| does not start/operate | visible system field `starts_operates` or `powers_on` answered `no`. A custom template's own operating question is displayed but not detected. |
+| missing required accessory | canonical `flags.accessories_missing === true` (any listed accessory marked `missing`; `na` excluded); V1 `accessories_returned === "no"`. Accessory items carry no per-item required flag, so every listed item is expected. |
+| missing recommended photos | `flags.damage_photos_missing`, `flags.condition_photos_missing`, or a non-empty `missing_recommended_photo_slots` |
+| clean return checklist | none of the above |
+| return exception | any Follow-up return condition. Photo gaps and failed optional checks are **not** exceptions. |
+| visible | the field's section and field `visible_when` conditions hold against the stored answers (F7) |
 
-Severity and urgency are different things: a scratched fender is minor damage needing routine review; a
-machine stuck in mud may have no damage and need immediate recovery; a rollover is major, unsafe and
-immediate; a no-start is not operating without being a severe damage event.
-
-Return-checklist `damage_severity` stores `severe`; it maps to `major` for rules and displays the
-template's own option label ("Severe").
-
-### 5.2 Presentation levels
-
-| Level | Recipient decision it supports |
-|---|---|
-| **Immediate attention** | Act now |
-| **Prompt follow-up** | Contact the submitter soon / check the asset before its next rental |
-| **Routine review** | Review later |
-| **Record only** | No immediate action |
-
-### 5.3 Rules — first match wins
+Pseudo-code (first match wins):
 
 ```
-tag_status                                            → record
+tag_status                                   → record
 renter_return | staff_return:
-    damage OR accessories missing OR ≥1 failed check
-      OR reported not starting / not powering on      → prompt      (never higher)
-    evidence gaps only                                → routine
-    otherwise (clean)                                 → record
+    damage | failed required condition
+      | does not start/operate
+      | missing required accessory           → follow_up
+    missing recommended photos
+      | failed optional check                → routine
+    otherwise                                → record
 damage_report | support_request:
     responseNeed = immediate
-      OR equipmentState ∈ {unsafe, immobilized}
-      OR issueType = rollover_safety                  → immediate
+      | equipmentState ∈ {cannot_be_moved, unsafe}
+      | issueType = rollover_safety          → immediate
     responseNeed = prompt
-      OR equipmentState ∈ {not_operating, operating_limited}
-      OR issueType ∈ {breakdown, stuck_recovery}
-      OR (no triage recorded AND legacyUrgency = high) → prompt
-    otherwise                                         → routine     (never record)
+      | equipmentState ∈ {not_operating, operating_limited}
+      | issueType ∈ {breakdown_no_start, stuck_recovery}
+      | (no triage_version & urgency = high) → follow_up
+    otherwise                                → routine
 ```
 
-Invariants, each a test:
+**Invariants, each a test:** no AI and no free-text interpretation; a clean return checklist is always record
+only; a return checklist is never immediate; a damage or support report is never record only; omitted or
+unknown values never raise a level; reported damage severity never raises a level; legacy `medium`/`low`
+urgency never raises a level; visibility is always applied; every renter selection is labelled "Reported …"
+and the brief states that the selections are not a verified inspection.
 
-- **No AI and no free-text interpretation.** Only enumerated stored values and canonical flags are read.
-  The description never influences priority.
-- **A clean return checklist is always `record`.**
-- **A return checklist can never be `immediate`.** The equipment is already back; the data describes a
-  follow-up, not an emergency.
-- **Damage alone does not imply immediate.** A damage report with `operating` + `routine` is `routine`.
-- **A damage or support report is never `record`.**
-- **`unknown` or absent never raises a level.** It is displayed as "Not reported" / "Unknown".
-- **Legacy urgency `medium` and `low` never raise a level** (F3). Legacy urgency is ignored entirely once a
-  row carries `triage_version`.
-- **Reported values stay reported.** Every renter or staff selection is labelled "Reported …" and the
-  brief carries the line "These are the submitter's selections, not a verified inspection."
-- **Visibility is applied.** Failed checks and damage details are read only from sections and fields
-  whose `visible_when` holds (F7).
+### 5.4 Headline — deterministic, from the winning condition
 
-### 5.4 Headline — deterministic, from the winning rule
-
-| Winning condition | Headline |
+| Winning condition (checked in this order within its level) | Headline |
 |---|---|
-| `issueType = rollover_safety` | reported rollover or safety incident |
-| `equipmentState = unsafe` | reported unsafe to operate |
-| `equipmentState = immobilized` | reported stuck or unable to move |
-| `responseNeed = immediate` | immediate assistance requested |
-| `equipmentState = not_operating` | reported not operating |
-| `issueType = breakdown` | reported breakdown |
-| `issueType = stuck_recovery` | reported stuck, recovery needed |
-| `equipmentState = operating_limited` | reported operating with limitations |
-| `responseNeed = prompt` | follow-up requested |
-| legacy `urgency = high` | reported urgency: high |
+| issue type = rollover or safety incident | reported rollover or safety incident |
+| state = unsafe to operate | reported unsafe to operate |
+| state = cannot be moved | reported unable to move |
+| response need = immediate | help requested now |
+| state = not operating | reported not operating |
+| issue type = breakdown/no-start | reported breakdown or no-start |
+| issue type = stuck/recovery | reported stuck, recovery needed |
+| state = operating with limitations | reported operating with limitations |
+| response need = prompt | follow-up requested |
+| legacy urgency = high | reported urgency: high |
 | routine damage report | damage reported |
 | routine support request | support request |
-| return with exceptions | {Renter\|Staff} return checklist, N exception(s) |
-| return, evidence gaps only | {Renter\|Staff} return checklist, photos missing |
-| clean return | Renter return checklist, no exceptions |
-
-Order within a level follows the table; this is the tie-break and it is tested.
+| renter return, exceptions | renter return checklist, N exception(s) |
+| renter return, routine | renter return checklist, review when convenient |
+| renter return, clean | renter return checklist, no exceptions |
 
 ### 5.5 Worked examples (become table-driven tests)
 
 | Event | Stored values | Priority | Headline |
 |---|---|---|---|
 | Damage | state `operating`, need `routine` | routine | damage reported |
-| Damage | state `unsafe`, need `routine` | **immediate** | reported unsafe to operate |
-| Damage | state `not_operating`, need `unknown` | prompt | reported not operating |
+| Damage | state `unsafe`, need omitted | **immediate** | reported unsafe to operate |
+| Damage | state omitted, need `immediate` | **immediate** | help requested now |
+| Damage | state `not_operating`, need omitted | follow up | reported not operating |
+| Damage | severity `major`, state `operating`, need `routine` | routine | damage reported |
+| Damage | severity `major`, nothing else answered | routine | damage reported |
+| Damage | nothing answered (triage_version 1) | routine | damage reported |
 | Damage (legacy) | urgency `medium` | routine | damage reported |
-| Damage (legacy) | urgency `high` | prompt | reported urgency: high |
+| Damage (legacy) | urgency `high` | follow up | reported urgency: high |
 | Damage (triage + stray urgency `high`) | state `operating`, need `routine`, urgency `high` | routine | damage reported |
-| Support | issue `stuck_recovery`, need `immediate` | **immediate** | immediate assistance requested |
-| Support | issue `stuck_recovery`, need `routine` | prompt | reported stuck, recovery needed |
+| Support | issue `stuck_recovery`, need `immediate` | **immediate** | help requested now |
+| Support | issue `stuck_recovery`, need omitted | follow up | reported stuck, recovery needed |
+| Support | issue `rollover_safety`, need `routine` | **immediate** | reported rollover or safety incident |
 | Support | issue `operating_question`, need `routine` | routine | support request |
 | Support (legacy) | no triage | routine | support request |
-| Renter return | damage `yes`, severity `severe` | prompt | Renter return checklist, 1 exception |
-| Renter return | clean, all photos | record | Renter return checklist, no exceptions |
-| Renter return | clean, `condition_photos_missing` | routine | Renter return checklist, photos missing |
-| Staff return | accessories missing + 1 failed check | prompt | Staff return checklist, 2 exceptions |
-| Renter return (V1 flat) | `damage_observed: "yes"` | prompt | Renter return checklist, 1 exception |
-| Renter return (custom template) | flags clean, a hidden section holds `fail` | record | Renter return checklist, no exceptions |
-| Tag request | status `in_production` | record | — |
+| Renter return | damage `yes`, severity `severe` | follow up | renter return checklist, 1 exception |
+| Renter return | clean, all photos | record | renter return checklist, no exceptions |
+| Renter return | clean, `condition_photos_missing` | routine | renter return checklist, review when convenient |
+| Renter return (custom template) | one failed **optional** check | routine | renter return checklist, review when convenient |
+| Renter return (custom template) | clean flags; a **hidden** section holds `fail` | record | renter return checklist, no exceptions |
+| Renter return (V1 flat) | `damage_observed: "yes"` | follow up | renter return checklist, 1 exception |
+| Staff return | accessories missing + 1 failed required check | follow up | — (daily summary item, never individual) |
+| Staff return | clean | record | — (never emailed) |
+| Tag request | status `ready` | record | — |
 
 ---
 
 ## 6. Event matrix
 
-| | Damage report | Support request | Renter return checklist | Staff return checklist | Tag request status |
-|---|---|---|---|---|---|
-| **Subject** | `{prefix}{code} — {headline}`; routine: `New damage report — {code}` | `{prefix}{code} — {headline}`; routine: `Support request — {code}` | exceptions: `Follow up: {code} — renter return checklist, N exceptions`; clean: `Renter return checklist — {code}, no exceptions` | `Follow up: {code} — staff return checklist, N exceptions` | unchanged: `Tag request updated — {organization}` |
-| **Prefix** | `Immediate attention: ` / `Follow up: ` / none | same | `Follow up: ` / none | `Follow up: ` | none |
-| **Preheader (first visible line)** | `Reported: {state} · {need} · {n} photos · {name} ({preferred})` | `Reported: {issue} · {need} · {n} photos · {name} ({preferred})` | `Exceptions: {list} · {n} photos` or `No action required. No exceptions reported.` | `Exceptions: {list} · {n} photos · by {staff name}` | `Status: {label}` |
-| **Priority treatment** | full range except record | full range except record | prompt / routine / record | prompt only (sent only with exceptions) | record |
-| **Above the fold** | priority label, event, asset, headline, reported state/need, excerpt, contact | priority label, event, asset, headline, reported issue/need, excerpt, contact + preferred method | exceptions, damage location + severity + excerpt, missing items, failed checks, contact (if given), photos by slot | exceptions, damage detail, staff name | status, reference |
-| **Omitted** | paths, URLs, legacy fields beyond urgency | paths, URLs | full checklist, meters, fuel, notes, template, attestation, rental reference | same + staff email | `production_notes`, requester |
-| **Primary CTA** | Open in Mulemark → `/dashboard/submissions/{id}` | same | same | same | View tag requests → `/dashboard/tag-requests` |
-| **Call / email** | `tel:` + `mailto:` when present and sanitized | same; preferred method listed first | only if contact provided | none | none |
-| **Photos** | count; D4: ≤ 3 previews | count; D4: ≤ 3 previews | count + slot labels; D4: damage slot first | count + slot labels; D4 previews | none |
-| **Plain text** | complete brief; no information exists only in HTML | same | same | same | same |
-| **No-action wording** | never (a report is never record) | never | clean: "No action required." | never sent clean | "No action required." |
+### 6.1 Individual emails
 
-Staff return checklists and outbound inspections: staff returns notify only with exceptions (§9);
-**outbound inspections never notify** — they are the organization's own baseline record.
+| | Damage report | Support request | Renter return checklist (`instant_renter` only) | Tag request status |
+|---|---|---|---|---|
+| **Subject** | immediate / follow up: `{prefix}{code} — {headline}`; routine: `New damage report — {code}` | immediate / follow up: `{prefix}{code} — {headline}`; routine: `Support request — {code}` | follow up: `Follow up: {code} — renter return checklist, N exceptions`; routine: `Renter return checklist — {code}, review when convenient`; record: `Renter return checklist — {code}, no exceptions` | unchanged: `Tag request updated — {organization}` |
+| **Priority prefix** | `Immediate attention: ` · `Follow up: ` · none | same | `Follow up: ` · none | none |
+| **First visible line** | `Reported: {state} · {need} · {n} photos · {name} ({preferred})` | `Reported: {issue} · {need} · {n} photos · {name} ({preferred})` | `Exceptions: {list} · {n} photos`, or `No action required. No exceptions reported · {n} photos` | `Status: {label}` |
+| **Above the fold** | priority label, event, asset, headline, reported state / need / severity, excerpt, primary record link | priority label, event, asset, headline, reported issue / need, excerpt, primary record link | exceptions (damage location, reported severity, excerpt, missing items, failed checks), routine notes, primary record link | status, reference |
+| **Contact** | tap-to-call + tap-to-email when valid values exist; preferred method first | same | only if the renter gave contact details | none |
+| **Photos** | count; ≤ 3 previews from D4 (org switch) | count; ≤ 3 previews from D4 | count + slot labels; ≤ 3 previews from D4, damage first | none |
+| **Plain text** | complete brief; nothing exists only in HTML | same | same | same |
+| **Not reported** | state and need always shown (`Not reported` when omitted); severity shown only when reported | issue and need always shown (`Not reported` when omitted) | — | — |
+| **No-action wording** | never | never | record: "No action required." | "No action required." |
+| **Omitted** | paths, URLs, raw JSON | same | full checklist, meters, fuel, notes, template, attestation, rental reference | `production_notes`, requester |
 
-Subject rules: the asset code always follows the prefix so a phone notification truncates the headline,
-not the code; no free text ever enters a subject; CR/LF stripped; capped at 78 characters by truncating
-the headline; never "urgent", never "!", never marketing phrasing.
+Subject rules: the asset code always follows the prefix, so a phone truncates the headline rather than the
+code; no free text ever enters a subject; CR/LF stripped; capped at 78 characters by truncating the headline;
+never "urgent", never "!", never marketing phrasing.
+
+### 6.2 Daily return summary
+
+| | Daily return summary |
+|---|---|
+| **Subject** | `Returns with issues — {organization}: N since {day}`; staff-only scope: `Staff returns with issues — {organization}: N since {day}` |
+| **Priority prefix** | none |
+| **First visible line** | `N returns with issues since {day} · {x} new · {y} resolved` |
+| **Body** | one block per return: asset code and name, event label, **current status**, exceptions, photo count, staff name for staff returns, record link |
+| **Photos** | counts only — **no previews** |
+| **Contact links** | none |
+| **Quiet day** | not sent (`skipped_empty` logged) |
+| **Primary CTA** | a link to the return-checklist inbox |
+
+### 6.3 Never individually emailed
+
+- **Staff return checklists** — in Phase D they appear only in the daily summary, and only with exceptions.
+- **Outbound inspections** — never notify.
 
 ---
 
-## 7. Email wireframes
+## 7. Wireframes
 
-Plain text is shown; the HTML part carries the same content in the same order (7.7).
+Plain text is shown for email; the HTML part carries the same content in the same order (7.8).
 
 ### 7.1 Damage report — immediate attention
 
 ```
 Subject: Immediate attention: EXC-001 — reported unsafe to operate
 
-Reported: unsafe to operate · immediate assistance requested · 3 photos · Jamie Rivera (prefers phone)
+Reported: unsafe to operate · help needed now · 3 photos · Jamie Rivera (prefers phone)
 
 IMMEDIATE ATTENTION — Damage report
 Asset: EXC-001 — Mini Excavator (Excavators)
@@ -519,9 +640,11 @@ What was reported
 "Tipped onto its side on the slope by the gate. Boom arm looks bent."
 
 Reported equipment state: Unsafe to operate
-Reported response need: Immediate assistance
-Damage severity: Not assessed
+Reported response need: Help needed now
+Reported damage severity: Major
 These are the submitter's selections, not a verified inspection.
+
+Open in Mulemark: https://mulemark.io/dashboard/submissions/<submission id>
 
 Contact
 Jamie Rivera — prefers phone
@@ -531,17 +654,15 @@ Email: jamie@site.test
 Photos: 3 on the record
 Reference: SUB-2026-A1B2C3
 
-Open in Mulemark: https://mulemark.io/dashboard/submissions/<submission id>
-
 You are receiving this because Northridge Rentals has email notifications enabled for damage reports. Change this under Settings → Notifications: https://mulemark.io/dashboard/settings
 ```
 
-### 7.2 Support request — prompt follow-up
+### 7.2 Support request — follow up
 
 ```
 Subject: Follow up: SKD-014 — reported stuck, recovery needed
 
-Reported: stuck, recovery needed · follow up soon · no photos · Sam Lee (prefers text)
+Reported: stuck or needs recovery · no photos · Sam Lee (prefers text)
 
 FOLLOW UP — Support request
 Asset: SKD-014 — Compact Track Loader
@@ -549,9 +670,11 @@ Asset: SKD-014 — Compact Track Loader
 What was reported
 "Sunk to the tracks in soft ground near the new footing. Not damaged as far as I can tell."
 
-Reported issue: Stuck / needs recovery
-Reported response need: Follow up soon
+Reported issue type: Stuck or needs recovery
+Reported response need: Not reported
 These are the submitter's selections, not a verified inspection.
+
+Open in Mulemark: https://mulemark.io/dashboard/submissions/<submission id>
 
 Contact
 Sam Lee — prefers text
@@ -559,8 +682,6 @@ Phone: +1 604 555 0199
 
 Photos: none
 Reference: SUB-2026-9F21D0
-
-Open in Mulemark: https://mulemark.io/dashboard/submissions/<submission id>
 
 You are receiving this because …
 ```
@@ -579,7 +700,9 @@ What was reported
 "Small dent on the side panel."
 
 Reported urgency: Medium
-Equipment state and response need were not asked on this report.
+This report was submitted before equipment state and response need were asked.
+
+Open in Mulemark: …
 
 Contact
 Pat Morgan
@@ -587,11 +710,9 @@ Email: pat@site.test
 
 Photos: 1 on the record
 Reference: SUB-2026-44B1E9
-
-Open in Mulemark: …
 ```
 
-### 7.4 Renter return checklist — exceptions
+### 7.4 Renter return checklist — follow up (`instant_renter`)
 
 ```
 Subject: Follow up: TRL-007 — renter return checklist, 2 exceptions
@@ -603,10 +724,12 @@ Asset: TRL-007 — 16 ft Utility Trailer
 Linked to an active rental.
 
 Exceptions
-- Damage reported: left fender (reported severity: Moderate)
+- Damage reported: left fender (reported damage severity: Moderate)
   "Crease along the rear edge of the fender."
 - Accessories missing: Ratchet straps
 These are the submitter's selections, not a verified inspection.
+
+Open in Mulemark: …
 
 Photos: 5 on the record — Front / hitch photo (2), Deck photo (1), Damage photos (2)
 
@@ -615,11 +738,9 @@ Alex Chen
 Email: alex@site.test
 
 Reference: SUB-2026-7C0A55
-
-Open in Mulemark: …
 ```
 
-### 7.5 Renter return checklist — clean (mode "all" only)
+### 7.5 Renter return checklist — record only (`instant_renter`)
 
 ```
 Subject: Renter return checklist — PLT-002, no exceptions
@@ -629,55 +750,130 @@ No action required. No exceptions reported · 2 photos
 RECORD ONLY — Renter return checklist
 Asset: PLT-002 — Plate Compactor
 
+Open in Mulemark: …
+
 Photos: 2 on the record
 Reference: SUB-2026-0B3D19
-
-Open in Mulemark: …
 ```
 
-### 7.6 Staff return checklist — exceptions
+### 7.6 Daily return summary (`daily_exceptions`)
 
 ```
-Subject: Follow up: EXC-001 — staff return checklist, 2 exceptions
+Subject: Returns with issues — Northridge Rentals: 3 since Tuesday
 
-Exceptions: 1 failed check, reported not starting · 4 photos · by Morgan (staff)
+3 returns with issues since Tuesday 6 AM Pacific · 2 new · 1 resolved
 
-FOLLOW UP — Staff return checklist
-Asset: EXC-001 — Mini Excavator
+1. TRL-007 — 16 ft Utility Trailer
+   Renter return checklist · New
+   - Damage reported: left fender (reported damage severity: Moderate)
+   - Accessories missing: Ratchet straps
+   Photos: 5
+   Open in Mulemark: https://mulemark.io/dashboard/submissions/<id>
 
-Exceptions
-- Failed check: Hydraulics / leaks
-- Reported not starting
+2. EXC-001 — Mini Excavator
+   Staff return checklist, by Morgan · Reviewed
+   - Failed check: Hydraulics / leaks
+   - Reported not starting
+   Photos: 4
+   Open in Mulemark: …
 
-Photos: 4 on the record — Overall photo (2), Additional photos (2)
-Reference: SUB-2026-D1E2F3
+3. PLT-002 — Plate Compactor
+   Renter return checklist · Resolved
+   - Damage reported: handle guard (reported damage severity: Minor)
+   Photos: 2
+   Open in Mulemark: …
 
-Open in Mulemark: …
+All return checklists: https://mulemark.io/dashboard/submissions?form_type=return_checklist&status=all_active
+
+You are receiving this because Northridge Rentals has a daily summary of returns with issues enabled. Change this under Settings → Notifications: https://mulemark.io/dashboard/settings
 ```
 
-### 7.7 HTML structure (all events)
+### 7.7 Daily return summary — staff-only scope (`instant_renter`)
+
+```
+Subject: Staff returns with issues — Northridge Rentals: 1 since Tuesday
+
+1 staff return with issues since Tuesday 6 AM Pacific · 1 new
+
+1. EXC-001 — Mini Excavator
+   Staff return checklist, by Morgan · New
+   - Failed check: Hydraulics / leaks
+   Photos: 4
+   Open in Mulemark: …
+
+Renter return checklists are emailed individually for this organization.
+```
+
+### 7.8 HTML structure (individual emails)
 
 ```html
 <div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5">
-  <p>Reported: unsafe to operate · immediate assistance requested · 3 photos · Jamie Rivera (prefers phone)</p>
+  <p>Reported: unsafe to operate · help needed now · 3 photos · Jamie Rivera (prefers phone)</p>
   <p><strong>IMMEDIATE ATTENTION</strong> — Damage report<br>Asset: EXC-001 — Mini Excavator (Excavators)</p>
   <p><strong>What was reported</strong><br>“Tipped onto its side …”</p>
-  <p>Reported equipment state: Unsafe to operate<br>Reported response need: Immediate assistance<br>…</p>
+  <p>Reported equipment state: Unsafe to operate<br>Reported response need: Help needed now<br>…</p>
+  <p><a href="https://mulemark.io/dashboard/submissions/…"><strong>Open in Mulemark</strong></a></p>
   <p><strong>Contact</strong><br>Jamie Rivera — prefers phone<br>
      <a href="tel:+16045550100">Call +1 604 555 0100</a> · <a href="mailto:jamie@site.test">Email Jamie</a></p>
-  <!-- D4 only: -->
+  <!-- D4 only, when the organization has previews on: -->
   <p><img src="cid:mm-preview-1@mulemark" alt="Damage photo 1 of 3" width="200" style="max-width:100%;height:auto;border:0"></p>
   <p>Photos: 3 on the record · Reference: SUB-2026-A1B2C3</p>
-  <p><a href="https://mulemark.io/dashboard/submissions/…">Open in Mulemark</a></p>
   <p>You are receiving this because …</p>
 </div>
 ```
 
-Rendering rules: no `<style>` block, no background colours, no colour-only meaning (the priority is a
-word), no hidden preheader text, no web fonts, no tables required for layout, inline styles limited to
-font and spacing. That keeps it legible in dark mode, in Outlook's Word renderer and in clients that
-strip CSS. The HTML part stays under 20 KB so Gmail never clips it (clipping begins near 102 KB of HTML;
-inline image attachments are separate MIME parts and do not count).
+Rendering rules: the record link is the first and primary link; contact links are secondary; no `<style>` block,
+no background colours, no colour-only meaning (the priority is a word), no hidden preheader text, no web fonts,
+no layout tables, inline styles limited to font and spacing. HTML stays under 20 KB so Gmail never clips it
+(inline image attachments are separate MIME parts and do not count).
+
+### 7.9 Public confirmation page
+
+Standard (every report without an immediate-attention answer):
+
+```
+✓  Sent to Northridge Rentals
+
+   Reference  SUB-2026-A1B2C3
+
+   Northridge Rentals has your report.
+
+   Need help now?
+   Call 604-555-0100            ← existing link, href normalized
+
+   [ Return to equipment page ]
+```
+
+Immediate attention, usable phone:
+
+```
+✓  Sent to Northridge Rentals
+
+   Reference  SUB-2026-A1B2C3
+
+   Northridge Rentals has your report.
+
+   You said the equipment isn't safe to use.
+   Don't wait for a reply — call Northridge Rentals now.
+
+   [        Call 604-555-0100        ]   ← full-width tel: button
+
+   [ Return to equipment page ]
+```
+
+Immediate attention, no usable phone:
+
+```
+   You said the equipment isn't safe to use.
+   Don't wait for a reply — contact Northridge Rentals directly.
+   (no button)
+```
+
+The call-now block appears only when explicit answers map to Immediate attention. The phone comes from the
+existing support contact resolution — the asset's `support_phone_override`, then the organization's
+`support_phone` (`lib/public/equipment.ts:18-26`). Scan-page rules apply: tenant colours, system fonts, no
+Mulemark accent, no new client JavaScript. **No emergency-services wording in Phase D.** The copy never says
+the company "has been notified" and never implies an employee has read the report.
 
 ---
 
@@ -687,131 +883,184 @@ inline image attachments are separate MIME parts and do not count).
 
 | Option | Evaluation | Decision |
 |---|---|---|
-| 1. No photo in email | Safest and smallest. Recipient learns only that photos exist. | **Baseline (D1–D3) and the permanent fallback** |
-| 2. Expiring remote / signed image links | A signed URL is a bearer credential to private evidence: forwardable, logged by mail gateways, and pre-fetched by link scanners. Remote images are blocked by default in many clients anyway. **Forbidden by the Phase D guardrails.** | **Rejected** |
-| 3. Original attachments | Up to 8 × 10 MB exceeds Resend's 40 MB per-email limit; a full-resolution uncontrolled copy of evidence; originals keep EXIF/GPS (F9). | **Rejected as a default** |
-| 4. Small CID inline previews, derived at send time | Bounded, re-encoded, metadata-stripped copies embedded as MIME parts. Display even when remote images are blocked in most desktop clients; some webmail may show them as attachments (Resend documents this caveat). Nothing new is stored. | **Recommended for D4** |
-| 5. Stored derived thumbnails | Would also help inbox performance, but creates new storage objects, a backfill and retention questions while storage lifecycle is still deferred (`ROADMAP_DEFERRED.md` #8). | **Rejected for Phase D; future option** |
-| (5b) Supabase image transformation | Requires a paid Supabase plan; Production is on Free (verified 2026-09-10). | **Not available** |
+| 1. No photo in email | Safest and smallest. Recipient learns only that photos exist. | **D1–D3 behaviour, the daily summary always, and the permanent fallback** |
+| 2. Expiring remote / signed image links | A signed URL is a bearer credential to private evidence: forwardable, logged by mail gateways, pre-fetched by link scanners. **Forbidden.** | **Rejected** |
+| 3. Original attachments | Up to 8 × 10 MB exceeds Resend's 40 MB per-email limit; a full-resolution copy of evidence; originals keep EXIF/GPS (F9). | **Rejected** |
+| 4. Small CID inline previews, derived at send time | Bounded, re-encoded, metadata-stripped copies embedded as MIME parts. Nothing new is stored. Some webmail shows them as attachments (Resend documents this caveat); a forwarded email carries them. | **Locked for D4** |
+| 5. Stored derived thumbnails | New storage objects, a backfill and retention questions while storage lifecycle is deferred (`ROADMAP_DEFERRED.md` #8). | **Rejected for Phase D** |
+| (5b) Supabase image transformation | Requires a paid Supabase plan; Production is on Free. | **Not available** |
 
-None of the recommended paths makes private evidence public: the bucket stays private, no URL is
-issued, and nothing new is written to storage.
-
-### 8.2 Recommended specification (D4)
+### 8.2 Specification (D4)
 
 | Rule | Value |
 |---|---|
+| Default | **on** for every organization; `notify_include_photo_previews = false` produces text-only emails |
+| Where | individual damage, support and renter-return emails only — **never the daily summary** |
 | Count | at most **3** previews |
 | Selection | returns: `damage_photos` slot first, then remaining slots in template-snapshot order; damage/support: `media_urls` order |
-| Eligibility | path is present in the row's own `media_urls`, starts with `org/{orgId}/asset/{assetId}/submission/{submissionId}/`, and has a `jpg`/`jpeg`/`png`/`webp` extension |
-| Source read | service-role storage download (already the notifier's client); skip any object over 10 MB before decoding |
-| Transform | auto-orient, then resize to fit **640 × 640**, never enlarge; encode **JPEG** quality ~70 |
-| Metadata | **stripped** (EXIF, GPS, ICC comments) — the encoder's default; asserted by a test that reads the output metadata |
-| Decode safety | input pixel limit (~40 MP) to refuse decompression bombs; corrupt input fails that preview only |
+| Eligibility | path is in the row's own `media_urls`, starts with `org/{orgId}/asset/{assetId}/submission/{submissionId}/`, and has a `jpg`/`jpeg`/`png`/`webp` extension |
+| Source read | service-role storage download; skip any object over 10 MB before decoding |
+| Transform | auto-orient, fit within **640 × 640**, never enlarge, **JPEG** quality ~70 |
+| Metadata | **stripped** (EXIF, GPS) — asserted by a test that reads the output metadata |
+| Decode safety | input pixel limit (~40 MP); corrupt input fails that preview only |
 | Size | ≤ **120 KB** each (one lower-quality retry, then drop); ≤ **400 KB** total |
 | Budget | separate media budget (~6 s) before the send; the 15 s send budget is unchanged |
-| Attachment | `content_type: image/jpeg`, `filename: photo-1.jpg`, `content_id: mm-preview-1@mulemark` (Resend `attachments[].content_id`, < 128 chars) |
+| Attachment | `content_type: image/jpeg`, `filename: photo-1.jpg`, `content_id: mm-preview-1@mulemark` (< 128 chars) |
 | HTML | `<img src="cid:…" alt="Damage photo 1 of 3" width="200">` |
-| Text part | unchanged: "Photos: 3 on the record" — true whether or not previews render |
+| Text part | unchanged: "Photos: 3 on the record" |
 | Failure | any failure drops that preview; **all failing produces a text-only email — never a suppressed one** |
-| Logging | counts only: `previewsAttempted`, `previewsAttached`, coarse `previewFailureClass`; never a path, filename or byte content |
-| Body construction | built once before the retry loop, so every attempt carries the same key and identical payload |
-| Endpoint | single-send `POST /emails` only; Resend does not support inline images on the batch endpoint |
+| Logging | counts only: `previewsRequested`, `previewsAttached`, coarse `previewFailureClass` |
+| Body | built once before the retry loop, so every attempt carries the same key and identical payload |
+| Endpoint | single-send `POST /emails` only (inline images are unsupported on the batch endpoint) |
 
 ### 8.3 Dependency
 
-**No existing direct dependency can do this.** `sharp` 0.34.x is present only as an *optional*
-dependency of Next (`node_modules/next/package.json` `optionalDependencies`); nothing in the app imports
-it, and relying on a transitive optional install is not acceptable for a production path. D4 requires
-adding **`sharp` as an explicit dependency pinned to Next's version**, confirming the Linux binary
-installs in the Vercel build, and recording the function-size change. **This needs operator approval**
-(§16 DP-5).
+`sharp` is the **approved direct image dependency** for D4. Today it exists only as an optional dependency of
+Next (`node_modules/next/package.json` `optionalDependencies`) and nothing imports it. D4 adds it explicitly,
+pinned to Next's 0.34.x line, confirms the Linux binary installs in the Vercel build, and records the function
+size change.
 
 ---
 
-## 9. Routing strategy
+## 9. Routing strategy and the daily return summary
 
 ### 9.1 Current model
 
-One `notification_email` plus four per-event booleans on `organizations` (`0012:15-20`). Not in the anon
-grant; readable by any member of the organization (`0001:283-284`); writable only by a customer admin or
-the platform owner (`0032:138-148`); server action gated by `requireCustomerAdminOrgId`
-(`lib/notifications/actions.ts:40`). No CHECK constraints; no RLS or security test covers these columns.
+One `notification_email` plus four per-event booleans on `organizations` (`0012:15-20`). Not in the anon grant;
+readable by organization members (`0001:283-284`); writable only by a customer admin or the platform owner
+(`0032:138-148`); server action gated by `requireCustomerAdminOrgId` (`lib/notifications/actions.ts:40`). No CHECK
+constraints; no RLS or security test covers these columns.
 
-### 9.2 Proposed model (smallest useful for a pilot)
+### 9.2 Locked settings model (migration in D3A, additive)
 
-| Column (migration 0034, additive) | Type | Purpose |
+| Column | Type | Meaning |
 |---|---|---|
-| `notification_email` | unchanged | default recipient |
-| `urgent_notification_email` | text, nullable | **optional escalation address**: receives **immediate-attention** items in addition to the default |
-| `return_checklist_notify_mode` | text NOT NULL, CHECK `all` / `exceptions` / `off` | replaces the boolean's meaning; backfilled `true → all`, `false → off` |
+| `notification_email` | unchanged | general route address |
+| `notify_damage_reports`, `notify_support_requests`, `notify_tag_request_updates` | unchanged | general route switches |
+| `notify_urgent_reports` | boolean NOT NULL default false | **urgent route switch** |
+| `urgent_notification_email` | text, nullable | **urgent route address**; the settings form refuses the switch on without a valid address |
+| `return_notification_mode` | text NOT NULL default `'off'`, CHECK `instant_renter` / `daily_exceptions` / `off` | backfill: `notify_return_checklists = true → instant_renter`, `false → off`; new organizations `off` |
 | `notify_return_checklists` | kept, synced from the mode for one release | rollback safety; dropped in a later migration |
-| `notify_include_photo_previews` | boolean NOT NULL default true | lets an organization keep photos out of email entirely; read only once D4 ships |
+| `notify_include_photo_previews` | boolean NOT NULL default true | organization off-switch for D4 previews |
 
-Deliberately **not** added: per-event override addresses (no evidence they are needed), CC lists, a rules
-engine, schedules, or on-call rotation.
+None of the new columns joins the anon grant. Writes follow the 0032 admin policy: **customer staff cannot
+change notification settings; public users never choose recipients.** Not added: per-event override addresses,
+CC lists, a rules engine, on-call rotation, per-organization timezone or summary time.
 
-### 9.3 Behaviour
+### 9.3 Individual email routing
 
-| Event | Default address | Escalation address |
+| Event and priority | General route (`notification_email`) | Urgent route (`urgent_notification_email`) |
 |---|---|---|
-| Damage / support, immediate | if its event flag is on | **yes** (§16 DP-6: independent of the event flag) |
-| Damage / support, prompt or routine | if its event flag is on | no |
-| Renter return, `all` | every return, including clean | no (returns are never immediate) |
-| Renter return, `exceptions` | only prompt-level returns (damage, missing, failed check, not starting); evidence-gap-only and clean returns are not sent | no |
-| Renter return, `off` | none | no |
-| Staff return | only prompt-level returns, when mode ≠ `off`; only on RPC result `completed` | no |
+| Damage / support, **immediate attention** | if that report type's general switch is on | **whenever `notify_urgent_reports` is on**, independent of the general switch |
+| Damage / support, follow up or routine | if that report type's general switch is on | never |
+| Renter return | only in `instant_renter` mode (every renter return) | never (returns are never immediate) |
+| Staff return | never individually | never |
 | Outbound inspection | never | never |
-| Tag request | only when the status actually changed and its flag is on | no |
+| Tag request | only when the status actually changed and its switch is on | never |
 
-### 9.4 Multiple recipients: separate sends
+| Damage switch | Urgent switch | Immediate damage report goes to |
+|---|---|---|
+| on | on | general + urgent (two sends) |
+| off | on | urgent only |
+| on | off | general only |
+| off | off | nobody emailed — still in the inbox |
 
-Each recipient receives its **own** API request. Not To+CC, not BCC:
+**Separate sends.** Each recipient receives its own API request — never To+CC, never BCC:
 
-- **Privacy:** no recipient learns the other address.
-- **Idempotency:** the existing key already binds a recipient hash (`idempotency.ts:53-58`), so each send
-  is independently deduplicated and independently retry-safe. One shared request would make one key
-  cover two deliveries.
-- **Failure isolation:** a bounce or rejection of one address cannot fail the other.
-- **Diagnosability:** one `[notifications]` line per recipient, with an additive `recipientRole`
-  (`default` / `escalation`) field.
-- **De-duplication:** identical addresses (trimmed, case-insensitive) collapse to a single send.
-- **Order and budget:** default first, then escalation, each within its own 15 s send budget; the brief
-  and previews are built once. Worst case ≈ 0.1 s load + 6 s media + 2 × 15 s ≈ 36 s, inside the
-  60 s `maxDuration` of the public form routes. The staff return route must be given an explicit
-  `maxDuration` first (F11).
+- no recipient learns another address;
+- the existing idempotency key binds a recipient hash (`idempotency.ts:53-58`), so each send is independently
+  deduplicated and retry-safe;
+- a bounce or rejection of one address cannot fail the other;
+- one `[notifications]` line per recipient with `recipientRole: "general" | "urgent"`;
+- identical addresses (trimmed, case-insensitive) collapse to one send;
+- general first, then urgent, each within its own 15 s budget; worst case ≈ 0.1 s load + 6 s media + 2 × 15 s
+  ≈ 36 s, inside the 60 s `maxDuration` of the public form routes.
+
+### 9.4 Return notification modes
+
+| Mode | Individual renter return email | Daily summary contains |
+|---|---|---|
+| `instant_renter` | **every** renter return (follow up / routine / record only) | **staff** return exceptions only |
+| `daily_exceptions` | none | **renter and staff** return exceptions |
+| `off` | none | no summary |
+
+Staff returns never send an individual email in Phase D.
+
+### 9.5 Daily return summary
+
+| Aspect | Locked behaviour |
+|---|---|
+| Recipient | the general `notification_email` only; no summary when it is unset or the mode is `off` |
+| Content | every return checklist in scope created in the window that has **at least one return exception** (§5.3), listed **with its current status** (New, Reviewed, Resolved, Archived) when the summary is built |
+| Excluded | clean returns, photo-gap-only returns, failed optional checks, outbound inspections, non-return submissions |
+| Photos | counts only — never previews |
+| Quiet day | no email; one `skipped_empty` log line per organization |
+| Window | from the organization's **covered-through watermark** (exclusive) to the run's cutoff (inclusive), selected by server-set `created_at`. First run for an organization covers the previous 24 hours. |
+| Catch-up | the watermark advances to the cutoff **only after `sent` or `skipped_empty`**. A failed send leaves it, so the next run includes everything since the last success — late, never dropped. If a send succeeds but the watermark update fails, the next summary lists those returns again: at-least-once listing. |
+| Duplicate invocation | the run claims the organization with a conditional update before building; the provider idempotency key is `mm.return_digest.<orgId>:<pacific-date>.<recipient-hash>`, so a duplicate same-day run cannot deliver a second message |
+| Watermark storage | a service-role-only state table with RLS enabled and no client policies (final shape decided in D3B). It stores run state, not notifications — **not a general notification queue.** |
+| Endpoint | a GET route handler that requires `Authorization: Bearer ${CRON_SECRET}`, refuses Preview, sets its own `maxDuration`, and processes organizations sequentially |
+| Logging | one line per organization: `event: "return_digest"`, `outcome`, `organizationId`, `itemCount`, `providerId`, redacted recipient; never item content |
+| Links | per-item record links and one return-checklist inbox link, all on `publicEnv.siteUrl` |
+
+### 9.6 Schedule caveat
+
+**Vercel schedules are UTC, and the Hobby plan only guarantees invocation somewhere within the scheduled hour.**
+The product requirement is **6:00–6:59 AM Pacific, including daylight-saving changes.** No single fixed UTC
+schedule equals 6 AM Pacific year-round: `13:00 UTC` is 6 AM in PDT but 5 AM in PST.
+
+Candidate for D3B, recorded here and **to be re-verified against Vercel's official limits at D3B**:
+
+- two once-daily schedules on the same secured path — `0 13 * * *` and `0 14 * * *` — each within Hobby's
+  once-per-day limit;
+- a pure local-time guard: proceed only when the current `America/Vancouver` hour is `6`;
+- DST changes happen at 2 AM local, before 6 AM, so on any date exactly one of the two invocations falls in the
+  6 AM local hour; the other exits without work;
+- a missed invocation is caught up by the next day's run through the watermark (§9.5); a duplicate is absorbed
+  by the claim and the idempotency key.
+
+If current Vercel limits make this unworkable, **D3B stops and presents the exact operator trade-off** (for
+example accepting a 5:00–6:59 AM window for part of the year, or a paid plan with per-minute precision) rather
+than choosing silently.
 
 ---
 
 ## 10. Privacy and security rules
 
-1. **Committed data only.** The brief is built from the row loaded by `id` **and** `organization_id`,
-   after the insert or RPC has succeeded. Browser values are never carried across the commit.
-2. **Nothing request-bound enters `after()`.** No `FormData`, request, headers or cookies — identifiers
-   only. The notifier uses the service-role client, which reads no request state.
-3. **Service-role scope is unchanged**: organization settings, the one asset, the one submission and, in
-   D4, only that submission's own media objects. It is never used to read customer data for display.
-4. **No storage path, bucket name, signed URL or original file** in the subject, text, HTML, logs,
-   idempotency key or attachment filename.
-5. **No free text in subjects.** Subjects use enumerated phrases and the asset code only; CR/LF stripped.
-6. **Free text in the body is escaped**, whitespace-collapsed, stripped of control characters and
-   truncated (description 300, location 120).
-7. **Only canonical links**: `publicEnv.siteUrl` for web links; `tel:` only from a phone reduced to
-   digits and a leading `+` (7–15 digits, else shown as text without a link); `mailto:` only for an
-   address passing the existing regex.
-8. **No action links.** No link changes a status, resolves, acknowledges or unsubscribes. Every action
-   happens behind authentication in Mulemark.
+1. **Committed data only.** Briefs and summaries are built from rows loaded by organization plus id or window,
+   after the insert or RPC succeeded. Browser values are never carried across the commit.
+2. **Nothing request-bound enters `after()`.** No `FormData`, request, headers or cookies — identifiers only.
+3. **Service-role scope is unchanged in kind**: organization settings, the one asset, the one submission and, in
+   D4, only that submission's own media objects; for the summary, the organization's return checklists in the
+   window and its watermark row.
+4. **No storage path, bucket name, signed URL, original file or raw `submission_data_json`** in any subject,
+   body, log, idempotency key or attachment filename.
+5. **No free text in subjects.** Enumerated phrases and the asset code only; CR/LF stripped.
+6. **Free text in bodies is escaped**, whitespace-collapsed, stripped of control characters and truncated
+   (description 300, damage location 120).
+7. **Links.** Web links only on `publicEnv.siteUrl`; the authenticated record link is the primary CTA.
+   `tel:` only from a phone reduced to digits with an optional leading `+`, 7–15 digits, extension suffixes kept
+   in the visible label but dropped from the URI; otherwise shown as text without a link (email) or no button
+   (confirmation page). `mailto:` only for an address passing the existing regex. The confirmation page's
+   existing call link uses the same normalization.
+8. **No workflow-changing links.** No link resolves, reviews, archives, acknowledges or unsubscribes. Every
+   action happens behind authentication in Mulemark.
 9. **Visibility applied** to inspection answers; hidden stored values are ignored (F7).
-10. **Staff email addresses are never emailed**; staff are named only.
-11. **Logs stay redacted**: no body, excerpt, contact detail, path or preview content. New fields are
-    counts and coarse classes only.
-12. **RLS, roles and Preview isolation unchanged.** New organization columns follow 0012: not added to the
-    anon grant, written only under the 0032 admin policy, covered by a new security test.
-13. **Preview stays dry-run** before credentials are read, exactly as today. Preview may still build the
-    brief and previews so staging QA exercises the pipeline; nothing is sent.
-14. **Reported, not verified.** No email states a mechanical or safety determination; no public report
-    changes an asset's rental or service state.
-15. **Delivery is best-effort** and is never described as guaranteed in product copy or documentation.
+10. **Staff email addresses are never emailed**; staff are named only, in the daily summary.
+11. **Logs stay redacted**: no names, addresses, phone numbers, descriptions, paths, image bytes or bodies. New
+    fields are route classes, counts and coarse failure classes only.
+12. **Recipients.** Separate sends; recipient addresses never exposed to one another; public users never choose
+    recipients; customer staff cannot change settings.
+13. **RLS, roles, suspension and Preview isolation unchanged.** New organization columns follow 0012; the summary
+    state table has RLS enabled and no client policies; both are covered by security tests. Suspended
+    organizations receive no summary.
+14. **Summary endpoint** accepts only a matching `CRON_SECRET` bearer token, refuses Preview, and returns no data
+    in its response body. `CRON_SECRET` is set by the operator on Production only and never appears in Git,
+    commands, logs or documentation.
+15. **Preview never sends.** Individual sends stay `dry_run` before credentials are read; Vercel invokes
+    schedules only against the production deployment.
+16. **Reported, not verified.** No email or page states a mechanical, damage, recovery or safety determination;
+    no report changes an asset's rental or service state; delivery is never described as guaranteed.
 
 ---
 
@@ -819,77 +1068,94 @@ Each recipient receives its **own** API request. Not To+CC, not BCC:
 
 | Area | Concern | Handling |
 |---|---|---|
-| Return data shapes | Five shapes: V1 flat; V2 `2026-07-1`; V2 `2026-07-2` before and after the 3C.1.1 hotfix (same version string); custom org templates (integer versions, org-defined ids) | Detect by `schema_version`, then by key presence — never by version string. Canonical flags first, V1 flat fallback (reuse `returnChecklistFlags`, `lib/submissions/returns.ts:49-70`). Failed checks by field **type** from the snapshot, so custom templates work; operating-state detection uses system ids only and is documented as such. |
-| Missing optional keys | `damage_photos_missing`, `condition_photos_missing`, `missing_recommended_photo_slots` absent on older rows | Absent = not reported; the evidence-gap line is omitted rather than inferred |
-| Legacy damage urgency | `low`/`medium`/`high`/null, default-biased | Displayed as "Reported urgency"; only `high` raises to prompt, and only on rows without `triage_version` |
-| Deploy window (D2) | A renter with the old form open posts `urgency` without triage fields | The server keeps accepting the legacy field until the old HTML can no longer be cached; such rows project as legacy |
-| Scheduler signature | `ScheduledNotification` shrinks | Both callers and their tests change in the same slice; the payload is never persisted, so an in-flight `after()` always runs the code it was scheduled by |
-| Existing B4 tests | "no urgency hook" and "exactly one link" assertions | Deliberately revised in D1 (priority prefix; `tel:`/`mailto:` actions), with the new rules asserted instead (§13) |
-| Idempotency | Key format | Unchanged: `mm.submission.<id>.<hash>`; a changed recipient is still a new key |
-| Return-checklist setting | Boolean → mode | Backfilled, boolean kept in sync for one release |
-| Admin UI | "Urgency" badges on existing rows | Remain for legacy rows; new rows show reported response need (D2) |
-| Outbound accessory vocabulary | `returned`/`missing` legacy vs `issued`/`not_issued` | Outbound is never notified; no impact |
-| Tag request emails | Status-change-only (D3) | A same-status save no longer emails; a genuine change still does |
+| Return data shapes | V1 flat; V2 `2026-07-1`; V2 `2026-07-2` before and after the 3C.1.1 hotfix (same version string); custom org templates (integer versions, org-defined ids, optional checks) | Detect by `schema_version`, then key presence — never by version string. Canonical flags first, V1 fallback (`returnChecklistFlags`, `lib/submissions/returns.ts:49-70`). Failed checks by field **type** and `required`/`required_when` from the snapshot. |
+| Missing optional keys | `damage_photos_missing`, `condition_photos_missing`, `missing_recommended_photo_slots` absent on older rows | Absent = not reported; not inferred |
+| Legacy damage urgency | `low`/`medium`/`high`/null, default-biased | Displayed as "Reported urgency"; only `high`, only without `triage_version`, raises to follow up |
+| Deploy window (D2) | A renter with the old form open posts `urgency` without triage | Accepted; projects as legacy |
+| Scheduler signature | `ScheduledNotification` shrinks to ids | Both callers and tests change in the same slice; payloads are never persisted |
+| Existing B4 tests | "no urgency hook" and "exactly one link" assertions | Deliberately revised in D1: priority prefixes and secondary contact links are locked decisions; the record link remains the only web link |
+| Idempotency | Key format | Individual keys unchanged: `mm.submission.<id>.<hash>`; new `mm.return_digest…` keys for summaries |
+| Return setting | Boolean → three modes | Backfill `true → instant_renter`, `false → off`; boolean kept in sync for one release |
+| Staff returns | Previously never notified | Still never individually notified; appear in the daily summary from D3B |
+| Confirmation page | "has been notified" copy; raw `tel:` | Replaced in D2 (§7.9) |
+| Admin UI | "Urgency" badges on existing rows | Remain for legacy rows; new rows show "Reported …" labels (D2) |
+| Tag request emails | Status-change-only (D3A) | A same-status save no longer emails |
 
 ---
 
 ## 12. Phased file plan
 
-Each slice is separately approved, gated, committed and pushed.
+Each slice is separately planned, approved, gated, committed and pushed. Commands use the fixed repository
+scripts (`npm.cmd run lint`, `npm.cmd run typecheck`, `npm.cmd test`, `npm.cmd run build`, and the existing
+security, E2E and smoke scripts).
 
-### D1 — Projection, priority and text-first brief
+### D1 — Server-authoritative brief, deterministic priority, actionable email
 
-No form, schema, settings or media change.
+No new form fields, no schema, settings or media change. Return notifications stay gated by the existing
+boolean until D3A.
 
 | File | Change |
 |---|---|
-| `lib/submissions/triage.ts` (new) | Enum values and display labels shared by forms, admin and email |
-| `lib/notifications/priority.ts` (new) | Pure `priorityFor(...)` + headline; table-driven tests |
-| `lib/notifications/projection.ts` (new) | Pure `projectSubmission(row, asset, org)` handling every data shape; fixture tests per shape |
-| `lib/notifications/notify.ts` | Load the committed row by id + organization; build the brief; `record_missing` handling |
+| `lib/submissions/triage.ts` (new) | Triage values and "Reported …" labels shared by forms, admin and email |
+| `lib/contact/tel.ts` (new) | Pure phone normalization for `tel:` (shared with D2's confirmation page) |
+| `lib/notifications/priority.ts` (new) | Pure ordered rules + headline; table-driven tests |
+| `lib/notifications/projection.ts` (new) | Pure projection for every data shape; fixture tests per shape |
+| `lib/notifications/notify.ts` | Load the committed row by id + organization; build the brief; `record_missing` |
 | `lib/notifications/schedule.ts` | Identifier-only payload |
-| `lib/notifications/email.ts` | `buildIncidentEmail(brief)`; subject/HTML caps; tag builder unchanged |
+| `lib/notifications/email.ts` | Individual incident email (text + HTML), caps; tag builder unchanged |
 | `lib/forms/submit.ts`, `lib/inspections/submit.ts` | Pass identifiers only |
-| Tests | `priority.test.ts`, `projection.test.ts`, `email.test.ts`, `notify.test.ts`, `schedule.test.ts`, `submit-cleanup.test.ts`, `inspections/submit.test.ts` |
+| Tests | `priority`, `projection`, `email`, `notify`, `schedule`, `submit-cleanup`, `inspections/submit` |
 
-### D2 — Reported triage on public forms
-
-| File | Change |
-|---|---|
-| `lib/forms/validate.ts`, `lib/forms/actions.ts` | Validate new enums; write `triage_version: 1`; keep accepting legacy `urgency` for the deploy window |
-| `components/public/damage-form.tsx` | "Can the equipment still be used?" + "How soon do you need help?" — **no pre-selected value** |
-| `components/public/support-form.tsx` | "What's happening?" + "How soon do you need help?" |
-| Public thanks pages | If DP-9 is approved: truthful expectation copy pointing to the company's phone for anything immediate |
-| `lib/submissions/display.ts`, `inbox.ts`, `damage.ts` | "Reported …" labels; stop using urgency as severity for new rows |
-| E2E | form specs for both forms; legacy-post acceptance |
-
-The scan-page guard applies: no brass, no webfonts, no new client JS beyond native selects.
-
-### D3 — Routing and return modes
+### D2 — Optional triage questions, Reported labels, urgent confirmation
 
 | File | Change |
 |---|---|
-| `supabase/migrations/0034_notification_routing.sql` (new) | Columns in §9.2, backfill, CHECK |
-| `lib/notifications/settings.ts`, `actions.ts`, `components/notification-settings-form.tsx`, `app/(admin)/dashboard/settings/page.tsx` | New fields, validation, admin-only |
-| `lib/notifications/notify.ts` | Recipient fan-out, de-duplication, `recipientRole` log field |
-| `lib/inspections/staff-return-submit.ts` + its route | Schedule exception notifications on `completed`; explicit `maxDuration` (F11) |
-| `lib/tags/owner-actions.ts` | Read the prior status; notify only on change; stop re-stamping `delivered_at` (F5) |
-| `tests/security/…` | Anon cannot read the new columns; staff cannot write them |
+| `lib/forms/validate.ts`, `lib/forms/actions.ts` | Optional triage enums; `triage_version: 1`; legacy `urgency` still accepted |
+| `components/public/damage-form.tsx` | Reported equipment state, response need, damage severity — optional, nothing pre-selected |
+| `components/public/support-form.tsx` | Reported issue type, response need — optional, nothing pre-selected |
+| `components/public/form-thanks.tsx` + thanks pages | "has your report" copy; call-now block and full-width `tel:` button for immediate answers; normalized hrefs; no broken button |
+| `lib/submissions/display.ts`, `inbox.ts`, `damage.ts` | "Reported …" labels; severity no longer derived from urgency on new rows |
+| E2E | both forms, omitted answers, legacy post, confirmation variants |
 
-### D4 — Photo previews
+### D3A — Routing, settings, return modes, preview switch, logs, tag correctness
 
 | File | Change |
 |---|---|
-| `package.json` | `sharp` explicit dependency (DP-5) |
+| `supabase/migrations/0034_notification_routing.sql` (new) | §9.2 columns, backfill, CHECK. Linked-project proof, migration list, dry run, plan, **stop for approval**; Production not applied in the creating step |
+| `lib/notifications/settings.ts`, `actions.ts`, `components/notification-settings-form.tsx`, `app/(admin)/dashboard/settings/page.tsx` | Urgent switch + address (validated), return mode, preview switch; customer-admin only |
+| `lib/notifications/notify.ts` | Urgent route, mode gating, dedupe, separate sends |
+| `lib/notifications/log.ts` | `recipientRole`, preview count fields |
+| `lib/tags/owner-actions.ts` | Notify only on a status change; stop re-stamping `delivered_at` (F5) |
+| `tests/security/…` | anon cannot read new columns; staff cannot write them |
+
+### D3B — Daily return-exceptions summary
+
+**First step:** re-verify Vercel's official cron limits; if the §9.6 candidate is not viable, stop and present
+the operator trade-off.
+
+| File | Change |
+|---|---|
+| `supabase/migrations/0035_return_summary_state.sql` (new) | Service-role-only watermark/claim table, RLS enabled, no client policies; same migration procedure as D3A |
+| `lib/notifications/summary-window.ts` (new) | Pure Pacific-hour guard, window and Pacific-date helpers; DST tests |
+| `lib/notifications/summary.ts` (new) | Selection (exceptions only, all statuses), projection, email builder |
+| `app/api/cron/return-summary/route.ts` (new) | Bearer `CRON_SECRET`, Preview refusal, `maxDuration`, claim → build → send → advance |
+| `vercel.json` (new) | Two once-daily schedules on the one path |
+| Operator action | Set `CRON_SECRET` on Production only, through the Vercel dashboard |
+| Tests | duplicate run, missed run, quiet day, send failure, watermark-update failure, suspended org, mode scopes |
+
+### D4 — Bounded inline photo previews
+
+| File | Change |
+|---|---|
+| `package.json` | `sharp` explicit dependency |
 | `lib/notifications/previews.ts` (new) | Selection, eligibility, download, transform, caps, budget |
-| `lib/notifications/email.ts`, `send.ts` | Optional `attachments` on `EmailContent`, passed through unchanged; CID references |
-| `lib/notifications/log.ts` | Count fields |
-| Tests | EXIF stripped, dimensions and byte caps, foreign-path refusal, corrupt/oversized/timeout → text-only send |
+| `lib/notifications/email.ts`, `send.ts` | Optional `attachments`; CID references |
+| Tests | EXIF stripped, dimension and byte caps, foreign-path refusal, corrupt/oversized/timeout → text-only send, org switch off |
 
-### D5 — Live verification and closeout
+### D5 — Live QA and Engineering Phase D closeout
 
-Operator test matrix (§15), updates to `EMAIL_DELIVERABILITY_RUNBOOK.md`, `OPERATIONS_RUNBOOK.md`,
-`SECURITY_MODEL.md`, `roadmap.md`, and a Phase D readiness note.
+§15 executed against QA data; updates to `EMAIL_DELIVERABILITY_RUNBOOK.md`, `OPERATIONS_RUNBOOK.md`,
+`SECURITY_MODEL.md`, `roadmap.md`; a Phase D readiness note.
 
 ---
 
@@ -897,156 +1163,200 @@ Operator test matrix (§15), updates to `EMAIL_DELIVERABILITY_RUNBOOK.md`, `OPER
 
 ### D1
 
-- The notifier loads the committed row by `id` **and** `organization_id`. A test schedules with contact
-  values that differ from the row's and proves the email shows the row's.
-- `priorityFor` is pure; §5.5 is a table-driven test; each invariant in §5.3 has its own test, including
-  "clean return → record", "return never immediate", "damage/support never record", "unknown never
-  raises", "legacy medium never raises".
-- All five return data shapes project without throwing and produce the expected exceptions; a hidden
-  failed field is ignored.
-- The text part leads with the preheader line, then the priority label, and contains everything the HTML
-  contains.
-- Subject contains the asset code, no free text, no "urgent", no "!", ≤ 78 characters.
-- No output contains `org/`, `submissions`, `token=`, `sign`, a bucket name or a storage path, asserted
-  with a fixture row whose `media_urls` hold realistic paths.
-- Web links point only at the canonical host; `tel:` and `mailto:` only after sanitization.
+- The notifier loads the committed row by `id` **and** `organization_id`; a test schedules with contact values
+  differing from the row's and proves the email shows the row's.
+- `priorityFor` is pure; §5.5 is a table-driven test; each §5.3 invariant has its own test, including
+  severity-never-raises and failed-optional-check → routine.
+- All return data shapes project without throwing; a hidden failed field is ignored.
+- Text leads with the first visible line, then the priority label; everything in HTML is in text.
+- Subjects: asset code present, prefix only for immediate / follow up, no free text, no "urgent", no "!",
+  ≤ 78 characters.
+- The record link is the first link; `tel:`/`mailto:` appear only after normalization/validation; web links only
+  on the canonical host.
+- No output contains a storage path, bucket name, signed-URL marker or raw JSON (fixture rows carry realistic
+  paths).
 - HTML ≤ 20 KB, escaped, no `<img>`, no `<style>`, no hidden text.
-- A missing row sends nothing and logs `failed_transient` / `record_missing`; nothing throws.
-- Idempotency key format unchanged.
-- lint, typecheck, test, build pass; E2E notification-adjacent specs pass.
+- A missing row sends nothing and logs `record_missing`; nothing throws; idempotency key format unchanged.
 
 ### D2
 
-- Triage selects have no default; the server rejects unknown values; rows carry `triage_version: 1`.
-- A post with only legacy `urgency` still succeeds and projects as legacy.
-- Admin surfaces label renter selections "Reported …"; severity is no longer derived from urgency on new
-  rows.
-- E2E covers both forms, keyboard operation and the legacy post.
+- Triage questions are optional with nothing pre-selected; the server rejects unknown values; rows carry
+  `triage_version: 1`; omitted answers submit successfully.
+- A legacy `urgency`-only post succeeds and projects as legacy.
+- Admin surfaces label renter selections "Reported …".
+- Confirmation page: "has been notified" absent; the call-now block appears only for immediate answers; the
+  button's href is normalized; no button renders without a usable phone; no emergency-services wording.
 
-### D3
+### D3A
 
-- Migration is additive and backfills correctly (`true → all`, `false → off`); anon cannot read the new
-  columns; staff cannot write them.
-- An immediate item reaches both addresses as two sends with two keys and two log lines; identical
-  addresses produce one send; prompt/routine items never reach the escalation address.
-- Return modes follow §9.3 exactly, including "evidence gaps only" not sending in `exceptions` mode.
-- A staff return notifies only with exceptions, only on `completed`, never on `already_completed`.
-- An outbound inspection never notifies.
+- Migration additive; backfill `true → instant_renter`, `false → off`; new organizations `off`; anon cannot read
+  new columns; staff cannot write them; the urgent switch cannot be saved on without a valid address.
+- Immediate report with both switches on → two sends, two keys, two log lines (`general`, `urgent`); identical
+  addresses → one send; urgent switch on + general switch off → urgent only; follow-up and routine reports never
+  reach the urgent route.
+- `instant_renter` emails every renter return; `daily_exceptions` and `off` email none; staff returns and
+  outbound inspections are never emailed individually.
 - A tag request saved without a status change sends nothing.
+
+### D3B
+
+- Guard tests pass for dates either side of both DST transitions: exactly one of the two schedules proceeds per
+  date, only in the 6 AM Pacific hour.
+- A duplicate invocation delivers no second message; a missed day is caught up next run; a failed send does not
+  advance the watermark; a quiet day sends nothing and logs `skipped_empty`.
+- Contents: exceptions only, all statuses shown, staff-only scope in `instant_renter`, renter + staff in
+  `daily_exceptions`, nothing in `off`; photo counts, no previews, staff named without email.
+- The endpoint rejects a missing or wrong bearer token and refuses Preview; suspended organizations get no
+  summary.
 
 ### D4
 
-- ≤ 3 previews; each ≤ 640 px on the long edge, ≤ 120 KB, JPEG; ≤ 400 KB total.
-- Output carries no EXIF/GPS (asserted by reading the output's metadata).
-- A path outside the submission's prefix, or not in its `media_urls`, is never read.
+- ≤ 3 previews; each ≤ 640 px, ≤ 120 KB, JPEG; ≤ 400 KB total; no EXIF/GPS in output.
+- A path outside the submission prefix or absent from `media_urls` is never read.
 - Corrupt, oversized, timed-out or failed downloads still produce a sent text-only email.
-- Originals are never attached; the text part is unchanged by preview success or failure.
+- `notify_include_photo_previews = false` → text-only; the daily summary never carries images.
 - Logs carry counts only.
-- `notify_include_photo_previews = false` produces a text-only email.
 
 ### D5
 
-- Every row in §15 executed or explicitly marked not run, with date and client.
-- B4's outstanding replay check (`EMAIL_DELIVERABILITY_RUNBOOK.md` row 8) attempted.
+- Every §15 row executed or explicitly marked not run, with date and client; B4's outstanding replay check
+  attempted.
 
 ---
 
 ## 14. Explicit non-goals
 
-- SMS, push notifications, a notification center or in-app notification feed.
+- SMS, push notifications, a notification center or in-app feed.
+- A durable general notification queue, outbox or delivery-history table (the daily summary's watermark is run
+  state, not a queue).
 - An on-call scheduler, escalation chains, SLA timers or assignment.
 - A work-order/CMMS system, automatic dispatch, or asset service-state automation.
-- **An operational hold / out-of-service workflow** — recorded as a separate future phase
-  (`ROADMAP_DEFERRED.md` #3), not part of Phase D.
+- **An operational hold / out-of-service workflow** — a separate future phase (`ROADMAP_DEFERRED.md` #3).
 - AI or free-text incident classification, summarization or severity inference.
 - Automatically changing a submission's or asset's status from a report.
-- One-click or unauthenticated action links, including unsubscribe links that change settings.
-- A durable queue, outbox or delivery-history table (the B4 decision stands).
-- Renter-facing confirmation emails.
-- Original full-resolution attachments; signed media URLs; a public bucket; stored derived images.
-- Organization timezone settings; localized email; a templating framework or React Email.
-- Open or click tracking; link shorteners; a dedicated IP; Resend's batch endpoint.
-- Marketing email, a visual email rebrand, or brand artwork in email.
-- Guaranteed delivery claims of any kind.
+- Workflow-changing or unauthenticated action links, including one-click unsubscribe that changes settings.
+- Emergency-services wording on public pages.
+- Individual staff-return emails; renter-facing confirmation emails.
+- Per-organization summary times, organization timezone settings, localized email.
+- Original attachments, signed media URLs, a public bucket, stored derived images.
+- Open or click tracking, link shorteners, a dedicated IP, Resend's batch endpoint.
+- Marketing email, a visual email rebrand, brand artwork in email.
+- Guaranteed-delivery claims of any kind.
 
 ---
 
 ## 15. Operator test matrix
 
-Run against demo/QA data only. Production sends only to an approved QA address (`delivered@resend.dev`
-or `support@mulemark.io`) set through `production:qa-recipient`, cleared afterwards. Record date, client
-and observed result for every row; a row not run stays marked **not run**.
+Run against demo/QA data only. Production sends only to an approved QA address (`delivered@resend.dev` or
+`support@mulemark.io`) set through `production:qa-recipient`, cleared afterwards. Record date, client and result
+for every row; a row not run stays marked **not run**.
 
-### 15.1 Events and priorities
-
-| ID | Scenario | Environment | Expected |
-|---|---|---|---|
-| E1 | Damage report: unsafe to operate | Production (QA org) | Subject `Immediate attention: {code} — reported unsafe to operate`; one email; `sent` + providerId |
-| E2 | Damage report: operating, routine | Production | `New damage report — {code}`; routine label |
-| E3 | Support request: stuck, immediate | Production | Immediate attention; contact preferred method first |
-| E4 | Support request: operating question, routine | Production | Routine |
-| E5 | Renter return with damage + missing accessories, mode `all` | Production | Follow up; 2 exceptions listed |
-| E6 | Clean renter return, mode `all` | Production | "No action required" |
-| E7 | Clean renter return, mode `exceptions` | Production | No email; `skipped_disabled` logged |
-| E8 | Evidence-gap-only renter return, mode `exceptions` | Production | No email |
-| E9 | Staff return with a failed check | Production | Follow up; staff named, no staff email |
-| E10 | Clean staff return | Production | No email |
-| E11 | Outbound inspection | Production | No email, no log line |
-| E12 | Tag request status change | Production | One email |
-| E13 | Tag request notes-only save | Production | No email |
-| E14 | Any event on staging with a recipient set | Staging | `dry_run`, `reason: preview_environment`, no send |
-
-### 15.2 Routing
+### 15.1 Individual events
 
 | ID | Scenario | Expected |
 |---|---|---|
-| R1 | Escalation address set; immediate damage report | Two emails, two providerIds, two log lines (`default`, `escalation`) |
-| R2 | Escalation address equals default | One email |
-| R3 | Prompt-level report with escalation set | Default only |
-| R4 | Immediate report with the damage flag off (DP-6 as recommended) | Escalation only |
-| R5 | Replay of the same submission within 24 h | No second email per recipient; original providerId returned |
+| E1 | Damage report: unsafe to operate | `Immediate attention: {code} — reported unsafe to operate`; one email per enabled route |
+| E2 | Damage report: operating, routine need, severity major | `New damage report — {code}`; routine; severity shown |
+| E3 | Damage report: nothing answered | routine; state and need show "Not reported" |
+| E4 | Support request: stuck/recovery, need omitted | `Follow up: …`; preferred contact first |
+| E5 | Support request: rollover or safety incident | Immediate attention |
+| E6 | Renter return with damage + missing accessories, `instant_renter` | Follow up; 2 exceptions |
+| E7 | Clean renter return, `instant_renter` | "No action required" |
+| E8 | Renter return with a failed optional check (custom template), `instant_renter` | Routine; not in the summary |
+| E9 | Any renter return, `daily_exceptions` or `off` | No individual email |
+| E10 | Staff return with a failed required check, any mode | No individual email |
+| E11 | Outbound inspection | No email, no log line |
+| E12 | Tag request status change / notes-only save | One email / none |
+| E13 | Any event on staging with a recipient set | `dry_run`, `reason: preview_environment` |
 
-### 15.3 Clients and rendering
+### 15.2 Urgent routing
+
+| ID | Scenario | Expected |
+|---|---|---|
+| R1 | Damage switch on, urgent switch on, immediate report | Two emails, two providerIds, log roles `general` and `urgent` |
+| R2 | Damage switch off, urgent switch on, immediate report | Urgent only |
+| R3 | Damage switch on, urgent switch off, immediate report | General only |
+| R4 | Urgent address equals general address | One email |
+| R5 | Follow-up report with urgent switch on | General only |
+| R6 | Saving the urgent switch on without an address | Refused with a field error |
+| R7 | Replay of the same submission within 24 h | No second email per recipient |
+
+### 15.3 Daily return summary
+
+| ID | Scenario | Expected |
+|---|---|---|
+| S1 | `daily_exceptions`, renter + staff exceptions | One summary, 6:00–6:59 AM Pacific, all items with current status |
+| S2 | `instant_renter`, staff exception present | Staff-only summary |
+| S3 | `off` | No summary |
+| S4 | Quiet day | No email; `skipped_empty` logged |
+| S5 | An item resolved before the run | Listed as Resolved |
+| S6 | A missed run (simulated by skipping a day in QA) | Next summary covers both days |
+| S7 | A duplicate invocation (manual re-trigger in QA) | No second email |
+| S8 | Summary around a DST transition date | Arrives 6:00–6:59 AM Pacific |
+| S9 | Request without the bearer token | 401, nothing sent |
+
+### 15.4 Clients and rendering
 
 | ID | Client / condition | Check |
 |---|---|---|
-| C1 | Gmail web | Subject, preheader, priority word, links, previews inline, no clipping |
+| C1 | Gmail web | Subject, first line, priority word, links, previews inline, no clipping |
 | C2 | Gmail iOS/Android notification preview | Subject keeps the asset code; first line readable |
-| C3 | Outlook desktop (Windows) | Layout intact without CSS; previews inline or as attachments; no Junk (note allowlist state) |
+| C3 | Outlook desktop (Windows) | Layout intact without CSS; previews inline or as attachments; placement noted with allowlist state |
 | C4 | Outlook web | Same |
 | C5 | Apple Mail (macOS and iOS) | Same; dark mode legible |
-| C6 | Restrictive corporate client / gateway | Delivered; links unwrapped or noted; previews possibly stripped — brief still complete |
+| C6 | Restrictive corporate client / gateway | Delivered; links noted; brief complete even if previews stripped |
 | C7 | Images blocked | Alt text meaningful; "Photos: N on the record" still true |
 | C8 | Dark mode (Gmail app, Apple Mail, Outlook) | No invisible text; priority readable without colour |
-| C9 | Text-only view | Complete brief; no information exists only in HTML |
-| C10 | Reply to the email | Reaches `support@mulemark.io` |
+| C9 | Text-only view | Complete brief and summary |
+| C10 | Reply to any email | Reaches `support@mulemark.io` |
 
-### 15.4 Media and failure
+### 15.5 Confirmation page, media and failure
 
 | ID | Scenario | Expected |
 |---|---|---|
+| P1 | Immediate answer, asset or organization phone set | Full-width call button with a normalized href |
+| P2 | Immediate answer, no usable phone | Contact-the-company copy, no button |
+| P3 | Non-immediate report | Standard page; "has your report"; no "has been notified" |
 | M1 | Return with 6 photos across 3 slots incl. damage | 3 previews, damage first |
-| M2 | Photo with GPS EXIF | Preview carries no EXIF/GPS (inspect the received attachment) |
+| M2 | Photo with GPS EXIF | Received preview carries no EXIF/GPS |
 | M3 | 10 MB photo | Preview ≤ 120 KB, ≤ 640 px |
-| M4 | Preview generation forced to fail (staging fault flag in tests only) | Text-only email still delivered |
-| M5 | `notify_include_photo_previews = false` | Text-only |
-| M6 | Provider failure | Submission unaffected; `failed_*` logged (B4 row 7, still not run) |
+| M4 | Preview generation forced to fail (test fault only) | Text-only email still delivered |
+| M5 | Preview switch off | Text-only |
+| M6 | Provider failure | Submission unaffected; `failed_*` logged |
 
 ---
 
-## 16. Operator decision points
+## 16. Locked operator decisions
 
-Recommendations are stated; each needs an explicit decision before the slice that depends on it.
+Decided by the operator on 2026-09-10 (D0 decision carousel, confirmed in D0.1). Each is final for Phase D.
 
-| # | Decision | Recommendation | Needed before |
+| # | Decision | Locked value | Implemented in |
 |---|---|---|---|
-| DP-1 | Damage form asks equipment state + response need only; damage severity not asked publicly | Yes — two groups carry the priority; severity from a renter adds little and staff assess it | D2 |
-| DP-2 | Triage questions required with no pre-selected value (a "Not sure" option on equipment state) | Yes — avoids repeating the `medium` default problem | D2 |
-| DP-3 | Subject priority prefixes (`Immediate attention:`, `Follow up:`) — revises the B4 "no urgency hook" rule | Yes — deterministic, non-marketing, and the most useful phone-preview signal | D1 |
-| DP-4 | `tel:` / `mailto:` contact actions — revises the B4 "exactly one link" rule | Yes — the canonical host rule is preserved for web links | D1 |
-| DP-5 | Inline photo previews at all, `sharp` as a new dependency, previews on by default per organization | Yes, with the organization toggle | D4 |
-| DP-6 | Escalation address receives immediate items even when that event's default flag is off | Yes — the flag governs routine volume, not safety escalation | D3 |
-| DP-7 | Return-checklist mode default for new organizations | Keep `off` (preserves today); onboarding recommends `exceptions` | D3 |
-| DP-8 | Staff return checklists notify on exceptions | Yes | D3 |
-| DP-9 | Public thanks page shows "for anything immediate, call {company phone}" after an immediate/unsafe selection | Yes — email is best-effort and a renter must not rely on it | D2 |
-| DP-10 | Additive log fields (`recipientRole`, preview counts) | Yes | D3 / D4 |
+| 1 | Priority prefixes | `Immediate attention:` and `Follow up:`; routine and record-only subjects use no prefix | D1 |
+| 2 | Submitter contact | Safe tap-to-call and tap-to-email links when valid values exist; the authenticated Mulemark record link stays the primary CTA | D1 |
+| 3 | Damage form | Reported equipment state, reported response need, reported damage severity — all optional, no pre-selected answers | D2 |
+| 4 | Support form | Reported issue type, reported response need — both optional, no pre-selected answers | D2 |
+| 5 | Omitted values | Displayed as `Not reported` only where useful; omitted/unknown never raise priority; damage and support still default to routine review | D1, D2 |
+| 6 | Damage severity | Displayed in email and admin UI; never changes priority by itself | D1, D2 |
+| 7 | Immediate confirmation | Direct call-now message when explicit answers map to Immediate attention; full-width `tel:` button using the rental company's support phone, normalized; no usable number → contact-the-company copy and no button; no emergency-services wording | D2 |
+| 8 | Confirmation wording | Remove "has been notified"; say the rental company has the report; never imply an employee has read it | D2 |
+| 9 | Urgent routing | Separate urgent switch and urgent address, independent of the damage/support general switches; immediate events go to the urgent route whenever its switch is on, and also to the general route when that is on; identical normalized addresses deduplicated | D3A |
+| 10 | Return notification modes | `instant_renter`, `daily_exceptions`, `off`; existing true → `instant_renter`, false → `off`; new organizations `off` | D3A |
+| 11 | Return-mode meaning | `instant_renter`: every renter return sends individually, staff return exceptions go to the daily summary; `daily_exceptions`: renter and staff exceptions in one daily summary, no individual return email; `off`: neither | D3A, D3B |
+| 12 | Daily summary | Target 6:00–6:59 AM Pacific; skip quiet days; no inline photos; photo counts included; catches up after a missed run without dropping records; staff returns never send an individual email in Phase D | D3B |
+| 13 | Photo previews | On by default; organization-level off switch; up to three bounded previews; none in the daily summary | D3A (switch), D4 |
+| 14 | Logging | Recipient-route classification; requested/attached preview counts; daily-summary event, outcome and item count; never recipient addresses, media paths or report content | D3A, D3B, D4 |
+| 15 | Failed optional check (custom templates) | Routine review; shown in an individual renter email; not a return exception; not in the daily summary | D1, D3B |
+| 16 | Summary contents | Every return exception since the last summary, listed with its current status — not only unresolved items | D3B |
+
+**Interpretations of the locked rules** (recorded so implementation cannot drift; not additional decisions):
+
+- "Missing required accessory" is the canonical `accessories_missing` flag, because accessory items carry no
+  per-item required marker (`lib/inspections/field-builders.ts:72-77`).
+- "Failed required condition" uses each check's `required` / `required_when`; every built-in check is required
+  (`field-builders.ts:23-25`), custom checks may be optional (`org-templates.ts:111`).
+- "Does not start/operate" is detected only from the system fields `starts_operates` and `powers_on`.
+- A "return exception" is a Follow-up return condition; photo gaps and failed optional checks are not.
+- Tag-request status updates are always record only: no existing tag status requires customer action.
+- The 6 AM Pacific target is a requirement, not a Vercel guarantee; §9.6 records the caveat and the D3B
+  verification step.
