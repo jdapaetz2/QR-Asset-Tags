@@ -508,6 +508,12 @@ that is the business roadmap and is untouched by this work.
 **No recurring cost changed.** No plan, index, migration, RPC, cache or queue was added.
 **Field data remains PENDING** — Speed Insights is installed but not collecting.
 
+**Infrastructure verified by the operator (2026-09-10):** Production Supabase is **us-west-2**, beside the
+`pdx1` functions; staging is **us-east-1**, which — not compute — is the likely main reason staging runs
+~2× slower. Both projects are on Supabase **Free / Nano**, and Fluid Compute is on. **Production has no
+database backups** — recommended to fix (Supabase Pro) before a pilot holds real customer data; operator
+decision, not taken.
+
 ## Next recommended workstream
 
 **Recommendation: pilot onboarding readiness.**
@@ -540,7 +546,9 @@ Ranked, with the reasoning rather than just the order:
    customers, there is no evidence about real media volume. Trigger it on pilot data, not on speculation.
 5. **Commercial readiness** — trademark clearance, pricing, collateral. Real work, but it is a business
    workstream and should not be started automatically by engineering. Note the **Vercel Hobby → Pro**
-   upgrade is a prerequisite for any *paid* pilot.
+   upgrade is a prerequisite for any *paid* pilot, and **Supabase Free → Pro** (for backups) is
+   recommended before any pilot holds real customer data. Upgrade them separately, so any performance
+   change stays attributable.
 
 **Not started automatically:** commercial and physical-product work both need an explicit decision.
 

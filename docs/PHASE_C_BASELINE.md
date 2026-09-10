@@ -42,6 +42,20 @@ DNS cannot answer the Supabase region: `apeiswnkheiwrpvumder.supabase.co` resolv
 timings are tens of milliseconds, not the 60–90 ms a cross-continent hop would cost. That is consistent
 with the operator's Oregon claim but is *not* a substitute for reading the dashboard.
 
+> **Operator-verified 2026-09-10 (after C10 closeout).** The table above is kept as the C0 record.
+>
+> | Fact | Value |
+> |---|---|
+> | Production Supabase region | **us-west-2 (Oregon)** — co-located with `pdx1`, confirming the behavioural inference above |
+> | Staging Supabase region | **us-east-1 (N. Virginia)** — cross-continent from staging's `pdx1` functions |
+> | Supabase plan / compute | **Free**, both projects / **Nano** (Production `t4g.nano`, staging `t3a.nano`) |
+> | Supabase backups | **none** on either project |
+> | Vercel plan / Fluid Compute | Hobby / **enabled** — already on when checked; first-enabled date not recorded |
+> | Speed Insights enablement | still unverified, and still not collecting |
+>
+> The staging region explains the staging/Production gap better than the "different compute" first given
+> in `PHASE_C_PERFORMANCE_READINESS.md` §6, which has been corrected.
+
 **The Oregon move remains unattributed.** No controlled before/after exists — there is no pre-move
 Production measurement to compare against, and this baseline is the first. The operator's "feels
 faster" stays an observation. **This document is that missing before/after's first half.**

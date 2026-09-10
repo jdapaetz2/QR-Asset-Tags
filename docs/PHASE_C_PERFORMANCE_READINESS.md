@@ -49,8 +49,18 @@ Where cause cannot be isolated, this document says so rather than inventing an a
 | Local dev Node | **v24.16.0** — differs from `engines: 22.x` | measured; builds pass, recorded not fixed |
 | Production Supabase ref | `apeiswnkheiwrpvumder` | `verify:production-target` |
 | Staging Supabase ref | `kwserenxwjxozztyigmw` | `verify:staging-target` |
-| **Supabase regions, plan tiers, Fluid Compute** | **NOT VERIFIED — dashboard-only** | unchanged from C0 §1; **not guessed** |
+| **Production Supabase region** | **us-west-2 (Oregon)** — the same region as the `pdx1` functions | operator, Supabase dashboard, 2026-09-10 |
+| **Staging Supabase region** | **us-east-1 (N. Virginia)** — cross-continent from staging's `pdx1` functions | operator, Supabase dashboard, 2026-09-10 |
+| **Supabase plan** | **Free**, both projects | operator, billing, 2026-09-10 |
+| **Supabase compute** | **Nano** on both (Production `t4g.nano`, staging `t3a.nano`) | operator, Supabase dashboard, 2026-09-10 |
+| **Supabase backups** | **None** on either project — see §13 | operator, Supabase dashboard, 2026-09-10 |
+| **Vercel plan / Fluid Compute** | Hobby / **enabled** — already on when C10 measured | roadmap B4 / operator, 2026-09-10 |
 | Speed Insights | installed, **not collecting** | script absent from served HTML |
+
+> **Updated 2026-09-10.** At closeout the Supabase and Fluid Compute rows read *NOT VERIFIED —
+> dashboard-only*. The operator checked the dashboards the next day; the values above are that check,
+> recorded rather than machine-verified. When Fluid Compute was first enabled was not recorded, which is
+> one more reason the cross-day C0 → C10 comparison is not attributable.
 
 **Environment isolation was verified, not assumed.** The git-branch alias appears in the *production*
 deployment's alias list, which would be alarming if staging scripts were therefore driving production.
@@ -134,10 +144,19 @@ Mobile is reported separately and carries the 4× CPU-throttle caveat — see §
 | rentals | 384 ms | 744 ms |
 
 Staging is uniformly slower — roughly 2× on the public scan. **Do not read this as a regression or as a
-second opinion on Production.** They are different Supabase projects with different compute and very
-different data (staging's QA org holds ~120 submissions against Production's handful), which is exactly
-why C0 §3b already forbade comparing the two. Staging's value is trend-over-time within staging, and as
-the environment where destructive QA is allowed to run.
+second opinion on Production.** They are different Supabase projects with very different data (staging's
+QA org holds ~120 submissions against Production's handful), which is exactly why C0 §3b already forbade
+comparing the two. Staging's value is trend-over-time within staging, and as the environment where
+destructive QA is allowed to run.
+
+> **Corrected 2026-09-10.** This section first blamed "different compute" as well. That was wrong: the
+> operator's dashboard check shows both databases on the same **Nano** tier. What the check did show is a
+> region split. **Staging's database is in us-east-1 (N. Virginia) while staging's functions run in
+> `pdx1` (Oregon)** — C0 §1 measured that header on the Preview deployment — so every staging query pays a
+> cross-continent round trip that Production (us-west-2, beside `pdx1`) does not. That is the most likely
+> dominant cause of the gap. The cost scales with sequential database round trips per route, which fits
+> the dashboard — mostly one concurrent read group — losing the least (+101 ms). It is inferred, not
+> measured per query. The conclusion is unchanged: staging timings are not comparable to Production.
 
 ## 7. Action before/after
 
@@ -232,6 +251,19 @@ pilot traffic.
 no cache infrastructure, no queue. The **Vercel Hobby → Pro** upgrade noted in the roadmap remains a
 *commercial* prerequisite for a paid pilot, not a performance one — nothing measured here requires it.
 
+**Plans as verified 2026-09-10:** Vercel **Hobby** with Fluid Compute on; Supabase **Free** on both
+projects, **Nano** compute. Two consequences sit outside a performance report's scope but belong in front
+of the pilot decision:
+
+- **Production has no database backups.** The Supabase dashboard shows none for either project, and the
+  Free plan offers no PITR. The deployment runbook's data-incident step has nothing to restore from unless
+  a manual dump was taken — see `PRODUCTION_DEPLOYMENT_RUNBOOK.md` §3 and §9. Free projects are also
+  subject to Supabase's inactivity pausing. Supabase **Pro** is recommended before a pilot holds real
+  customer data — for backups, not speed. **Operator decision; not taken.**
+- **If Supabase is upgraded, change it alone.** Keep Vercel unchanged and run
+  `perf:dashboard:production` before and after, so the compute change is attributable. Nano's shared CPU
+  may contribute to the ~64 ms run-to-run band in §1; that is unmeasured and is not claimed.
+
 ---
 
 ## 14. Remaining bottlenecks
@@ -257,7 +289,10 @@ no cache infrastructure, no queue. The **Vercel Hobby → Pro** upgrade noted in
 - **Email is best-effort.** `after()` is not durable; the admin inbox is the system of record.
 - **The nav badge does not self-refresh** in a tab parked on another page (C6.1); the inbox does (C7).
 - **The measurement harness inflates its own inputs** on Production by writing `scan_events`.
-- **Supabase regions and plan tiers remain operator-verified**, not machine-checked.
+- **Infrastructure facts are operator-verified, not machine-checked** — regions, plan, compute and
+  backups (§2), recorded 2026-09-10.
+- **Production runs on Supabase Free / Nano with no backups** (§13) — recommended to resolve before the
+  pilot holds real customer data.
 
 ---
 

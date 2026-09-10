@@ -47,7 +47,10 @@ set it manually.
 4. **If anything is pending:** stop. Show the dry-run output, identify the affected workflows (see the ledger), and get
    **explicit operator approval before** running `npx supabase db push`. Never edit an applied migration — fix forward
    with a new migration.
-5. **Backup recommendation:** before any schema change, take a Supabase backup / `db dump` (or confirm PITR is on).
+5. **Backup — there is no automatic one today.** Production is on the Supabase **Free** plan: the dashboard shows
+   **no backups**, and Free has no PITR (operator-verified 2026-09-10). Before any schema change, take a manual dump of
+   the linked project (`npx supabase db dump` for schema, plus `--data-only` for rows) and store it **outside the
+   repository** — it contains customer data. A database dump does **not** include Storage objects (photos, documents).
 
 Current state (Phase A2): 0001–0031 are **operator-verified applied**; no push is required.
 
@@ -131,7 +134,9 @@ explicit, approval-gated operator step (§3).
 3. **A newly applied migration is implicated** → **do not** delete/edit it. Roll the app back to the previous commit
    first (schema is additive/forward-compatible), then author a **forward-fix migration** and re-verify with
    `migration list` + `db push --dry-run` before pushing (approval-gated).
-4. **Data incident** → restore from the pre-change Supabase backup / PITR; treat as an incident (Phase A5 runbook).
+4. **Data incident** → restore from the pre-change manual dump (§3 step 5); treat as an incident (Phase A5 runbook).
+   **Without a manual dump there is nothing to restore from** — the Free plan provides no Supabase backup or PITR.
+   Supabase Pro adds automated daily backups.
 
 ## 10. Sign-off
 Record commit, deployer, env-checklist done, migration `dry-run` result, smoke result, and any manual Supabase/Vercel/

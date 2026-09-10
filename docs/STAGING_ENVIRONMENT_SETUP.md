@@ -8,6 +8,8 @@ reading and writing production.
 > | | |
 > |---|---|
 > | Staging project | `kwserenxwjxozztyigmw` — "Mulemark-Staging", us-east-1 |
+> | Region vs functions | database **us-east-1**, Vercel functions **`pdx1`** (Oregon) — every query crosses the continent, so staging timings are never comparable to Production (us-west-2) |
+> | Plan / compute | Supabase **Free**, **Nano** (`t3a.nano`), no backups (operator-verified 2026-09-10) |
 > | Migrations | **0001-0033 applied**; `db push --dry-run` = "Remote database is up to date" |
 > | Seed data | Northridge demo org (from `0003`/`0004`) + 2 deterministic QA orgs |
 > | QA accounts | owner / customer-admin / customer-staff / second-org admin — password login, no email |
