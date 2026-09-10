@@ -476,9 +476,46 @@ Branch `pilot-credibility` @ `dc260cc`.
 
 **No software blocker remains.** Every open item is external, physical, or a deliberate pilot decision.
 
+## Engineering Phase C (performance) — **CLOSED (C10, 2026-09-09)**
+
+Full evidence and the six verdicts:
+[`docs/PHASE_C_PERFORMANCE_READINESS.md`](docs/PHASE_C_PERFORMANCE_READINESS.md).
+Branch `pilot-credibility`. **Not** the "Phase C - Physical product readiness" section further down —
+that is the business roadmap and is untouched by this work.
+
+| Slice | Outcome |
+|---|---|
+| **C0** baseline | ✅ first real Production baseline; three bottlenecks isolated |
+| **C1** identity dedupe | ✅ 3:2:2:1 → 2:1:1:1; latency win not demonstrable, kept on resource grounds |
+| **C2** Assets parallelization | ✅ **largest retained win — assets −192 ms desktop (−28 %), −262 ms mobile (−36 %)** |
+| **C3** Submissions parallelization | ✅ query group −67 %; route gain since masked by data growth |
+| **C4** signed-URL batching | ✅ N Storage round trips → 1; no latency claim at current data volume |
+| **C5** deferred scan logging | ✅ off the critical path; estimate corrected 71–104 ms → **28.9 ms** |
+| **C6 / C6.1** deferred notification + revalidation fix | ✅ ≈250–270 ms off confirmation; a real revalidation defect fixed |
+| **C7** inbox freshness | ✅ **81 → 1 request per 90 idle seconds**; resolves D-3 below |
+| **C8** truthful feedback | ✅ sign-in went from **no acknowledgement at all** to **121 ms** |
+| **C9 / C9.1** database + dashboard trial | ❌ **not run / reverted** — measured and found unjustified |
+
+| # | Readiness | Verdict |
+|---|---|---|
+| 1 | Renter scan responsiveness | **GO** |
+| 2 | Public form responsiveness | **GO** |
+| 3 | Authenticated navigation | **CONDITIONAL GO** — mobile emulation over 1 s, synthetic only |
+| 4 | Admin action responsiveness | **GO** |
+| 5 | Request efficiency | **CONDITIONAL GO** — idle solved; initial load unaddressed by design |
+| 6 | Limited-pilot scalability | **CONDITIONAL GO** — no load testing; no tenant has that data yet |
+
+**No recurring cost changed.** No plan, index, migration, RPC, cache or queue was added.
+**Field data remains PENDING** — Speed Insights is installed but not collecting.
+
 ## Next recommended workstream
 
 **Recommendation: pilot onboarding readiness.**
+
+**Updated 2026-09-09:** Engineering Phase C (performance) is now closed as well — see above. That
+strengthens this recommendation rather than changing it: the two things the performance work most
+lacks are **field data** and **real scale**, and both are by-products of a pilot rather than of
+further engineering.
 
 Every software gate is closed and the automated evidence has stopped being the constraint. The remaining
 blockers are the kind a real first customer surfaces faster and more cheaply than further engineering
@@ -496,8 +533,9 @@ Ranked, with the reasoning rather than just the order:
    hardware arrival, not by engineering. Do **not** produce permanent tags first: the redirect obligation
    still has no owner.
 3. **Remaining product defects** — the last P1 (customer-admin profile writes off the service role, via
-   the queued caller-aware SECURITY DEFINER RPC) and D-3 (the inbox auto-refresh re-prefetching row
-   links). Neither blocks a pilot; both are cheap and reduce inherited risk.
+   the queued caller-aware SECURITY DEFINER RPC). **D-3 (the inbox auto-refresh re-prefetching row links)
+   is RESOLVED by C7** — idle traffic fell 81 → 1 request per 90 s and prefetch 63 → 0. The P1 does not
+   block a pilot; it is cheap and reduces inherited risk.
 4. **Storage lifecycle** — no quota or retention enforcement exists. Not yet justified: with no
    customers, there is no evidence about real media volume. Trigger it on pilot data, not on speculation.
 5. **Commercial readiness** — trademark clearance, pricing, collateral. Real work, but it is a business

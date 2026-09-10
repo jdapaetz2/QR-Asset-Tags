@@ -2,6 +2,10 @@
 
 **Branch `phase-c-performance`, cut from `pilot-credibility` @ `2bcf3f3` (clean).** Measured 2026-09-02.
 
+> **Phase C is CLOSED (C10, 2026-09-09).** The verdicts, the Production re-baseline and the honest
+> limits are in [`PHASE_C_PERFORMANCE_READINESS.md`](PHASE_C_PERFORMANCE_READINESS.md). This document
+> remains the working evidence log for C0–C9.1 and is not superseded as a record.
+
 C0 measures. It changes no product behaviour: no auth, query, schema, index, RPC, scan-logging,
 notification, polling or loading-UI change was made.
 

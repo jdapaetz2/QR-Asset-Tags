@@ -15,6 +15,15 @@
 > **The pilot's real performance story requires a re-baseline on the final domain, with Vercel Speed
 > Insights field data (p75 across real users).** Treat this document as a starting reference only.
 
+## Superseded for the Production verdict by Phase C10 (2026-09-09)
+
+> Engineering Phase C is **closed**. The Production re-baseline, the per-slice before/after and the
+> six readiness verdicts live in
+> [`PHASE_C_PERFORMANCE_READINESS.md`](PHASE_C_PERFORMANCE_READINESS.md).
+>
+> **This document is kept, not erased** — it is the A6.3 staging lab history and remains the record of
+> what was known before Production was ever measured.
+
 ## Phase C9.1 addendum (2026-09-09) — the dashboard's real critical path
 
 The Production dashboard was attributed **per read** for the first time. Two things this document and

@@ -118,6 +118,44 @@ retry could duplicate a form write, so a smoke check either passes first time or
 
 When to run: `docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md` §5.
 
+## Performance baselines and diagnostics (Phase C)
+
+**Rerun the baseline** — same method every time, so runs stay comparable:
+
+```
+npm run perf:baseline:production      # all routes, both device classes
+npm run perf:dashboard:production     # dashboard only; writes NO scan_events
+npm run perf:baseline:staging
+```
+
+2 warm-ups discarded, 10 measured warm samples, median/p75/range. Artifacts land in
+`qa-artifacts/performance/` (gitignored). **Run on an otherwise idle machine**: five runs on identical
+code measured the dashboard across a 64 ms band purely from host load.
+
+**`perf:baseline:production` writes one `scan_events` row per scan sample** to the approved QA asset —
+roughly 24 per run. That is why `perf:dashboard:production` exists and filters the public routes out
+entirely: the dashboard reads a 7-day scan window, so an unfiltered benchmark inflates what it measures.
+
+**Diagnostic timing is a kept capability, not leftover scaffolding.**
+`lib/diagnostics/server-timing.ts` is **default-off in code** and activates only when
+`MULEMARK_DIAGNOSTIC_TIMING=1`. That variable is **deliberately still set on Production** so per-phase
+attribution can be collected without a redeploy:
+
+```
+npm run perf:timing:production
+```
+
+Two traps, both hit during Phase C and both worth knowing before trusting output:
+
+- the value is compared with `.trim()` because a shell-piped `1` carries a newline and silently fails a
+  strict `=== "1"`;
+- `vercel logs` **saturates its result limit on `auth.session`**, which silently drops the phases you are
+  actually measuring. Scope with `--deployment=<url>` and a tight `--since`, and treat
+  `min == median == max` as a sign you are looking at one repeated log line, not N samples.
+
+To retire it: remove `MULEMARK_DIAGNOSTIC_TIMING` from the Production environment and redeploy. The code
+then goes inert with no further change.
+
 ## Rate limiting / abuse (Phase A4)
 
 Public-intake abuse controls emit `[rate-limit]` logs; the limiter fails open on infra error so it never

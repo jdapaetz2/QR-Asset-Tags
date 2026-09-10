@@ -12,6 +12,13 @@ Vocabulary: **GO** — cleared. **CONDITIONAL GO** — cleared only with the sta
 
 ---
 
+> **Partially superseded (2026-09-09).** Phase B's verdicts stand. What has changed since is
+> **performance**, which Phase B did not assess: Engineering Phase C measured Production for the
+> first time and issued six separate verdicts —
+> [`PHASE_C_PERFORMANCE_READINESS.md`](PHASE_C_PERFORMANCE_READINESS.md). Phase B's "next
+> recommended workstream" is also updated in `roadmap.md`: **D-3 is now resolved by C7.**
+> Nothing below is retracted.
+
 ## Verdicts at a glance
 
 | # | Readiness | Verdict | Blocked by |
