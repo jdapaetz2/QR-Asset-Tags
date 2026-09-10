@@ -76,6 +76,14 @@ environment and redeploy.
   retried a bounded number of times (`attempts` shows how many) honoring `Retry-After`. If widespread,
   check the Resend status page. Individual misses are acceptable for the pilot (best-effort); there is no
   durable retry queue yet (deferred — see the deliverability runbook).
+- **Saved-record refusals (Engineering Phase D1)** — `failed_transient` with one of these `failureClass`
+  values means **nothing was sent, on purpose**. Since D1 the notifier builds each submission email from the
+  committed row and refuses anything that does not match what the submitting action scheduled:
+  `record_missing` (no row for that id), `organization_mismatch`, `asset_mismatch`, `form_type_mismatch`,
+  `origin_mismatch` (a staff record where a public one was expected), `asset_missing` (the asset is not in
+  that organization), `load_error` (the read itself failed), `unsupported_record`. The submission is
+  unaffected. A mismatch should never occur in normal operation — treat a repeated one as a bug worth
+  reporting, with the `reference` and `organizationId` from the log line (the line never contains row values).
 - **Sudden spike in failures:** confirm `deploymentContext`, check the Resend dashboard for an outage or a
   suspended domain/key, and verify SPF/DKIM/DMARC still resolve.
 

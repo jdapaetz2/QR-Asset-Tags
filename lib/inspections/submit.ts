@@ -227,13 +227,13 @@ export async function submitReturnInspectionCore(
 
   // Best-effort email alert, after the response (Phase C6) — same reasoning as lib/forms/submit.ts:
   // the inspection row is committed above and is the system of record.
+  // Engineering Phase D1: identifiers only — the notifier builds the email from the committed row.
   scheduleSubmissionNotification({
     organizationId: resolved.organizationId,
-    formType: "return_checklist",
     assetId: resolved.assetId,
-    submittedBy: { name, email, phone },
     submissionId,
     reference,
+    formType: "return_checklist",
   });
 
   // A completed return checklist is a `status='new'` submission exactly like a damage or support report,

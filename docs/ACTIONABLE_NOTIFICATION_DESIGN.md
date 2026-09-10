@@ -1,7 +1,7 @@
 # Actionable Notification Design — Engineering Phase D
 
-**Status: D0 designed (2026-09-10, `0415d81`) · D0.1 operator decisions locked (2026-09-10). Nothing in this
-document is built.** Branch `pilot-credibility`. Production deployment `jswtabswl` → `mulemark.io`.
+**Status: D0 designed (2026-09-10, `0415d81`) · D0.1 operator decisions locked (`70e6917`) · D1 built — the
+saved-record brief, deterministic priority and actionable text-first email. D2–D5 are not built.** Branch `pilot-credibility`. Production deployment `jswtabswl` → `mulemark.io`.
 
 > **This is Engineering Phase D (actionable notifications).** It is *not* the business roadmap's
 > "Phase D - Controlled pilots" in `roadmap.md`, which is untouched by this work.
@@ -420,9 +420,12 @@ type ReturnSummary = {
 
 1. The individual scheduler payload shrinks to identifiers: `{ organizationId, submissionId }`. Browser-derived
    `submittedBy` is no longer passed.
-2. Rows are loaded with the existing service-role client, filtered by `organization_id` as well as `id` or time
-   window, selecting only needed columns. A missing individual row sends nothing and logs `failed_transient`
-   with `failureClass: "record_missing"`.
+2. Rows are loaded with the existing service-role client, selecting only needed columns (D1:
+   `SAVED_SUBMISSION_COLUMNS` in `lib/notifications/projection.ts`). An individual submission is loaded by `id`
+   and must then match the scheduled `organization_id`, `asset_id`, form type and public origin; the asset is
+   loaded by `id` **and** `organization_id`. Any refusal sends nothing and logs `failed_transient` with a coarse
+   `failureClass`: `record_missing`, `organization_mismatch`, `asset_mismatch`, `form_type_mismatch`,
+   `origin_mismatch`, `asset_missing`, `load_error` or `unsupported_record`.
 3. Projection is a **pure function** of loaded data so every rule is unit-testable.
 4. `previewCandidates` never leaves the server process: not rendered, not logged, not in an idempotency key.
 5. A brief is built **once** and reused for every recipient; the database is never written to make an email
@@ -444,6 +447,13 @@ type ReturnSummary = {
 No answer is pre-selected. Exact renter-facing wording is finalized in D2. If D2 offers a "Not sure" option, it
 is stored as unknown and behaves exactly like an omitted answer. Answers are stored in `submission_data_json`
 with `triage_version: 1`.
+
+**Storage contract (established in D1, `lib/submissions/triage.ts`):** top-level keys `issue_type`
+(`breakdown_no_start`, `stuck_recovery`, `rollover_safety`, `operating_question`, `other`, `unknown`),
+`equipment_state` (`operating`, `operating_limited`, `not_operating`, `cannot_be_moved`, `unsafe`, `unknown`),
+`response_need` (`routine`, `prompt`, `immediate`, `unknown`) and `damage_severity` (`minor`, `moderate`, `major`,
+`unknown`). They are read only when `triage_version === 1`; an unknown value is treated as not reported. D1 reads
+this contract but no form writes it yet.
 
 ### 5.2 Rules — applied in this order
 

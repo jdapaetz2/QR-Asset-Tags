@@ -2,36 +2,41 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { publicEnv, serverEnv } from "@/lib/env";
-import { formTypeLabel } from "@/lib/submissions/display";
 import { tagRequestStatusLabel } from "@/lib/tags/tag-requests";
 import {
   shouldNotifySubmission,
   type NotificationSettings,
   type SubmissionFormType,
 } from "@/lib/notifications/settings";
+import { buildIncidentEmail, buildTagStatusEmail } from "@/lib/notifications/email";
 import {
-  buildSubmissionEmail,
-  buildTagStatusEmail,
-} from "@/lib/notifications/email";
+  checkSavedSubmission,
+  projectSubmissionBrief,
+  SAVED_SUBMISSION_COLUMNS,
+  type SavedSubmissionRow,
+} from "@/lib/notifications/projection";
 import { notificationIdempotencyKey } from "@/lib/notifications/idempotency";
 import { sendNotificationEmail } from "@/lib/notifications/send";
 import { logNotificationEvent } from "@/lib/notifications/log";
+import { submissionReference } from "@/lib/submissions/inbox";
 import { time } from "@/lib/diagnostics/server-timing";
 
 /**
- * Notification orchestration. Reads an organization's notification settings with
- * the SERVICE-ROLE admin client because the triggering contexts are trusted server
- * code that can't otherwise read these private columns: the public submission
- * intake uses the anon client (no access to settings), and the settings columns are
- * not in the anon grant. This mirrors the sanctioned use of service-role for public
- * submission intake (see lib/supabase/admin.ts).
+ * Notification orchestration. Reads with the SERVICE-ROLE admin client because the triggering contexts are trusted
+ * server code that can't otherwise read these rows: the public submission intake uses the anon client (which can
+ * insert but never read a submission back), and the notification settings columns are not in the anon grant. This
+ * mirrors the sanctioned use of service-role for public submission intake (see lib/supabase/admin.ts).
  *
- * Every function swallows its own errors — a notification must never break the
- * submission or status update that triggered it.
+ * Every function swallows its own errors — a notification must never break the submission or status update that
+ * triggered it.
  *
- * Phase B4: each event derives a deterministic provider idempotency key from the record it is about,
- * so a retry (or a replayed server action) cannot produce a second email to a real customer. Every URL
- * is computed from `publicEnv.siteUrl`, which is the canonical production host after B3.
+ * Phase B4: each event derives a deterministic provider idempotency key from the record it is about, so a retry (or
+ * a replayed server action) cannot produce a second email to a real customer. Every URL is computed from
+ * `publicEnv.siteUrl`, the canonical production host.
+ *
+ * Engineering Phase D1: a submission email is built from the COMMITTED row, never from values carried across the
+ * commit. The scheduled payload holds identifiers only; this function loads the saved submission and the asset,
+ * refuses anything that does not match what the committing action scheduled, projects one brief, and renders it.
  */
 
 const NOTIFY_COLUMNS =
@@ -39,22 +44,19 @@ const NOTIFY_COLUMNS =
 
 type OrgNotifyRow = { name: string | null } & NotificationSettings;
 
-type SubmittedBy = {
-  name: string | null;
-  email: string | null;
-  phone: string | null;
+type AssetRow = { asset_code: string | null; asset_name: string | null; category: string | null };
+
+export type SubmissionNotificationInput = {
+  organizationId: string;
+  assetId: string;
+  submissionId: string;
+  /** Canonical reference computed at commit time. Used only to correlate log lines until the row is loaded. */
+  reference: string;
+  /** The form type the committing action wrote — checked against the saved row, never trusted on its own. */
+  formType: SubmissionFormType;
 };
 
-export async function notifySubmission(input: {
-  organizationId: string;
-  formType: SubmissionFormType;
-  assetId: string;
-  submittedBy: SubmittedBy;
-  submissionId: string;
-  /** Canonical display reference (SUB-YYYY-XXXXXX) — matches the inbox + renter. */
-  reference?: string;
-  summary?: string;
-}): Promise<void> {
+export async function notifySubmission(input: SubmissionNotificationInput): Promise<void> {
   try {
     const admin = createAdminClient();
     const { data: org } = await admin
@@ -84,57 +86,91 @@ export async function notifySubmission(input: {
       });
       return;
     }
+    const recipient = org.notification_email;
 
-    const { data: asset } = await admin
-      .from("assets")
-      .select("asset_code, asset_name, category")
-      .eq("id", input.assetId)
-      .maybeSingle<{
-        asset_code: string | null;
-        asset_name: string | null;
-        category: string | null;
-      }>();
-
-    const content = buildSubmissionEmail({
-      orgName: org.name ?? "Your organization",
-      formType: input.formType,
-      formTypeLabel: formTypeLabel(input.formType),
-      asset: {
-        code: asset?.asset_code ?? null,
-        name: asset?.asset_name ?? null,
-        category: asset?.category ?? null,
-      },
-      submittedBy: input.submittedBy,
-      reference: input.reference ?? null,
-      summary: input.summary ?? "",
-      adminUrl: `${publicEnv.siteUrl}/dashboard/submissions/${input.submissionId}`,
-      settingsUrl: `${publicEnv.siteUrl}/dashboard/settings`,
+    // D1: the saved record and the asset, read in parallel. The asset must belong to the scheduling organization.
+    const loaded = await time("notify", "notify.load", async () => {
+      const [saved, assetResult] = await Promise.all([
+        admin
+          .from("form_submissions")
+          .select(SAVED_SUBMISSION_COLUMNS)
+          .eq("id", input.submissionId)
+          .maybeSingle<SavedSubmissionRow>(),
+        admin
+          .from("assets")
+          .select("asset_code, asset_name, category")
+          .eq("id", input.assetId)
+          .eq("organization_id", input.organizationId)
+          .maybeSingle<AssetRow>(),
+      ]);
+      return {
+        row: saved.data ?? null,
+        asset: assetResult.data ?? null,
+        loadFailed: Boolean(saved.error || assetResult.error),
+      };
     });
+
+    const { row, asset } = loaded;
+    const failure = loaded.loadFailed
+      ? "load_error"
+      : checkSavedSubmission(
+          { organizationId: input.organizationId, assetId: input.assetId, formType: input.formType },
+          row,
+          asset ? { code: asset.asset_code, name: asset.asset_name, category: asset.category } : null
+        );
+    if (failure || !row || !asset) {
+      // Fail closed. Only a coarse class is logged — never a value from the row.
+      logNotificationEvent({
+        event: "submission",
+        outcome: "failed_transient",
+        organizationId: input.organizationId,
+        reference: input.reference,
+        recipient,
+        failureClass: failure ?? "record_missing",
+      });
+      return;
+    }
+
+    const reference = submissionReference(row.id, row.created_at);
+    const content = await time("notify", "notify.project", async () => {
+      const brief = projectSubmissionBrief({
+        organizationName: org.name ?? "Your organization",
+        row,
+        asset: { code: asset.asset_code, name: asset.asset_name, category: asset.category },
+        siteUrl: publicEnv.siteUrl,
+      });
+      return brief ? buildIncidentEmail(brief) : null;
+    });
+    if (!content) {
+      logNotificationEvent({
+        event: "submission",
+        outcome: "failed_transient",
+        organizationId: input.organizationId,
+        reference,
+        recipient,
+        failureClass: "unsupported_record",
+      });
+      return;
+    }
 
     // A submission notifies exactly once, ever — its id is the whole key.
     const idempotencyKey = notificationIdempotencyKey({
       event: "submission",
-      reference: input.submissionId,
-      recipient: org.notification_email,
+      reference: row.id,
+      recipient,
     });
 
-    // Phase C6 instrumentation. Inert unless MULEMARK_DIAGNOSTIC_TIMING=1; returns the same result and
-    // rethrows nothing new. This is the "provider acceptance" number C0 never took — the whole basis for
-    // deciding whether this call belongs on the renter's critical path.
+    // Phase C6 instrumentation. Inert unless MULEMARK_DIAGNOSTIC_TIMING=1; returns the same result and rethrows
+    // nothing new.
     const result = await time("notify", "notify.send", () =>
-      sendNotificationEmail(
-        org.notification_email as string,
-        content,
-        {},
-        { idempotencyKey, replyTo: serverEnv.notificationReplyToEmail }
-      )
+      sendNotificationEmail(recipient, content, {}, { idempotencyKey, replyTo: serverEnv.notificationReplyToEmail })
     );
     logNotificationEvent({
       event: "submission",
       outcome: result.outcome,
       organizationId: input.organizationId,
-      reference: input.reference,
-      recipient: org.notification_email,
+      reference,
+      recipient,
       providerId: result.providerId,
       providerStatus: result.status,
       attempts: result.attempts,
@@ -142,8 +178,8 @@ export async function notifySubmission(input: {
       reason: result.reason,
     });
   } catch (err) {
-    // Submission-safety backstop: a notification must never break the submission. Log a redacted,
-    // structured record (no error body) and move on.
+    // Submission-safety backstop: a notification must never break the submission. Log a redacted, structured
+    // record (no error body) and move on.
     logNotificationEvent({
       event: "submission",
       outcome: "failed_transient",
@@ -189,12 +225,11 @@ export async function notifyTagRequestStatus(input: {
       return;
     }
 
-    const orgName = org.name ?? "Your organization";
     const content = buildTagStatusEmail({
-      orgName,
+      orgName: org.name ?? "Your organization",
       statusLabel: tagRequestStatusLabel(input.status),
       reference: input.tagRequestId,
-      manageUrl: `${publicEnv.siteUrl}/dashboard/tag-requests`,
+      manageUrl: `${publicEnv.siteUrl}/dashboard/tag-requests/${encodeURIComponent(input.tagRequestId)}`,
       settingsUrl: `${publicEnv.siteUrl}/dashboard/settings`,
     });
 
@@ -206,9 +241,8 @@ export async function notifyTagRequestStatus(input: {
       recipient: org.notification_email,
     });
 
-    // Phase C6 instrumentation. Inert unless MULEMARK_DIAGNOSTIC_TIMING=1; returns the same result and
-    // rethrows nothing new. This is the "provider acceptance" number C0 never took — the whole basis for
-    // deciding whether this call belongs on the renter's critical path.
+    // Phase C6 instrumentation. Inert unless MULEMARK_DIAGNOSTIC_TIMING=1; returns the same result and rethrows
+    // nothing new.
     const result = await time("notify", "notify.send", () =>
       sendNotificationEmail(
         org.notification_email as string,

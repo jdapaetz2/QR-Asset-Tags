@@ -167,6 +167,14 @@ describe("a committed return checklist refreshes the authenticated surfaces", ()
       assetId: "asset1",
       formType: "return_checklist",
     });
+    // D1: identifiers only — the renter's contact details are never carried across the commit.
+    expect(Object.keys(scheduleSubmissionNotification.mock.calls[0][0] as object).sort()).toEqual([
+      "assetId",
+      "formType",
+      "organizationId",
+      "reference",
+      "submissionId",
+    ]);
   });
 
   it("gives the renter the same confirmation URL and canonical reference", async () => {

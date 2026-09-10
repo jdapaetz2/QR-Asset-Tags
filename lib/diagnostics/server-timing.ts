@@ -34,6 +34,11 @@ export type TimingPhase =
   // its own phase: it is derived as (POST duration − notify.send) from the action harness, which avoids
   // restructuring a data-committing path with early returns purely to instrument it.
   | "notify.send"
+  // Engineering Phase D1. The deferred notification now reads the committed submission and its asset before it
+  // renders, so loading and projecting are timed separately from the provider call. Same rule: constant labels,
+  // durations only.
+  | "notify.load"
+  | "notify.project"
   | "request.total";
 
 /**

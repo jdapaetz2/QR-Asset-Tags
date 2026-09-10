@@ -225,13 +225,13 @@ export async function submitPublicForm(
   // Measured live on Production, the provider call was 178.7 ms median on the renter's critical path,
   // with a 15 s worst case sitting on their success path. It never blocked the submission and it still
   // does not; it no longer delays the confirmation either. See lib/notifications/schedule.ts.
+  // Engineering Phase D1: identifiers only — the notifier builds the email from the committed row.
   scheduleSubmissionNotification({
     organizationId: resolved.organizationId,
-    formType: config.formType,
     assetId: resolved.assetId,
-    submittedBy: config.submittedBy,
     submissionId,
     reference,
+    formType: config.formType,
   });
 
   // A new public submission is `status='new'`, so mark the authenticated submission surfaces stale — the next

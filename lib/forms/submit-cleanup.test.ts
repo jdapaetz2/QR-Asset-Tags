@@ -151,6 +151,8 @@ describe("C6 — a notification is scheduled only after a durable commit", () =>
     const arg = scheduleSubmissionNotification.mock.calls[0][0] as Record<string, unknown>;
     expect(arg).toMatchObject({ organizationId: "org1", assetId: "asset1", formType: "damage_report" });
     expect(String(arg.reference)).toMatch(/^SUB-\d{4}-[0-9A-F]{6}$/);
+    // D1: identifiers only — the browser's contact details are never carried across the commit.
+    expect(Object.keys(arg).sort()).toEqual(["assetId", "formType", "organizationId", "reference", "submissionId"]);
   });
 
   it("does NOT schedule when the insert fails", async () => {

@@ -108,7 +108,12 @@ function isAnswered(field: InspectionField, values: AnswerValues): boolean {
   return v != null && v !== "";
 }
 
-function fieldRequired(field: InspectionField, values: AnswerValues): boolean {
+/**
+ * Whether a field is required given the answers: always-required, or `required_when` holds. Exported for the
+ * notification projection (Engineering Phase D1) so "failed required check" is decided by the same rule as
+ * validation.
+ */
+export function fieldRequired(field: InspectionField, values: AnswerValues): boolean {
   if (field.required) return true;
   return isConditionMet(field.required_when, values) && field.required_when != null;
 }

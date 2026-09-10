@@ -39,13 +39,17 @@ import type { SubmissionFormType } from "@/lib/notifications/settings";
  * renter already has their confirmation and the only casualty is the email.
  */
 
+/**
+ * Engineering Phase D1: identifiers only. The email is built from the COMMITTED row, which `notifySubmission` loads
+ * itself, so nothing the browser sent — contact details, a summary — is carried across the commit. `formType` is a
+ * defensive expectation checked against the saved row, not a source of content.
+ */
 export type ScheduledNotification = {
   organizationId: string;
-  formType: SubmissionFormType;
   assetId: string;
-  submittedBy: { name: string | null; email: string | null; phone: string | null };
   submissionId: string;
   reference: string;
+  formType: SubmissionFormType;
 };
 
 /**
@@ -54,10 +58,10 @@ export type ScheduledNotification = {
  * MUST be called only once the insert has succeeded — the duplicate (23505) and insert-failure branches
  * return or redirect before reaching it, so a submission that does not exist can never be announced.
  *
- * Every value passed in is an immutable primitive already derived during the request. The callback
- * touches no request API: `notifySubmission` uses the service-role client, which reads no cookies and no
- * headers, so the Server Component restriction on `headers()`/`cookies()` inside `after` cannot be
- * violated here.
+ * Every value passed in is an immutable identifier already derived during the request — never FormData, a
+ * request object, cookies, headers, media bytes or raw JSON. The callback touches no request API:
+ * `notifySubmission` uses the service-role client, which reads no cookies and no headers, so the Server
+ * Component restriction on `headers()`/`cookies()` inside `after` cannot be violated here.
  *
  * Returns void and never throws — `notifySubmission` catches everything internally, and the callback
  * adds no new throw of its own.

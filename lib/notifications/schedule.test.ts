@@ -18,11 +18,10 @@ vi.mock("@/lib/notifications/notify", () => ({
 
 const INPUT = {
   organizationId: "org-1",
-  formType: "damage_report" as const,
   assetId: "asset-1",
-  submittedBy: { name: "Rita", email: "rita@example.test", phone: null },
   submissionId: "11111111-1111-4111-8111-111111111111",
   reference: "SUB-2026-ABC123",
+  formType: "damage_report" as const,
 };
 
 /**
@@ -59,6 +58,16 @@ describe("scheduleSubmissionNotification", () => {
 
     expect(notifySubmission).toHaveBeenCalledTimes(1);
     expect(notifySubmission).toHaveBeenCalledWith(INPUT);
+  });
+
+  /** D1: the deferred work carries immutable identifiers only — the email is built from the committed row. */
+  it("carries identifiers only", async () => {
+    const { scheduleSubmissionNotification } = await import("./schedule");
+    scheduleSubmissionNotification(INPUT);
+    await scheduled[0]();
+    const arg = (notifySubmission.mock.calls[0] as unknown[])[0] as Record<string, unknown>;
+    expect(Object.keys(arg).sort()).toEqual(["assetId", "formType", "organizationId", "reference", "submissionId"]);
+    for (const value of Object.values(arg)) expect(typeof value).toBe("string");
   });
 
   it("schedules exactly one notification per call", async () => {

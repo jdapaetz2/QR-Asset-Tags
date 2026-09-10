@@ -535,7 +535,7 @@ reported equipment state or response need.
 |---|---|---|
 | **D0** — audit, design, deferred-roadmap reconciliation | documentation only | ✅ designed |
 | **D0.1** — operator decisions locked into the design | documentation only | ✅ locked |
-| **D1** — server-authoritative saved-record brief, deterministic priority, actionable text-first HTML/plain-text email | no new form fields, no image previews | not started |
+| **D1** — server-authoritative saved-record brief, deterministic priority, actionable text-first HTML/plain-text email | no new form fields, no image previews | ✅ built — timing instrumented, not yet measured on Production |
 | **D2** — optional triage questions, admin "Reported" labels, urgent confirmation call button | JSON fields, no migration | not started |
 | **D3A** — routing/settings migration, independent urgent route, return modes, photo-preview switch, log schema, tag-status correctness | migration 0034 | not started |
 | **D3B** — daily return-exceptions summary, secured schedule, missed-run catch-up, quiet-day behaviour | migration 0035, first scheduled job | not started |
