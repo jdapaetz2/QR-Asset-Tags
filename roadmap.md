@@ -514,7 +514,42 @@ that is the business roadmap and is untouched by this work.
 database backups** — recommended to fix (Supabase Pro) before a pilot holds real customer data; operator
 decision, not taken.
 
+## Engineering Phase D (actionable notifications) — **D0 DESIGNED (2026-09-10)**
+
+Audit, design and phased implementation plan:
+[`docs/ACTIONABLE_NOTIFICATION_DESIGN.md`](docs/ACTIONABLE_NOTIFICATION_DESIGN.md).
+Branch `pilot-credibility`. **Not** the "Phase D - Controlled pilots" section further down — that is the
+business roadmap and is untouched by this work.
+
+**Objective.** A recipient understands what happened, how serious it appears, whether anyone needs to act
+now, who to contact and whether photographs exist — without first opening Mulemark. Mulemark remains the
+canonical record and action surface; email is a concise, secure incident brief.
+
+**What D0 found.** Today's email names the asset and the submitter and links to the record — nothing about
+the incident itself. The notifier never reads the committed submission, and the only summary parameter is
+never supplied. Staff return checklists and outbound inspections never notify. The damage form's urgency
+defaults to "medium", so a stored urgency is not evidence of a renter's choice, and no form captures a
+reported equipment state or response need.
+
+| Slice | Scope | Status |
+|---|---|---|
+| **D0** — audit, design, deferred-roadmap reconciliation | documentation only | ✅ designed |
+| **D1** — brief projected from the committed row, deterministic priority, text-first email | no form, schema or media change | not started |
+| **D2** — reported equipment state, response need and issue type on the public damage and support forms | JSON fields, no migration | not started |
+| **D3** — urgent escalation address, return-checklist mode, staff-return exception emails, tag status-change-only | migration 0034 | not started |
+| **D4** — up to three inline photo previews, metadata-stripped, text-only fallback | new `sharp` dependency (operator approval) | not started |
+| **D5** — live operator test matrix and closeout | operator | not started |
+
+Ten operator decision points gate D1–D4 (design doc §16). **Recorded separately, not part of Phase D:** an
+operational hold / out-of-service workflow — newly triggered by the incident examples that shaped this
+phase (`docs/ROADMAP_DEFERRED.md` #3). `docs/ROADMAP_DEFERRED.md` was reconciled against the product in
+the same slice.
+
 ## Next recommended workstream
+
+**Updated 2026-09-10:** the operator started Engineering Phase D (actionable notifications) ahead of pilot
+onboarding. It does not change the recommendation below; it sharpens the part of a pilot a customer feels
+first — the alert when something goes wrong with a machine.
 
 **Recommendation: pilot onboarding readiness.**
 
@@ -697,10 +732,10 @@ Build only what repeated pilot evidence justifies.
 | Item | Build trigger | Current disposition |
 |---|---|---|
 | Storage quotas and archival | Before storage cost becomes material or before broad photo rollout | High priority after Phase A |
-| Multi-recipient notifications | First pilot needs different operations/service recipients | Deferred |
+| Multi-recipient notifications | First pilot needs different operations/service recipients | Partially promoted — one optional urgent escalation address is designed in Engineering Phase D (D0, 2026-09-10); full multi-recipient routing stays deferred |
 | SMS | Email proves too slow for urgent damage or support | Deferred |
 | Notification center | Event volume makes email/log review insufficient | Deferred |
-| Out-of-service/hold state | A pilot needs to block damaged equipment from rental | Deferred, likely early |
+| Out-of-service/hold state | A pilot needs to block damaged equipment from rental | **Newly triggered candidate** (Phase D0 incident examples: rollover, immobilized, unsafe) — a separate future phase, **not** Engineering Phase D; see `docs/ROADMAP_DEFERRED.md` #3 |
 | Checklist customization | Two or more customers need materially different checks | Deferred |
 | Fine-grained staff permissions | Customer has counter, yard, service, and manager role separation | Deferred |
 | Multi-yard/location | First serious multi-location prospect | Deferred |
