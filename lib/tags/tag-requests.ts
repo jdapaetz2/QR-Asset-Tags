@@ -51,6 +51,45 @@ export function parseViewedFilter(value: unknown): ViewedFilter {
   return value === "unviewed" ? "unviewed" : "all";
 }
 
+/**
+ * Owner-internal fields of a tag request, as returned by the owner-only `owner_tag_request_internal` function
+ * (migration 0035). Customers cannot read these columns at all.
+ */
+export type TagRequestInternal = {
+  id: string;
+  organization_id: string;
+  production_notes: string | null;
+  platform_viewed_at: string | null;
+  platform_viewed_by_profile_id: string | null;
+};
+
+function timeOf(value: string): number {
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+/**
+ * The owner's tag-request queue: each row merged with its viewed state, optionally only unviewed, ordered unviewed
+ * first, then viewed oldest-first, ties newest request first — the order the queue had when it sorted on the column
+ * directly. A row with no internal record is treated as unviewed so pending work is surfaced, never hidden.
+ */
+export function ownerTagRequestQueue<T extends { id: string; created_at: string }>(
+  rows: T[],
+  internal: Pick<TagRequestInternal, "id" | "platform_viewed_at">[],
+  filter: ViewedFilter
+): (T & { platform_viewed_at: string | null })[] {
+  const viewedAt = new Map(internal.map((r) => [r.id, r.platform_viewed_at]));
+  const merged = rows.map((row) => ({ ...row, platform_viewed_at: viewedAt.get(row.id) ?? null }));
+  const visible = filter === "unviewed" ? merged.filter((row) => row.platform_viewed_at === null) : merged;
+  return [...visible].sort((a, b) => {
+    const newestFirst = timeOf(b.created_at) - timeOf(a.created_at);
+    if (a.platform_viewed_at === null && b.platform_viewed_at === null) return newestFirst;
+    if (a.platform_viewed_at === null) return -1;
+    if (b.platform_viewed_at === null) return 1;
+    return timeOf(a.platform_viewed_at) - timeOf(b.platform_viewed_at) || newestFirst;
+  });
+}
+
 /** Count unviewed (platform_viewed_at null) requests per organization. */
 export function unviewedCountByOrg(
   rows: { organization_id: string; platform_viewed_at: string | null }[]

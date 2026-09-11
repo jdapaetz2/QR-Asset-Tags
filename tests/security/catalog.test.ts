@@ -170,6 +170,62 @@ describe("D3A notification routing columns (migration 0034)", () => {
   });
 });
 
+describe("tag_requests owner-internal columns (migration 0035)", () => {
+  const INTERNAL = ["production_notes", "platform_viewed_at", "platform_viewed_by_profile_id"];
+
+  async function columnPrivilege(role: string, column: string, privilege: string): Promise<boolean> {
+    const { rows } = await db.query<{ ok: boolean }>(
+      "select has_column_privilege($1, 'public.tag_requests', $2, $3) as ok",
+      [role, column, privilege]
+    );
+    return rows[0].ok;
+  }
+
+  async function mayExecute(role: string, signature: string): Promise<boolean> {
+    const { rows } = await db.query<{ ok: boolean }>(
+      "select has_function_privilege($1, $2::regprocedure, 'EXECUTE') as ok",
+      [role, signature]
+    );
+    return rows[0].ok;
+  }
+
+  /** The table and column ACLs, so a failed privilege assertion names the grant that still allows the read. */
+  async function aclDetail(): Promise<string> {
+    const { rows: table } = await db.query<{ relacl: string | null }>(
+      "select relacl::text as relacl from pg_class where oid = 'public.tag_requests'::regclass"
+    );
+    const { rows: columns } = await db.query<{ attname: string; attacl: string }>(
+      "select attname, attacl::text as attacl from pg_attribute where attrelid = 'public.tag_requests'::regclass and attnum > 0 and not attisdropped and attacl is not null order by attnum"
+    );
+    return `table acl=${table[0]?.relacl ?? "null"}; column acls=${JSON.stringify(columns)}`;
+  }
+
+  it("authenticated and anon cannot SELECT the internal columns; customer columns stay readable", async () => {
+    const detail = await aclDetail();
+    for (const column of INTERNAL) {
+      expect(await columnPrivilege("authenticated", column, "SELECT"), `authenticated SELECT ${column} (${detail})`).toBe(false);
+      expect(await columnPrivilege("anon", column, "SELECT"), `anon SELECT ${column} (${detail})`).toBe(false);
+    }
+    for (const column of ["id", "organization_id", "status", "delivered_at", "requested_by_profile_id"]) {
+      expect(await columnPrivilege("authenticated", column, "SELECT"), `authenticated SELECT ${column}`).toBe(true);
+    }
+  });
+
+  it("the owner-only functions are executable by authenticated users, never anon", async () => {
+    for (const signature of ["public.owner_tag_request_internal(uuid)", "public.mark_tag_request_viewed(uuid)"]) {
+      expect(await mayExecute("anon", signature), `anon must NOT execute ${signature}`).toBe(false);
+      expect(await mayExecute("authenticated", signature), `authenticated executes ${signature}`).toBe(true);
+    }
+  });
+
+  it("the insert protection trigger is installed", async () => {
+    const { rows } = await db.query(
+      "select 1 from pg_trigger where tgname = 'tag_requests_protect_insert' and not tgisinternal"
+    );
+    expect(rows.length, "trigger tag_requests_protect_insert should exist").toBe(1);
+  });
+});
+
 describe("RPC execute grants (defense in depth)", () => {
   async function anonMayExecute(signature: string): Promise<boolean> {
     const { rows } = await db.query<{ ok: boolean }>(

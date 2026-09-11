@@ -93,6 +93,30 @@ those tables are load-bearing.
 Next server actions are independently invocable POST endpoints, so an admin-only *page* is not a guard for the action
 it renders.
 
+## Tag request internal columns (migration 0035)
+
+`tag_requests.production_notes`, `platform_viewed_at` and `platform_viewed_by_profile_id` are the platform owner's
+working data. Until 0035 they were protected only by the app not selecting them: `authenticated` held table-wide
+SELECT and the select policy is organization-scoped, so any customer admin or staff member could read them for their
+own organization through the API. RLS cannot restrict columns, so 0035 uses privileges:
+
+- **Column-level SELECT.** Table-wide SELECT is revoked from `authenticated` and re-granted on every column except
+  those three. **A column added to `tag_requests` later is not readable by customers until it is added to that
+  grant.** RLS policies and INSERT/UPDATE/DELETE privileges are unchanged.
+- **Owner-only functions.** The platform owner uses the same `authenticated` role, so the owner console reads the
+  internal fields through `owner_tag_request_internal(uuid)` and marks requests viewed through
+  `mark_tag_request_viewed(uuid)` — SECURITY DEFINER, `search_path` locked, gated on `is_platform_owner()`, no rows /
+  `false` for anyone else, anon execute revoked. Service-role reach is unchanged.
+- **Insert protection.** `protect_tag_request_insert` (BEFORE INSERT) coerces `status` to `requested`, clears
+  `production_notes`, `delivered_at`, `completed_at` and the viewed markers, and sets `requested_by_profile_id` to the
+  caller — for every caller except the platform owner and trusted server context (`auth.uid() is null`), the same
+  carve-outs as `protect_profile_privileged_fields`.
+- **Order matters.** `REVOKE` of a table privilege also removes that privilege's column-level grants, so the revoke
+  always precedes the column grant.
+- **Local test parity.** `tests/security/setup/grants.ts` re-grants hosted default privileges after migrations, so it
+  re-runs 0035's own `local-parity` revoke+grant block verbatim; any future migration that revokes from
+  `authenticated` must be added there too.
+
 ## Known security gaps (Phase A1 record — status updated in A3.1)
 
 Recorded accurately for Phase A hardening. **Cross-tenant isolation is enforced in Postgres (RLS): every tenant

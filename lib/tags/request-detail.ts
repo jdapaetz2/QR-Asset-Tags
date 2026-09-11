@@ -6,6 +6,10 @@ import { assetReadiness, type AssetReadiness } from "@/lib/qr/production";
  * Shared RLS-scoped fetch for a tag request's detail: the request fields plus its
  * selected assets with per-asset readiness. Used by both the customer (read-only)
  * and the owner (queue) detail pages. RLS scopes visibility; the caller gates role.
+ *
+ * Customer-visible columns only (migration 0035): `production_notes` and the platform
+ * "viewed" markers are not granted to `authenticated`. The owner page reads them
+ * through `owner_tag_request_internal`.
  */
 
 export type TagRequest = {
@@ -16,7 +20,6 @@ export type TagRequest = {
   mounting_method: string | null;
   tag_size: string | null;
   quantity_notes: string | null;
-  production_notes: string | null;
   created_at: string;
   delivered_at: string | null;
 };
@@ -36,7 +39,7 @@ export async function getTagRequestDetail(
   const { data: requestRow } = await supabase
     .from("tag_requests")
     .select(
-      "id, organization_id, status, material, mounting_method, tag_size, quantity_notes, production_notes, created_at, delivered_at"
+      "id, organization_id, status, material, mounting_method, tag_size, quantity_notes, created_at, delivered_at"
     )
     .eq("id", tagRequestId)
     .maybeSingle();

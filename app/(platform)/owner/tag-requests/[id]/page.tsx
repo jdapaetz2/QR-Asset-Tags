@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
 import { getTagRequestDetail } from "@/lib/tags/request-detail";
-import { tagRequestStatusLabel } from "@/lib/tags/tag-requests";
+import { tagRequestStatusLabel, type TagRequestInternal } from "@/lib/tags/tag-requests";
 import { TagRequestAssets } from "@/components/tag-request-assets";
 import { TagRequestStatusForm } from "@/components/tag-request-status-form";
 
@@ -22,23 +22,24 @@ export default async function OwnerTagRequestPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const profile = await requireRole(ROLES.PLATFORM_OWNER);
+  await requireRole(ROLES.PLATFORM_OWNER);
   const { id } = await params;
   const supabase = await createClient();
 
   const { request, assets } = await getTagRequestDetail(supabase, id);
   if (!request) notFound();
 
-  // Opening the request marks it viewed (idempotent; only ever sets it once, and
-  // never touches status). RLS already limits this UPDATE to the platform owner.
-  await supabase
-    .from("tag_requests")
-    .update({
-      platform_viewed_at: new Date().toISOString(),
-      platform_viewed_by_profile_id: profile.id,
-    })
-    .eq("id", id)
-    .is("platform_viewed_at", null);
+  // Internal production notes are not selectable by `authenticated` (migration 0035); the owner reads them through
+  // the owner-only database function, which returns nothing to any other caller.
+  const { data: internalRows } = await supabase.rpc("owner_tag_request_internal", {
+    p_tag_request_id: id,
+  });
+  const productionNotes =
+    ((internalRows ?? []) as TagRequestInternal[])[0]?.production_notes ?? null;
+
+  // Opening the request marks it viewed (idempotent; only ever sets it once, and never touches status). The function
+  // enforces the platform-owner check in the database.
+  await supabase.rpc("mark_tag_request_viewed", { p_tag_request_id: id });
 
   const { data: org } = await supabase
     .from("organizations")
@@ -55,8 +56,8 @@ export default async function OwnerTagRequestPage({
   if (request.mounting_method) {
     productionParams.set("mounting_method", request.mounting_method);
   }
-  if (request.production_notes) {
-    productionParams.set("production_notes", request.production_notes);
+  if (productionNotes) {
+    productionParams.set("production_notes", productionNotes);
   }
   const productionHref = `/owner/production?${productionParams.toString()}`;
 
@@ -116,7 +117,7 @@ export default async function OwnerTagRequestPage({
         <TagRequestStatusForm
           tagRequestId={request.id}
           currentStatus={request.status}
-          productionNotes={request.production_notes}
+          productionNotes={productionNotes}
         />
       </section>
     </div>

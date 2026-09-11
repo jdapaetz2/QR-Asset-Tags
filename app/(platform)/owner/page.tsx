@@ -61,13 +61,11 @@ export default async function OwnerPage() {
     (allQr ?? []) as { asset_id: string; organization_id: string }[]
   );
 
-  // Unviewed (new) tag requests per org — owner sees all (RLS bypass).
-  const { data: unviewed } = await supabase
-    .from("tag_requests")
-    .select("organization_id, platform_viewed_at")
-    .is("platform_viewed_at", null);
+  // Unviewed (new) tag requests per org. `platform_viewed_at` is owner-internal (migration 0035): read it through the
+  // owner-only function, which returns every request to the platform owner and nothing to anyone else.
+  const { data: internal } = await supabase.rpc("owner_tag_request_internal");
   const unviewedByOrg = unviewedCountByOrg(
-    (unviewed ?? []) as {
+    (internal ?? []) as {
       organization_id: string;
       platform_viewed_at: string | null;
     }[]

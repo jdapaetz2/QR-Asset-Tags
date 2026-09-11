@@ -1169,7 +1169,7 @@ the operator trade-off.
 
 | File | Change |
 |---|---|
-| `supabase/migrations/0035_return_summary_state.sql` (new) | Service-role-only watermark/claim table, RLS enabled, no client policies; same migration procedure as D3A |
+| `supabase/migrations/0036_return_summary_state.sql` (new; 0035 is the tag-request internal-column security fix) | Service-role-only watermark/claim table, RLS enabled, no client policies; same migration procedure as D3A |
 | `lib/notifications/summary-window.ts` (new) | Pure Pacific-hour guard, window and Pacific-date helpers; DST tests |
 | `lib/notifications/summary.ts` (new) | Selection (exceptions only, all statuses), projection, email builder |
 | `app/api/cron/return-summary/route.ts` (new) | Bearer `CRON_SECRET`, Preview refusal, `maxDuration`, claim → build → send → advance |

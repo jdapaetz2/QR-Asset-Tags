@@ -8,7 +8,9 @@ import {
   TAG_REQUEST_STATUSES,
   tagRequestStatusLabel,
   isTagRequestStatus,
+  ownerTagRequestQueue,
   parseViewedFilter,
+  type TagRequestInternal,
 } from "@/lib/tags/tag-requests";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +23,6 @@ type RequestRow = {
   material: string | null;
   tag_size: string | null;
   created_at: string;
-  platform_viewed_at: string | null;
   organization_id: string;
   organizations: { name: string | null } | null;
   tag_request_assets: { count: number }[];
@@ -52,20 +53,27 @@ export default async function OwnerTagRequestsPage({
 
   const supabase = await createClient();
 
-  // Owner sees all orgs' requests (RLS owner bypass). Unviewed/new sort to the top.
+  // Owner sees all orgs' requests (RLS owner bypass). `platform_viewed_at` is not selectable by `authenticated`
+  // (migration 0035), so the viewed state comes from the owner-only function and the unviewed filter + unviewed-first
+  // order are applied here.
   let query = supabase
     .from("tag_requests")
     .select(
-      "id, status, material, tag_size, created_at, platform_viewed_at, organization_id, organizations(name), tag_request_assets(count)"
+      "id, status, material, tag_size, created_at, organization_id, organizations(name), tag_request_assets(count)"
     )
-    .order("platform_viewed_at", { ascending: true, nullsFirst: true })
     .order("created_at", { ascending: false });
   if (isTagRequestStatus(statusFilter)) query = query.eq("status", statusFilter);
   if (orgFilter) query = query.eq("organization_id", orgFilter);
-  if (viewedFilter === "unviewed") query = query.is("platform_viewed_at", null);
 
-  const { data } = await query;
-  const requests = (data ?? []) as unknown as RequestRow[];
+  const [{ data }, { data: internalData }] = await Promise.all([
+    query,
+    supabase.rpc("owner_tag_request_internal"),
+  ]);
+  const requests = ownerTagRequestQueue(
+    (data ?? []) as unknown as RequestRow[],
+    (internalData ?? []) as TagRequestInternal[],
+    viewedFilter
+  );
 
   const { data: orgData } = await supabase
     .from("organizations")
