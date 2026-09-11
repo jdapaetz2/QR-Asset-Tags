@@ -164,7 +164,8 @@ export function excerpt(value: unknown, limit: number): Excerpt | null {
   return { text: `${base.trimEnd()}…`, truncated: true };
 }
 
-function cleanText(value: unknown, limit: number): string | null {
+/** One line, control characters removed, capped — shared with the daily summary projection (D3B). */
+export function cleanText(value: unknown, limit: number): string | null {
   return excerpt(value, limit)?.text ?? null;
 }
 

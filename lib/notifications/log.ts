@@ -32,7 +32,7 @@ export function redactEmail(email: string | null | undefined): string {
   return `${first}***@${emailDomain(email)}`;
 }
 
-export type NotificationEvent = "submission" | "tag_status";
+export type NotificationEvent = "submission" | "tag_status" | "return_digest";
 
 export type NotificationLogFields = {
   event: NotificationEvent;
@@ -80,6 +80,43 @@ function boundedRoute(value: unknown): RecipientRoute | null {
   return typeof value === "string" && (RECIPIENT_ROUTES as readonly string[]).includes(value)
     ? (value as RecipientRoute)
     : null;
+}
+
+/** One line per daily-summary invocation (Engineering Phase D3B). Counts and the Pacific date/hour only. */
+export type DigestRunLogFields = {
+  outcome: "outside_window" | "completed" | "incomplete";
+  pacificDate: string;
+  pacificHour: number;
+  organizations: number;
+  sent: number;
+  quiet: number;
+  failed: number;
+  skipped: number;
+};
+
+const DIGEST_RUN_OUTCOMES = new Set(["outside_window", "completed", "incomplete"]);
+const MAX_RUN_COUNT = 100_000;
+
+export function logDigestRun(fields: DigestRunLogFields): void {
+  const payload = {
+    tag: "notifications",
+    event: "return_digest_run",
+    outcome: DIGEST_RUN_OUTCOMES.has(fields.outcome) ? fields.outcome : "unknown",
+    pacificDate: /^\d{4}-\d{2}-\d{2}$/.test(fields.pacificDate) ? fields.pacificDate : null,
+    pacificHour: boundedCount(fields.pacificHour, 23),
+    organizations: boundedCount(fields.organizations, MAX_RUN_COUNT),
+    sent: boundedCount(fields.sent, MAX_RUN_COUNT),
+    quiet: boundedCount(fields.quiet, MAX_RUN_COUNT),
+    failed: boundedCount(fields.failed, MAX_RUN_COUNT),
+    skipped: boundedCount(fields.skipped, MAX_RUN_COUNT),
+    deploymentContext: deploymentContext(),
+  };
+  // An incomplete run left organizations unprocessed — worth operator attention. Everything else is informational.
+  if (payload.outcome === "incomplete") {
+    console.error("[notifications]", JSON.stringify(payload));
+  } else {
+    console.info("[notifications]", JSON.stringify(payload));
+  }
 }
 
 export function logNotificationEvent(fields: NotificationLogFields): void {

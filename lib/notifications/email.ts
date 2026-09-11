@@ -20,6 +20,8 @@
  * NEVER include signed/expiring media URLs, storage paths or any private submission media here.
  */
 import type { NotificationBrief } from "@/lib/notifications/projection";
+import type { DigestItem } from "@/lib/notifications/digest";
+import { DIGEST_MAX_LOOKBACK_DAYS, formatPacific } from "@/lib/notifications/digest-window";
 import { PRIORITY_LABELS, SUBJECT_PREFIXES } from "@/lib/notifications/priority";
 import {
   DAMAGE_SEVERITY_LABELS,
@@ -420,4 +422,86 @@ export function buildTagStatusEmail(input: TagStatusEmailInput): EmailContent {
     reasonParagraph(orgName, "tag request updates", input.settingsUrl ?? null),
   ];
   return render(`Tag request updated — ${orgName}`, paragraphs);
+}
+
+// ---------------------------------------------------------------------------
+// Daily return-exceptions summary (Engineering Phase D3B)
+// ---------------------------------------------------------------------------
+
+/** Items listed in one summary before pointing to Submissions for the rest. */
+export const DIGEST_MAX_ITEMS = 25;
+
+export type ReturnDigestEmailInput = {
+  orgName: string;
+  /** Already ordered (lib/notifications/digest.ts sortDigestItems). */
+  items: DigestItem[];
+  windowStart: Date;
+  windowEnd: Date;
+  /** The covered period was shortened to DIGEST_MAX_LOOKBACK_DAYS. */
+  clamped: boolean;
+  /** More returns existed than one summary scans. */
+  scanIncomplete: boolean;
+  inboxUrl: string;
+  settingsUrl: string;
+};
+
+function digestCount(total: number): string {
+  return total === 1 ? "1 return with exceptions" : `${total} returns with exceptions`;
+}
+
+export function returnDigestSubject(total: number): string {
+  return fitSubject("Return exceptions summary - ", digestCount(total));
+}
+
+function digestItemParagraph(item: DigestItem): Paragraph {
+  const identity = [item.assetCode, item.assetName].filter(Boolean).join(" — ") || "Unidentified asset";
+  return [
+    [bold(identity), plain(` — ${item.sourceLabel} return · ${item.statusLabel}`)],
+    [plain(`Reference: ${item.reference} · Photos: ${item.photoCount === 0 ? "none" : item.photoCount}`)],
+    ...item.exceptions.map((line): Line => [plain(`- ${line}`)]),
+    [{ text: "Open return checklist", href: item.recordUrl, showHrefInText: true }],
+  ];
+}
+
+/**
+ * One summary per organization per Pacific day. Every return with an exception since the last summary, each with its
+ * current status. Counts and text only — no images, no photo previews, no storage paths. The covered period is stated
+ * in Pacific time because the reader needs to know what "since the last summary" means.
+ */
+export function buildReturnDigestEmail(input: ReturnDigestEmailInput): EmailContent {
+  const orgName = subjectSafe(input.orgName) || "Your organization";
+  const total = input.items.length;
+  const open = input.items.filter((item) => item.open).length;
+  const shown = input.items.slice(0, DIGEST_MAX_ITEMS);
+  const since = formatPacific(input.windowStart);
+
+  const header: Paragraph = [
+    [bold("DAILY SUMMARY"), plain(" — Return exceptions")],
+    [plain(`Organization: ${orgName}`)],
+    [plain(`Covers: ${since} to ${formatPacific(input.windowEnd)} (Pacific)`)],
+    [plain("Each return is listed with its current status; some may already be handled.")],
+  ];
+  if (input.clamped) {
+    header.push([plain(`Only the last ${DIGEST_MAX_LOOKBACK_DAYS} days are listed; older returns are in Submissions.`)]);
+  }
+  if (input.scanIncomplete) {
+    header.push([plain("More returns were submitted than one summary checks; the complete list is in Submissions.")]);
+  }
+
+  const paragraphs: Paragraph[] = [
+    [[plain(`${digestCount(total)} since ${since} Pacific; ${open} still open.`)]],
+    header,
+    [[{ text: "Open return checklists", href: input.inboxUrl, strong: true, showHrefInText: true }]],
+    ...shown.map(digestItemParagraph),
+  ];
+  if (total > shown.length) {
+    paragraphs.push([
+      [
+        plain(`Showing ${shown.length} of ${total}. The other ${total - shown.length} are in Submissions: `),
+        { text: input.inboxUrl, href: input.inboxUrl },
+      ],
+    ]);
+  }
+  paragraphs.push(reasonParagraph(orgName, "daily return exception summaries", input.settingsUrl));
+  return render(returnDigestSubject(total), paragraphs);
 }

@@ -97,6 +97,20 @@ environment and redeploy.
   purpose: `stale_transition` (the request's saved status moved on before the scheduled email ran — a later save
   will have scheduled its own email), `record_missing`, `load_error`. A tag email is only ever scheduled when an
   owner save actually changed the persisted status; a notes-only or same-status save logs nothing at all.
+- **Daily return-exceptions summary (Engineering Phase D3B)** — cron `GET /api/cron/return-digest` at 13:00 and
+  14:00 UTC; only the invocation in the 6 AM Pacific hour works. Expect every morning:
+  - one `event: "return_digest_run"` line with `outcome: "outside_window"` (the other slot) and one with
+    `"completed"` and counts (`organizations`, `sent`, `quiet`, `failed`, `skipped`);
+  - per organization, `event: "return_digest"` with `sent`, `skipped_quiet` (nothing to report — no email, by
+    design), `skipped_duplicate` (a repeated delivery of the same run — harmless), or `skipped_no_recipient`.
+  - **`failed_*` for an organization** leaves its cursor where it was: tomorrow's summary includes the same returns.
+    Nothing to replay by hand.
+  - **`outcome: "incomplete"`** (HTTP 500, error stream): the 240 s budget or the organization list ran out; the
+    unprocessed organizations are caught up next morning. Repeated incompletes mean the run needs more headroom.
+  - **No run line at all on a given morning:** Vercel cron delivery is best effort with no retries. The next morning
+    covers the missed day. Check Vercel → Project → Settings → Cron Jobs if it repeats.
+  - The run ledger is `notification_digest_runs` (service role only). Never edit it by hand to "resend" — the cursor
+    already guarantees the next run includes anything not successfully summarized.
 - **Sudden spike in failures:** confirm `deploymentContext`, check the Resend dashboard for an outage or a
   suspended domain/key, and verify SPF/DKIM/DMARC still resolve.
 

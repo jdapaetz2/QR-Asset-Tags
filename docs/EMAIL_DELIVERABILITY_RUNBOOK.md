@@ -56,6 +56,13 @@ the main and the urgent address logs two `dry_run` lines on Preview, each with `
 its own `recipientRoute`. Lines now also carry `previewRequestedCount`, `previewAttachedCount` and
 `digestItemCount` — counts only, never an address, path or image name.
 
+**Engineering Phase D3B — daily return-exceptions summary.** One text-and-HTML email per organization per Pacific
+morning to the general notification address, subject `Return exceptions summary - N returns with exceptions`, no
+images. It is **at-least-once**: the provider idempotency key covers organization + window + recipient, but if a
+send times out after the provider accepted it, the run is recorded as failed and the next morning's summary lists
+those returns again. Quiet days send nothing. The cron route refuses Preview and local development outright, so a
+summary can only ever be sent from Production.
+
 ### Still NOT verified — do not report these as working
 
 | Gap | Why it matters |

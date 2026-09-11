@@ -28,6 +28,7 @@ Set for **Production** (and Preview where noted). Names only — never commit va
 | `SUPABASE_SERVICE_ROLE_KEY` | Secret (server) | required | never client; bypasses RLS |
 | `NEXT_PUBLIC_SITE_URL` | Public | required | **canonical https production origin**, no trailing slash, no `*.vercel.app`, no localhost. Baked into permanent QR tags. |
 | `SCAN_IP_HASH_SALT` | Secret (server) | required (≥ 32 random chars) | fails closed in production/preview |
+| `CRON_SECRET` | Secret (server) | required for the daily return summary (≥ 32 random chars, no line breaks) | **Production only** (Engineering Phase D3B). Vercel sends it as `Authorization: Bearer …` to `/api/cron/return-digest`; unset or short → the route refuses every request (summaries simply don't run). Set in the dashboard, then **redeploy**. Never in Git, a command, a log or a ticket. |
 | `RESEND_API_KEY` | Secret (server) | set to send email; unset = intentional dry-run | **Production only.** Sending-only key restricted to `notify.mulemark.io` |
 | `NOTIFICATION_FROM_EMAIL` | Server | set with a Resend-verified sender | **Production only.** `Mulemark <notifications@notify.mulemark.io>` |
 | `NOTIFICATION_REPLY_TO_EMAIL` | Server | optional but recommended | **Production only.** `support@mulemark.io` — replies reach a human |
@@ -59,6 +60,19 @@ Current state (Phase A2): 0001–0031 are **operator-verified applied**; no push
 - Vercel uses Node 22 (from `engines`/`.nvmrc`). Build must succeed with the production env set.
 - **CI does not deploy and does not apply migrations** — deployment is Vercel's Git build; migrations are the manual,
   approval-gated step above.
+
+### 4.1 Daily return-exceptions summary cron (Engineering Phase D3B)
+- `vercel.json` declares two once-daily crons on `/api/cron/return-digest`: `0 13 * * *` and `0 14 * * *` (UTC). On
+  Hobby each fires anywhere within its hour; the route only works in the 6 AM `America/Vancouver` hour, so exactly one
+  of them sends per day, year-round. Crons run on Production deployments only.
+- **Before the deploy that first ships it:** migration 0036 applied (see the ledger), and `CRON_SECRET` created in
+  Vercel → Settings → Environment Variables with **Production** scope only (≥ 32 random characters).
+- **After deploy:** confirm both entries under Vercel → Project → Settings → Cron Jobs. Then run
+  `npm run cron:verify-production` with `CRON_SECRET` in the git-ignored `.env.production-cron.local`: it refuses to
+  run in the 6 AM Pacific hour, and expects unauthenticated → 401, wrong secret → 401, correct secret → 200
+  `outside_window`. It prints status codes only.
+- The first real run is verified the next morning from the Vercel runtime log (`return_digest_run` line; see the
+  operations runbook). Delivery is best effort with no retries; a missed morning is caught up by the next.
 
 ## 5. Post-deploy smoke
 

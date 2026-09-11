@@ -30,7 +30,7 @@ export const MAX_IDEMPOTENCY_KEY_LENGTH = 256;
 /** Characters kept from the recipient digest — 8 hex chars (32 bits) is ample to separate recipients. */
 const RECIPIENT_HASH_LENGTH = 8;
 
-export type IdempotencyEvent = "submission" | "tag_status";
+export type IdempotencyEvent = "submission" | "tag_status" | "return_digest";
 
 export type IdempotencyInput = {
   event: IdempotencyEvent;

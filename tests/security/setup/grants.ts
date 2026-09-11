@@ -60,6 +60,8 @@ export async function applyLocalGrantParity(): Promise<void> {
       -- Hosted applies the default grant then the migration revoke; this reproduces that end state.
       -- rate_limit_counters (0033) is service_role-only.
       revoke all on public.rate_limit_counters from anon, authenticated;
+      -- notification_digest_runs (0036) is service_role-only.
+      revoke all on public.notification_digest_runs from anon, authenticated;
       alter default privileges in schema public grant all on tables to service_role;
       alter default privileges in schema public grant all on sequences to service_role;
       alter default privileges in schema public grant all on routines to service_role;

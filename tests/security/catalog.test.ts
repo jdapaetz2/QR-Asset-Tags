@@ -226,6 +226,50 @@ describe("tag_requests owner-internal columns (migration 0035)", () => {
   });
 });
 
+describe("notification_digest_runs (migration 0036)", () => {
+  it("has RLS enabled with no policies, and no client-role table privileges", async () => {
+    const { rows: rls } = await db.query<{ relrowsecurity: boolean }>(
+      "select relrowsecurity from pg_class where oid = 'public.notification_digest_runs'::regclass"
+    );
+    expect(rls[0]?.relrowsecurity).toBe(true);
+    const { rows: policies } = await db.query(
+      "select 1 from pg_policies where schemaname = 'public' and tablename = 'notification_digest_runs'"
+    );
+    expect(policies).toHaveLength(0);
+    for (const role of ["anon", "authenticated"]) {
+      for (const privilege of ["SELECT", "INSERT", "UPDATE", "DELETE"]) {
+        const { rows } = await db.query<{ ok: boolean }>(
+          "select has_table_privilege($1, 'public.notification_digest_runs', $2) as ok",
+          [role, privilege]
+        );
+        expect(rows[0].ok, `${role} ${privilege}`).toBe(false);
+      }
+    }
+    for (const privilege of ["SELECT", "INSERT", "UPDATE"]) {
+      const { rows } = await db.query<{ ok: boolean }>(
+        "select has_table_privilege('service_role', 'public.notification_digest_runs', $1) as ok",
+        [privilege]
+      );
+      expect(rows[0].ok, `service_role ${privilege}`).toBe(true);
+    }
+  });
+
+  it("enforces one run per organization window and bounded values", async () => {
+    const { rows } = await db.query<{ conname: string }>(
+      "select conname from pg_constraint where conrelid = 'public.notification_digest_runs'::regclass"
+    );
+    const names = rows.map((r) => r.conname);
+    expect(names).toContain("notification_digest_runs_window_unique");
+    expect(names).toContain("notification_digest_runs_window_order");
+    await expect(
+      db.query(
+        "insert into public.notification_digest_runs (organization_id, digest_type, window_start, window_end, status, failure_class) values ($1, 'return_exceptions', now(), now() + interval '1 day', 'failed', 'Has Spaces And Text')",
+        [ORG_A]
+      )
+    ).rejects.toMatchObject({ code: "23514" });
+  });
+});
+
 describe("RPC execute grants (defense in depth)", () => {
   async function anonMayExecute(signature: string): Promise<boolean> {
     const { rows } = await db.query<{ ok: boolean }>(

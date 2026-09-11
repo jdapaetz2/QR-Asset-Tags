@@ -10,6 +10,8 @@ export type NotificationOutcome =
   | "skipped_disabled" // the org's flag for this event type is off
   | "skipped_no_recipient" // no notification_email set for the org
   | "skipped_not_configured" // reserved: a future global notifications-off switch
+  | "skipped_quiet" // daily summary: no return exceptions in the window, so no email (D3B)
+  | "skipped_duplicate" // daily summary: this window was already claimed or summarized (D3B)
   | "failed_configuration" // a key IS set but the sender/from is invalid — NOT a provider failure
   | "failed_permanent" // provider rejected and a retry cannot help (400/401/403/422)
   | "failed_transient"; // provider/network failure a retry might fix (429/5xx/network/timeout)

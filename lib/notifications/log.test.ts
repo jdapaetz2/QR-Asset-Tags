@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { emailDomain, logNotificationEvent, redactEmail } from "@/lib/notifications/log";
+import { emailDomain, logDigestRun, logNotificationEvent, redactEmail } from "@/lib/notifications/log";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -149,6 +149,36 @@ describe("routing metadata (D3A)", () => {
     const line = info.mock.calls[0].join(" ");
     expect(line).not.toContain("oncall.team@yard.test");
     expect(line).not.toContain("oncall.team");
+  });
+});
+
+describe("daily summary run line (D3B)", () => {
+  const run = {
+    outcome: "completed" as const,
+    pacificDate: "2026-07-15",
+    pacificHour: 6,
+    organizations: 4,
+    sent: 2,
+    quiet: 1,
+    failed: 0,
+    skipped: 1,
+  };
+
+  it("logs counts and the Pacific date/hour only", () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    logDigestRun(run);
+    const payload = JSON.parse(String(info.mock.calls[0][1]));
+    expect(payload).toMatchObject({ tag: "notifications", event: "return_digest_run", ...run });
+    expect(Object.keys(payload).sort()).toEqual(
+      ["deploymentContext", "event", "failed", "organizations", "outcome", "pacificDate", "pacificHour", "quiet", "sent", "skipped", "tag"].sort()
+    );
+  });
+
+  it("bounds every field and sends an incomplete run to the error stream", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    logDigestRun({ ...run, outcome: "incomplete", pacificDate: "not a date <script>", pacificHour: 99, sent: -3 });
+    const payload = JSON.parse(String(error.mock.calls[0][1]));
+    expect(payload).toMatchObject({ outcome: "incomplete", pacificDate: null, pacificHour: 23, sent: 0 });
   });
 });
 

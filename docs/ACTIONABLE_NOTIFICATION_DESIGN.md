@@ -4,8 +4,9 @@
 saved-record brief, deterministic priority and actionable text-first email · D2 built — optional reported triage,
 "Reported" admin labels and the truthful call-now confirmation · D3A built — independent urgent route, explicit
 return modes, photo-preview switch, one recipient resolver with separate sends, bounded routing log fields and
-status-change-only tag emails (migration 0034, applied to staging and Production 2026-09-11). D3B–D5 are not
-built.** Branch `pilot-credibility`. Production deployment `jswtabswl` → `mulemark.io`.
+status-change-only tag emails (migration 0034, applied to staging and Production 2026-09-11) · D3B built — daily
+return-exceptions summary at 6 AM Pacific via two Hobby cron slots, run ledger (migration 0036), catch-up, quiet-day
+skip. D4–D5 are not built.** Branch `pilot-credibility`. Production deployment `jswtabswl` → `mulemark.io`.
 
 > **This is Engineering Phase D (actionable notifications).** It is *not* the business roadmap's
 > "Phase D - Controlled pilots" in `roadmap.md`, which is untouched by this work.
@@ -1028,13 +1029,13 @@ Staff returns never send an individual email in Phase D.
 | Content | every return checklist in scope created in the window that has **at least one return exception** (§5.3), listed **with its current status** (New, Reviewed, Resolved, Archived) when the summary is built |
 | Excluded | clean returns, photo-gap-only returns, failed optional checks, outbound inspections, non-return submissions |
 | Photos | counts only — never previews |
-| Quiet day | no email; one `skipped_empty` log line per organization |
-| Window | from the organization's **covered-through watermark** (exclusive) to the run's cutoff (inclusive), selected by server-set `created_at`. First run for an organization covers the previous 24 hours. |
-| Catch-up | the watermark advances to the cutoff **only after `sent` or `skipped_empty`**. A failed send leaves it, so the next run includes everything since the last success — late, never dropped. If a send succeeds but the watermark update fails, the next summary lists those returns again: at-least-once listing. |
-| Duplicate invocation | the run claims the organization with a conditional update before building; the provider idempotency key is `mm.return_digest.<orgId>:<pacific-date>.<recipient-hash>`, so a duplicate same-day run cannot deliver a second message |
-| Watermark storage | a service-role-only state table with RLS enabled and no client policies (final shape decided in D3B). It stores run state, not notifications — **not a general notification queue.** |
-| Endpoint | a GET route handler that requires `Authorization: Bearer ${CRON_SECRET}`, refuses Preview, sets its own `maxDuration`, and processes organizations sequentially |
-| Logging | one line per organization: `event: "return_digest"`, `outcome`, `organizationId`, `itemCount`, `providerId`, redacted recipient; never item content |
+| Quiet day | no email, no provider call; a `skipped_quiet` ledger row and log line per organization, which advances the cursor |
+| Window | from the organization's **covered-through watermark** (exclusive) to the run's cutoff (inclusive), selected by server-set `created_at`. First run for an organization covers the previous 24 hours. **Built:** never more than 14 days back (a summary switched back on after months off); the email then says the period was shortened. |
+| Catch-up | the watermark advances to the cutoff **only after `sent` or `skipped_quiet`**. **Built:** with no success yet, a run resumes from the first recorded attempt's own window start, so a failed first-ever summary is retried rather than dropped. A failed send leaves it, so the next run includes everything since the last success — late, never dropped. If a send succeeds but the watermark update fails, the next summary lists those returns again: at-least-once listing. |
+| Duplicate invocation | **Built:** the run inserts a `processing` ledger row for `(organization, return_exceptions, window_end)` before building; the unique key makes a duplicate or overlapping invocation lose the claim and send nothing. The provider idempotency key is `mm.return_digest.<orgId>:<windowEndMs>.<recipient-hash>`. **At-least-once:** a provider timeout on a message the provider actually accepted is recorded as failed, and the next day's summary (a new window, a new key) lists those returns again |
+| Watermark storage | **Built:** `notification_digest_runs` (migration 0036) — one row per organization window with status `processing` / `sent` / `skipped_quiet` / `failed`, item count, provider id and a bounded failure class; RLS enabled, no policies, no anon/authenticated privileges. The last successful cutoff is the latest `sent`/`skipped_quiet` `window_end`. No recipient, body or item data. **Not a general notification queue.** |
+| Endpoint | **Built:** `GET /api/cron/return-digest` — Production only (Preview and local development refuse), `Authorization: Bearer ${CRON_SECRET}` compared in constant time (≥ 32 characters, fail closed), `maxDuration = 300`; organizations 2 at a time with a 240 s start budget, reporting `incomplete` (HTTP 500) rather than a silent success |
+| Logging | **Built:** one line per organization — `event: "return_digest"`, `outcome` (`sent`, `skipped_quiet`, `skipped_duplicate`, `skipped_no_recipient`, failures), `organizationId`, `reference` = Pacific date, redacted recipient, `providerId`, `recipientRoute: "digest"`, `digestItemCount` — plus one `return_digest_run` line per invocation with counts; never item content |
 | Links | per-item record links and one return-checklist inbox link, all on `publicEnv.siteUrl` |
 
 ### 9.6 Schedule caveat
@@ -1056,6 +1057,20 @@ Candidate for D3B, recorded here and **to be re-verified against Vercel's offici
 If current Vercel limits make this unworkable, **D3B stops and presents the exact operator trade-off** (for
 example accepting a 5:00–6:59 AM window for part of the year, or a paid plan with per-minute precision) rather
 than choosing silently.
+
+**Re-verified at D3B (2026-09-11, official Vercel docs) — the candidate is viable on Hobby and is built:** Hobby
+allows 100 cron jobs, once per day each, invoked "at any point within the specified hour"; schedules are always UTC;
+crons run only on Production; `CRON_SECRET` is sent automatically as a `Bearer` authorization header; failed
+invocations are not retried and delivery is best effort; the same run may occasionally be invoked more than once or
+overlap; multiple entries may share one path; Hobby functions with Fluid Compute run up to 300 s. `vercel.json`
+schedules `0 13 * * *` and `0 14 * * *` on `/api/cron/return-digest`. The `America/Vancouver` hour-6 guard admits
+exactly one slot per date, whatever offset the runtime's time-zone database applies (tested for every date of 2026,
+and on 2026-03-08 and the historical 2025-11-02 change). Note: the local Node time-zone data keeps
+`America/Vancouver` on UTC−7 after 2026-03-08 (British Columbia staying on daylight time), so the 13:00 UTC slot
+serves the rest of 2026 there; the 14:00 UTC slot covers any period on UTC−8. The guard reads the time-zone data of
+the runtime that executes it, so no code change is needed if that data differs or changes. **No 6:00-sharp or
+guaranteed-delivery claim is made:** the summary arrives somewhere in 6:00–6:59 AM Pacific when Vercel delivers the
+invocation, and a missed morning is caught up by the next one.
 
 ---
 
@@ -1169,10 +1184,10 @@ the operator trade-off.
 
 | File | Change |
 |---|---|
-| `supabase/migrations/0036_return_summary_state.sql` (new; 0035 is the tag-request internal-column security fix) | Service-role-only watermark/claim table, RLS enabled, no client policies; same migration procedure as D3A |
-| `lib/notifications/summary-window.ts` (new) | Pure Pacific-hour guard, window and Pacific-date helpers; DST tests |
-| `lib/notifications/summary.ts` (new) | Selection (exceptions only, all statuses), projection, email builder |
-| `app/api/cron/return-summary/route.ts` (new) | Bearer `CRON_SECRET`, Preview refusal, `maxDuration`, claim → build → send → advance |
+| `supabase/migrations/0036_notification_digest_runs.sql` (built; 0035 is the tag-request internal-column security fix) | Service-role-only watermark/claim table, RLS enabled, no client policies; same migration procedure as D3A |
+| `lib/notifications/digest-window.ts` (built) | Pure Pacific-hour guard, window and Pacific-date helpers; DST tests |
+| `lib/notifications/digest.ts`, `digest-worker.ts`, `digest-store.ts` (built; email builder in `email.ts`) | Selection (exceptions only, all statuses), projection, email builder |
+| `app/api/cron/return-digest/route.ts` (built) | Bearer `CRON_SECRET`, Preview refusal, `maxDuration`, claim → build → send → advance |
 | `vercel.json` (new) | Two once-daily schedules on the one path |
 | Operator action | Set `CRON_SECRET` on Production only, through the Vercel dashboard |
 | Tests | duplicate run, missed run, quiet day, send failure, watermark-update failure, suspended org, mode scopes |
@@ -1237,7 +1252,7 @@ the operator trade-off.
 - Guard tests pass for dates either side of both DST transitions: exactly one of the two schedules proceeds per
   date, only in the 6 AM Pacific hour.
 - A duplicate invocation delivers no second message; a missed day is caught up next run; a failed send does not
-  advance the watermark; a quiet day sends nothing and logs `skipped_empty`.
+  advance the watermark; a quiet day sends nothing and records `skipped_quiet`.
 - Contents: exceptions only, all statuses shown, staff-only scope in `instant_renter`, renter + staff in
   `daily_exceptions`, nothing in `off`; photo counts, no previews, staff named without email.
 - The endpoint rejects a missing or wrong bearer token and refuses Preview; suspended organizations get no

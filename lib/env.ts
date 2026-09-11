@@ -15,6 +15,9 @@
 /** Minimum length for `SCAN_IP_HASH_SALT` in preview/production (unpredictable chars). */
 export const SCAN_IP_HASH_SALT_MIN_LENGTH = 32;
 
+/** Minimum length for `CRON_SECRET` (Engineering Phase D3B). Shorter or absent → the cron route refuses everything. */
+export const CRON_SECRET_MIN_LENGTH = 32;
+
 export type DeploymentContext = "production" | "preview" | "development";
 
 /** Resolve the deployment context from `VERCEL_ENV` (server-only; browser → development). */
@@ -162,6 +165,18 @@ export const serverEnv = {
       throw new Error('Refusing to read server-only env var "NOTIFICATION_REPLY_TO_EMAIL" in the browser');
     }
     return process.env.NOTIFICATION_REPLY_TO_EMAIL ?? "";
+  },
+  /**
+   * Bearer secret Vercel sends to cron routes (Engineering Phase D3B). Set on **Production only**. Fails closed: returns
+   * null when unset, shorter than CRON_SECRET_MIN_LENGTH, or containing a line break, and the cron route then refuses
+   * every request. Never throws and never exposes the value.
+   */
+  get cronSecret(): string | null {
+    if (typeof window !== "undefined") {
+      throw new Error('Refusing to read server-only env var "CRON_SECRET" in the browser');
+    }
+    const value = process.env.CRON_SECRET ?? "";
+    return value.length >= CRON_SECRET_MIN_LENGTH && !/[\r\n]/.test(value) ? value : null;
   },
 };
 
