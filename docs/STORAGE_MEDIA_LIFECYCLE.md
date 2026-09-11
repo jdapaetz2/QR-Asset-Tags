@@ -6,8 +6,11 @@
 > tooling exists yet. See [`ROADMAP_DEFERRED.md`](ROADMAP_DEFERRED.md) and
 > [`COMMERCIAL_MODEL.md`](COMMERCIAL_MODEL.md).
 >
-> **Failed-upload cleanup DOES exist (Phase A4).** Public upload cores delete their own just-uploaded
-> objects on any insert/upload failure (`lib/forms/cleanup.ts`), a client idempotency token prevents
+> **Failed-upload cleanup DOES exist (Phase A4; direct uploads since 0037).** Form photos upload browser → storage
+> through signed upload URLs before the row is written. The submit cores delete objects that fail verification
+> (`lib/forms/media-verify.ts`) and, once the row commits, any unclaimed objects under the submission prefix; the
+> no-JavaScript fallback deletes its own just-uploaded objects on insert failure (`lib/forms/cleanup.ts`, through the
+> scoped service-role handle, since anon has no delete policy). A client idempotency token prevents
 > duplicate rows+files on resubmit, and an operator backstop (`scripts/cleanup-orphan-media.mjs`,
 > dry-run default) removes any residual objects whose `form_submissions` row never materialized — never
 > touching a submission that has a row. See [`ORPHAN_MEDIA_CLEANUP.md`](ORPHAN_MEDIA_CLEANUP.md). This is

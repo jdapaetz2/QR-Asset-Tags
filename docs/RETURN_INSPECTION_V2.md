@@ -43,8 +43,10 @@ key when the category later changes (the UI surfaces an inconsistency note inste
 
 **Media caps: 8 images / 40 MB total** (not the 12 / 60 MB floated in the design), images only, ≤10 MB
 each, per-slot min/max, required damage photo when damage is observed. Enforced in
-`lib/forms/media.ts` (`validateInspectionFiles`) + `lib/inspections/submit.ts`. The 40 MB cap fits under
-the existing `serverActions.bodySizeLimit` (52 MB) — **the global limit was not raised** for more media.
+`lib/forms/media.ts` (`validateInspectionFiles`) + `lib/inspections/submit.ts`. Photos upload browser → storage
+through signed upload URLs and are verified server-side before insert, so the caps no longer depend on the request
+body. (The earlier note that 40 MB fit under a 52 MB `serverActions.bodySizeLimit` did not hold on Vercel, which
+refuses Function bodies over 4.5 MB; the limit is now 4 MB to match, for the no-JavaScript fallback.)
 
 **No browser autosave.** The guided form keeps every step mounted (hidden via the `hidden` attribute) and
 submits once; there are no per-step server calls and no local-storage autosave.

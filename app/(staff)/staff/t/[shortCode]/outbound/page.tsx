@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireStaffAssetByShortCode } from "@/lib/staff/guard";
 import { resolveOutboundTemplate } from "@/lib/inspections/outbound-templates";
 import { outboundSessionMode } from "@/lib/inspections/outbound-session";
-import { submitOutboundInspection } from "@/lib/forms/actions";
+import { prepareOutboundUploads, submitOutboundInspection } from "@/lib/forms/actions";
 import { ReturnInspectionForm } from "@/components/public/return-inspection-form";
 import { RentalDetailsFields } from "@/components/rental-details-fields";
 import { OutboundSessionGate } from "@/components/staff/outbound-session-gate";
@@ -118,6 +118,7 @@ export default async function StaffOutboundPage({
       template={template}
       shortCode={shortCode}
       action={submitOutboundInspection.bind(null, shortCode)}
+      prepareUploads={prepareOutboundUploads.bind(null, shortCode)}
       disclaimer="Outbound (pre-use) inspection — a baseline record of the equipment's condition and accessories as it leaves the yard."
       reviewCta="Review outbound inspection"
       submitCta={mode === "attach" ? "Complete outbound inspection" : "Complete inspection & mark rented"}

@@ -2,14 +2,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   experimental: {
-    // Allow media uploads through server actions, which validate type/size/count
-    // authoritatively. Default is 1 MB. This covers both damage reports (≤5 images ×
-    // 10 MB) and guided return inspections (≤8 images, ≤40 MB total). Tightened to 45 MB
-    // (Phase A4): just above the 40 MB inspection cap + field overhead, shrinking the
-    // request-body DDoS surface. Public intake is now shared-store rate-limited
-    // (lib/ratelimit) before any upload/insert.
+    // Vercel rejects any Function request body over 4.5 MB before our code runs (413
+    // FUNCTION_PAYLOAD_TOO_LARGE), whatever this says — so photos no longer travel inside
+    // server-action bodies. With JavaScript they go straight to Storage through signed upload
+    // URLs (lib/forms/upload-contract.ts); only the no-JavaScript fallback posts files here.
+    // 4 MB keeps local builds as strict as Vercel, so a regression that routes files through
+    // an action body fails locally too. The default is 1 MB.
     serverActions: {
-      bodySizeLimit: "45mb",
+      bodySizeLimit: "4mb",
     },
   },
 };

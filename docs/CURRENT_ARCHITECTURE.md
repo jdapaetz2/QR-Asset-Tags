@@ -55,10 +55,13 @@ reports) are atomic RPCs. Acknowledgements attach to the session; session eviden
 shows before/after comparison + photos by source + print.
 
 ## Media / storage
-Buckets (hard-coded names): `public-assets` (public), `submissions` (private), `documents` (private). Anon is
-insert-only under `org/{id}/` paths and cannot list; admin views mint short-lived (1h) signed URLs. **Note:**
-`public-assets` objects are public by URL (see limitations). Caps are code constants (8 img / 40 MB inspections;
-52 MB body).
+Buckets (hard-coded names): `public-assets` (public), `submissions` (private), `documents` (private). Anon has no
+storage write policy (0037): form photos upload browser → storage through server-issued, path-bound signed upload
+URLs and are verified server-side before insert; anon cannot list; admin views mint short-lived (1h) signed URLs.
+**Note:** `public-assets` objects are public by URL (see limitations). Caps are code constants (8 img / 40 MB
+inspections; 5 × 10 MB public forms) plus the bucket's 10 MB JPEG/PNG/WebP limit. Server-action bodies are capped at
+4 MB to match Vercel's 4.5 MB Function limit; admin documents and cover images still upload through server actions
+and share that limit (follow-up).
 
 ## Notifications
 `lib/notifications/*` sends via Resend (server-only). **Dry-run capable:** without `RESEND_API_KEY` /

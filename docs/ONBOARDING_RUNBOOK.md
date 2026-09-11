@@ -77,7 +77,8 @@ In the Supabase dashboard → **Authentication → URL Configuration**:
    Rentals** demo org and four demo assets. The seed does **not** create auth
    users or `profiles` — that is the bootstrap step below.
 3. Storage buckets (created by `0002_storage.sql` / `0005_documents_storage.sql`):
-   - `submissions` — **private** (form media; anon insert-only, no read-back).
+   - `submissions` — **private** (form media; no anon policy since `0037` — public photos upload through
+     server-issued signed upload URLs; no read-back).
    - `documents` — **private** (hosted manuals; public docs served via short-lived
      signed URLs).
    - `public-assets` — **public-read** (cover images only).

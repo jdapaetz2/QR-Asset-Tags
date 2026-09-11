@@ -1,11 +1,13 @@
+import { randomUUID } from "node:crypto";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { ORG_A, STORAGE, anonClient, serviceClient, signInAs } from "./setup/fixtures";
+import { ASSET, ORG_A, ORG_B, STORAGE, anonClient, serviceClient, signInAs } from "./setup/fixtures";
 
 // Executed storage-policy tests (Phase A3.2, Part D). Real Storage API calls prove the object
-// policies in 0002/0005/0006: submissions are anon-insert-only + org-scoped read; documents are
-// private unless a published-public document backs them; public-assets is public-by-URL.
+// policies in 0002/0005/0006/0037: submissions accept NO direct anon writes (only server-issued, path-bound
+// signed uploads) + org-scoped read; documents are private unless a published-public document backs them;
+// public-assets is public-by-URL.
 
 let adminA: SupabaseClient;
 let adminB: SupabaseClient;
@@ -19,11 +21,60 @@ beforeAll(async () => {
   anon = anonClient();
 });
 
-describe("submissions bucket (private; anon insert-only)", () => {
-  it("anon MAY upload through the approved org/{id}/… path", async () => {
-    // No upsert: an upsert needs an UPDATE policy anon does not have — the public workflow is a plain insert.
+const submissionObjectPath = (orgId: string, ext = "png") =>
+  `org/${orgId}/asset/${ASSET.A_PUBLIC}/submission/${randomUUID()}/${randomUUID()}.${ext}`;
+
+describe("submissions bucket (private; no direct anon writes — 0037)", () => {
+  it("anon MAY NOT upload directly, even under an org/{id}/… path", async () => {
     const { error } = await anon.storage.from("submissions").upload(`org/${ORG_A}/anon-upload.png`, png());
-    expect(error?.message ?? null, "anon/submissions/insert-approved-path").toBeNull();
+    expect(error, "anon/submissions/direct-insert should be DENIED").toBeTruthy();
+  });
+
+  it("a server-issued signed upload URL lets anon write exactly its one path, once", async () => {
+    const service = serviceClient();
+    const path = submissionObjectPath(ORG_A);
+    const { data: signed, error: signError } = await service.storage.from("submissions").createSignedUploadUrl(path);
+    expect(signError?.message ?? null, "service/submissions/sign-upload").toBeNull();
+    const token = signed?.token ?? "";
+
+    const { error: uploadError } = await anon.storage.from("submissions").uploadToSignedUrl(path, token, png());
+    expect(uploadError?.message ?? null, "anon/submissions/signed-upload").toBeNull();
+
+    const { error: overwriteError } = await anon.storage.from("submissions").uploadToSignedUrl(path, token, png());
+    expect(overwriteError, "anon/submissions/signed-upload-overwrite should be DENIED").toBeTruthy();
+
+    const elsewhere = path.replace(/[^/]+$/, `${randomUUID()}.png`);
+    const { error: elsewhereError } = await anon.storage.from("submissions").uploadToSignedUrl(elsewhere, token, png());
+    expect(elsewhereError, "anon/submissions/signed-upload-other-path should be DENIED").toBeTruthy();
+
+    await service.storage.from("submissions").remove([path]);
+  });
+
+  it("a signed upload of a type the bucket does not allow is refused (0037)", async () => {
+    const service = serviceClient();
+    const path = submissionObjectPath(ORG_A, "mp4");
+    const { data: signed } = await service.storage.from("submissions").createSignedUploadUrl(path);
+    const video = new Blob([new Uint8Array([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70])], { type: "video/mp4" });
+    const { error } = await anon.storage.from("submissions").uploadToSignedUrl(path, signed?.token ?? "", video);
+    expect(error, "anon/submissions/signed-upload-video should be DENIED").toBeTruthy();
+    await service.storage.from("submissions").remove([path]);
+  });
+
+  it("the bucket accepts only JPEG, PNG and WebP up to 10 MB (0037)", async () => {
+    const { data } = await serviceClient().storage.getBucket("submissions");
+    expect(data?.file_size_limit, "submissions/file_size_limit").toBe(10485760);
+    expect([...(data?.allowed_mime_types ?? [])].sort(), "submissions/allowed_mime_types").toEqual([
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ]);
+  });
+
+  it("an org member can sign uploads inside its own organization only", async () => {
+    const own = await adminA.storage.from("submissions").createSignedUploadUrl(submissionObjectPath(ORG_A));
+    expect(own.error?.message ?? null, "admin_a/submissions/sign-own-org").toBeNull();
+    const cross = await adminA.storage.from("submissions").createSignedUploadUrl(submissionObjectPath(ORG_B));
+    expect(!!cross.error || !cross.data?.signedUrl, "admin_a/submissions/sign-cross-org should be DENIED").toBe(true);
   });
 
   it("anon MAY NOT read a submission object", async () => {

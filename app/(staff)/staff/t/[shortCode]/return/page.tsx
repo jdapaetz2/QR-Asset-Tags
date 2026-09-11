@@ -8,7 +8,7 @@ import {
   outboundBaselineHints,
   summarizeRenterReport,
 } from "@/lib/inspections/session-context";
-import { submitStaffReturnInspection } from "@/lib/forms/actions";
+import { prepareStaffReturnUploads, submitStaffReturnInspection } from "@/lib/forms/actions";
 import { ReturnInspectionForm } from "@/components/public/return-inspection-form";
 import { RelativeTime } from "@/components/relative-time";
 import type { ReturnInspectionData } from "@/lib/inspections/types";
@@ -125,6 +125,7 @@ export default async function StaffReturnPage({
         template={template}
         shortCode={shortCode}
         action={submitStaffReturnInspection.bind(null, shortCode)}
+        prepareUploads={prepareStaffReturnUploads.bind(null, shortCode)}
         baseline={baseline}
         disclaimer="Staff return checklist — records the equipment's condition at return and completes the rental. Damage or missing items stay open for follow-up."
         reviewCta="Review return checklist"

@@ -1,6 +1,6 @@
 "use client";
 
-import { submitDamageReport } from "@/lib/forms/actions";
+import { prepareDamageUploads, submitDamageReport } from "@/lib/forms/actions";
 import { PublicForm, fieldClass } from "@/components/public/public-form";
 import { TriageChoiceGroup } from "@/components/public/triage-choice-group";
 import {
@@ -16,6 +16,7 @@ export function DamageForm({ shortCode }: { shortCode: string }) {
   return (
     <PublicForm
       action={submitDamageReport.bind(null, shortCode)}
+      prepareUploads={prepareDamageUploads.bind(null, shortCode)}
       submitLabel="Submit damage report"
       requireName
       contactNote="Provide an email or a phone number so the rental company can follow up."

@@ -5,10 +5,13 @@ import { startTransition, useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { fieldClass } from "@/components/public/public-form";
-import { submitReturnInspection } from "@/lib/forms/actions";
+import { prepareReturnUploads, submitReturnInspection } from "@/lib/forms/actions";
 import { HONEYPOT_FIELD, IDEMPOTENCY_FIELD } from "@/lib/forms/validate";
 import { ALLOWED_IMAGE_TYPES } from "@/lib/forms/media";
 import type { PublicFormState } from "@/lib/forms/submit";
+import { withActionErrorRecovery } from "@/lib/forms/action-recovery";
+import { MEDIA_PATHS_FIELD, type PrepareUploadsAction } from "@/lib/forms/upload-contract";
+import { collectSelectedPhotos, stripSelectedPhotos, uploadPhotosDirect } from "@/lib/forms/upload-client";
 import {
   firstInspectionError,
   isConditionMet,
@@ -105,6 +108,7 @@ export function ReturnInspectionForm({
   template,
   shortCode,
   action,
+  prepareUploads,
   disclaimer = "Return information submitted for rental-company review. This is not a certified inspection or a statement that no damage exists.",
   reviewCta = "Review return checklist",
   submitCta = "Submit return checklist",
@@ -118,6 +122,11 @@ export function ReturnInspectionForm({
   shortCode: string;
   /** The bound submit action. Defaults to the public return-inspection action. */
   action?: (state: PublicFormState, formData: FormData) => Promise<PublicFormState>;
+  /**
+   * The bound direct-upload prepare action (lib/forms/upload-contract.ts) matching `action`. Defaults to the public
+   * return-inspection prepare. Photos upload straight to storage before the submit, so no request body carries them.
+   */
+  prepareUploads?: PrepareUploadsAction;
   disclaimer?: string;
   reviewCta?: string;
   submitCta?: string;
@@ -139,10 +148,23 @@ export function ReturnInspectionForm({
    */
   baseline?: Record<string, string>;
 }) {
-  const [state, formAction, pending] = useActionState<PublicFormState, FormData>(
-    action ?? submitReturnInspection.bind(null, shortCode),
-    {}
+  const submitAction = useMemo(
+    () => action ?? submitReturnInspection.bind(null, shortCode),
+    [action, shortCode]
   );
+  const prepare = useMemo(
+    () => prepareUploads ?? prepareReturnUploads.bind(null, shortCode),
+    [prepareUploads, shortCode]
+  );
+  // No-JavaScript path: the plain server action on the form, for a submit before hydration.
+  const [serverState, serverFormAction, serverPending] = useActionState<PublicFormState, FormData>(submitAction, {});
+  // JavaScript path: the same action, wrapped so an undeliverable request keeps the checklist and what was entered.
+  const recoveringAction = useMemo(() => withActionErrorRecovery(submitAction), [submitAction]);
+  const [state, formAction, pending] = useActionState<PublicFormState, FormData>(recoveringAction, {});
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const busy = pending || serverPending || progress !== null;
+  const formError = uploadError ?? state.error ?? serverState.error;
   const [values, setValues] = useState<Values>({});
   const [fileCounts, setFileCounts] = useState<Record<string, number>>({});
   // Three primary stages: condition → return_details → review.
@@ -304,12 +326,40 @@ export function ReturnInspectionForm({
     allowSubmitRef.current = true;
   }
 
+  /** Upload any photos straight to storage, then submit text plus the uploaded paths. */
+  async function submitInspection(form: HTMLFormElement) {
+    const formData = new FormData(form);
+    setUploadError(null);
+    const photos = collectSelectedPhotos(formData);
+    if (photos.length > 0) {
+      setProgress({ done: 0, total: photos.length });
+      const result = await uploadPhotosDirect({
+        photos,
+        submissionId: idempotencyKey || crypto.randomUUID(),
+        honeypot: String(formData.get(HONEYPOT_FIELD) ?? ""),
+        prepare,
+        onProgress: (done, total) => setProgress({ done, total }),
+      });
+      setProgress(null);
+      if (!result.ok) {
+        setUploadError(result.error);
+        return;
+      }
+      // The server's id owns the uploaded prefix; keep it for any retry from this page.
+      if (result.submissionId !== idempotencyKey) setIdempotencyKey(result.submissionId);
+      stripSelectedPhotos(formData);
+      formData.set(IDEMPOTENCY_FIELD, result.submissionId);
+      formData.set(MEDIA_PATHS_FIELD, JSON.stringify(result.claims));
+    }
+    startTransition(() => formAction(formData));
+  }
+
   const onReview = stage === "review";
   const stepIndex = stage === "condition" ? 1 : stage === "return_details" ? 2 : 3;
 
   return (
     <form
-      action={formAction}
+      action={serverFormAction}
       ref={formRef}
       onSubmit={(e) => {
         // Only an intended submit path (final Submit / confirmed dialog) sets allowSubmitRef. Everything else —
@@ -317,11 +367,11 @@ export function ReturnInspectionForm({
         e.preventDefault();
         if (!allowSubmitRef.current) return;
         allowSubmitRef.current = false; // consume: guarantees exactly one submission per intended press.
+        if (busy) return;
         // Dispatch the action ourselves, in a transition. React resets a `<form action>` after the action completes —
         // even when it returned an error — which cleared the contact fields, emptied the photo inputs and unchecked
         // the answers. This path skips that reset; `action` stays for a submit that happens before hydration.
-        const formData = new FormData(e.currentTarget);
-        startTransition(() => formAction(formData));
+        void submitInspection(e.currentTarget);
       }}
       className="flex flex-col gap-5 pb-24"
     >
@@ -336,9 +386,9 @@ export function ReturnInspectionForm({
         <span aria-hidden>{template.name}</span>
       </div>
 
-      {state.error ? (
+      {formError ? (
         <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {state.error}
+          {formError}
         </p>
       ) : null}
 
@@ -476,8 +526,12 @@ export function ReturnInspectionForm({
           >
             Back
           </button>
-          <Button type="submit" onClick={handleSubmitClick} disabled={pending} className="h-11 flex-1">
-            {pending ? submittingCta : submitCta}
+          <Button type="submit" onClick={handleSubmitClick} disabled={busy} className="h-11 flex-1">
+            {progress
+              ? `Uploading photos ${progress.done} of ${progress.total}…`
+              : pending || serverPending
+                ? submittingCta
+                : submitCta}
           </Button>
         </div>
       )}
@@ -497,7 +551,7 @@ export function ReturnInspectionForm({
         <div className="mt-4 flex flex-col gap-2 sm:flex-row-reverse">
           <Button
             type="button"
-            disabled={pending}
+            disabled={busy}
             onClick={() => {
               submitAfterAckRef.current = true;
               setOmissionAck(true);

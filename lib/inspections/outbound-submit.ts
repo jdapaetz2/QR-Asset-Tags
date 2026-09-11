@@ -4,10 +4,21 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaffAssetByShortCode } from "@/lib/staff/guard";
 import {
+  INSPECTION_MAX_FILES,
+  INSPECTION_MAX_TOTAL_BYTES,
   mediaObjectName,
   submissionPathPrefix,
   validateInspectionFiles,
 } from "@/lib/forms/media";
+import { resolveSubmissionId } from "@/lib/forms/submit";
+import {
+  SUBMISSIONS_BUCKET,
+  readMediaClaims,
+  removeUnclaimedObjects,
+  scopedSubmissionBucket,
+  verifyClaimedMedia,
+} from "@/lib/forms/media-verify";
+import { MEDIA_VERIFY_FAILED_MESSAGE } from "@/lib/forms/upload-contract";
 import { submissionReference } from "@/lib/submissions/inbox";
 import { normalizeRentalStart } from "@/lib/rentals/rentals";
 import { resolveOutboundTemplate } from "@/lib/inspections/outbound-templates";
@@ -26,35 +37,25 @@ import {
   outboundResultError,
   outboundSuccessFlag,
 } from "@/lib/inspections/outbound-session";
+import { checkClaimSlots, groupVerifiedPhotos, TOTAL_TOO_LARGE_MESSAGE } from "@/lib/inspections/claimed-photos";
 import type { PhotoAnswer } from "@/lib/inspections/types";
 import type { PublicFormState } from "@/lib/forms/submit";
 
 /**
  * Server-authoritative core for the STAFF outbound (pre-use) inspection (Phase 3A). Unlike the public
  * return submit, this runs as the AUTHENTICATED staff user (RLS-scoped client) and, on success, marks the
- * asset rented atomically via the `start_outbound_rental` RPC. Staged safe flow: validate answers → collect
- * + validate media → upload → RPC. The rental session is NEVER created until the answers + required media
- * are valid; if the RPC does not return 'started', the just-uploaded media are removed (best-effort).
+ * asset rented atomically via the `start_outbound_rental` RPC. Staged safe flow: validate answers → verify
+ * claimed photos (or validate + upload files) → RPC. The rental session is NEVER created until the answers +
+ * media are valid; if the RPC does not return 'started', media uploaded by this request are removed (best-effort).
  * Reuses the entire parse → evaluate → media → snapshot pipeline from the return engine.
+ *
+ * Photos uploaded directly to storage (lib/forms/upload-contract.ts) are claimed via `media_paths` and verified
+ * with the staff user's own session, which the authenticated org storage policies authorize.
  */
-
-const SUBMISSIONS_BUCKET = "submissions";
 
 function readStr(formData: FormData, key: string): string | undefined {
   const v = formData.get(key);
   return typeof v === "string" ? v : undefined;
-}
-
-async function cleanupMedia(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  paths: string[]
-): Promise<void> {
-  if (paths.length === 0) return;
-  try {
-    await supabase.storage.from(SUBMISSIONS_BUCKET).remove(paths);
-  } catch {
-    // best-effort — orphaned objects are harmless and swept by storage lifecycle
-  }
 }
 
 export async function submitOutboundInspectionCore(
@@ -80,8 +81,6 @@ export async function submitOutboundInspectionCore(
   const answersError = evaluateInspection(template, values);
   if (answersError) return { error: answersError };
 
-  const supabase = await createClient();
-
   // Collect files for VISIBLE photo slots only.
   const slots = visiblePhotoSlots(template, values);
   const filesBySlot = new Map<string, File[]>();
@@ -94,43 +93,70 @@ export async function submitOutboundInspectionCore(
     allFiles.push(...entries);
   }
 
-  const mediaError = validateInspectionFiles(
-    allFiles.map((f) => ({ type: f.type, size: f.size, name: f.name }))
-  );
-  if (mediaError) return { error: mediaError };
-
-  // Per-slot MAXIMUM only (Phase 3C.6): outbound photos are strongly expected but non-blocking, matching the
-  // return soft-evidence model — no `count < min` hard prerequisite. Omission is confirmed + recorded below.
-  for (const slot of slots) {
-    const count = filesBySlot.get(slot.id)?.length ?? 0;
-    const max = slot.photo?.maxPhotos ?? 6;
-    if (count > max) return { error: `"${slot.label}" allows at most ${max} photos.` };
+  const claimsRead = readMediaClaims(formData, INSPECTION_MAX_FILES);
+  if (claimsRead.kind === "invalid" || (claimsRead.kind === "claims" && allFiles.length > 0)) {
+    return { error: MEDIA_VERIFY_FAILED_MESSAGE };
   }
+  const claims = claimsRead.kind === "claims" ? claimsRead.claims : null;
 
-  // Upload each slot's files (nothing rented yet — pure storage writes).
-  const submissionId = randomUUID();
+  const supabase = await createClient();
+  // Direct uploads live under the prefix of the form's own id; the file path keeps a fresh server id.
+  const submissionId = claims ? resolveSubmissionId(formData) : randomUUID();
   const createdAt = new Date().toISOString();
-  const prefix = submissionPathPrefix(organizationId, asset.id, submissionId);
-  const mediaPaths: string[] = [];
-  const photos: Record<string, PhotoAnswer[]> = {};
-  for (const slot of slots) {
-    const files = filesBySlot.get(slot.id) ?? [];
-    const slotPhotos: PhotoAnswer[] = [];
-    for (const file of files) {
-      const path = `${prefix}/${mediaObjectName(randomUUID(), file.type)}`;
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const { error } = await supabase.storage
-        .from(SUBMISSIONS_BUCKET)
-        .upload(path, bytes, { contentType: file.type, upsert: false });
-      if (error) {
-        await cleanupMedia(supabase, mediaPaths);
-        return { error: "Could not upload your files. Please try again." };
-      }
-      mediaPaths.push(path);
-      slotPhotos.push({ path, caption: slot.label });
+  const bucket = scopedSubmissionBucket(
+    supabase.storage.from(SUBMISSIONS_BUCKET),
+    submissionPathPrefix(organizationId, asset.id, submissionId)
+  );
+
+  let mediaPaths: string[] = [];
+  let photos: Record<string, PhotoAnswer[]> = {};
+  if (claims) {
+    const slotError = checkClaimSlots(slots, claims);
+    if (slotError) return { error: slotError };
+    const verified = await verifyClaimedMedia(bucket, claims, {
+      maxFiles: INSPECTION_MAX_FILES,
+      maxTotalBytes: INSPECTION_MAX_TOTAL_BYTES,
+    });
+    if (!verified.ok) {
+      return { error: verified.reason === "total" ? TOTAL_TOO_LARGE_MESSAGE : MEDIA_VERIFY_FAILED_MESSAGE };
     }
-    if (slotPhotos.length > 0) photos[slot.id] = slotPhotos;
+    ({ photos, mediaPaths } = groupVerifiedPhotos(slots, verified.media));
+  } else {
+    const mediaError = validateInspectionFiles(
+      allFiles.map((f) => ({ type: f.type, size: f.size, name: f.name }))
+    );
+    if (mediaError) return { error: mediaError };
+
+    // Per-slot MAXIMUM only (Phase 3C.6): outbound photos are strongly expected but non-blocking, matching the
+    // return soft-evidence model — no `count < min` hard prerequisite. Omission is confirmed + recorded below.
+    for (const slot of slots) {
+      const count = filesBySlot.get(slot.id)?.length ?? 0;
+      const max = slot.photo?.maxPhotos ?? 6;
+      if (count > max) return { error: `"${slot.label}" allows at most ${max} photos.` };
+    }
+
+    // Upload each slot's files (nothing rented yet — pure storage writes).
+    for (const slot of slots) {
+      const files = filesBySlot.get(slot.id) ?? [];
+      const slotPhotos: PhotoAnswer[] = [];
+      for (const file of files) {
+        const path = `${bucket.prefix}/${mediaObjectName(randomUUID(), file.type)}`;
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        if (!(await bucket.upload(path, bytes, file.type))) {
+          await bucket.remove(mediaPaths);
+          return { error: "Could not upload your files. Please try again." };
+        }
+        mediaPaths.push(path);
+        slotPhotos.push({ path, caption: slot.label });
+      }
+      if (slotPhotos.length > 0) photos[slot.id] = slotPhotos;
+    }
   }
+
+  // Only files uploaded by THIS request may be removed on failure; direct uploads stay for a retry.
+  const discardUploadedFiles = async () => {
+    if (!claims) await bucket.remove(mediaPaths);
+  };
 
   const flags = deriveFlags(template, values);
   // Soft photo evidence (Phase 3C.6): server-authoritative counts + explicit omission ack (existing-damage
@@ -144,7 +170,7 @@ export async function submitOutboundInspectionCore(
     acknowledged: readOmissionAck(formData),
   });
   if (evidence.error) {
-    await cleanupMedia(supabase, mediaPaths); // omission not acknowledged → nothing committed, drop uploads
+    await discardUploadedFiles(); // omission not acknowledged → nothing committed
     return { error: evidence.error };
   }
   flags.damage_photos_missing = evidence.damagePhotosMissing;
@@ -184,9 +210,12 @@ export async function submitOutboundInspectionCore(
 
   const flag = rpcError ? null : outboundSuccessFlag(String(code ?? ""));
   if (rpcError || !flag) {
-    await cleanupMedia(supabase, mediaPaths); // nothing was committed → don't orphan media
+    await discardUploadedFiles(); // nothing was committed → don't orphan this request's files
     return { error: outboundResultError(String(code ?? "")) };
   }
+
+  // Committed: objects an earlier attempt left under this prefix are not referenced by the baseline.
+  if (claims) await removeUnclaimedObjects(bucket, mediaPaths);
 
   const reference = submissionReference(submissionId, createdAt);
   redirect(`/staff/t/${shortCode}?${flag}=${reference}`);

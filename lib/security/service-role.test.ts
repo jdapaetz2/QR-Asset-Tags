@@ -44,6 +44,7 @@ const SERVICE_ROLE_ALLOWLIST = [
   "lib/team/actions.ts", // Supabase Auth Admin invitation lifecycle + collision probe
   "lib/ratelimit/limiter.ts", // Phase A4 shared-store rate limiter (private counter table, service_role only)
   "lib/notifications/digest-store.ts", // D3B daily return summary: eligible orgs, window returns, private run ledger
+  "lib/forms/upload-intake.ts", // public submission media: one submission prefix — signed uploads, verify, no-JS upload, cleanup
 ];
 
 describe("service-role import allowlist", () => {

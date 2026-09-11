@@ -327,6 +327,20 @@ export async function readLatestSubmissionData(
   return (data?.submission_data_json as Record<string, unknown> | null) ?? null;
 }
 
+/** The stored `media_urls` of an asset's newest submission of a form type (service read) — direct uploads. */
+export async function readLatestSubmissionMedia(assetId: string, formType: string): Promise<string[]> {
+  const { data, error } = await admin()
+    .from("form_submissions")
+    .select("media_urls")
+    .eq("asset_id", assetId)
+    .eq("form_type", formType)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(`readLatestSubmissionMedia: ${error.message}`);
+  return (data?.media_urls as string[] | null) ?? [];
+}
+
 export type ScanEventRow = {
   qr_link_id: string;
   asset_id: string;

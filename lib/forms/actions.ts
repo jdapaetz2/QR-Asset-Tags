@@ -13,6 +13,8 @@ import { captureDamageReport, captureSupportRequest } from "@/lib/forms/triage-c
 import { submitReturnInspectionCore } from "@/lib/inspections/submit";
 import { submitOutboundInspectionCore } from "@/lib/inspections/outbound-submit";
 import { submitStaffReturnInspectionCore } from "@/lib/inspections/staff-return-submit";
+import { preparePublicUploads, prepareStaffUploads } from "@/lib/forms/upload-prepare";
+import type { PrepareUploadsRequest, PrepareUploadsResult } from "@/lib/forms/upload-contract";
 
 /**
  * Public damage-report intake. Engineering Phase D2: optional reported triage answers are validated and stored by
@@ -104,4 +106,43 @@ export async function submitStaffReturnInspection(
   formData: FormData
 ): Promise<PublicFormState> {
   return submitStaffReturnInspectionCore(shortCode, formData);
+}
+
+// ---------------------------------------------------------------------------
+// Direct photo uploads, step 1 (lib/forms/upload-contract.ts): metadata in, path-bound signed upload URLs out.
+// ---------------------------------------------------------------------------
+
+export async function prepareDamageUploads(
+  shortCode: string,
+  request: PrepareUploadsRequest
+): Promise<PrepareUploadsResult> {
+  return preparePublicUploads(shortCode, "damage", request);
+}
+
+export async function prepareSupportUploads(
+  shortCode: string,
+  request: PrepareUploadsRequest
+): Promise<PrepareUploadsResult> {
+  return preparePublicUploads(shortCode, "support", request);
+}
+
+export async function prepareReturnUploads(
+  shortCode: string,
+  request: PrepareUploadsRequest
+): Promise<PrepareUploadsResult> {
+  return preparePublicUploads(shortCode, "return", request);
+}
+
+export async function prepareOutboundUploads(
+  shortCode: string,
+  request: PrepareUploadsRequest
+): Promise<PrepareUploadsResult> {
+  return prepareStaffUploads(shortCode, "outbound", request);
+}
+
+export async function prepareStaffReturnUploads(
+  shortCode: string,
+  request: PrepareUploadsRequest
+): Promise<PrepareUploadsResult> {
+  return prepareStaffUploads(shortCode, "staff_return", request);
 }

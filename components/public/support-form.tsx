@@ -1,6 +1,6 @@
 "use client";
 
-import { submitSupportRequest } from "@/lib/forms/actions";
+import { prepareSupportUploads, submitSupportRequest } from "@/lib/forms/actions";
 import { PREFERRED_CONTACT_METHODS } from "@/lib/forms/validate";
 import { PublicForm, fieldClass } from "@/components/public/public-form";
 import { TriageChoiceGroup } from "@/components/public/triage-choice-group";
@@ -16,6 +16,7 @@ export function SupportForm({ shortCode }: { shortCode: string }) {
   return (
     <PublicForm
       action={submitSupportRequest.bind(null, shortCode)}
+      prepareUploads={prepareSupportUploads.bind(null, shortCode)}
       submitLabel="Send support request"
       requireName
       contactNote="Provide an email or a phone number so the rental company can reach you."

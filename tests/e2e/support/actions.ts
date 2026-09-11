@@ -22,6 +22,16 @@ export function tinyPng(name = "photo.png"): { name: string; mimeType: string; b
   return { name, mimeType: "image/png", buffer: Buffer.from(base64, "base64") };
 }
 
+/**
+ * A JPEG-signed payload of `bytes` bytes: real JPEG magic bytes, filler body. Large enough to exceed the 4 MB action
+ * body limit, so it only reaches storage through the direct-upload path (lib/forms/upload-contract.ts).
+ */
+export function largeJpeg(name = "large.jpg", bytes = 2_500_000): { name: string; mimeType: string; buffer: Buffer } {
+  const buffer = Buffer.alloc(bytes, 0x5a);
+  buffer.set([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01], 0);
+  return { name, mimeType: "image/jpeg", buffer };
+}
+
 /** A wrong-type file (text) to trigger server-side media validation rejection. */
 export function badTypeFile(name = "notes.txt"): { name: string; mimeType: string; buffer: Buffer } {
   return { name, mimeType: "text/plain", buffer: Buffer.from("not an image", "utf8") };

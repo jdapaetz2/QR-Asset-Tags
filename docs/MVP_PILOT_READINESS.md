@@ -81,12 +81,13 @@ tenant-isolation gaps, and should be addressed as a post-pilot fast-follow.
    Upstash / DB), so it is not a small low-risk change and is deferred to a
    post-pilot fast-follow. Impact: a determined actor could spam submissions; no
    data is exposed.
-2. **Permissive anon insert on the `submissions` storage bucket** — the
-   `submissions public insert` policy (`0002_storage.sql`) lets the anon role PUT
-   under any `org/<id>/…` path without verifying the org exists. Anon **cannot read
-   it back** (no anon select on the bucket), and the bucket MIME allow-list + size
-   cap apply, so this is a storage-spam/cost vector, **not a data leak**. A safe
-   tightening is deferred with rate limiting.
+2. ~~Permissive anon insert on the `submissions` storage bucket~~ — **closed by
+   migration 0037** (2026-09-11). The `submissions public insert` policy is dropped
+   and the bucket allows only JPEG/PNG/WebP up to 10 MB. Public photos reach the
+   bucket only through server-issued, path-bound signed upload URLs minted after the
+   honeypot, rate limiter and tag resolution, and every object is re-verified before
+   a row references it (`lib/forms/media-verify.ts`). Remote application is recorded
+   in `docs/MIGRATION_LEDGER.md`.
 
 ## 4. Known MVP limitations
 

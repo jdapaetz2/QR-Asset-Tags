@@ -1,10 +1,12 @@
 # Orphan Media Cleanup — Runbook (Phase A4)
 
-Public submission photos are uploaded to the private `submissions` bucket **before** the
-`form_submissions` row is written. Phase A4 cleans up in-request failures automatically
-(`lib/forms/cleanup.ts` — the upload core deletes its own objects on any insert/upload failure). This
-tool is the **operator backstop** for anything that still slips through (e.g. a process killed between
-upload and insert): submission objects whose owning row never materialized.
+Public submission photos reach the private `submissions` bucket **before** the `form_submissions` row is
+written — with JavaScript the browser uploads them directly through server-issued signed upload URLs (migration
+0037). In-request failures are cleaned up automatically: objects that fail verification are deleted, unclaimed
+objects under the prefix are removed after the row commits, and the no-JavaScript path deletes its own uploads on
+insert failure (`lib/forms/cleanup.ts`). This tool is the **operator backstop** for anything that still slips
+through (e.g. a renter who uploads photos and then abandons the form, or a process killed between upload and
+insert): submission objects whose owning row never materialized.
 
 **Invariant it honors:** it deletes only *bytes with no record*. A submission that has a
 `form_submissions` row is never touched, so the timeline/record is never lost

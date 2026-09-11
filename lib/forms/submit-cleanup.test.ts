@@ -7,20 +7,27 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Phase C6 adds the transaction-boundary guarantee that deferral makes load-bearing: a notification is
 // scheduled ONLY once a row is durably committed. Announcing a submission that does not exist would be
 // worse than not announcing one that does.
+//
+// Direct uploads (lib/forms/upload-contract.ts) add the finalize rules: claimed objects are verified under this
+// submission's own prefix, the rate limit is not spent twice, and nothing that could be committed evidence is deleted.
 
 // Hoisted so the vi.mock factories (also hoisted) can safely reference these mocks.
 const {
   checkRateLimit,
+  hashToken,
   resolvePublicEquipment,
   createPublicClient,
+  publicSubmissionBucket,
   scheduleSubmissionNotification,
   revalidateSubmissionSurfaces,
   redirect,
 } =
   vi.hoisted(() => ({
     checkRateLimit: vi.fn(),
+    hashToken: vi.fn(() => "sch"),
     resolvePublicEquipment: vi.fn(),
     createPublicClient: vi.fn(),
+    publicSubmissionBucket: vi.fn(),
     // Phase C6: the core now SCHEDULES the notification instead of awaiting it.
     scheduleSubmissionNotification: vi.fn(),
     // Phase C6.1: asserted here so the damage/support paths are proved UNCHANGED by the return fix.
@@ -30,15 +37,18 @@ const {
     }),
   }));
 
-vi.mock("@/lib/ratelimit/limiter", () => ({ checkRateLimit }));
+vi.mock("@/lib/ratelimit/limiter", () => ({ checkRateLimit, hashToken }));
 vi.mock("@/lib/public/resolve", () => ({ resolvePublicEquipment }));
 vi.mock("@/lib/supabase/public", () => ({ createPublicClient }));
+vi.mock("@/lib/forms/upload-intake", () => ({ publicSubmissionBucket }));
 vi.mock("@/lib/notifications/schedule", () => ({ scheduleSubmissionNotification }));
 vi.mock("@/lib/submissions/revalidate", () => ({ revalidateSubmissionSurfaces }));
 vi.mock("next/navigation", () => ({ redirect }));
 
 import { submitPublicForm, type PublicFormConfig } from "@/lib/forms/submit";
 import { RATE_LIMITED_MESSAGE } from "@/lib/ratelimit/policy";
+import { IDEMPOTENCY_FIELD } from "@/lib/forms/validate";
+import { MEDIA_PATHS_FIELD, MEDIA_VERIFY_FAILED_MESSAGE } from "@/lib/forms/upload-contract";
 
 const CONFIG: PublicFormConfig = {
   formType: "damage_report",
@@ -48,18 +58,61 @@ const CONFIG: PublicFormConfig = {
   dataJson: {},
 };
 
+const ORG = "11111111-1111-4111-8111-111111111111";
+const ASSET = "22222222-2222-4222-8222-222222222222";
+const SUB = "33333333-3333-4333-8333-333333333333";
+const OTHER_SUB = "55555555-5555-4555-8555-555555555555";
+const PREFIX = `org/${ORG}/asset/${ASSET}/submission/${SUB}`;
+const JPEG_HEAD = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01]);
+const PNG_HEAD = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d]);
+const PHOTO_1 = "44444441-4444-4444-8444-444444444444.jpg";
+const PHOTO_2 = "44444442-4444-4444-8444-444444444444.jpg";
+
+type StoredObject = { size: number; mimetype: string; head: Uint8Array };
+
+/** A fake submission-scoped bucket (lib/forms/media-verify.ts) standing in for the service-role handle. */
+function makeBucket(objects: Record<string, StoredObject> = {}, uploadOk = true) {
+  const upload = vi.fn(async (_path: string, _bytes: Uint8Array, _type: string) => uploadOk);
+  const remove = vi.fn(async (paths: string[]) => ({ removed: paths.length, failed: false }));
+  publicSubmissionBucket.mockImplementation((prefix: string) => ({
+    prefix,
+    upload,
+    remove,
+    signUpload: vi.fn(),
+    list: vi.fn(async () =>
+      Object.entries(objects).map(([name, object]) => ({ name, size: object.size, mimetype: object.mimetype }))
+    ),
+    readHeads: vi.fn(
+      async (paths: string[]) =>
+        new Map(paths.map((path) => [path, objects[path.slice(prefix.length + 1)]?.head ?? null]))
+    ),
+  }));
+  return { upload, remove };
+}
+
 function makeClient(insertResult: { error: { code?: string } | null }) {
-  const remove = vi.fn(async (paths: string[]) => ({ data: paths.map((name) => ({ name })), error: null }));
-  const upload = vi.fn(async () => ({ error: null }));
-  const insert = vi.fn(async () => insertResult);
-  const client = { storage: { from: () => ({ upload, remove }) }, from: () => ({ insert }) };
-  return { client, remove, upload, insert };
+  const insert = vi.fn(async (_row: Record<string, unknown>) => insertResult);
+  const client = { from: () => ({ insert }) };
+  return { client, insert };
 }
 
 function formWithPhoto(): FormData {
   const fd = new FormData();
   fd.set("name", "Renter");
   fd.append("media", new File([new Uint8Array([1, 2, 3])], "p.png", { type: "image/png" }));
+  return fd;
+}
+
+function directForm(names: string[], submissionId = SUB): FormData {
+  const fd = new FormData();
+  fd.set("name", "Renter");
+  fd.set(IDEMPOTENCY_FIELD, SUB);
+  fd.set(
+    MEDIA_PATHS_FIELD,
+    JSON.stringify(
+      names.map((name) => ({ slotId: null, path: `org/${ORG}/asset/${ASSET}/submission/${submissionId}/${name}` }))
+    )
+  );
   return fd;
 }
 
@@ -79,15 +132,18 @@ async function run(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  process.env.SCAN_IP_HASH_SALT = "unit-test-salt-unit-test-salt-unit-test";
   checkRateLimit.mockResolvedValue({ allowed: true, retryAfter: 0, shortCodeHash: "sch" });
   resolvePublicEquipment.mockResolvedValue({ organizationId: "org1", assetId: "asset1" });
   scheduleSubmissionNotification.mockReturnValue(undefined);
+  makeBucket();
 });
 
 describe("preflight rate limit", () => {
   it("a limited request does NOT resolve, upload, or insert — generic message, no cost", async () => {
     checkRateLimit.mockResolvedValue({ allowed: false, retryAfter: 30, shortCodeHash: "sch" });
-    const { client, upload, insert } = makeClient({ error: null });
+    const { upload } = makeBucket();
+    const { client, insert } = makeClient({ error: null });
     createPublicClient.mockReturnValue(client);
 
     const { result } = await run(formWithPhoto());
@@ -100,7 +156,8 @@ describe("preflight rate limit", () => {
 
 describe("cleanup on finalization failure", () => {
   it("cleans up uploaded media when the insert fails", async () => {
-    const { client, remove, upload } = makeClient({ error: { code: "23503" } });
+    const { remove, upload } = makeBucket();
+    const { client } = makeClient({ error: { code: "23503" } });
     createPublicClient.mockReturnValue(client);
 
     const { result } = await run(formWithPhoto());
@@ -112,7 +169,8 @@ describe("cleanup on finalization failure", () => {
   });
 
   it("a duplicate submit (PK 23505) cleans this call's re-uploads and redirects (idempotent success)", async () => {
-    const { client, remove } = makeClient({ error: { code: "23505" } });
+    const { remove } = makeBucket();
+    const { client } = makeClient({ error: { code: "23505" } });
     createPublicClient.mockReturnValue(client);
 
     const { redirectedTo, result } = await run(formWithPhoto());
@@ -120,11 +178,23 @@ describe("cleanup on finalization failure", () => {
     expect(result?.error).toBeUndefined();
     expect(redirectedTo).toContain("/forms/short1/damage/thanks");
   });
+
+  it("an upload failure removes what this request already uploaded and inserts nothing", async () => {
+    const { remove } = makeBucket({}, false);
+    const { client, insert } = makeClient({ error: null });
+    createPublicClient.mockReturnValue(client);
+
+    const { result } = await run(formWithPhoto());
+    expect(result?.error).toBe("Could not upload your files. Please try again.");
+    expect(insert).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled(); // nothing had been uploaded yet
+  });
 });
 
 describe("committed submission survives notification", () => {
   it("does NOT delete media after a successful insert (media stays even as notify runs)", async () => {
-    const { client, remove } = makeClient({ error: null });
+    const { remove } = makeBucket();
+    const { client } = makeClient({ error: null });
     createPublicClient.mockReturnValue(client);
 
     const { redirectedTo } = await run(formWithPhoto());
@@ -270,5 +340,102 @@ describe("C6.1 — damage/support revalidation behaviour is unchanged", () => {
     await run(formWithPhoto());
 
     expect(revalidateSubmissionSurfaces).not.toHaveBeenCalled();
+  });
+});
+
+describe("direct uploads — finalize with verified claims", () => {
+  beforeEach(() => {
+    resolvePublicEquipment.mockResolvedValue({ organizationId: ORG, assetId: ASSET });
+  });
+
+  it("commits verified claims without re-spending the rate limit, then removes a superseded upload", async () => {
+    const { remove, upload } = makeBucket({
+      [PHOTO_1]: { size: 2_000_000, mimetype: "image/jpeg", head: JPEG_HEAD },
+      [PHOTO_2]: { size: 1_000_000, mimetype: "image/jpeg", head: JPEG_HEAD }, // an earlier attempt's upload
+    });
+    const { client, insert } = makeClient({ error: null });
+    createPublicClient.mockReturnValue(client);
+
+    const { redirectedTo } = await run(directForm([PHOTO_1]));
+
+    expect(redirectedTo).toContain("/forms/short1/damage/thanks?ref=SUB-");
+    expect(checkRateLimit).not.toHaveBeenCalled();
+    expect(upload).not.toHaveBeenCalled();
+    expect(insert.mock.calls[0][0]).toMatchObject({ id: SUB, media_urls: [`${PREFIX}/${PHOTO_1}`] });
+    expect(remove).toHaveBeenCalledWith([`${PREFIX}/${PHOTO_2}`]);
+    expect(scheduleSubmissionNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses claims sent alongside files, before any work", async () => {
+    const fd = directForm([PHOTO_1]);
+    fd.append("media", new File([new Uint8Array([1])], "p.png", { type: "image/png" }));
+    const { client, insert } = makeClient({ error: null });
+    createPublicClient.mockReturnValue(client);
+
+    const { result } = await run(fd);
+    expect(result?.error).toBe(MEDIA_VERIFY_FAILED_MESSAGE);
+    expect(checkRateLimit).not.toHaveBeenCalled();
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("refuses malformed claims", async () => {
+    const fd = directForm([]);
+    fd.set(MEDIA_PATHS_FIELD, "{not json");
+    const { result } = await run(fd);
+    expect(result?.error).toBe(MEDIA_VERIFY_FAILED_MESSAGE);
+  });
+
+  it("refuses a claim on another submission's object and deletes nothing", async () => {
+    const { remove } = makeBucket({ [PHOTO_1]: { size: 10, mimetype: "image/jpeg", head: JPEG_HEAD } });
+    const { client, insert } = makeClient({ error: null });
+    createPublicClient.mockReturnValue(client);
+
+    const { result } = await run(directForm([PHOTO_1], OTHER_SUB));
+    expect(result?.error).toBe(MEDIA_VERIFY_FAILED_MESSAGE);
+    expect(insert).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
+  });
+
+  it("deletes and refuses an object whose bytes are not its declared image type", async () => {
+    const { remove } = makeBucket({ [PHOTO_1]: { size: 10, mimetype: "image/jpeg", head: PNG_HEAD } });
+    const { client, insert } = makeClient({ error: null });
+    createPublicClient.mockReturnValue(client);
+
+    const { result } = await run(directForm([PHOTO_1]));
+    expect(result?.error).toBe(MEDIA_VERIFY_FAILED_MESSAGE);
+    expect(remove).toHaveBeenCalledWith([`${PREFIX}/${PHOTO_1}`]);
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("refuses a missing object without deleting anything", async () => {
+    const { remove } = makeBucket({});
+    const { client, insert } = makeClient({ error: null });
+    createPublicClient.mockReturnValue(client);
+
+    const { result } = await run(directForm([PHOTO_1]));
+    expect(result?.error).toBe(MEDIA_VERIFY_FAILED_MESSAGE);
+    expect(remove).not.toHaveBeenCalled();
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("a duplicate direct submit deletes nothing — the claims may be the committed submission's media", async () => {
+    const { remove } = makeBucket({ [PHOTO_1]: { size: 10, mimetype: "image/jpeg", head: JPEG_HEAD } });
+    const { client } = makeClient({ error: { code: "23505" } });
+    createPublicClient.mockReturnValue(client);
+
+    const { redirectedTo } = await run(directForm([PHOTO_1]));
+    expect(redirectedTo).toContain("/thanks?ref=SUB-");
+    expect(remove).not.toHaveBeenCalled();
+    expect(scheduleSubmissionNotification).not.toHaveBeenCalled();
+  });
+
+  it("a failed direct insert keeps the uploads for a retry", async () => {
+    const { remove } = makeBucket({ [PHOTO_1]: { size: 10, mimetype: "image/jpeg", head: JPEG_HEAD } });
+    const { client } = makeClient({ error: { code: "23503" } });
+    createPublicClient.mockReturnValue(client);
+
+    const { result } = await run(directForm([PHOTO_1]));
+    expect(result?.error).toBe("Could not submit the form. Please try again.");
+    expect(remove).not.toHaveBeenCalled();
   });
 });

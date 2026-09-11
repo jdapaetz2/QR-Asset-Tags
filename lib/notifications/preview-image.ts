@@ -10,6 +10,7 @@ import {
   PREVIEW_RETRY_QUALITY,
   type PreviewFailureClass,
 } from "@/lib/notifications/preview-limits";
+import { sniffImageType, type SniffedImageType } from "@/lib/media/sniff";
 
 /**
  * Engineering Phase D4 — turn ONE stored submission photo into a small email preview. Server-only, and only ever
@@ -30,7 +31,9 @@ type SharpFactory = typeof import("sharp");
 /** Injectable for tests; production loads Sharp lazily so a missing native binary can never break notifications. */
 export type SharpLoader = () => Promise<SharpFactory | null>;
 
-export type SniffedImageType = "jpeg" | "png" | "webp";
+// The byte sniff is shared with the direct-upload verifier (lib/forms/media-verify.ts).
+export { sniffImageType };
+export type { SniffedImageType };
 
 export type PreviewImageFailure = Extract<
   PreviewFailureClass,
@@ -40,20 +43,6 @@ export type PreviewImageFailure = Extract<
 export type PreviewImageResult =
   | { ok: true; jpeg: Buffer; width: number; height: number; bytes: number }
   | { ok: false; failureClass: PreviewImageFailure };
-
-const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-
-function ascii(bytes: Uint8Array, start: number, end: number): string {
-  return String.fromCharCode(...bytes.subarray(start, end));
-}
-
-/** The image type the BYTES say they are — never the extension or a declared MIME type. */
-export function sniffImageType(bytes: Uint8Array): SniffedImageType | null {
-  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpeg";
-  if (bytes.length >= 8 && PNG_SIGNATURE.every((byte, index) => bytes[index] === byte)) return "png";
-  if (bytes.length >= 12 && ascii(bytes, 0, 4) === "RIFF" && ascii(bytes, 8, 12) === "WEBP") return "webp";
-  return null;
-}
 
 let cachedSharp: Promise<SharpFactory | null> | null = null;
 
