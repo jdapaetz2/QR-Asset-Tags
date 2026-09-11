@@ -14,10 +14,18 @@
  *   - Output is HTTP status codes and the bounded `outcome` value only.
  *
  * Run: `npm run cron:verify-production`
+ *      `npm run cron:verify-production -- --wait-for-secret` — if the value is not there yet, re-read the file every
+ *      10 s for up to 30 min (so the operator only has to paste it), then run the checks once.
  */
+
+import { readFileSync } from "node:fs";
 
 const BASE = "https://mulemark.io";
 const PATH = "/api/cron/return-digest";
+const SECRET_FILE = ".env.production-cron.local";
+const WAIT_FLAG = "--wait-for-secret";
+const WAIT_INTERVAL_MS = 10_000;
+const WAIT_LIMIT_MS = 30 * 60_000;
 
 function refuse(message) {
   console.error(`\n[cron:verify-production] REFUSING TO RUN\n\n  ${message}\n`);
@@ -33,8 +41,41 @@ function pacificHour(now = new Date()) {
   return Number(hour) % 24;
 }
 
-const secret = process.env.CRON_SECRET ?? "";
-if (secret.length < 32 || /[\r\n]/.test(secret)) {
+function validSecret(value) {
+  return value.length >= 32 && !/[\r\n]/.test(value);
+}
+
+/** The CRON_SECRET line of the git-ignored file, unquoted; "" when the file or line is absent. Never printed. */
+function readSecretFile() {
+  try {
+    for (const line of readFileSync(SECRET_FILE, "utf8").split(/\r?\n/)) {
+      const match = /^\s*CRON_SECRET\s*=(.*)$/.exec(line);
+      if (match) return match[1].trim().replace(/^(["'])(.*)\1$/, "$2");
+    }
+  } catch {
+    // Not created yet.
+  }
+  return "";
+}
+
+async function waitForSecret() {
+  const deadline = Date.now() + WAIT_LIMIT_MS;
+  console.log(
+    `[cron:verify-production] waiting for CRON_SECRET in ${SECRET_FILE} (checked every 10 s for up to 30 min; value never printed)`
+  );
+  for (;;) {
+    const value = readSecretFile();
+    if (validSecret(value)) return value;
+    if (Date.now() >= deadline) {
+      refuse(`No CRON_SECRET of at least 32 characters appeared in ${SECRET_FILE} within 30 minutes (value never printed).`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, WAIT_INTERVAL_MS));
+  }
+}
+
+let secret = process.env.CRON_SECRET ?? "";
+if (!validSecret(secret) && process.argv.includes(WAIT_FLAG)) secret = await waitForSecret();
+if (!validSecret(secret)) {
   refuse("CRON_SECRET is not set to at least 32 characters in .env.production-cron.local (value never printed).");
 }
 if (pacificHour() === 6) {

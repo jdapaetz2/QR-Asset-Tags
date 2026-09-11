@@ -6,7 +6,11 @@ saved-record brief, deterministic priority and actionable text-first email · D2
 return modes, photo-preview switch, one recipient resolver with separate sends, bounded routing log fields and
 status-change-only tag emails (migration 0034, applied to staging and Production 2026-09-11) · D3B built — daily
 return-exceptions summary at 6 AM Pacific via two Hobby cron slots, run ledger (migration 0036), catch-up, quiet-day
-skip. D4–D5 are not built.** Branch `pilot-credibility`. Production deployment `jswtabswl` → `mulemark.io`.
+skip; `089f707` promoted to Production 2026-09-11 (deployment `9FmryFHdh`), both cron entries registered,
+`cron:verify-production` 3/3 (no token 401, wrong token 401, real token 200 `outside_window`), `smoke:production`
+13 pass / 0 fail / 1 skip; first scheduled run 2026-09-12 13:00–13:59 UTC. D4–D5 are not built.** Branch
+`pilot-credibility` (Vercel's Production branch is `main`: a push builds a Preview; Production = promote).
+Production deployment `9FmryFHdh` → `mulemark.io`.
 
 > **This is Engineering Phase D (actionable notifications).** It is *not* the business roadmap's
 > "Phase D - Controlled pilots" in `roadmap.md`, which is untouched by this work.

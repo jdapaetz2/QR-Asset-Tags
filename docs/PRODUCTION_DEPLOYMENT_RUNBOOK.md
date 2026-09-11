@@ -56,21 +56,32 @@ set it manually.
 Current state (Phase A2): 0001–0031 are **operator-verified applied**; no push is required.
 
 ## 4. Deploy (Vercel)
-- Deploy the verified commit (Vercel Git integration builds on push, or `vercel --prod` from the verified commit).
+- **A push does not deploy Production.** The Vercel Production branch is `main`; pushing a working branch such as
+  `pilot-credibility` builds a **Preview** only (branch domain, "Assigning Custom Domains: Skipped"). Verified
+  2026-09-11 when D3B's push produced Preview `7fXhuKf4w` while `mulemark.io` kept serving the previous build.
+- **Deploy = promote the verified Preview:** Vercel → the Preview deployment → ⋯ → **Promote to Production**. Vercel
+  builds a *new* deployment with the Production environment and assigns `mulemark.io` (it rebuilds rather than aliasing,
+  so the Preview's inlined staging `NEXT_PUBLIC_*` values never reach production — `PHASE_C_BASELINE.md`). `vercel
+  --prod` from the verified commit is the CLI equivalent.
+- Check what is live without the dashboard: the public GitHub API
+  `repos/jdapaetz2/QR-Asset-Tags/deployments?sha=<sha>` reports `environment` Preview/Production, and a route added by
+  the release answers on `mulemark.io` (404 → old build).
 - Vercel uses Node 22 (from `engines`/`.nvmrc`). Build must succeed with the production env set.
-- **CI does not deploy and does not apply migrations** — deployment is Vercel's Git build; migrations are the manual,
-  approval-gated step above.
+- **CI does not deploy and does not apply migrations** — deployment is the Vercel build/promotion; migrations are the
+  manual, approval-gated step above.
 
 ### 4.1 Daily return-exceptions summary cron (Engineering Phase D3B)
 - `vercel.json` declares two once-daily crons on `/api/cron/return-digest`: `0 13 * * *` and `0 14 * * *` (UTC). On
   Hobby each fires anywhere within its hour; the route only works in the 6 AM `America/Vancouver` hour, so exactly one
-  of them sends per day, year-round. Crons run on Production deployments only.
-- **Before the deploy that first ships it:** migration 0036 applied (see the ledger), and `CRON_SECRET` created in
+  of them sends per day, year-round. Crons are registered by **Production** deployments only — a Preview build lists
+  nothing under Settings → Cron Jobs.
+- **Before the promotion that first ships it:** migration 0036 applied (see the ledger), and `CRON_SECRET` created in
   Vercel → Settings → Environment Variables with **Production** scope only (≥ 32 random characters).
-- **After deploy:** confirm both entries under Vercel → Project → Settings → Cron Jobs. Then run
-  `npm run cron:verify-production` with `CRON_SECRET` in the git-ignored `.env.production-cron.local`: it refuses to
-  run in the 6 AM Pacific hour, and expects unauthenticated → 401, wrong secret → 401, correct secret → 200
-  `outside_window`. It prints status codes only.
+- **After promotion:** confirm both entries under Vercel → Project → Settings → Cron Jobs. Then run
+  `npm run cron:verify-production` with `CRON_SECRET` in the git-ignored `.env.production-cron.local` (add
+  `-- --wait-for-secret` to have it re-read the file every 10 s for up to 30 min, so the operator only pastes the
+  value): it refuses to run in the 6 AM Pacific hour, and expects unauthenticated → 401, wrong secret → 401, correct
+  secret → 200 `outside_window`. It prints status codes only, never the value.
 - The first real run is verified the next morning from the Vercel runtime log (`return_digest_run` line; see the
   operations runbook). Delivery is best effort with no retries; a missed morning is caught up by the next.
 
