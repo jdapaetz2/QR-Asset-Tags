@@ -138,7 +138,9 @@ async function login(context, email) {
     await page.goto(`${BASE}/forms/stg-qa-public/support`, { waitUntil: "load", timeout: 60_000 });
     await page.getByLabel("Your name").fill(MARKER);
     await page.getByRole("textbox", { name: "Email" }).fill("smoke@mulemark-staging.invalid");
-    await page.getByLabel("What do you need help with?").fill(`${MARKER} — automated staging smoke, not a real request.`);
+    // Since Engineering Phase D2 "What do you need help with?" is the optional issue-type question; the free-text field
+    // is "Describe the problem" — kept in step with tests/e2e/public/forms.spec.ts.
+    await page.getByLabel("Describe the problem").fill(`${MARKER} — automated staging smoke, not a real request.`);
     await page.getByRole("button", { name: "Send support request" }).click();
     await page.waitForURL(/thanks/, { timeout: 60_000 }).catch(() => {});
     const ok = await visible(page.getByText(/^SUB-\d{4}-[0-9A-F]{6}$/));

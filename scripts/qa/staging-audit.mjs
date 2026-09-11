@@ -188,7 +188,7 @@ async function devicePass() {
       await page.goto(`${BASE}/forms/${SHORT}/support`, { waitUntil: "load", timeout: 45_000 });
       await page.getByLabel("Your name").fill("QA Device Test");
       await page.getByRole("textbox", { name: "Email" }).fill("qa.renter@mulemark-qa.invalid");
-      await page.getByLabel("What do you need help with?").fill("A6.3 device QA — disposable test.");
+      await page.getByLabel("Describe the problem").fill("A6.3 device QA — disposable test.");
       await page.getByRole("button", { name: "Send support request" }).click();
       await page.waitForURL(/\/support\/thanks/, { timeout: 45_000 });
       record(p.key, "support form — success + reference", "PASS");

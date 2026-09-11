@@ -22,8 +22,15 @@ into the request path.
 Every notification attempt emits one structured `[notifications]` JSON line. Filter Vercel logs for the
 `notifications` tag. Fields: `event`, `outcome`, `organizationId`, `reference`, `recipientDomain`,
 `recipientRedacted`, `providerId`, `providerStatus`, `attempts`, `failureClass`, `reason`,
-`deploymentContext`. Sensitive values are never logged (no full recipient, message body, media URL, API
-key, or raw IP). See the outcome glossary in
+`deploymentContext`, and since Engineering Phase D3A `recipientRoute` (`main`, `urgent`, `main_and_urgent`;
+`digest` from D3B), `previewRequestedCount`, `previewAttachedCount` (always 0 until D4) and `digestItemCount`
+(null until D3B). Sensitive values are never logged (no full recipient, message body, media URL, API
+key, or raw IP).
+
+**One line per recipient (D3A).** An Immediate-attention damage or support report can go to two routes. Each
+recipient gets its own send and its own line: `recipientRoute: "main"` and `recipientRoute: "urgent"` for the same
+`reference` is two addresses, each with its own idempotency key; `main_and_urgent` means both routes resolved to
+one address and it was sent once. One route's failure never affects the other's line. See the outcome glossary in
 [`EMAIL_DELIVERABILITY_RUNBOOK.md`](EMAIL_DELIVERABILITY_RUNBOOK.md).
 
 ### Dry-run incidents
@@ -42,7 +49,9 @@ key, or raw IP). See the outcome glossary in
 - **"A customer didn't get an email"** while dry-run: expected. Confirm the submission itself was
   recorded (it will be) and point the operator at `EMAIL_CONFIGURATION_CHECKLIST.md`.
 - **`skipped_no_recipient` / `skipped_disabled`:** the org has no notification address, or that event
-  type's toggle is off. Not a system fault — an org-settings choice.
+  type's toggle is off. Not a system fault — an org-settings choice. Since D3A, `skipped_no_recipient` also
+  means a route that is switched on has no usable address, and a renter return logs `skipped_disabled` when the
+  return mode is `daily_exceptions` or `off` (no individual return email in either mode).
 
 ### Live-email mode incidents — **this is the current Production steady state**
 
@@ -84,6 +93,10 @@ environment and redeploy.
   that organization), `load_error` (the read itself failed), `unsupported_record`. The submission is
   unaffected. A mismatch should never occur in normal operation — treat a repeated one as a bug worth
   reporting, with the `reference` and `organizationId` from the log line (the line never contains row values).
+- **Tag-request refusals (Engineering Phase D3A)** — `event: "tag_status"`, `failed_transient`, nothing sent on
+  purpose: `stale_transition` (the request's saved status moved on before the scheduled email ran — a later save
+  will have scheduled its own email), `record_missing`, `load_error`. A tag email is only ever scheduled when an
+  owner save actually changed the persisted status; a notes-only or same-status save logs nothing at all.
 - **Sudden spike in failures:** confirm `deploymentContext`, check the Resend dashboard for an outage or a
   suspended domain/key, and verify SPF/DKIM/DMARC still resolve.
 

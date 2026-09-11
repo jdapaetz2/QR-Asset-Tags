@@ -2,7 +2,10 @@
 
 **Status: D0 designed (2026-09-10, `0415d81`) · D0.1 operator decisions locked (`70e6917`) · D1 built — the
 saved-record brief, deterministic priority and actionable text-first email · D2 built — optional reported triage,
-"Reported" admin labels and the truthful call-now confirmation. D3A–D5 are not built.** Branch `pilot-credibility`. Production deployment `jswtabswl` → `mulemark.io`.
+"Reported" admin labels and the truthful call-now confirmation · D3A built — independent urgent route, explicit
+return modes, photo-preview switch, one recipient resolver with separate sends, bounded routing log fields and
+status-change-only tag emails (migration 0034, applied to staging and Production 2026-09-11). D3B–D5 are not
+built.** Branch `pilot-credibility`. Production deployment `jswtabswl` → `mulemark.io`.
 
 > **This is Engineering Phase D (actionable notifications).** It is *not* the business roadmap's
 > "Phase D - Controlled pilots" in `roadmap.md`, which is untouched by this work.
@@ -208,7 +211,7 @@ whether photos exist.
 | F2 | Submitter contact in the email comes from browser form values passed through the scheduler, not from the committed row | `lib/forms/submit.ts:232`, `inspections/submit.ts:234` | D1 reads the row |
 | F3 | The damage form's urgency **defaults to `medium`**, so a stored `medium` is not evidence of a renter's choice | `components/public/damage-form.tsx:17` | **Resolved in D2:** the select is replaced by optional, unselected triage; a page cached from before D2 still stores legacy urgency, and `medium` never escalates |
 | F4 | `damageSeverityLabel` uses damage-report **urgency** as severity, conflating the two concepts this phase separates | `lib/submissions/damage.ts:62-65` | **Resolved in D2:** a damage report's severity now reads `reported_damage_severity` only; the open-damage alert says "reported … damage" |
-| F5 | The tag-request notifier runs on **every save**, including notes-only saves; dedupe holds only for Resend's 24 h window, so a later notes-only save re-sends. `delivered_at` is re-stamped on every save while delivered. | `lib/tags/owner-actions.ts:35-55`, `idempotency.ts:6-8` | D3A: notify only on an actual status change |
+| F5 | The tag-request notifier runs on **every save**, including notes-only saves; dedupe holds only for Resend's 24 h window, so a later notes-only save re-sends. `delivered_at` is re-stamped on every save while delivered. | `lib/tags/owner-actions.ts:35-55`, `idempotency.ts:6-8` | **Resolved in D3A:** the owner action reads the persisted status, guards the update on it, and schedules an email (after the response) only when it actually changed; the notifier re-checks the saved request; `delivered_at` is stamped only on a real change into `delivered` and never cleared when a request leaves it (operator decision) |
 | F6 | `scripts/production/qa-notification-recipient.mjs` also writes `notify_damage_reports = true` on `--set`, contrary to its own "exactly one column" header | `:19`, `:119-122` | Documentation fix at the next touch |
 | F7 | `parseAnswerValues` stores values for fields hidden by `visible_when`; only visible fields are validated | `lib/inspections/validate.ts:98-99,120-125` | The projection applies visibility (§10) |
 | F8 | CSV export and the dashboard card summary read only V1 flat keys, so they show blanks for V2 returns | `lib/submissions/csv.ts:31-37,77-96`, `app/(admin)/dashboard/page.tsx:70-73` | Out of Phase D scope; recorded |
@@ -964,7 +967,13 @@ constraints; no RLS or security test covers these columns.
 | `notify_urgent_reports` | boolean NOT NULL default false | **urgent route switch** |
 | `urgent_notification_email` | text, nullable | **urgent route address**; the settings form refuses the switch on without a valid address |
 | `return_notification_mode` | text NOT NULL default `'off'`, CHECK `instant_renter` / `daily_exceptions` / `off` | backfill: `notify_return_checklists = true → instant_renter`, `false → off`; new organizations `off` |
-| `notify_return_checklists` | kept, synced from the mode for one release | rollback safety; dropped in a later migration |
+| `notify_return_checklists` | kept; the settings action mirrors it from the mode (true only for `instant_renter`) and **no code reads it** | rollback safety; dropped in a later migration |
+
+**Authority (built in D3A, `0034_notification_routing.sql`).** `return_notification_mode` is authoritative for returns.
+The migration backfilled `notify_return_checklists = true → instant_renter`, `false → off` (an executed catalog test
+runs the migration's own statement). A CHECK keeps the urgent switch from being on without an address, even through
+the API. No column-grant change was needed: the anon grant is an explicit safe list and writes follow the 0032
+policy (customer admin of its own active organization, or the platform owner).
 | `notify_include_photo_previews` | boolean NOT NULL default true | organization off-switch for D4 previews |
 
 None of the new columns joins the anon grant. Writes follow the 0032 admin policy: **customer staff cannot
@@ -995,7 +1004,8 @@ CC lists, a rules engine, on-call rotation, per-organization timezone or summary
 - the existing idempotency key binds a recipient hash (`idempotency.ts:53-58`), so each send is independently
   deduplicated and retry-safe;
 - a bounce or rejection of one address cannot fail the other;
-- one `[notifications]` line per recipient with `recipientRole: "general" | "urgent"`;
+- one `[notifications]` line per send with `recipientRoute: "main" | "urgent" | "main_and_urgent"` (`digest` is
+  reserved for D3B), plus `previewRequestedCount` / `previewAttachedCount` counts;
 - identical addresses (trimmed, case-insensitive) collapse to one send;
 - general first, then urgent, each within its own 15 s budget; worst case ≈ 0.1 s load + 6 s media + 2 × 15 s
   ≈ 36 s, inside the 60 s `maxDuration` of the public form routes.
@@ -1148,7 +1158,7 @@ boolean until D3A.
 | `supabase/migrations/0034_notification_routing.sql` (new) | §9.2 columns, backfill, CHECK. Linked-project proof, migration list, dry run, plan, **stop for approval**; Production not applied in the creating step |
 | `lib/notifications/settings.ts`, `actions.ts`, `components/notification-settings-form.tsx`, `app/(admin)/dashboard/settings/page.tsx` | Urgent switch + address (validated), return mode, preview switch; customer-admin only |
 | `lib/notifications/notify.ts` | Urgent route, mode gating, dedupe, separate sends |
-| `lib/notifications/log.ts` | `recipientRole`, preview count fields |
+| `lib/notifications/log.ts` | `recipientRoute`, preview count fields, `digestItemCount` (bounded) |
 | `lib/tags/owner-actions.ts` | Notify only on a status change; stop re-stamping `delivered_at` (F5) |
 | `tests/security/…` | anon cannot read new columns; staff cannot write them |
 
@@ -1215,7 +1225,7 @@ the operator trade-off.
 
 - Migration additive; backfill `true → instant_renter`, `false → off`; new organizations `off`; anon cannot read
   new columns; staff cannot write them; the urgent switch cannot be saved on without a valid address.
-- Immediate report with both switches on → two sends, two keys, two log lines (`general`, `urgent`); identical
+- Immediate report with both switches on → two sends, two keys, two log lines (`main`, `urgent`); identical
   addresses → one send; urgent switch on + general switch off → urgent only; follow-up and routine reports never
   reach the urgent route.
 - `instant_renter` emails every renter return; `daily_exceptions` and `off` email none; staff returns and

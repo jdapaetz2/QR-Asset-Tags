@@ -2,7 +2,11 @@ import "server-only";
 
 import { after } from "next/server";
 
-import { notifySubmission } from "@/lib/notifications/notify";
+import {
+  notifySubmission,
+  notifyTagRequestStatus,
+  type TagStatusNotificationInput,
+} from "@/lib/notifications/notify";
 import type { SubmissionFormType } from "@/lib/notifications/settings";
 
 /**
@@ -73,4 +77,16 @@ export function scheduleSubmissionNotification(input: ScheduledNotification): vo
   // other. The before/after medians would then be comparing two different things while looking like a
   // clean A/B. One phase, one meaning, both sides.
   after(() => notifySubmission(input));
+}
+
+/**
+ * Engineering Phase D3A — the tag-request status email, scheduled after a SUCCESSFUL owner save that actually changed
+ * the persisted status. Same best-effort architecture as submissions: identifiers and saved values only, never
+ * FormData or a request object, and the save's redirect never waits on the provider. `notifyTagRequestStatus`
+ * re-checks the saved request before sending and swallows every error.
+ */
+export type ScheduledTagStatusNotification = TagStatusNotificationInput;
+
+export function scheduleTagStatusNotification(input: ScheduledTagStatusNotification): void {
+  after(() => notifyTagRequestStatus(input));
 }

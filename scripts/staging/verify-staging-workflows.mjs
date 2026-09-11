@@ -90,7 +90,7 @@ async function login(context, email) {
   await p.goto(`${BASE}/forms/stg-qa-public/support`, { waitUntil: "load", timeout: 60000 });
   await p.getByLabel("Your name").fill("B1B Workflow");
   await p.getByRole("textbox", { name: "Email" }).fill("b1b@mulemark-staging.invalid");
-  await p.getByLabel("What do you need help with?").fill("B1B staging workflow probe.");
+  await p.getByLabel("Describe the problem").fill("B1B staging workflow probe.");
   await p.getByRole("button", { name: "Send support request" }).click();
   await p.waitForURL(/thanks/, { timeout: 60000 }).catch(() => {});
   rec("public", "support form submits + reference", await visible(p.getByText(/^SUB-\d{4}-[0-9A-F]{6}$/)));

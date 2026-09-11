@@ -537,7 +537,7 @@ reported equipment state or response need.
 | **D0.1** — operator decisions locked into the design | documentation only | ✅ locked |
 | **D1** — server-authoritative saved-record brief, deterministic priority, actionable text-first HTML/plain-text email | no new form fields, no image previews | ✅ built — timing instrumented, not yet measured on Production |
 | **D2** — optional triage questions, admin "Reported" labels, urgent confirmation call button | JSON fields, no migration | ✅ built |
-| **D3A** — routing/settings migration, independent urgent route, return modes, photo-preview switch, log schema, tag-status correctness | migration 0034 | not started |
+| **D3A** — routing/settings migration, independent urgent route, return modes, photo-preview switch, log schema, tag-status correctness | migration 0034 | ✅ built |
 | **D3B** — daily return-exceptions summary, secured schedule, missed-run catch-up, quiet-day behaviour | migration 0035, first scheduled job | not started |
 | **D4** — up to three bounded inline photo previews, metadata-stripped, text-only fallback | approved direct `sharp` dependency | not started |
 | **D5** — live QA and Engineering Phase D closeout | operator | not started |

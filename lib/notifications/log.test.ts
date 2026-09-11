@@ -62,6 +62,96 @@ describe("logNotificationEvent", () => {
   });
 });
 
+describe("routing metadata (D3A)", () => {
+  function payloadOf(spy: { mock: { calls: unknown[][] } }, call = 0): Record<string, unknown> {
+    return JSON.parse(String(spy.mock.calls[call][1]));
+  }
+
+  it("records the route and preview counts, keeping every existing field", () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    logNotificationEvent({
+      event: "submission",
+      outcome: "dry_run",
+      organizationId: "o",
+      reference: "SUB-2026-000001",
+      recipient: "oncall@yard.test",
+      recipientRoute: "urgent",
+      previewRequestedCount: 2,
+      previewAttachedCount: 0,
+    });
+    const payload = payloadOf(info);
+    expect(payload).toMatchObject({
+      recipientRoute: "urgent",
+      previewRequestedCount: 2,
+      previewAttachedCount: 0,
+      digestItemCount: null,
+    });
+    for (const key of [
+      "tag", "event", "outcome", "organizationId", "reference", "recipientDomain", "recipientRedacted",
+      "providerId", "providerStatus", "attempts", "failureClass", "reason", "deploymentContext",
+    ]) {
+      expect(payload, `existing field ${key}`).toHaveProperty(key);
+    }
+  });
+
+  it("is null for events without routing metadata", () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    logNotificationEvent({ event: "tag_status", outcome: "skipped_disabled", organizationId: "o" });
+    expect(payloadOf(info)).toMatchObject({
+      recipientRoute: null,
+      previewRequestedCount: null,
+      previewAttachedCount: null,
+      digestItemCount: null,
+    });
+  });
+
+  it("accepts only the bounded route enum", () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    for (const route of ["main", "urgent", "main_and_urgent", "digest"] as const) {
+      logNotificationEvent({ event: "submission", outcome: "dry_run", organizationId: "o", recipientRoute: route });
+    }
+    logNotificationEvent({
+      event: "submission",
+      outcome: "dry_run",
+      organizationId: "o",
+      recipientRoute: "oncall@yard.test" as never,
+    });
+    expect(info.mock.calls.map((_, i) => payloadOf(info, i).recipientRoute)).toEqual([
+      "main", "urgent", "main_and_urgent", "digest", null,
+    ]);
+    expect(info.mock.calls[4].join(" ")).not.toContain("oncall@yard.test");
+  });
+
+  it("clamps counts to bounded non-negative integers", () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    logNotificationEvent({
+      event: "submission",
+      outcome: "dry_run",
+      organizationId: "o",
+      previewRequestedCount: 999,
+      previewAttachedCount: -4,
+      digestItemCount: 12.7,
+    });
+    expect(payloadOf(info)).toMatchObject({ previewRequestedCount: 10, previewAttachedCount: 0, digestItemCount: 12 });
+  });
+
+  it("never logs the full recipient on either route", () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    logNotificationEvent({
+      event: "submission",
+      outcome: "sent",
+      organizationId: "o",
+      recipient: "oncall.team@yard.test",
+      recipientRoute: "main_and_urgent",
+      previewRequestedCount: 3,
+      previewAttachedCount: 0,
+    });
+    const line = info.mock.calls[0].join(" ");
+    expect(line).not.toContain("oncall.team@yard.test");
+    expect(line).not.toContain("oncall.team");
+  });
+});
+
 describe("dry-run reason (B4)", () => {
   it("records WHY a send was dry — the preview rule vs missing configuration", () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});

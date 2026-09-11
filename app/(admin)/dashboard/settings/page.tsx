@@ -11,7 +11,7 @@ import {
   type OrgSettingsDefaults,
 } from "@/components/org-settings-form";
 import { NotificationSettingsForm } from "@/components/notification-settings-form";
-import type { NotificationSettings } from "@/lib/notifications/settings";
+import { readNotificationSettings } from "@/lib/notifications/settings";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import { SecondaryNav } from "@/components/ui/secondary-nav";
@@ -32,7 +32,7 @@ export default async function SettingsPage() {
   const { data: org } = await supabase
     .from("organizations")
     .select(
-      "name, support_phone, support_email, website_url, primary_color, logo_url, notification_email, notify_damage_reports, notify_support_requests, notify_return_checklists, notify_tag_request_updates, status, plan_name, asset_limit, tag_credit_cents, storage_limit_mb, video_uploads_enabled, customer_exports_enabled"
+      "name, support_phone, support_email, website_url, primary_color, logo_url, notification_email, notify_damage_reports, notify_support_requests, notify_tag_request_updates, notify_urgent_reports, urgent_notification_email, return_notification_mode, notify_include_photo_previews, status, plan_name, asset_limit, tag_credit_cents, storage_limit_mb, video_uploads_enabled, customer_exports_enabled"
     )
     .maybeSingle();
 
@@ -46,13 +46,8 @@ export default async function SettingsPage() {
   // Covered-asset usage (RLS-scoped read; display only, no enforcement here).
   const coveredCount = await getCoveredCount(supabase);
 
-  const notificationSettings: NotificationSettings = {
-    notification_email: org?.notification_email ?? null,
-    notify_damage_reports: org?.notify_damage_reports ?? true,
-    notify_support_requests: org?.notify_support_requests ?? true,
-    notify_return_checklists: org?.notify_return_checklists ?? false,
-    notify_tag_request_updates: org?.notify_tag_request_updates ?? false,
-  };
+  // Column defaults apply to anything missing (lib/notifications/settings.ts).
+  const notificationSettings = readNotificationSettings(org);
 
   // A sample scan page link for the preview (first active QR link, if any).
   const { data: qr } = await supabase
@@ -164,7 +159,7 @@ export default async function SettingsPage() {
       <SectionCard
         id="notifications"
         title="Notifications"
-        description="Email alerts for public submissions and tag request updates."
+        description="Email alerts for public submissions, urgent reports and tag request updates."
       >
         <NotificationSettingsForm settings={notificationSettings} />
       </SectionCard>

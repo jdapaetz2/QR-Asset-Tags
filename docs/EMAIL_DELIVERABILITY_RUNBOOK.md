@@ -51,6 +51,11 @@ environment rule as the cause — not missing credentials. Redaction held throug
 no Resend credentials, and the rule is covered by unit tests that configure a key deliberately and still
 expect `dry_run`. Three independent safeguards, one of them now observed in production conditions.
 
+**Engineering Phase D3A.** The preview rule is enforced per send, so an Immediate-attention report routed to both
+the main and the urgent address logs two `dry_run` lines on Preview, each with `reason: "preview_environment"` and
+its own `recipientRoute`. Lines now also carry `previewRequestedCount`, `previewAttachedCount` and
+`digestItemCount` — counts only, never an address, path or image name.
+
 ### Still NOT verified — do not report these as working
 
 | Gap | Why it matters |

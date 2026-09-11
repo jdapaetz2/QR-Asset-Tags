@@ -3,21 +3,23 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { publicEnv, serverEnv } from "@/lib/env";
 import { tagRequestStatusLabel } from "@/lib/tags/tag-requests";
-import {
-  shouldNotifySubmission,
-  type NotificationSettings,
-  type SubmissionFormType,
-} from "@/lib/notifications/settings";
-import { buildIncidentEmail, buildTagStatusEmail } from "@/lib/notifications/email";
+import { readNotificationSettings, type SubmissionFormType } from "@/lib/notifications/settings";
+import { buildIncidentEmail, buildTagStatusEmail, type EmailContent } from "@/lib/notifications/email";
 import {
   checkSavedSubmission,
   projectSubmissionBrief,
   SAVED_SUBMISSION_COLUMNS,
   type SavedSubmissionRow,
 } from "@/lib/notifications/projection";
+import {
+  previewRequestCount,
+  resolveSubmissionRecipients,
+  resolveTagStatusRecipients,
+  type PlannedSend,
+} from "@/lib/notifications/routing";
 import { notificationIdempotencyKey } from "@/lib/notifications/idempotency";
 import { sendNotificationEmail } from "@/lib/notifications/send";
-import { logNotificationEvent } from "@/lib/notifications/log";
+import { logNotificationEvent, type NotificationEvent } from "@/lib/notifications/log";
 import { submissionReference } from "@/lib/submissions/inbox";
 import { time } from "@/lib/diagnostics/server-timing";
 
@@ -37,12 +39,16 @@ import { time } from "@/lib/diagnostics/server-timing";
  * Engineering Phase D1: a submission email is built from the COMMITTED row, never from values carried across the
  * commit. The scheduled payload holds identifiers only; this function loads the saved submission and the asset,
  * refuses anything that does not match what the committing action scheduled, projects one brief, and renders it.
+ *
+ * Engineering Phase D3A: recipients come from one pure resolver (lib/notifications/routing.ts). The brief and the
+ * message are built ONCE; each recipient then gets its own sequential send (never To+CC), its own idempotency key
+ * (the key binds a recipient hash), and its own log line — so one recipient's failure cannot affect another's.
  */
 
 const NOTIFY_COLUMNS =
-  "name, notification_email, notify_damage_reports, notify_support_requests, notify_return_checklists, notify_tag_request_updates";
+  "name, notification_email, notify_damage_reports, notify_support_requests, notify_tag_request_updates, notify_urgent_reports, urgent_notification_email, return_notification_mode, notify_include_photo_previews";
 
-type OrgNotifyRow = { name: string | null } & NotificationSettings;
+type OrgNotifyRow = { name: string | null } & Record<string, unknown>;
 
 type AssetRow = { asset_code: string | null; asset_name: string | null; category: string | null };
 
@@ -56,6 +62,65 @@ export type SubmissionNotificationInput = {
   formType: SubmissionFormType;
 };
 
+/**
+ * One provider send to one recipient, with its own key and its own log line. Sequential by design (at most two per
+ * event), and isolated: an exception here is logged against this recipient only and never propagates.
+ */
+async function deliver(args: {
+  event: NotificationEvent;
+  organizationId: string;
+  reference: string;
+  idempotencyReference: string;
+  planned: PlannedSend;
+  content: EmailContent;
+  previewRequestedCount: number | null;
+  previewAttachedCount: number | null;
+}): Promise<void> {
+  const { planned } = args;
+  try {
+    const idempotencyKey = notificationIdempotencyKey({
+      event: args.event,
+      reference: args.idempotencyReference,
+      recipient: planned.recipient,
+    });
+    // Phase C6 instrumentation. Inert unless MULEMARK_DIAGNOSTIC_TIMING=1; returns the same result and rethrows
+    // nothing new.
+    const result = await time("notify", "notify.send", () =>
+      sendNotificationEmail(planned.recipient, args.content, {}, {
+        idempotencyKey,
+        replyTo: serverEnv.notificationReplyToEmail,
+      })
+    );
+    logNotificationEvent({
+      event: args.event,
+      outcome: result.outcome,
+      organizationId: args.organizationId,
+      reference: args.reference,
+      recipient: planned.recipient,
+      providerId: result.providerId,
+      providerStatus: result.status,
+      attempts: result.attempts,
+      failureClass: result.failureClass,
+      reason: result.reason,
+      recipientRoute: planned.route,
+      previewRequestedCount: args.previewRequestedCount,
+      previewAttachedCount: args.previewAttachedCount,
+    });
+  } catch (err) {
+    // Recipient-isolation backstop: log this recipient's failure (no error body) and let the next send proceed.
+    logNotificationEvent({
+      event: args.event,
+      outcome: "failed_transient",
+      organizationId: args.organizationId,
+      reference: args.reference,
+      recipient: planned.recipient,
+      failureClass: "exception",
+      recipientRoute: planned.route,
+    });
+    void err;
+  }
+}
+
 export async function notifySubmission(input: SubmissionNotificationInput): Promise<void> {
   try {
     const admin = createAdminClient();
@@ -65,28 +130,22 @@ export async function notifySubmission(input: SubmissionNotificationInput): Prom
       .eq("id", input.organizationId)
       .maybeSingle<OrgNotifyRow>();
     if (!org) return;
+    const settings = readNotificationSettings(org);
 
-    // Explicitly distinguish "no recipient set" from "this event type is disabled" for diagnosability.
-    if (!org.notification_email) {
+    // Immediate attention is the widest routing any report can receive (a return never uses the urgent route), so
+    // when even that reaches nobody, skip without loading the saved record. Distinguishes "no recipient set" from
+    // "disabled" for diagnosability.
+    const widest = resolveSubmissionRecipients({ formType: input.formType, priority: "immediate", settings });
+    if (widest.sends.length === 0) {
       logNotificationEvent({
         event: "submission",
-        outcome: "skipped_no_recipient",
+        outcome: widest.skip ?? "skipped_disabled",
         organizationId: input.organizationId,
         reference: input.reference,
+        recipient: settings.notification_email,
       });
       return;
     }
-    if (!shouldNotifySubmission(input.formType, org)) {
-      logNotificationEvent({
-        event: "submission",
-        outcome: "skipped_disabled",
-        organizationId: input.organizationId,
-        reference: input.reference,
-        recipient: org.notification_email,
-      });
-      return;
-    }
-    const recipient = org.notification_email;
 
     // D1: the saved record and the asset, read in parallel. The asset must belong to the scheduling organization.
     const loaded = await time("notify", "notify.load", async () => {
@@ -125,58 +184,69 @@ export async function notifySubmission(input: SubmissionNotificationInput): Prom
         outcome: "failed_transient",
         organizationId: input.organizationId,
         reference: input.reference,
-        recipient,
+        recipient: settings.notification_email,
         failureClass: failure ?? "record_missing",
       });
       return;
     }
 
     const reference = submissionReference(row.id, row.created_at);
-    const content = await time("notify", "notify.project", async () => {
+    const projected = await time("notify", "notify.project", async () => {
       const brief = projectSubmissionBrief({
         organizationName: org.name ?? "Your organization",
         row,
         asset: { code: asset.asset_code, name: asset.asset_name, category: asset.category },
         siteUrl: publicEnv.siteUrl,
       });
-      return brief ? buildIncidentEmail(brief) : null;
+      return brief ? { brief, content: buildIncidentEmail(brief) } : null;
     });
-    if (!content) {
+    if (!projected) {
       logNotificationEvent({
         event: "submission",
         outcome: "failed_transient",
         organizationId: input.organizationId,
         reference,
-        recipient,
+        recipient: settings.notification_email,
         failureClass: "unsupported_record",
       });
       return;
     }
 
-    // A submission notifies exactly once, ever — its id is the whole key.
-    const idempotencyKey = notificationIdempotencyKey({
-      event: "submission",
-      reference: row.id,
-      recipient,
+    // The real routing, from the saved record's deterministic priority.
+    const routing = resolveSubmissionRecipients({
+      formType: input.formType,
+      priority: projected.brief.priority,
+      settings,
     });
+    if (routing.sends.length === 0) {
+      logNotificationEvent({
+        event: "submission",
+        outcome: routing.skip ?? "skipped_disabled",
+        organizationId: input.organizationId,
+        reference,
+        recipient: settings.notification_email,
+      });
+      return;
+    }
 
-    // Phase C6 instrumentation. Inert unless MULEMARK_DIAGNOSTIC_TIMING=1; returns the same result and rethrows
-    // nothing new.
-    const result = await time("notify", "notify.send", () =>
-      sendNotificationEmail(recipient, content, {}, { idempotencyKey, replyTo: serverEnv.notificationReplyToEmail })
+    const requested = previewRequestCount(
+      settings.notify_include_photo_previews,
+      projected.brief.photos.previewCandidates.length
     );
-    logNotificationEvent({
-      event: "submission",
-      outcome: result.outcome,
-      organizationId: input.organizationId,
-      reference,
-      recipient,
-      providerId: result.providerId,
-      providerStatus: result.status,
-      attempts: result.attempts,
-      failureClass: result.failureClass,
-      reason: result.reason,
-    });
+    for (const planned of routing.sends) {
+      // A submission notifies each recipient exactly once, ever — its id plus the recipient hash is the key.
+      await deliver({
+        event: "submission",
+        organizationId: input.organizationId,
+        reference,
+        idempotencyReference: row.id,
+        planned,
+        content: projected.content,
+        previewRequestedCount: requested,
+        // Previews are attached from D4; nothing is attached yet.
+        previewAttachedCount: 0,
+      });
+    }
   } catch (err) {
     // Submission-safety backstop: a notification must never break the submission. Log a redacted, structured
     // record (no error body) and move on.
@@ -191,12 +261,25 @@ export async function notifySubmission(input: SubmissionNotificationInput): Prom
   }
 }
 
-export async function notifyTagRequestStatus(input: {
+export type TagStatusNotificationInput = {
   organizationId: string;
-  /** Canonical tag-request id — the reference shared with the platform owner, and half the dedupe key. */
+  /** Canonical tag-request id — the reference shared with the platform owner. */
   tagRequestId: string;
-  status: string;
-}): Promise<void> {
+  /** The persisted status before the owner's save. */
+  fromStatus: string;
+  /** The persisted status after the owner's save. Checked against the saved request before sending. */
+  toStatus: string;
+  /** The saved request's `updated_at` from that save — makes each real transition its own idempotency key. */
+  changedAt: string;
+};
+
+type TagRequestRow = { id: string; organization_id: string; status: string };
+
+/**
+ * Engineering Phase D3A: called only for a real status change (lib/tags/owner-actions.ts). Fails closed when the
+ * saved request is missing or has moved on to another status since the save that scheduled this email.
+ */
+export async function notifyTagRequestStatus(input: TagStatusNotificationInput): Promise<void> {
   try {
     const admin = createAdminClient();
     const { data: org } = await admin
@@ -205,64 +288,72 @@ export async function notifyTagRequestStatus(input: {
       .eq("id", input.organizationId)
       .maybeSingle<OrgNotifyRow>();
     if (!org) return;
-    if (!org.notification_email) {
+    const settings = readNotificationSettings(org);
+
+    const routing = resolveTagStatusRecipients(settings);
+    if (routing.sends.length === 0) {
       logNotificationEvent({
         event: "tag_status",
-        outcome: "skipped_no_recipient",
+        outcome: routing.skip ?? "skipped_disabled",
         organizationId: input.organizationId,
         reference: input.tagRequestId,
+        recipient: settings.notification_email,
       });
       return;
     }
-    if (!org.notify_tag_request_updates) {
+
+    const saved = await admin
+      .from("tag_requests")
+      .select("id, organization_id, status")
+      .eq("id", input.tagRequestId)
+      .eq("organization_id", input.organizationId)
+      .maybeSingle<TagRequestRow>();
+    const failure = saved.error
+      ? "load_error"
+      : !saved.data
+        ? "record_missing"
+        : saved.data.status !== input.toStatus
+          ? "stale_transition"
+          : null;
+    if (failure || !saved.data) {
       logNotificationEvent({
         event: "tag_status",
-        outcome: "skipped_disabled",
+        outcome: "failed_transient",
         organizationId: input.organizationId,
         reference: input.tagRequestId,
-        recipient: org.notification_email,
+        recipient: settings.notification_email,
+        failureClass: failure ?? "record_missing",
       });
       return;
     }
 
     const content = buildTagStatusEmail({
       orgName: org.name ?? "Your organization",
-      statusLabel: tagRequestStatusLabel(input.status),
+      statusLabel: tagRequestStatusLabel(saved.data.status),
       reference: input.tagRequestId,
       manageUrl: `${publicEnv.siteUrl}/dashboard/tag-requests/${encodeURIComponent(input.tagRequestId)}`,
       settingsUrl: `${publicEnv.siteUrl}/dashboard/settings`,
     });
 
-    // A tag request notifies on every status CHANGE, so the status is part of the key:
-    // `requested → delivered` is a new email; a replay of `delivered` is not.
-    const idempotencyKey = notificationIdempotencyKey({
-      event: "tag_status",
-      reference: `${input.tagRequestId}:${input.status}`,
-      recipient: org.notification_email,
-    });
+    // Each real transition is its own key: `ready → delivered` saved at a given moment sends once, a replay of that
+    // save is a no-op, and a later genuine re-delivery (a different saved moment) is a new email.
+    const changedAtMs = Date.parse(input.changedAt);
+    const idempotencyReference = `${input.tagRequestId}:${input.fromStatus}-${input.toStatus}:${
+      Number.isFinite(changedAtMs) ? changedAtMs : "unknown"
+    }`;
 
-    // Phase C6 instrumentation. Inert unless MULEMARK_DIAGNOSTIC_TIMING=1; returns the same result and rethrows
-    // nothing new.
-    const result = await time("notify", "notify.send", () =>
-      sendNotificationEmail(
-        org.notification_email as string,
+    for (const planned of routing.sends) {
+      await deliver({
+        event: "tag_status",
+        organizationId: input.organizationId,
+        reference: input.tagRequestId,
+        idempotencyReference,
+        planned,
         content,
-        {},
-        { idempotencyKey, replyTo: serverEnv.notificationReplyToEmail }
-      )
-    );
-    logNotificationEvent({
-      event: "tag_status",
-      outcome: result.outcome,
-      organizationId: input.organizationId,
-      reference: input.tagRequestId,
-      recipient: org.notification_email,
-      providerId: result.providerId,
-      providerStatus: result.status,
-      attempts: result.attempts,
-      failureClass: result.failureClass,
-      reason: result.reason,
-    });
+        previewRequestedCount: null,
+        previewAttachedCount: null,
+      });
+    }
   } catch (err) {
     logNotificationEvent({
       event: "tag_status",

@@ -12,9 +12,19 @@ vi.mock("next/server", () => ({
 }));
 
 const notifySubmission = vi.fn(async () => {});
+const notifyTagRequestStatus = vi.fn(async () => {});
 vi.mock("@/lib/notifications/notify", () => ({
   notifySubmission: (...args: unknown[]) => notifySubmission(...(args as [])),
+  notifyTagRequestStatus: (...args: unknown[]) => notifyTagRequestStatus(...(args as [])),
 }));
+
+const TAG_INPUT = {
+  organizationId: "org-1",
+  tagRequestId: "5b1f0a3c-1111-4111-8111-111111111111",
+  fromStatus: "ready",
+  toStatus: "delivered",
+  changedAt: "2026-09-11T17:30:00.123456+00:00",
+};
 
 const INPUT = {
   organizationId: "org-1",
@@ -37,6 +47,7 @@ function codeOf(url: string): string {
 beforeEach(() => {
   scheduled.length = 0;
   notifySubmission.mockClear();
+  notifyTagRequestStatus.mockClear();
 });
 afterEach(() => vi.restoreAllMocks());
 
@@ -83,6 +94,32 @@ describe("scheduleSubmissionNotification", () => {
 
     expect(() => scheduleSubmissionNotification(INPUT)).not.toThrow();
     // The callback rejecting would become an unhandled rejection in the runtime after the response.
+    await expect(Promise.resolve(scheduled[0]()).catch(() => "caught")).resolves.toBeDefined();
+  });
+});
+
+describe("scheduleTagStatusNotification (D3A)", () => {
+  it("schedules for after the response instead of sending during the owner's save", async () => {
+    const { scheduleTagStatusNotification } = await import("./schedule");
+    scheduleTagStatusNotification(TAG_INPUT);
+    expect(notifyTagRequestStatus).not.toHaveBeenCalled();
+    expect(scheduled).toHaveLength(1);
+  });
+
+  it("carries identifiers and the saved transition only", async () => {
+    const { scheduleTagStatusNotification } = await import("./schedule");
+    scheduleTagStatusNotification(TAG_INPUT);
+    await scheduled[0]();
+    expect(notifyTagRequestStatus).toHaveBeenCalledWith(TAG_INPUT);
+    const arg = (notifyTagRequestStatus.mock.calls[0] as unknown[])[0] as Record<string, unknown>;
+    expect(Object.keys(arg).sort()).toEqual(["changedAt", "fromStatus", "organizationId", "tagRequestId", "toStatus"]);
+    for (const value of Object.values(arg)) expect(typeof value).toBe("string");
+  });
+
+  it("never lets a notification failure surface", async () => {
+    notifyTagRequestStatus.mockRejectedValueOnce(new Error("provider exploded") as never);
+    const { scheduleTagStatusNotification } = await import("./schedule");
+    expect(() => scheduleTagStatusNotification(TAG_INPUT)).not.toThrow();
     await expect(Promise.resolve(scheduled[0]()).catch(() => "caught")).resolves.toBeDefined();
   });
 });

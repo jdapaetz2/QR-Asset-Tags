@@ -1,7 +1,11 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Client } from "pg";
 
 import { getStackConfig } from "./setup/stack";
+import { ORG_A, ORG_B } from "./setup/fixtures";
 
 // Executed migration + catalog proof (Phase A3.2, Part G). The db:reset chained ahead of the suite
 // applies 0001→latest to a fresh database; here we connect as postgres and assert the resulting
@@ -67,6 +71,102 @@ describe("A3.1/A3.2 objects exist with the expected definitions", () => {
       "select 1 from pg_trigger where tgname = 'profiles_protect_privileged_fields' and not tgisinternal"
     );
     expect(rows.length, "trigger profiles_protect_privileged_fields should exist").toBe(1);
+  });
+});
+
+describe("D3A notification routing columns (migration 0034)", () => {
+  const ROUTING_COLUMNS = [
+    "notify_urgent_reports",
+    "urgent_notification_email",
+    "return_notification_mode",
+    "notify_include_photo_previews",
+  ];
+
+  it("adds the columns with the approved defaults and keeps the legacy boolean", async () => {
+    const { rows } = await db.query<{ column_name: string; column_default: string | null; is_nullable: string }>(
+      "select column_name, column_default, is_nullable from information_schema.columns where table_schema='public' and table_name='organizations' and column_name = any($1)",
+      [[...ROUTING_COLUMNS, "notify_return_checklists"]]
+    );
+    const byName = Object.fromEntries(rows.map((r) => [r.column_name, r]));
+    expect(byName.notify_urgent_reports).toMatchObject({ column_default: "false", is_nullable: "NO" });
+    expect(byName.urgent_notification_email).toMatchObject({ column_default: null, is_nullable: "YES" });
+    expect(byName.return_notification_mode?.column_default).toContain("'off'");
+    expect(byName.return_notification_mode?.is_nullable).toBe("NO");
+    expect(byName.notify_include_photo_previews).toMatchObject({ column_default: "true", is_nullable: "NO" });
+    expect(byName.notify_return_checklists, "legacy column must not be dropped in 0034").toBeDefined();
+  });
+
+  it("a new organization gets returns off, previews on and the urgent route disabled", async () => {
+    await db.query("begin");
+    try {
+      const { rows } = await db.query<Record<string, unknown>>(
+        "insert into public.organizations (name, slug) values ('D3A defaults probe', 'd3a-defaults-probe') returning notify_urgent_reports, urgent_notification_email, return_notification_mode, notify_include_photo_previews"
+      );
+      expect(rows[0]).toEqual({
+        notify_urgent_reports: false,
+        urgent_notification_email: null,
+        return_notification_mode: "off",
+        notify_include_photo_previews: true,
+      });
+    } finally {
+      await db.query("rollback");
+    }
+  });
+
+  it("the CHECK constraints reject an unknown mode and an urgent route without an address", async () => {
+    for (const statement of [
+      "update public.organizations set return_notification_mode = 'weekly' where id = $1",
+      "update public.organizations set notify_urgent_reports = true, urgent_notification_email = null where id = $1",
+      "update public.organizations set notify_urgent_reports = true, urgent_notification_email = '   ' where id = $1",
+    ]) {
+      await expect(db.query(statement, [ORG_A]), statement).rejects.toMatchObject({ code: "23514" });
+    }
+  });
+
+  it("maps existing return settings exactly: true → instant_renter, false → off (the migration's own statement)", async () => {
+    const migration = readFileSync(
+      fileURLToPath(new URL("../../supabase/migrations/0034_notification_routing.sql", import.meta.url)),
+      "utf8"
+    );
+    const begin = migration.indexOf("-- backfill:begin");
+    const end = migration.indexOf("-- backfill:end");
+    expect(begin, "backfill markers").toBeGreaterThan(-1);
+    const backfill = migration.slice(begin + "-- backfill:begin".length, end).trim();
+    expect(backfill).toMatch(/^update public\.organizations/);
+
+    await db.query("begin");
+    try {
+      // Start each org in the opposite mode so only the backfill can produce the expected value.
+      await db.query(
+        "update public.organizations set notify_return_checklists = true, return_notification_mode = 'off' where id = $1",
+        [ORG_A]
+      );
+      await db.query(
+        "update public.organizations set notify_return_checklists = false, return_notification_mode = 'instant_renter' where id = $1",
+        [ORG_B]
+      );
+      await db.query(backfill);
+      const { rows } = await db.query<{ id: string; return_notification_mode: string }>(
+        "select id, return_notification_mode from public.organizations where id = any($1)",
+        [[ORG_A, ORG_B]]
+      );
+      const modes = Object.fromEntries(rows.map((r) => [r.id, r.return_notification_mode]));
+      expect(modes[ORG_A]).toBe("instant_renter");
+      expect(modes[ORG_B]).toBe("off");
+    } finally {
+      await db.query("rollback");
+    }
+  });
+
+  it("no column grant change was needed: anon cannot read them, authenticated keeps table privileges", async () => {
+    for (const column of ROUTING_COLUMNS) {
+      const { rows } = await db.query<{ anon_select: boolean; auth_update: boolean }>(
+        "select has_column_privilege('anon', 'public.organizations', $1, 'SELECT') as anon_select, has_column_privilege('authenticated', 'public.organizations', $1, 'UPDATE') as auth_update",
+        [column]
+      );
+      expect(rows[0].anon_select, `anon SELECT on ${column}`).toBe(false);
+      expect(rows[0].auth_update, `authenticated UPDATE on ${column} (policy-gated)`).toBe(true);
+    }
   });
 });
 
