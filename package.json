@@ -32,7 +32,7 @@
     "production:seed-qa": "node --env-file=.env.local --env-file-if-exists=.env.production-perf.local scripts/production/seed-production-qa.mjs",
     "staging:verify": "node --env-file=.env.staging.local scripts/staging/verify-staging-workflows.mjs",
     "staging:verify-revalidation": "node --env-file=.env.staging.local scripts/staging/verify-revalidation.mjs",
-    "staging:scan-reliability":"node --env-file=.env.staging.local scripts/staging/scan-reliability.mjs",
+    "staging:scan-reliability": "node --env-file=.env.staging.local scripts/staging/scan-reliability.mjs",
     "staging:qa-password": "node --env-file=.env.staging.local scripts/staging/reset-staging-qa-passwords.mjs",
     "perf:baseline:production": "node --env-file-if-exists=.env.production-perf.local scripts/perf/baseline.mjs --env=production",
     "perf:dashboard:production": "node --env-file=.env.production-perf.local scripts/perf/baseline.mjs --env=production --routes=dashboard",
@@ -65,6 +65,7 @@
     "radix-ui": "^1.6.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "sharp": "0.34.5",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {

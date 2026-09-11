@@ -539,7 +539,7 @@ reported equipment state or response need.
 | **D2** — optional triage questions, admin "Reported" labels, urgent confirmation call button | JSON fields, no migration | ✅ built |
 | **D3A** — routing/settings migration, independent urgent route, return modes, photo-preview switch, log schema, tag-status correctness | migration 0034 | ✅ built |
 | **D3B** — daily return-exceptions summary, secured schedule, missed-run catch-up, quiet-day behaviour | migration 0036 (0035 went to the tag-request internal-column fix), first scheduled job | ✅ built |
-| **D4** — up to three bounded inline photo previews, metadata-stripped, text-only fallback | approved direct `sharp` dependency | not started |
+| **D4** — up to three bounded inline photo previews, metadata-stripped, text-only fallback | direct `sharp` 0.34.5 dependency (no migration) | ✅ built |
 | **D5** — live QA and Engineering Phase D closeout | operator | not started |
 
 **All operator decisions are locked** (design doc §16): priority subject prefixes, tap-to-call and tap-to-email

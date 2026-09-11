@@ -6,15 +6,20 @@
  * hides every historical JSON shape from the renderer: `lib/notifications/email.ts` receives this object and never
  * `submission_data_json`.
  *
- * Nothing here is rendered verbatim without escaping, and `photos.previewCandidates` is server-only metadata for a
- * later slice: it is never rendered, logged or placed in an idempotency key.
+ * Nothing here is rendered verbatim without escaping, and `photos.previewCandidates` is server-only metadata for the
+ * D4 preview builder: its paths are never rendered, logged or placed in an idempotency key.
  */
 import { PREFERRED_CONTACT_METHODS } from "@/lib/forms/validate";
 import { submissionPathPrefix } from "@/lib/forms/media";
+import { parseSubmissionObjectPath } from "@/lib/ratelimit/orphan";
 import { isImagePath, mediaCount, submissionReference } from "@/lib/submissions/inbox";
 import { normalizeOrigin, submissionTypeLabel } from "@/lib/submissions/origin";
 import { mailtoHref, telHref } from "@/lib/contact/links";
-import { summarizeReturnChecklist, type ReturnChecklistSummary } from "@/lib/notifications/return-summary";
+import {
+  DAMAGE_PHOTOS_SLOT,
+  summarizeReturnChecklist,
+  type ReturnChecklistSummary,
+} from "@/lib/notifications/return-summary";
 import {
   priorityForReport,
   reportedValuesFor,
@@ -58,8 +63,31 @@ const NAME_LIMIT = 120;
 const PHONE_LIMIT = 40;
 const EMAIL_LIMIT = 254;
 export const MAX_PREVIEW_CANDIDATES = 3;
+const PREVIEW_LABEL_LIMIT = 60;
 
 type PreferredContactMethod = (typeof PREFERRED_CONTACT_METHODS)[number];
+
+/**
+ * A photo eligible for an inline preview (D4). SERVER-ONLY: the path is read by the preview builder and never rendered
+ * or logged; the label is display text (escaped by the renderer); rank orders the candidates.
+ *
+ *   1  damage photo (return `damage_photos` slot; every damage-report photo)
+ *   2  issue-specific photo (any other or custom return slot; every support-request photo)
+ *   3  overall condition photo (the system templates' overview slots)
+ *   4  additional photo
+ */
+export type PreviewCandidate = { path: string; label: string; rank: 1 | 2 | 3 | 4 };
+
+/** The system templates' overall-condition photo slots (lib/inspections/templates.ts). */
+export const OVERVIEW_PHOTO_SLOTS: ReadonlySet<string> = new Set([
+  "overall_photo",
+  "front_hitch_photo",
+  "deck_photo",
+  "attachment_photo",
+  "equipment_case_photo",
+  "overview_photos",
+]);
+export const ADDITIONAL_PHOTOS_SLOT = "additional_photos";
 
 export type ReturnDetail = {
   exceptionCount: number;
@@ -100,8 +128,8 @@ export type NotificationBrief = {
   photos: {
     count: number;
     slotCounts: { label: string; count: number }[];
-    /** SERVER-ONLY storage paths for a later preview slice. Never rendered, never logged. */
-    previewCandidates: string[];
+    /** SERVER-ONLY preview candidates, ranked and capped at three. Paths are never rendered, never logged. */
+    previewCandidates: PreviewCandidate[];
   };
   links: { record: string; settings: string };
 };
@@ -183,29 +211,75 @@ function projectContact(row: SavedSubmissionRow, preferred: unknown): Notificati
         ? (preferred as PreferredContactMethod)
         : null,
     phone,
-    phoneHref: telHref(row.submitted_by_phone),
     email,
     emailHref: mailtoHref(row.submitted_by_email),
+    phoneHref: telHref(row.submitted_by_phone),
   };
 }
 
 /**
- * Preview candidates: at most three stored image paths that belong to THIS submission — listed in its own
- * `media_urls` and under its own server-built prefix. Metadata only; nothing is read from storage here.
+ * True only for a stored image that belongs to exactly this submission: a strict server-built
+ * `org/{uuid}/asset/{uuid}/submission/{uuid}/{file}` path whose three ids match, no traversal, an image extension.
+ * Used by the projection and re-checked by the preview builder immediately before a read.
  */
-function previewCandidates(row: SavedSubmissionRow, preferredOrder: string[]): string[] {
+export function isPreviewPath(
+  path: string,
+  owner: { organizationId: string; assetId: string; submissionId: string }
+): boolean {
+  if (typeof path !== "string" || path.includes("..") || !isImagePath(path)) return false;
+  if (!path.startsWith(`${submissionPathPrefix(owner.organizationId, owner.assetId, owner.submissionId)}/`)) return false;
+  const parsed = parseSubmissionObjectPath(path);
+  return (
+    parsed !== null &&
+    parsed.organizationId === owner.organizationId &&
+    parsed.assetId === owner.assetId &&
+    parsed.submissionId === owner.submissionId
+  );
+}
+
+/**
+ * Preview candidates: at most three stored image paths that belong to THIS submission — listed in its own
+ * `media_urls` and under its own server-built prefix — ranked damage first. Metadata only; nothing is read here.
+ */
+function previewCandidates(row: SavedSubmissionRow, ordered: PreviewCandidate[]): PreviewCandidate[] {
   if (!row.asset_id) return [];
+  const owner = { organizationId: row.organization_id, assetId: row.asset_id, submissionId: row.id };
+  const media = new Set(Array.isArray(row.media_urls) ? row.media_urls.filter(isString) : []);
+  const seen = new Set<string>();
+  const eligible: (PreviewCandidate & { order: number })[] = [];
+  ordered.forEach((candidate, order) => {
+    if (seen.has(candidate.path) || !media.has(candidate.path) || !isPreviewPath(candidate.path, owner)) return;
+    seen.add(candidate.path);
+    eligible.push({ ...candidate, order });
+  });
+  return eligible
+    .sort((a, b) => a.rank - b.rank || a.order - b.order)
+    .slice(0, MAX_PREVIEW_CANDIDATES)
+    .map(({ path, label, rank }) => ({ path, label, rank }));
+}
+
+function slotRank(slotId: string): PreviewCandidate["rank"] {
+  if (slotId === DAMAGE_PHOTOS_SLOT) return 1;
+  if (OVERVIEW_PHOTO_SLOTS.has(slotId)) return 3;
+  if (slotId === ADDITIONAL_PHOTOS_SLOT) return 4;
+  return 2;
+}
+
+function previewLabel(value: string, fallback: string): string {
+  return cleanText(value, PREVIEW_LABEL_LIMIT) ?? fallback;
+}
+
+/** Returns preview only when the checklist has a return exception; clean and routine-only returns show a count. */
+function returnPreviewCandidates(row: SavedSubmissionRow, summary: ReturnChecklistSummary): PreviewCandidate[] {
+  if (returnExceptionCount(summary) === 0) return [];
+  const slotted: PreviewCandidate[] = summary.slotPathEntries.map((entry) => ({
+    path: entry.path,
+    label: previewLabel(entry.label, "Return photo"),
+    rank: slotRank(entry.slotId),
+  }));
   const media = Array.isArray(row.media_urls) ? row.media_urls.filter(isString) : [];
-  const allowed = new Set(media);
-  const prefix = `${submissionPathPrefix(row.organization_id, row.asset_id, row.id)}/`;
-  const out: string[] = [];
-  for (const path of [...preferredOrder, ...media]) {
-    if (out.length >= MAX_PREVIEW_CANDIDATES) break;
-    if (out.includes(path) || !allowed.has(path)) continue;
-    if (!path.startsWith(prefix) || path.includes("..") || !isImagePath(path)) continue;
-    out.push(path);
-  }
-  return out;
+  const unslotted: PreviewCandidate[] = media.map((path) => ({ path, label: "Return photo", rank: 4 }));
+  return previewCandidates(row, [...slotted, ...unslotted]);
 }
 
 function returnNotes(summary: ReturnChecklistSummary): string[] {
@@ -307,15 +381,16 @@ export function projectSubmissionBrief(input: {
           label: cleanText(slot.label, LABEL_LIMIT) ?? "Photos",
           count: slot.count,
         })),
-        previewCandidates: previewCandidates(row, summary.slotPaths),
+        previewCandidates: returnPreviewCandidates(row, summary),
       },
     };
   }
 
   const decision = priorityForReport(formType, data);
+  const isDamage = formType === "damage_report";
   return {
     ...common,
-    event: formType === "damage_report" ? "damage_report" : "support_request",
+    event: isDamage ? "damage_report" : "support_request",
     priority: decision.priority,
     headline: decision.headline,
     reported: reportedValuesFor(formType, data),
@@ -324,7 +399,14 @@ export function projectSubmissionBrief(input: {
     photos: {
       count: mediaCount(row.media_urls),
       slotCounts: [],
-      previewCandidates: previewCandidates(row, media),
+      previewCandidates: previewCandidates(
+        row,
+        media.map((path) =>
+          isDamage
+            ? { path, label: "Damage report photo", rank: 1 as const }
+            : { path, label: "Support request photo", rank: 2 as const }
+        )
+      ),
     },
   };
 }

@@ -20,6 +20,8 @@ import {
 import { notificationIdempotencyKey } from "@/lib/notifications/idempotency";
 import { sendNotificationEmail } from "@/lib/notifications/send";
 import { logNotificationEvent, type NotificationEvent } from "@/lib/notifications/log";
+import { buildPreviews, failedPreviews, submissionPreviewStorage, type BuiltPreviews } from "@/lib/notifications/previews";
+import { previewBytesBucket } from "@/lib/notifications/preview-limits";
 import { submissionReference } from "@/lib/submissions/inbox";
 import { time } from "@/lib/diagnostics/server-timing";
 
@@ -43,6 +45,11 @@ import { time } from "@/lib/diagnostics/server-timing";
  * Engineering Phase D3A: recipients come from one pure resolver (lib/notifications/routing.ts). The brief and the
  * message are built ONCE; each recipient then gets its own sequential send (never To+CC), its own idempotency key
  * (the key binds a recipient hash), and its own log line — so one recipient's failure cannot affect another's.
+ *
+ * Engineering Phase D4: when the organization's switch allows previews and the brief has candidates, up to three
+ * bounded previews are built ONCE from the private bucket (this module's admin client, read-only) before any
+ * recipient is sent to. Every route receives the identical sanitized set, the idempotency key does not change, and
+ * any preview failure leaves a text-only email that is still sent.
  */
 
 const NOTIFY_COLUMNS =
@@ -74,9 +81,17 @@ async function deliver(args: {
   planned: PlannedSend;
   content: EmailContent;
   previewRequestedCount: number | null;
-  previewAttachedCount: number | null;
+  /** The shared D4 preview result, or null when previews were not requested for this event. */
+  previews: BuiltPreviews | null;
 }): Promise<void> {
-  const { planned } = args;
+  const { planned, previews } = args;
+  const previewFields = {
+    previewRequestedCount: args.previewRequestedCount,
+    previewAttachedCount: previews ? previews.attached : args.previewRequestedCount === null ? null : 0,
+    previewFailureClass: previews ? previews.failureClass : null,
+    previewTransformMs: previews ? previews.transformMs : null,
+    previewBytesBucket: previews ? previewBytesBucket(previews.totalBytes) : null,
+  };
   try {
     const idempotencyKey = notificationIdempotencyKey({
       event: args.event,
@@ -103,8 +118,7 @@ async function deliver(args: {
       failureClass: result.failureClass,
       reason: result.reason,
       recipientRoute: planned.route,
-      previewRequestedCount: args.previewRequestedCount,
-      previewAttachedCount: args.previewAttachedCount,
+      ...previewFields,
     });
   } catch (err) {
     // Recipient-isolation backstop: log this recipient's failure (no error body) and let the next send proceed.
@@ -233,6 +247,23 @@ export async function notifySubmission(input: SubmissionNotificationInput): Prom
       settings.notify_include_photo_previews,
       projected.brief.photos.previewCandidates.length
     );
+
+    // D4: previews are built once, before any recipient, from this submission's own stored photos. The message is
+    // rebuilt once with whatever survived; a failure of the whole step still yields a text-only message.
+    let content = projected.content;
+    let previews: BuiltPreviews | null = null;
+    if (requested > 0) {
+      previews = await time("notify", "notify.media", () =>
+        buildPreviews({
+          candidates: projected.brief.photos.previewCandidates,
+          requested,
+          owner: { organizationId: input.organizationId, assetId: input.assetId, submissionId: row.id },
+          storage: submissionPreviewStorage(admin),
+        })
+      ).catch(() => failedPreviews(requested));
+      content = buildIncidentEmail(projected.brief, previews);
+    }
+
     for (const planned of routing.sends) {
       // A submission notifies each recipient exactly once, ever — its id plus the recipient hash is the key.
       await deliver({
@@ -241,10 +272,9 @@ export async function notifySubmission(input: SubmissionNotificationInput): Prom
         reference,
         idempotencyReference: row.id,
         planned,
-        content: projected.content,
+        content,
         previewRequestedCount: requested,
-        // Previews are attached from D4; nothing is attached yet.
-        previewAttachedCount: 0,
+        previews,
       });
     }
   } catch (err) {
@@ -277,7 +307,8 @@ type TagRequestRow = { id: string; organization_id: string; status: string };
 
 /**
  * Engineering Phase D3A: called only for a real status change (lib/tags/owner-actions.ts). Fails closed when the
- * saved request is missing or has moved on to another status since the save that scheduled this email.
+ * saved request is missing or has moved on to another status since the save that scheduled this email. Never carries
+ * previews.
  */
 export async function notifyTagRequestStatus(input: TagStatusNotificationInput): Promise<void> {
   try {
@@ -351,7 +382,7 @@ export async function notifyTagRequestStatus(input: TagStatusNotificationInput):
         planned,
         content,
         previewRequestedCount: null,
-        previewAttachedCount: null,
+        previews: null,
       });
     }
   } catch (err) {

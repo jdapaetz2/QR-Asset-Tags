@@ -135,6 +135,36 @@ describe("routing metadata (D3A)", () => {
     expect(payloadOf(info)).toMatchObject({ previewRequestedCount: 10, previewAttachedCount: 0, digestItemCount: 12 });
   });
 
+  it("records D4 preview fields bounded — failure class enum, transform time, coarse size bucket", () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    logNotificationEvent({
+      event: "submission",
+      outcome: "sent",
+      organizationId: "o",
+      previewRequestedCount: 3,
+      previewAttachedCount: 2,
+      previewFailureClass: "decode_failed",
+      previewTransformMs: 1234.6,
+      previewBytesBucket: "lt_250kb",
+    });
+    logNotificationEvent({
+      event: "submission",
+      outcome: "sent",
+      organizationId: "o",
+      previewFailureClass: "org/x/submission/y/secret.jpg" as never,
+      previewTransformMs: 9e9,
+      previewBytesBucket: "123456 bytes" as never,
+    });
+    expect(payloadOf(info, 0)).toMatchObject({
+      previewAttachedCount: 2,
+      previewFailureClass: "decode_failed",
+      previewTransformMs: 1234,
+      previewBytesBucket: "lt_250kb",
+    });
+    expect(payloadOf(info, 1)).toMatchObject({ previewFailureClass: null, previewTransformMs: 60000, previewBytesBucket: null });
+    expect(info.mock.calls[1].join(" ")).not.toContain("secret.jpg");
+  });
+
   it("never logs the full recipient on either route", () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
     logNotificationEvent({

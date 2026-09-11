@@ -8,7 +8,10 @@ status-change-only tag emails (migration 0034, applied to staging and Production
 return-exceptions summary at 6 AM Pacific via two Hobby cron slots, run ledger (migration 0036), catch-up, quiet-day
 skip; `089f707` promoted to Production 2026-09-11 (deployment `9FmryFHdh`), both cron entries registered,
 `cron:verify-production` 3/3 (no token 401, wrong token 401, real token 200 `outside_window`), `smoke:production`
-13 pass / 0 fail / 1 skip; first scheduled run 2026-09-12 13:00–13:59 UTC. D4–D5 are not built.** Branch
+13 pass / 0 fail / 1 skip; first scheduled run 2026-09-12 13:00–13:59 UTC · D4 built — up to three bounded CID
+inline photo previews (direct `sharp` 0.34.5, no migration): ranked damage first, metadata stripped, ≤ 640 px,
+≤ 400 KB each, ≤ 1.2 MB total, built once per notification inside `after()`, text-only fallback on any failure; live
+QA in §15. D5 is not built.** Branch
 `pilot-credibility` (Vercel's Production branch is `main`: a push builds a Preview; Production = promote).
 Production deployment `9FmryFHdh` → `mulemark.io`.
 
@@ -847,9 +850,10 @@ Renter return checklists are emailed individually for this organization.
   <p><a href="https://mulemark.io/dashboard/submissions/…"><strong>Open in Mulemark</strong></a></p>
   <p><strong>Contact</strong><br>Jamie Rivera — prefers phone<br>
      <a href="tel:+16045550100">Call +1 604 555 0100</a> · <a href="mailto:jamie@site.test">Email Jamie</a></p>
-  <!-- D4 only, when the organization has previews on: -->
-  <p><img src="cid:mm-preview-1@mulemark" alt="Damage photo 1 of 3" width="200" style="max-width:100%;height:auto;border:0"></p>
-  <p>Photos: 3 on the record · Reference: SUB-2026-A1B2C3</p>
+  <p>Photos: 3 on the record<br>Reference: SUB-2026-A1B2C3</p>
+  <!-- D4 (built), when the organization has previews on: the count line in both parts, then one figure per preview -->
+  <p>Photo previews included: 3 of 3 photos, reduced in size.<br>Open the record in Mulemark for the original photos and full evidence.</p>
+  <p><img src="cid:mm-preview-1@mulemark" alt="Damage report photo — preview 1 of 3" width="320" height="240" style="display:block;max-width:100%;height:auto;border:0">Damage report photo — preview 1 of 3</p>
   <p>You are receiving this because …</p>
 </div>
 ```
@@ -922,35 +926,43 @@ the company "has been notified" and never implies an employee has read the repor
 | 5. Stored derived thumbnails | New storage objects, a backfill and retention questions while storage lifecycle is deferred (`ROADMAP_DEFERRED.md` #8). | **Rejected for Phase D** |
 | (5b) Supabase image transformation | Requires a paid Supabase plan; Production is on Free. | **Not available** |
 
-### 8.2 Specification (D4)
+### 8.2 Specification (D4 — built)
+
+The D4 prompt (2026-09-11) superseded the draft size caps (120 KB each / 400 KB total) and filename (`photo-N.jpg`);
+the values below are what shipped. Code: `lib/notifications/preview-limits.ts`, `preview-image.ts`, `previews.ts`.
 
 | Rule | Value |
 |---|---|
 | Default | **on** for every organization; `notify_include_photo_previews = false` produces text-only emails |
-| Where | individual damage, support and renter-return emails only — **never the daily summary** |
+| Where | individual damage, support and renter-return emails only — **never the daily summary, never tag emails** |
 | Count | at most **3** previews |
-| Selection | returns: `damage_photos` slot first, then remaining slots in template-snapshot order; damage/support: `media_urls` order |
-| Eligibility | path is in the row's own `media_urls`, starts with `org/{orgId}/asset/{assetId}/submission/{submissionId}/`, and has a `jpg`/`jpeg`/`png`/`webp` extension |
-| Source read | service-role storage download; skip any object over 10 MB before decoding |
-| Transform | auto-orient, fit within **640 × 640**, never enlarge, **JPEG** quality ~70 |
-| Metadata | **stripped** (EXIF, GPS) — asserted by a test that reads the output metadata |
-| Decode safety | input pixel limit (~40 MP); corrupt input fails that preview only |
-| Size | ≤ **120 KB** each (one lower-quality retry, then drop); ≤ **400 KB** total |
-| Budget | separate media budget (~6 s) before the send; the 15 s send budget is unchanged |
-| Attachment | `content_type: image/jpeg`, `filename: photo-1.jpg`, `content_id: mm-preview-1@mulemark` (< 128 chars) |
-| HTML | `<img src="cid:…" alt="Damage photo 1 of 3" width="200">` |
-| Text part | unchanged: "Photos: 3 on the record" |
+| Selection (rank) | 1 damage photo (return `damage_photos` slot; every damage-report photo) → 2 issue-specific (any other or custom return slot; every support photo) → 3 overall condition (system overview slots) → 4 additional photos; ties keep template, then upload, order |
+| Returns gate | previews only when the return has a **return exception**; clean, photo-gap-only and failed-optional-only returns show the photo count only |
+| Eligibility | path is in the row's own `media_urls`, is a strict `org/{uuid}/asset/{uuid}/submission/{uuid}/{file}` path whose ids match the row, has no `..`, and has a `jpg`/`jpeg`/`png`/`webp` extension — re-checked immediately before each read |
+| Source read | `notify.ts`'s service-role client, read-only: `info()` rejects objects over **10 MB** before download; the downloaded size is re-checked before decode. No signed URL, no write, no delete |
+| Type check | magic-byte sniff (JPEG/PNG/WebP) before Sharp sees the bytes, so SVG/GIF/TIFF/HEIF decoders never run; the decoded container must agree. HEIC is refused (the app never accepts it, and Sharp's prebuilt binaries cannot decode HEVC) |
+| Decode safety | `limitInputPixels` 40 MP and ≤ 12,000 px per side, checked from the header; `failOn: "warning"`; `sequentialRead`; first frame only |
+| Transform | auto-orient, fit within **640 × 640**, never enlarge, flatten onto white, **JPEG** (mozjpeg) quality 72, one retry at 55 |
+| Metadata | **stripped** — Sharp's default output; `withMetadata`/`keepExif`/`keepIccProfile` are never called (a source-scan test enforces it). Tests read the output and find no EXIF, GPS, ICC, XMP or IPTC. The stored original is unchanged and is not claimed to be clean |
+| Size | ≤ **400 KB** each (else dropped as `too_large_output`); ≤ **1.2 MB** across the set (else dropped as `total_budget`). Real 640 px output is typically 40–150 KB |
+| Budget | separate media budget **6 s**, concurrency 2, before the send; the 15 s send budget is unchanged |
+| Attachment | `content_type: image/jpeg`, `filename: incident-photo-N.jpg`, `content_id: mm-preview-N@mulemark`, numbered after omissions |
+| HTML | after the photo-count line: `<img src="cid:…" alt="{slot label} — preview n of N" width="320" height="…">` plus the same caption; no remote image, ever |
+| Text part | "Photos: N on the record …" (unchanged) plus "Photo previews included: X of N photos, reduced in size." and "Open the record in Mulemark for the original photos and full evidence." — or "Photo previews: none included." when all failed |
 | Failure | any failure drops that preview; **all failing produces a text-only email — never a suppressed one** |
-| Logging | counts only: `previewsRequested`, `previewsAttached`, coarse `previewFailureClass` |
+| Recipients | built **once** per notification before the first send; main and urgent routes get the identical sanitized set; idempotency key unchanged (event, submission id, recipient hash) |
+| Logging | `previewRequestedCount`, `previewAttachedCount`, `previewFailureClass` (closed enum), `previewTransformMs`, `previewBytesBucket` (coarse) — no path, filename or content |
 | Body | built once before the retry loop, so every attempt carries the same key and identical payload |
 | Endpoint | single-send `POST /emails` only (inline images are unsupported on the batch endpoint) |
+| Preview deployments | previews are built (so staging exercises Sharp), the send stays `dry_run` |
 
 ### 8.3 Dependency
 
-`sharp` is the **approved direct image dependency** for D4. Today it exists only as an optional dependency of
-Next (`node_modules/next/package.json` `optionalDependencies`) and nothing imports it. D4 adds it explicitly,
-pinned to Next's 0.34.x line, confirms the Linux binary installs in the Vercel build, and records the function
-size change.
+`sharp` is a **direct dependency pinned to 0.34.5**, the version Next 16.2.9 resolves as its optional dependency, so
+there is one native install rather than two. The lockfile carries `@img/sharp-linux-x64` and
+`@img/sharp-libvips-linux-x64`, which `npm ci` installs in the Vercel build; Sharp is on Next's default
+server-external list, so it is not bundled. It is imported lazily inside `preview-image.ts`: if the binary ever fails
+to load, previews report `transformer_unavailable` and the email still sends text-only.
 
 ---
 
@@ -1198,12 +1210,16 @@ the operator trade-off.
 
 ### D4 — Bounded inline photo previews
 
-| File | Change |
+| File | Change (built) |
 |---|---|
-| `package.json` | `sharp` explicit dependency |
-| `lib/notifications/previews.ts` (new) | Selection, eligibility, download, transform, caps, budget |
-| `lib/notifications/email.ts`, `send.ts` | Optional `attachments`; CID references |
-| Tests | EXIF stripped, dimension and byte caps, foreign-path refusal, corrupt/oversized/timeout → text-only send, org switch off |
+| `package.json`, `package-lock.json` | `sharp` 0.34.5 direct, exact |
+| `lib/notifications/preview-limits.ts` (new) | Caps, budgets, failure-class and size-bucket enums |
+| `lib/notifications/preview-image.ts` (new) | Sniff, bounds, lazy Sharp, orient/resize/flatten/JPEG, retry |
+| `lib/notifications/previews.ts` (new) | Path re-check, read-only storage adapter, budget and concurrency, assembly |
+| `lib/notifications/projection.ts`, `return-summary.ts` | Ranked `{ path, label, rank }` candidates; exception-only return gate |
+| `lib/notifications/email.ts`, `send.ts` | Optional `attachments`; CID figures and preview count line; snake_case attachment body |
+| `lib/notifications/notify.ts`, `log.ts`, `lib/diagnostics/server-timing.ts` | Build once before sends; `notify.media` phase; bounded preview log fields |
+| Tests | `preview-image`, `previews`, `preview-scope` (new); `projection`, `email`, `send`, `notify`, `log` extended |
 
 ### D5 — Live QA and Engineering Phase D closeout
 
@@ -1228,7 +1244,8 @@ the operator trade-off.
   on the canonical host.
 - No output contains a storage path, bucket name, signed-URL marker or raw JSON (fixture rows carry realistic
   paths).
-- HTML ≤ 20 KB, escaped, no `<img>`, no `<style>`, no hidden text.
+- HTML ≤ 20 KB, escaped, no `<img>`, no `<style>`, no hidden text. (Amended by D4: the only `<img>` allowed is a
+  `cid:` reference to an attached preview; no remote image.)
 - A missing row sends nothing and logs `record_missing`; nothing throws; idempotency key format unchanged.
 
 ### D2
@@ -1264,11 +1281,15 @@ the operator trade-off.
 
 ### D4
 
-- ≤ 3 previews; each ≤ 640 px, ≤ 120 KB, JPEG; ≤ 400 KB total; no EXIF/GPS in output.
-- A path outside the submission prefix or absent from `media_urls` is never read.
-- Corrupt, oversized, timed-out or failed downloads still produce a sent text-only email.
-- `notify_include_photo_previews = false` → text-only; the daily summary never carries images.
-- Logs carry counts only.
+- ≤ 3 previews; each ≤ 640 px, ≤ 400 KB, JPEG; ≤ 1.2 MB total; no EXIF/GPS/ICC in output; no original attached.
+- A path outside the submission prefix or absent from `media_urls` is never read; no signed URL, storage path or
+  original filename appears in the message.
+- Corrupt, oversized, unsupported, timed-out or failed downloads still produce a sent text-only email; partial
+  success keeps the survivors.
+- `notify_include_photo_previews = false` → text-only; clean returns get no preview; the daily summary never
+  carries images.
+- Image work never runs on the submission response path (source-scan test); the idempotency key is unchanged.
+- Logs carry counts, one coarse failure class, a duration and a size bucket only.
 
 ### D5
 
@@ -1372,7 +1393,7 @@ for every row; a row not run stays marked **not run**.
 | P3 | Non-immediate report | Standard page; "has your report"; no "has been notified" |
 | M1 | Return with 6 photos across 3 slots incl. damage | 3 previews, damage first |
 | M2 | Photo with GPS EXIF | Received preview carries no EXIF/GPS |
-| M3 | 10 MB photo | Preview ≤ 120 KB, ≤ 640 px |
+| M3 | 10 MB photo | Preview ≤ 400 KB, ≤ 640 px |
 | M4 | Preview generation forced to fail (test fault only) | Text-only email still delivered |
 | M5 | Preview switch off | Text-only |
 | M6 | Provider failure | Submission unaffected; `failed_*` logged |

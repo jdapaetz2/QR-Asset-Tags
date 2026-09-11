@@ -3,6 +3,13 @@ import "server-only";
 import { deploymentContext } from "@/lib/env";
 import { isFailure, type NotificationOutcome } from "@/lib/notifications/outcome";
 import { RECIPIENT_ROUTES, type RecipientRoute } from "@/lib/notifications/routing";
+import {
+  PREVIEW_BYTES_BUCKETS,
+  PREVIEW_FAILURE_CLASSES,
+  PREVIEW_MAX_TRANSFORM_MS,
+  type PreviewBytesBucket,
+  type PreviewFailureClass,
+} from "@/lib/notifications/preview-limits";
 
 /**
  * Phase A5 — structured, redacted notification logging. Emits ONE `[notifications]` JSON line per
@@ -11,8 +18,8 @@ import { RECIPIENT_ROUTES, type RecipientRoute } from "@/lib/notifications/routi
  *
  * It only ever emits SAFE fields: event, outcome, org id (a UUID), reference, the recipient DOMAIN and a
  * REDACTED recipient, and provider metadata (id/status/attempts/failure class). It never logs the message
- * body, a media URL, the API key/secret, the auth header, or a raw IP. The raw recipient is passed in but
- * only its redacted forms are emitted.
+ * body, a media URL or path, an attachment, the API key/secret, the auth header, or a raw IP. The raw
+ * recipient is passed in but only its redacted forms are emitted.
  */
 
 /** Domain portion of an email, or "unknown" when it can't be parsed. */
@@ -59,10 +66,16 @@ export type NotificationLogFields = {
    * to one address, sent once) or `digest` (D3B). A bounded enum; anything else is logged as null.
    */
   recipientRoute?: RecipientRoute | null;
-  /** Inline previews this send would request (0 when the organization turned previews off). Counts only. */
+  /** Inline previews this send requested (0 when the organization turned previews off). Counts only. */
   previewRequestedCount?: number | null;
-  /** Inline previews actually attached. Always 0 until previews ship in D4. Counts only. */
+  /** Inline previews actually attached (D4). Counts only. */
   previewAttachedCount?: number | null;
+  /** D4 — why the first omitted preview was omitted. A closed enum; anything else is logged as null. */
+  previewFailureClass?: PreviewFailureClass | null;
+  /** D4 — milliseconds spent building previews. Bounded integer. */
+  previewTransformMs?: number | null;
+  /** D4 — coarse total bytes of the attached previews. A closed enum, never an exact size. */
+  previewBytesBucket?: PreviewBytesBucket | null;
   /** Items in a daily return summary (D3B). Count only. */
   digestItemCount?: number | null;
 };
@@ -80,6 +93,10 @@ function boundedRoute(value: unknown): RecipientRoute | null {
   return typeof value === "string" && (RECIPIENT_ROUTES as readonly string[]).includes(value)
     ? (value as RecipientRoute)
     : null;
+}
+
+function boundedEnum<T extends string>(value: unknown, allowed: readonly T[]): T | null {
+  return typeof value === "string" && (allowed as readonly string[]).includes(value) ? (value as T) : null;
 }
 
 /** One line per daily-summary invocation (Engineering Phase D3B). Counts and the Pacific date/hour only. */
@@ -139,6 +156,10 @@ export function logNotificationEvent(fields: NotificationLogFields): void {
     previewRequestedCount: boundedCount(fields.previewRequestedCount, MAX_PREVIEW_COUNT),
     previewAttachedCount: boundedCount(fields.previewAttachedCount, MAX_PREVIEW_COUNT),
     digestItemCount: boundedCount(fields.digestItemCount, MAX_DIGEST_ITEM_COUNT),
+    // D4 additions, appended likewise.
+    previewFailureClass: boundedEnum(fields.previewFailureClass, PREVIEW_FAILURE_CLASSES),
+    previewTransformMs: boundedCount(fields.previewTransformMs, PREVIEW_MAX_TRANSFORM_MS),
+    previewBytesBucket: boundedEnum(fields.previewBytesBucket, PREVIEW_BYTES_BUCKETS),
   };
   // A genuine failure goes to the error stream; dry-run/skips/sent are informational.
   if (isFailure(fields.outcome)) {

@@ -54,6 +54,8 @@ export type ReturnChecklistSummary = {
   slotCounts: { label: string; count: number }[];
   /** Stored photo paths in the same order. Server-only metadata — never rendered. */
   slotPaths: string[];
+  /** The same paths with the slot each came from (D4 preview ranking). Server-only metadata — never rendered. */
+  slotPathEntries: { slotId: string; label: string; path: string }[];
 };
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -94,6 +96,7 @@ function emptySummary(shape: ReturnChecklistSummary["shape"]): ReturnChecklistSu
     missingRecommendedSlotLabels: [],
     slotCounts: [],
     slotPaths: [],
+    slotPathEntries: [],
   };
 }
 
@@ -197,11 +200,13 @@ function summarizeV2(obj: Record<string, unknown>, template: InspectionTemplate)
     const list = Array.isArray(photos[slotId]) ? (photos[slotId] as unknown[]) : [];
     const paths = list.map((photo) => asRecord(photo).path).filter(isString);
     if (paths.length === 0) continue;
-    summary.slotCounts.push({ label: labels.get(slotId) ?? "Photos", count: paths.length });
+    const label = labels.get(slotId) ?? "Photos";
+    summary.slotCounts.push({ label, count: paths.length });
     for (const path of paths) {
       if (seenPaths.has(path)) continue;
       seenPaths.add(path);
       summary.slotPaths.push(path);
+      summary.slotPathEntries.push({ slotId, label, path });
     }
   }
 

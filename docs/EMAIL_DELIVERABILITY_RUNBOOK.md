@@ -150,6 +150,14 @@ The form routes set `export const maxDuration = 60` precisely so the deferred se
 rather than whichever platform default applies: 60 s comfortably contains ~1 s of upload + insert plus
 the full 15 s notification budget.
 
+**Engineering Phase D4 — inline photo previews.** Before the first send, the deferred work may build up to three
+previews from the submission's own private photos under a separate **6 s media budget** (concurrency 2): read-only
+storage reads, then Sharp resizes each to ≤ 640 px JPEG without metadata (≤ 400 KB each, ≤ 1.2 MB total). They are
+built once and shared by every route, and ride as CID attachments on the single-send endpoint. Worst case is now
+≈ 1 s + 6 s + 2 × 15 s ≈ 37 s, still inside 60 s. Any preview failure — missing object, unsupported or corrupt
+file, oversized input or output, budget — drops that preview only; the email is sent text-only if none survive.
+Some webmail clients show inline previews as attachments, and a forwarded email carries them.
+
 The budget below still applies, and still matters — it now bounds work that no longer delays anyone.
 
 Notifications were previously awaited **inside** the renter's submission request, so attempt-level

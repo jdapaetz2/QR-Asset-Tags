@@ -140,6 +140,19 @@ export async function sendNotificationEmail(
     html: content.html,
     // Omitted entirely when unset — Resend treats a present-but-empty reply_to as a malformed address.
     ...(replyTo ? { reply_to: replyTo } : {}),
+    // Engineering Phase D4: generated inline previews only (lib/notifications/previews.ts). Built into the body ONCE,
+    // before the retry loop, so every attempt carries the identical payload under the same idempotency key. Single-send
+    // endpoint only — Resend's batch endpoint does not accept attachments.
+    ...(content.attachments && content.attachments.length > 0
+      ? {
+          attachments: content.attachments.map((attachment) => ({
+            filename: attachment.filename,
+            content: attachment.content.toString("base64"),
+            content_type: attachment.contentType,
+            content_id: attachment.contentId,
+          })),
+        }
+      : {}),
   });
 
   const headers: Record<string, string> = {

@@ -267,6 +267,86 @@ describe("contact links", () => {
   });
 });
 
+describe("inline photo previews (D4)", () => {
+  const POINTER = "Open the record in Mulemark for the original photos and full evidence.";
+
+  function previewSet(count: number, label = "Damage photos") {
+    const figures = Array.from({ length: count }, (_, i) => ({
+      contentId: `mm-preview-${i + 1}@mulemark`,
+      label,
+      width: 640,
+      height: 480,
+    }));
+    const attachments = figures.map((figure, i) => ({
+      filename: `incident-photo-${i + 1}.jpg`,
+      contentType: "image/jpeg" as const,
+      contentId: figure.contentId,
+      content: Buffer.from([0xff, 0xd8, 0xff, i]),
+    }));
+    return { requested: count, figures, attachments };
+  }
+
+  const photoRow = () =>
+    damageRow(
+      { urgency: "low", description: "x" },
+      { media_urls: [mediaPath("damage-1"), mediaPath("damage-2"), mediaPath("damage-3"), mediaPath("damage-4")] }
+    );
+
+  it("embeds each preview by cid with its own attachment, alt text and caption", () => {
+    const email = buildIncidentEmail(brief(photoRow()), previewSet(3));
+    const cids = [...email.html.matchAll(/<img src="cid:([^"]+)"/g)].map((match) => match[1]);
+    expect(cids).toEqual(["mm-preview-1@mulemark", "mm-preview-2@mulemark", "mm-preview-3@mulemark"]);
+    expect(email.attachments?.map((attachment) => attachment.contentId)).toEqual(cids);
+    expect(email.html).toContain('alt="Damage photos — preview 1 of 3"');
+    expect(email.html).toContain('width="320" height="240"');
+    expect(email.html.match(/<img /g)).toHaveLength(3);
+  });
+
+  it("states the photo total, the previews included and where the originals are, in both parts", () => {
+    const email = buildIncidentEmail(brief(photoRow()), previewSet(2));
+    expectInBoth(email, ["Photos: 4 on the record", "Photo previews included: 2 of 4 photos, reduced in size.", POINTER]);
+  });
+
+  it("falls back to text only when previews were requested but none survived", () => {
+    const email = buildIncidentEmail(brief(photoRow()), { requested: 3, figures: [], attachments: [] });
+    expect(email.html).not.toMatch(/<img/i);
+    expect(email.attachments).toBeUndefined();
+    expectInBoth(email, [`Photo previews: none included. ${POINTER}`]);
+  });
+
+  it("is unchanged when previews were not requested (organization switch off)", () => {
+    const row = photoRow();
+    const off = buildIncidentEmail(brief(row), { requested: 0, figures: [], attachments: [] });
+    expect(off).toEqual(buildIncidentEmail(brief(row)));
+    expect(off.text).not.toContain("Photo previews");
+  });
+
+  it("escapes a hostile slot label in alt text and caption", () => {
+    const email = buildIncidentEmail(brief(photoRow()), previewSet(1, `"><script>x</script>`));
+    expect(email.html).not.toMatch(/<script/i);
+    expect(email.html).toContain("&quot;&gt;&lt;script&gt;");
+  });
+
+  it("carries no remote image, storage path, signed URL or original filename", () => {
+    const email = buildIncidentEmail(brief(photoRow()), previewSet(3));
+    for (const part of [email.text, email.html]) {
+      const lower = part.toLowerCase();
+      for (const banned of ["org/", "/submission/", "damage-1", ".jpg", "token=", "/storage/v1/", "signed", "supabase", "http://"]) {
+        expect(lower).not.toContain(banned);
+      }
+    }
+    expect(email.html).not.toMatch(/<img[^>]+src="(?!cid:)/i);
+    expect(webHrefs(email.html)).toEqual([RECORD_URL]);
+    for (const attachment of email.attachments ?? []) expect(attachment.filename).toMatch(/^incident-photo-\d\.jpg$/);
+  });
+
+  it("shows return previews after the photo count", () => {
+    const email = buildIncidentEmail(brief(exceptionReturn()), previewSet(1));
+    expect(email.html.indexOf("Photos: 3 on the record")).toBeGreaterThan(-1);
+    expect(email.html.indexOf("Photos: 3 on the record")).toBeLessThan(email.html.indexOf("<img"));
+  });
+});
+
 describe("safety of the rendered message", () => {
   it("escapes HTML in every free-text field", () => {
     const email = emailFor(

@@ -23,9 +23,17 @@ Every notification attempt emits one structured `[notifications]` JSON line. Fil
 `notifications` tag. Fields: `event`, `outcome`, `organizationId`, `reference`, `recipientDomain`,
 `recipientRedacted`, `providerId`, `providerStatus`, `attempts`, `failureClass`, `reason`,
 `deploymentContext`, and since Engineering Phase D3A `recipientRoute` (`main`, `urgent`, `main_and_urgent`;
-`digest` from D3B), `previewRequestedCount`, `previewAttachedCount` (always 0 until D4) and `digestItemCount`
-(null until D3B). Sensitive values are never logged (no full recipient, message body, media URL, API
-key, or raw IP).
+`digest` from D3B), `previewRequestedCount`, `previewAttachedCount` and `digestItemCount` (null until D3B), and
+since Engineering Phase D4 `previewFailureClass` (why the first omitted preview was omitted: `path_rejected`,
+`missing_object`, `download_failed`, `too_large_input`, `unsupported_type`, `too_many_pixels`, `decode_failed`,
+`too_large_output`, `transformer_unavailable`, `total_budget`, `time_budget`, `exception`), `previewTransformMs`
+and `previewBytesBucket` (`none`, `lt_250kb`, `lt_500kb`, `lt_1mb`, `lt_1_5mb`). Sensitive values are never logged
+(no full recipient, message body, media URL or path, attachment, API key, or raw IP).
+
+**Previews (D4).** `previewRequestedCount > previewAttachedCount` with an `outcome` of `sent` is healthy: the email
+went out with fewer previews (or text-only) and `previewFailureClass` says why. Repeated `transformer_unavailable`
+means the Sharp binary did not load in that deployment — emails still send, text-only; check the build's
+`@img/sharp-linux-x64` install. Repeated `time_budget` means storage reads are slow.
 
 **One line per recipient (D3A).** An Immediate-attention damage or support report can go to two routes. Each
 recipient gets its own send and its own line: `recipientRoute: "main"` and `recipientRoute: "urgent"` for the same

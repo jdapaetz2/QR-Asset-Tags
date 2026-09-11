@@ -1,5 +1,6 @@
 /**
- * Pure email content builders for notification messages. No I/O and no secrets — just `{ subject, text, html }`.
+ * Pure email content builders for notification messages. No I/O and no secrets — just `{ subject, text, html }`, plus
+ * (Engineering Phase D4) up to three small inline preview attachments on individual incident emails.
  *
  * Engineering Phase D1: submission emails are rendered from a `NotificationBrief` (lib/notifications/projection.ts),
  * which is projected from the committed record. This module never sees `submission_data_json`.
@@ -10,14 +11,16 @@
  *    "Follow up:") are fixed words chosen by deterministic rules — never free text, never "urgent", never "!".
  *  - A real plain-text part carrying the same content as the HTML. The first visible line is the preview; there is
  *    no hidden preheader.
- *  - Restrained HTML: inline font and spacing only, no <style>, no colours carrying meaning, no images, no tracking
- *    pixel, no link shortener, no attachment, no signed media URL, no timestamp.
+ *  - Restrained HTML: inline font and spacing only, no <style>, no colours carrying meaning, no remote images, no
+ *    tracking pixel, no link shortener, no signed media URL, no timestamp. The only images are D4 previews: small
+ *    server-generated JPEGs without metadata, embedded by `cid:` reference to their own attachment — never a URL.
  *  - The authenticated Mulemark record link is the first and primary link. Contact links are `tel:` / `mailto:`
  *    only, and only when the saved value survives strict normalization (lib/contact/links.ts). No link changes
  *    workflow state.
  *  - An explicit reason the recipient is receiving the message, plus where to turn it off.
  *
- * NEVER include signed/expiring media URLs, storage paths or any private submission media here.
+ * NEVER include signed/expiring media URLs, storage paths, original filenames or original photos here. The daily
+ * summary never carries images.
  */
 import type { NotificationBrief } from "@/lib/notifications/projection";
 import type { DigestItem } from "@/lib/notifications/digest";
@@ -31,10 +34,21 @@ import {
   RESPONSE_NEED_LABELS,
 } from "@/lib/submissions/triage";
 
-export type EmailContent = { subject: string; text: string; html: string };
+/** A generated inline preview (D4). Generic filename and content id — never the original's name or path. */
+export type EmailAttachment = { filename: string; contentType: "image/jpeg"; contentId: string; content: Buffer };
+
+export type EmailContent = { subject: string; text: string; html: string; attachments?: EmailAttachment[] };
+
+/** How one attached preview is shown: its content id, display label and the generated image's dimensions. */
+export type PreviewFigure = { contentId: string; label: string; width: number; height: number };
+
+/** The preview set for one incident email. `requested` > 0 means the organization's switch asked for previews. */
+export type IncidentPreviews = { requested: number; figures: PreviewFigure[]; attachments: EmailAttachment[] };
 
 export const SUBJECT_MAX_LENGTH = 78;
 const MAX_LIST_ITEMS = 10;
+/** Display width of an inline preview; the generated image is at most 640 px, so it stays sharp on high-DPI. */
+const PREVIEW_DISPLAY_WIDTH = 320;
 
 export const SELECTIONS_NOTE = "These are the submitter's selections, not a verified inspection.";
 
@@ -45,6 +59,9 @@ export const SELECTIONS_NOTE = "These are the submitter's selections, not a veri
 type Inline = { text: string; strong?: boolean; href?: string; showHrefInText?: boolean };
 type Line = Inline[];
 type Paragraph = Line[];
+
+/** Inline preview images shown in the HTML part directly after one paragraph. */
+type Figures = { after: Paragraph; items: PreviewFigure[] };
 
 const plain = (text: string): Inline => ({ text });
 const bold = (text: string): Inline => ({ text, strong: true });
@@ -76,18 +93,36 @@ function renderInline(part: Inline): string {
   return part.href ? `<a href="${escapeHtml(part.href)}">${inner}</a>` : inner;
 }
 
-function renderHtml(paragraphs: Paragraph[]): string {
+function figuresHtml(items: PreviewFigure[]): string {
+  return items
+    .map((figure, index) => {
+      const caption = `${figure.label} — preview ${index + 1} of ${items.length}`;
+      const width = Math.max(1, Math.min(PREVIEW_DISPLAY_WIDTH, Math.trunc(figure.width) || PREVIEW_DISPLAY_WIDTH));
+      const height =
+        figure.width > 0 && figure.height > 0 ? Math.max(1, Math.round((figure.height * width) / figure.width)) : width;
+      return (
+        `<p style="margin:0 0 14px 0"><img src="cid:${escapeHtml(figure.contentId)}" alt="${escapeHtml(caption)}" ` +
+        `width="${width}" height="${height}" style="display:block;max-width:100%;height:auto;border:0">` +
+        `${escapeHtml(caption)}</p>`
+      );
+    })
+    .join("");
+}
+
+function renderHtml(paragraphs: Paragraph[], figures?: Figures): string {
   const body = paragraphs
-    .map(
-      (paragraph) =>
-        `<p style="margin:0 0 14px 0">${paragraph.map((line) => line.map(renderInline).join("")).join("<br>")}</p>`
-    )
+    .map((paragraph) => {
+      const html = `<p style="margin:0 0 14px 0">${paragraph
+        .map((line) => line.map(renderInline).join(""))
+        .join("<br>")}</p>`;
+      return figures && paragraph === figures.after && figures.items.length > 0 ? html + figuresHtml(figures.items) : html;
+    })
     .join("");
   return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5">${body}</div>`;
 }
 
-function render(subject: string, paragraphs: Paragraph[]): EmailContent {
-  return { subject, text: renderText(paragraphs), html: renderHtml(paragraphs) };
+function render(subject: string, paragraphs: Paragraph[], figures?: Figures): EmailContent {
+  return { subject, text: renderText(paragraphs), html: renderHtml(paragraphs, figures) };
 }
 
 function listLines(items: string[]): Line[] {
@@ -200,6 +235,22 @@ function recordParagraph(brief: NotificationBrief): Paragraph {
   return [[plain(photos)], [plain(`Reference: ${brief.reference}`)]];
 }
 
+export const PREVIEW_POINTER = "Open the record in Mulemark for the original photos and full evidence.";
+
+/**
+ * D4: how many previews this email carries, stated in BOTH parts so a text-only reader, a client that strips images
+ * and a forwarded copy all know the originals live in Mulemark. Absent when previews were not requested.
+ */
+function previewParagraph(brief: NotificationBrief, previews: IncidentPreviews | null | undefined): Paragraph | null {
+  if (!previews || previews.requested <= 0) return null;
+  const attached = previews.figures.length;
+  if (attached === 0) return [[plain(`Photo previews: none included. ${PREVIEW_POINTER}`)]];
+  return [
+    [plain(`Photo previews included: ${attached} of ${photosPhrase(brief.photos.count)}, reduced in size.`)],
+    [plain(PREVIEW_POINTER)],
+  ];
+}
+
 const REASON_TOPICS: Record<NotificationBrief["event"], string> = {
   damage_report: "damage reports",
   support_request: "support requests",
@@ -296,7 +347,7 @@ function descriptionParagraph(brief: NotificationBrief): Paragraph | null {
   return lines;
 }
 
-function reportParagraphs(brief: NotificationBrief): Paragraph[] {
+function reportParagraphs(brief: NotificationBrief, preview: Paragraph | null): Paragraph[] {
   const paragraphs: (Paragraph | null)[] = [
     [[plain(reportPreview(brief))]],
     headerParagraph(brief),
@@ -305,6 +356,7 @@ function reportParagraphs(brief: NotificationBrief): Paragraph[] {
     ctaParagraph(brief),
     contactParagraph(brief),
     recordParagraph(brief),
+    preview,
   ];
   return paragraphs.filter((paragraph): paragraph is Paragraph => paragraph !== null);
 }
@@ -369,7 +421,7 @@ function notesParagraph(brief: NotificationBrief): Paragraph | null {
   return [[bold("Also noted")], ...listLines(detail.notes)];
 }
 
-function returnParagraphs(brief: NotificationBrief): Paragraph[] {
+function returnParagraphs(brief: NotificationBrief, preview: Paragraph | null): Paragraph[] {
   const paragraphs: (Paragraph | null)[] = [
     [[plain(returnPreview(brief))]],
     headerParagraph(brief),
@@ -378,6 +430,7 @@ function returnParagraphs(brief: NotificationBrief): Paragraph[] {
     brief.priority === "record" ? [[plain("No action required. No exceptions reported.")]] : null,
     ctaParagraph(brief),
     recordParagraph(brief),
+    preview,
     contactParagraph(brief),
   ];
   return paragraphs.filter((paragraph): paragraph is Paragraph => paragraph !== null);
@@ -387,10 +440,18 @@ function returnParagraphs(brief: NotificationBrief): Paragraph[] {
 // Public builders
 // ---------------------------------------------------------------------------
 
-export function buildIncidentEmail(brief: NotificationBrief): EmailContent {
-  const body = brief.event === "renter_return" ? returnParagraphs(brief) : reportParagraphs(brief);
+/**
+ * `previews` is omitted (or `requested: 0`) for a text-only email. When present, the figures are shown after the
+ * preview-count paragraph and the attachments ride along; the two are produced together by lib/notifications/previews.ts
+ * so every `cid:` reference has its attachment.
+ */
+export function buildIncidentEmail(brief: NotificationBrief, previews?: IncidentPreviews | null): EmailContent {
+  const preview = previewParagraph(brief, previews);
+  const body = brief.event === "renter_return" ? returnParagraphs(brief, preview) : reportParagraphs(brief, preview);
   body.push(reasonParagraph(brief.organizationName, REASON_TOPICS[brief.event], brief.links.settings));
-  return render(incidentSubject(brief), body);
+  const figures = preview && previews && previews.figures.length > 0 ? { after: preview, items: previews.figures } : undefined;
+  const content = render(incidentSubject(brief), body, figures);
+  return figures && previews && previews.attachments.length > 0 ? { ...content, attachments: previews.attachments } : content;
 }
 
 export type TagStatusEmailInput = {
@@ -465,8 +526,8 @@ function digestItemParagraph(item: DigestItem): Paragraph {
 
 /**
  * One summary per organization per Pacific day. Every return with an exception since the last summary, each with its
- * current status. Counts and text only — no images, no photo previews, no storage paths. The covered period is stated
- * in Pacific time because the reader needs to know what "since the last summary" means.
+ * current status. Counts and text only — no images, no photo previews, no attachments, no storage paths. The covered
+ * period is stated in Pacific time because the reader needs to know what "since the last summary" means.
  */
 export function buildReturnDigestEmail(input: ReturnDigestEmailInput): EmailContent {
   const orgName = subjectSafe(input.orgName) || "Your organization";

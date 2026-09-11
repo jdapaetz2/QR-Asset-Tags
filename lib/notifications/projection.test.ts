@@ -195,35 +195,131 @@ describe("renter return checklists", () => {
   });
 });
 
-describe("preview candidates — server-only metadata", () => {
+describe("preview candidates — server-only metadata (D1, ranked in D4)", () => {
+  const damageValues = {
+    ...cleanGeneratorValues(),
+    damage_observed: "yes",
+    damage_location: "x",
+    damage_severity: "minor",
+    damage_description: "y",
+  };
+  const damageFlags = { damage_observed: "yes", accessories_missing: false };
+  const paths = (row: SavedSubmissionRow) => mustProject(row).photos.previewCandidates.map((c) => c.path);
+
   it("keeps at most three image paths that belong to this submission, damage first", () => {
     const damage = [photo("Damage photos", "d1"), photo("Damage photos", "d2")];
     const row = returnRowV2({
       template: templateV2_20260702(),
-      values: { ...cleanGeneratorValues(), damage_observed: "yes", damage_location: "x", damage_severity: "minor", damage_description: "y" },
-      flags: { damage_observed: "yes", accessories_missing: false },
+      values: damageValues,
+      flags: damageFlags,
       photos: {
         overall_photo: [photo("Overall photo", "o1"), photo("Overall photo", "o2")],
         damage_photos: damage,
       },
     });
-    expect(mustProject(row).photos.previewCandidates).toEqual([mediaPath("d1"), mediaPath("d2"), mediaPath("o1")]);
+    expect(paths(row)).toEqual([mediaPath("d1"), mediaPath("d2"), mediaPath("o1")]);
   });
 
-  it("drops foreign, traversal and non-image paths", () => {
+  it("ranks damage, then issue-specific, then overall condition, then additional photos", () => {
+    const row = returnRowV2({
+      template: templateV2_20260702(),
+      values: damageValues,
+      flags: damageFlags,
+      photos: {
+        additional_photos: [photo("Additional photos", "a1")],
+        overall_photo: [photo("Overall photo", "o1")],
+        hose_closeup: [photo("Hose close-up", "h1")],
+        damage_photos: [photo("Damage photos", "d1")],
+      },
+    });
+    expect(mustProject(row).photos.previewCandidates).toEqual([
+      { path: mediaPath("d1"), label: "Damage photos", rank: 1 },
+      { path: mediaPath("h1"), label: "Photos", rank: 2 },
+      { path: mediaPath("o1"), label: "Overall photo", rank: 3 },
+    ]);
+  });
+
+  it("uses additional photos only when nothing ranks higher", () => {
+    const row = returnRowV2({
+      template: templateV2_20260702(),
+      values: damageValues,
+      flags: damageFlags,
+      photos: { additional_photos: [photo("Additional photos", "a1")] },
+    });
+    expect(mustProject(row).photos.previewCandidates).toEqual([
+      { path: mediaPath("a1"), label: "Additional photos", rank: 4 },
+    ]);
+  });
+
+  it.each([
+    ["a clean return", cleanGeneratorValues(), CLEAN_FLAGS],
+    ["a photo-gap-only return", cleanGeneratorValues(), { ...CLEAN_FLAGS, condition_photos_missing: true }],
+  ])("%s gets a photo count and no preview candidates", (_name, values, flags) => {
+    const row = returnRowV2({
+      template: templateV2_20260702(),
+      values,
+      flags,
+      photos: { overall_photo: [photo("Overall photo", "o1"), photo("Overall photo", "o2")] },
+    });
+    const brief = mustProject(row);
+    expect(brief.photos.count).toBe(2);
+    expect(brief.photos.previewCandidates).toEqual([]);
+  });
+
+  it("a return whose only finding is a failed optional check gets no preview candidates", () => {
+    const row = returnRowV2({
+      template: customTemplate(),
+      values: {
+        hitch_pin: "pass",
+        cab_clean: "fail",
+        had_damage: "no",
+        gear_list: { straps: "returned", cones: "returned" },
+        attestation: "yes",
+      },
+      flags: CLEAN_FLAGS,
+      photos: { yard_overview: [photo("Yard overview", "y1")] },
+    });
+    expect(mustProject(row).priority).toBe("routine");
+    expect(mustProject(row).photos.previewCandidates).toEqual([]);
+  });
+
+  it("damage and support reports keep upload order, capped at three, with their own labels", () => {
+    const media = ["p1", "p2", "p3", "p4"].map((name) => mediaPath(name));
+    expect(mustProject(damageRow({ urgency: "low", description: "x" }, { media_urls: media })).photos.previewCandidates).toEqual(
+      media.slice(0, 3).map((path) => ({ path, label: "Damage report photo", rank: 1 }))
+    );
+    expect(mustProject(supportRow({ description: "x" }, { media_urls: media })).photos.previewCandidates).toEqual(
+      media.slice(0, 3).map((path) => ({ path, label: "Support request photo", rank: 2 }))
+    );
+  });
+
+  it("drops foreign, traversal, mismatched-submission and non-image paths", () => {
     const row = damageRow(
       { urgency: "low", description: "x" },
       {
         media_urls: [
           mediaPath("foreign", "jpg", OTHER_ORG_ID),
           `org/${ORG_ID}/asset/${ASSET_ID}/submission/${SUBMISSION_ID}/../other/x.jpg`,
+          `org/${ORG_ID}/asset/${ASSET_ID}/submission/7c0a55e1-9999-4999-8999-999999999999/x.jpg`,
+          `org/${ORG_ID}/asset/${ASSET_ID}/submission/${SUBMISSION_ID}/nested/x.jpg`,
           mediaPath("clip", "bin"),
           mediaPath("ok"),
         ],
       }
     );
-    expect(mustProject(row).photos.previewCandidates).toEqual([mediaPath("ok")]);
-    expect(mustProject(row).photos.count).toBe(4);
+    expect(paths(row)).toEqual([mediaPath("ok")]);
+    expect(mustProject(row).photos.count).toBe(6);
+  });
+
+  it("never offers a path that is not in the row's own media list", () => {
+    const row = returnRowV2({
+      template: templateV2_20260702(),
+      values: damageValues,
+      flags: damageFlags,
+      photos: { damage_photos: [photo("Damage photos", "d1")] },
+      overrides: { media_urls: [] },
+    });
+    expect(mustProject(row).photos.previewCandidates).toEqual([]);
   });
 });
 

@@ -9,25 +9,32 @@ import {
   cleanGeneratorValues,
   damageRow,
   mediaPath,
+  photo,
   returnRowV2,
   templateV2_20260702,
 } from "./__fixtures__/rows";
 
 // The notifier is submission-safety-critical: it must classify skip reasons, build the email from the COMMITTED
 // row (Phase D1), refuse anything that does not match what was scheduled, route each recipient separately (Phase
-// D3A), pass through the send outcome, and NEVER throw — a notification failure can't break the submission that
-// triggered it.
+// D3A), attach bounded previews built once (Phase D4), pass through the send outcome, and NEVER throw — a
+// notification failure can't break the submission that triggered it.
+
+type SentAttachment = { filename: string; contentType: string; contentId: string; content: Buffer };
 
 type SendArgs = [
   to: string,
-  content: { subject: string; text: string; html: string },
+  content: { subject: string; text: string; html: string; attachments?: SentAttachment[] },
   deps: Record<string, unknown>,
   options: { idempotencyKey?: string; replyTo?: string },
 ];
 
 type SendResult = { outcome: string; attempts: number; providerId?: string; reason?: string; failureClass?: string };
 
-const { state, sendMock, logMock, timeMock } = vi.hoisted(() => ({
+type TransformResult =
+  | { ok: true; jpeg: Buffer; width: number; height: number; bytes: number }
+  | { ok: false; failureClass: string };
+
+const { state, sendMock, logMock, timeMock, transformMock } = vi.hoisted(() => ({
   state: {
     orgRow: null as Record<string, unknown> | null,
     submissionRow: null as Record<string, unknown> | null,
@@ -36,6 +43,8 @@ const { state, sendMock, logMock, timeMock } = vi.hoisted(() => ({
     tagRow: null as Record<string, unknown> | null,
     tagError: null as unknown,
     queries: [] as { table: string; column: string; value: unknown }[],
+    storageMode: "ok" as "ok" | "missing" | "error",
+    storageReads: [] as string[],
     sendResult: { outcome: "dry_run", attempts: 0 } as SendResult,
     resultByCall: {} as Record<number, SendResult>,
     sendCalls: 0,
@@ -49,6 +58,15 @@ const { state, sendMock, logMock, timeMock } = vi.hoisted(() => ({
   }),
   logMock: vi.fn(),
   timeMock: vi.fn(async (_route: string, _phase: string, work: () => Promise<unknown>) => work()),
+  transformMock: vi.fn(
+    async (_bytes: Uint8Array): Promise<TransformResult> => ({
+      ok: true,
+      jpeg: Buffer.from("generated-preview"),
+      width: 640,
+      height: 480,
+      bytes: 17,
+    })
+  ),
 }));
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -69,11 +87,26 @@ vi.mock("@/lib/supabase/admin", () => ({
       };
       return builder;
     },
+    storage: {
+      from: (bucket: string) => ({
+        info: async (path: string) => {
+          state.storageReads.push(`info:${bucket}:${path}`);
+          if (state.storageMode === "missing") return { data: null, error: { statusCode: "404", message: "Object not found" } };
+          if (state.storageMode === "error") return { data: null, error: { statusCode: "500", message: "upstream" } };
+          return { data: { size: 2048 }, error: null };
+        },
+        download: async (path: string) => {
+          state.storageReads.push(`download:${bucket}:${path}`);
+          return { data: new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0])]), error: null };
+        },
+      }),
+    },
   }),
 }));
 vi.mock("@/lib/notifications/send", () => ({ sendNotificationEmail: sendMock }));
 vi.mock("@/lib/notifications/log", () => ({ logNotificationEvent: logMock }));
 vi.mock("@/lib/diagnostics/server-timing", () => ({ time: timeMock }));
+vi.mock("@/lib/notifications/preview-image", () => ({ transformPreview: transformMock }));
 
 import { notifySubmission, notifyTagRequestStatus } from "@/lib/notifications/notify";
 import { notificationIdempotencyKey } from "@/lib/notifications/idempotency";
@@ -123,6 +156,8 @@ beforeEach(() => {
   state.tagRow = { id: "tr-9", organization_id: ORG_ID, status: "in_production" };
   state.tagError = null;
   state.queries = [];
+  state.storageMode = "ok";
+  state.storageReads = [];
   state.sendThrows = false;
   state.throwOnCall = null;
   state.sendCalls = 0;
@@ -160,6 +195,10 @@ function loggedFailure() {
 
 function loadedTable(table: string) {
   return state.queries.some((query) => query.table === table);
+}
+
+function phases() {
+  return timeMock.mock.calls.map((call) => call[1]);
 }
 
 describe("notifySubmission skip classification", () => {
@@ -220,9 +259,15 @@ describe("the email is built from the committed row (D1)", () => {
     expect(sentContent().text).toContain("- Failed check: Oil level");
   });
 
-  it("times load, projection and send as separate phases", async () => {
+  it("times load, projection, media and send as separate phases", async () => {
     await notifySubmission(baseInput);
-    expect(timeMock.mock.calls.map((call) => call[1])).toEqual(["notify.load", "notify.project", "notify.send"]);
+    expect(phases()).toEqual(["notify.load", "notify.project", "notify.media", "notify.send"]);
+  });
+
+  it("skips the media phase when there is nothing to preview", async () => {
+    state.submissionRow = { ...state.submissionRow, media_urls: [] };
+    await notifySubmission(baseInput);
+    expect(phases()).toEqual(["notify.load", "notify.project", "notify.send"]);
   });
 });
 
@@ -239,6 +284,7 @@ describe("fail closed on anything that does not match what was scheduled", () =>
     arrange();
     await notifySubmission(baseInput);
     expect(sendMock).not.toHaveBeenCalled();
+    expect(state.storageReads).toEqual([]);
     const logged = loggedFailure();
     expect(logged).toMatchObject({ event: "submission", outcome: "failed_transient", failureClass });
     // Only coarse classes and redacted metadata — never a value from the row.
@@ -438,24 +484,155 @@ describe("priority routing (D3A)", () => {
     ]);
   });
 
-  it("logs preview counts — requested per the organization switch, never attached before D4", async () => {
+  it("logs preview counts — requested per the organization switch, attached when built", async () => {
     await notifySubmission(baseInput);
-    expect(loggedLines()[0]).toMatchObject({ previewRequestedCount: 1, previewAttachedCount: 0 });
+    expect(loggedLines()[0]).toMatchObject({
+      previewRequestedCount: 1,
+      previewAttachedCount: 1,
+      previewFailureClass: null,
+      previewBytesBucket: "lt_250kb",
+    });
+    expect(typeof loggedLines()[0].previewTransformMs).toBe("number");
 
     vi.clearAllMocks();
     state.sendCalls = 0;
+    state.storageReads = [];
     state.orgRow = orgWith({ notify_include_photo_previews: false });
     await notifySubmission(baseInput);
-    expect(loggedLines()[0]).toMatchObject({ previewRequestedCount: 0, previewAttachedCount: 0 });
+    expect(loggedLines()[0]).toMatchObject({
+      previewRequestedCount: 0,
+      previewAttachedCount: 0,
+      previewFailureClass: null,
+      previewTransformMs: null,
+      previewBytesBucket: null,
+    });
+    expect(state.storageReads).toEqual([]);
   });
 
-  it("log fields carry no report content, contact data or media path", async () => {
+  it("log fields carry no report content, contact data, media path or preview file name", async () => {
     state.orgRow = orgWith(URGENT_ON);
     await notifySubmission(baseInput);
     const serialized = JSON.stringify(loggedLines());
-    for (const banned of ["Tipped", "Saved Name", "org/", ".jpg", "damage-1"]) {
+    for (const banned of ["Tipped", "Saved Name", "org/", ".jpg", "damage-1", "incident-photo", "mm-preview"]) {
       expect(serialized).not.toContain(banned);
     }
+  });
+});
+
+describe("inline photo previews (D4)", () => {
+  beforeEach(() => {
+    state.submissionRow = immediateDamageRow();
+  });
+
+  it("builds the preview set once and sends the identical message, attachments included, to every route", async () => {
+    state.orgRow = orgWith(URGENT_ON);
+    await notifySubmission(baseInput);
+    expect(transformMock).toHaveBeenCalledTimes(1);
+    expect(recipients()).toEqual(["owner@yard.test", "oncall@yard.test"]);
+    expect(sentContent(0)).toBe(sentContent(1));
+    expect(sentContent(0).attachments).toEqual([
+      expect.objectContaining({ filename: "incident-photo-1.jpg", contentType: "image/jpeg", contentId: "mm-preview-1@mulemark" }),
+    ]);
+    expect(sentContent(0).html).toContain('src="cid:mm-preview-1@mulemark"');
+    expect(sentContent(0).text).toContain("Photo previews included: 1 of 1 photo, reduced in size.");
+    expect(phases()).toEqual(["notify.load", "notify.project", "notify.media", "notify.send", "notify.send"]);
+  });
+
+  it("reads only this submission's own stored photo from the private bucket", async () => {
+    await notifySubmission(baseInput);
+    expect(state.storageReads).toEqual([
+      `info:submissions:${mediaPath("damage-1")}`,
+      `download:submissions:${mediaPath("damage-1")}`,
+    ]);
+  });
+
+  it("keeps the recipient-specific idempotency key whether or not previews are attached", async () => {
+    await notifySubmission(baseInput);
+    state.orgRow = orgWith({ notify_include_photo_previews: false });
+    await notifySubmission(baseInput);
+    expect(sentContent(0).attachments).toHaveLength(1);
+    expect(sentContent(1).attachments).toBeUndefined();
+    expect(sendOptions(1).idempotencyKey).toBe(sendOptions(0).idempotencyKey);
+    expect(sendOptions(0).idempotencyKey).toBe(
+      notificationIdempotencyKey({ event: "submission", reference: SUBMISSION_ID, recipient: "owner@yard.test" })
+    );
+  });
+
+  it.each([
+    ["missing", "missing_object"],
+    ["error", "download_failed"],
+  ] as const)("storage %s → the text-only email is still sent", async (mode, failureClass) => {
+    state.storageMode = mode;
+    await notifySubmission(baseInput);
+    expect(sendMock).toHaveBeenCalledTimes(1);
+    expect(sentContent().attachments).toBeUndefined();
+    expect(sentContent().html).not.toContain("<img");
+    expect(sentContent().text).toContain("Photo previews: none included.");
+    expect(loggedLines()[0]).toMatchObject({
+      previewRequestedCount: 1,
+      previewAttachedCount: 0,
+      previewFailureClass: failureClass,
+      previewBytesBucket: "none",
+    });
+  });
+
+  it("a transform failure still sends the text-only email", async () => {
+    transformMock.mockResolvedValueOnce({ ok: false, failureClass: "decode_failed" });
+    await notifySubmission(baseInput);
+    expect(sentContent().attachments).toBeUndefined();
+    expect(loggedLines()[0]).toMatchObject({ outcome: "dry_run", previewAttachedCount: 0, previewFailureClass: "decode_failed" });
+  });
+
+  it("a crashing transformer still sends the text-only email", async () => {
+    transformMock.mockRejectedValueOnce(new Error("native crash"));
+    await expect(notifySubmission(baseInput)).resolves.toBeUndefined();
+    expect(sendMock).toHaveBeenCalledTimes(1);
+    expect(sentContent().attachments).toBeUndefined();
+    expect(loggedLines()[0]).toMatchObject({ previewAttachedCount: 0, previewFailureClass: "exception" });
+  });
+
+  it("the organization switch off → no storage read, no media phase, no preview line", async () => {
+    state.orgRow = orgWith({ notify_include_photo_previews: false });
+    await notifySubmission(baseInput);
+    expect(state.storageReads).toEqual([]);
+    expect(transformMock).not.toHaveBeenCalled();
+    expect(phases()).not.toContain("notify.media");
+    expect(sentContent().attachments).toBeUndefined();
+    expect(sentContent().text).not.toContain("Photo previews");
+  });
+
+  it("a clean renter return is sent with its photo count and no preview", async () => {
+    state.submissionRow = returnRowV2({
+      template: templateV2_20260702(),
+      values: cleanGeneratorValues(),
+      flags: CLEAN_FLAGS,
+      photos: { overall_photo: [photo("Overall photo", "o1")] },
+    });
+    await notifySubmission({ ...baseInput, formType: "return_checklist" });
+    expect(state.storageReads).toEqual([]);
+    expect(sentContent().attachments).toBeUndefined();
+    expect(sentContent().text).toContain("Photos: 1 on the record");
+    expect(loggedLines()[0]).toMatchObject({ previewRequestedCount: 0, previewAttachedCount: 0 });
+  });
+
+  it("Preview deployments stay dry-run and still exercise the preview build", async () => {
+    state.sendResult = { outcome: "dry_run", attempts: 0, reason: "preview_environment" };
+    await notifySubmission(baseInput);
+    expect(transformMock).toHaveBeenCalledTimes(1);
+    expect(loggedLines()[0]).toMatchObject({ outcome: "dry_run", reason: "preview_environment", previewAttachedCount: 1 });
+  });
+
+  it("tag request emails never read storage or carry attachments", async () => {
+    await notifyTagRequestStatus({
+      organizationId: ORG_ID,
+      tagRequestId: "tr-9",
+      fromStatus: "in_review",
+      toStatus: "in_production",
+      changedAt: "2026-09-11T17:30:00.123Z",
+    });
+    expect(state.storageReads).toEqual([]);
+    expect(sentContent().attachments).toBeUndefined();
+    expect(loggedLines()[0]).toMatchObject({ previewRequestedCount: null, previewAttachedCount: null });
   });
 });
 

@@ -38,6 +38,7 @@ function summary(overrides: Partial<ReturnChecklistSummary> = {}): ReturnCheckli
     missingRecommendedSlotLabels: [],
     slotCounts: [],
     slotPaths: [],
+    slotPathEntries: [],
     ...overrides,
   };
 }

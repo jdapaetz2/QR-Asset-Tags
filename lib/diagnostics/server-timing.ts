@@ -39,6 +39,8 @@ export type TimingPhase =
   // durations only.
   | "notify.load"
   | "notify.project"
+  // Engineering Phase D4: downloading and transforming inline photo previews, before the send.
+  | "notify.media"
   | "request.total";
 
 /**

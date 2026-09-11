@@ -146,6 +146,49 @@ describe("payload safety", () => {
     }
   });
 
+  const PREVIEW = {
+    filename: "incident-photo-1.jpg",
+    contentType: "image/jpeg" as const,
+    contentId: "mm-preview-1@mulemark",
+    content: Buffer.from([0xff, 0xd8, 0xff, 0x01]),
+  };
+
+  it("adds generated previews as Resend attachments — base64 content, snake_case fields, nothing else", async () => {
+    configure();
+    fetchMock.mockResolvedValueOnce(resp(200, { id: "x" }));
+    await sendNotificationEmail("owner@yard.test", { ...CONTENT, attachments: [PREVIEW] }, noSleep);
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(Object.keys(body).sort()).toEqual(["attachments", "from", "html", "subject", "text", "to"]);
+    expect(body.attachments).toEqual([
+      {
+        filename: "incident-photo-1.jpg",
+        content: PREVIEW.content.toString("base64"),
+        content_type: "image/jpeg",
+        content_id: "mm-preview-1@mulemark",
+      },
+    ]);
+    expect(JSON.stringify(body.attachments)).not.toMatch(/path|https?:|storage|org\//);
+  });
+
+  it("omits the attachments field when there are none", async () => {
+    configure();
+    fetchMock.mockResolvedValueOnce(resp(200, { id: "x" }));
+    await sendNotificationEmail("owner@yard.test", { ...CONTENT, attachments: [] }, noSleep);
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(Object.keys(body).sort()).toEqual(["from", "html", "subject", "text", "to"]);
+  });
+
+  it("retries with a byte-identical body and the same idempotency key", async () => {
+    configure();
+    fetchMock.mockResolvedValueOnce(resp(500)).mockResolvedValueOnce(resp(200, { id: "x" }));
+    const key = notificationIdempotencyKey({ event: "submission", reference: "s-1", recipient: "owner@yard.test" });
+    await sendNotificationEmail("owner@yard.test", { ...CONTENT, attachments: [PREVIEW] }, noSleep, { idempotencyKey: key });
+    const [first, second] = fetchMock.mock.calls.map((call) => call[1] as RequestInit);
+    expect(second.body).toBe(first.body);
+    expect((second.headers as Record<string, string>)["Idempotency-Key"]).toBe(key);
+    expect((first.headers as Record<string, string>)["Idempotency-Key"]).toBe(key);
+  });
+
   it("never puts the API key anywhere but the Authorization header", async () => {
     configure();
     fetchMock.mockResolvedValueOnce(resp(200, { id: "x" }));
