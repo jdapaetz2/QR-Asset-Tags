@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useActionState } from "react";
+import { startTransition, useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { fieldClass } from "@/components/public/public-form";
@@ -314,11 +314,14 @@ export function ReturnInspectionForm({
       onSubmit={(e) => {
         // Only an intended submit path (final Submit / confirmed dialog) sets allowSubmitRef. Everything else —
         // Enter in a field, a stray submit, entering Review — is cancelled here before the action can run.
-        if (!allowSubmitRef.current) {
-          e.preventDefault();
-          return;
-        }
+        e.preventDefault();
+        if (!allowSubmitRef.current) return;
         allowSubmitRef.current = false; // consume: guarantees exactly one submission per intended press.
+        // Dispatch the action ourselves, in a transition. React resets a `<form action>` after the action completes —
+        // even when it returned an error — which cleared the contact fields, emptied the photo inputs and unchecked
+        // the answers. This path skips that reset; `action` stays for a submit that happens before hydration.
+        const formData = new FormData(e.currentTarget);
+        startTransition(() => formAction(formData));
       }}
       className="flex flex-col gap-5 pb-24"
     >

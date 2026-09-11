@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { startTransition, useActionState, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import type { PublicFormState } from "@/lib/forms/submit";
@@ -49,7 +49,18 @@ export function PublicForm({
   }, []);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form
+      // Kept so a submit that happens before hydration still posts to the server action.
+      action={formAction}
+      onSubmit={(e) => {
+        // React resets a `<form action>` after the action completes — even when it returned an error — which wiped
+        // everything the renter typed. Dispatching the same action in a transition from onSubmit skips that reset.
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        startTransition(() => formAction(formData));
+      }}
+      className="flex flex-col gap-4"
+    >
       <input type="hidden" name={IDEMPOTENCY_FIELD} value={idempotencyKey} readOnly />
       {state.error ? (
         <p

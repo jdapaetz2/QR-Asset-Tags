@@ -36,9 +36,10 @@ export function TriageChoiceGroup({
     const group = groupRef.current;
     const form = group?.form;
     if (!group || !form) return;
-    // React resets a form after its server action returns (e.g. a validation error). The reset unchecks every radio
-    // without re-rendering, while the hidden input and this component keep the answer, so the renter would see a
-    // blank question that still submits a value. Re-apply the chosen answer once the reset has run.
+    // The public form dispatches its action from onSubmit, which avoids React's post-action form reset. A submit
+    // React replays after hydration still resets the form: that unchecks every radio without re-rendering, while the
+    // hidden input and this component keep the answer, so the renter would see a blank question that still submits a
+    // value. Re-apply the chosen answer once any reset has run.
     const onReset = () => {
       setTimeout(() => {
         for (const radio of group.querySelectorAll<HTMLInputElement>('input[type="radio"]')) {

@@ -33,10 +33,12 @@ test("a rejected upload preserves the entered values and writes nothing", async 
   await page.locator('input[name="media"]').setInputFiles(badTypeFile());
   await page.getByRole("button", { name: "Submit damage report" }).click();
 
-  // Server-side media validation fails → inline alert, still on the form, values intact.
-  await expect(page.getByRole("alert")).toBeVisible();
+  // Server-side media validation fails → inline error, still on the form, values intact. Wait for the server's own
+  // message: Next's empty route announcer is also role="alert", so waiting on the role checked values too early.
+  await expect(page.getByText("Only JPG, PNG, or WebP images are allowed.")).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/forms/${asset.shortCode}/damage$`));
   await expect(page.getByLabel("Your name")).toHaveValue("Renter Rita");
+  await expect(page.getByLabel("What's damaged?")).toHaveValue("Cracked windshield");
   expect(await countSubmissions(asset.assetId, "damage_report")).toBe(0);
 });
 
