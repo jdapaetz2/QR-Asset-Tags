@@ -8,28 +8,20 @@ import { isInspectionFormType, returnChecklistFlags } from "@/lib/submissions/re
 import { buildSessionEvidenceHref } from "@/lib/rentals/evidence";
 import { openDamageHref } from "@/lib/submissions/damage";
 import { sanitizeReturnTo, backHref } from "@/lib/nav/return-to";
-import {
-  mediaCount,
-  submissionReference,
-  submissionUrgency,
-  urgencyTone,
-} from "@/lib/submissions/inbox";
+import { mediaCount, submissionReference } from "@/lib/submissions/inbox";
+import { PRIORITY_LABELS, submissionPriority } from "@/lib/notifications/priority";
 import { getSubmissionRecord } from "@/lib/submissions/detail-data";
 import { collectMediaPaths, signMediaPaths } from "@/lib/submissions/media";
 import { Badge } from "@/components/ui/badge";
 import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 import { RelativeTime } from "@/components/relative-time";
-import { submissionStatusTone } from "@/lib/ui/status";
+import { notificationPriorityTone, submissionStatusTone } from "@/lib/ui/status";
 import { submissionStatusLabel } from "@/lib/ui/status-labels";
 import { SubmissionStatusActions } from "@/components/submissions/submission-status-actions";
 import { MarkReturnedResolveButton } from "@/components/mark-returned-resolve-button";
 import { ReturnDoneNotice } from "@/components/return-done-notice";
 import { canQuickResolveReturn } from "@/lib/submissions/returns";
 import { SubmissionDetailRecord } from "@/components/submissions/submission-detail-record";
-
-function titleCase(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
 
 export default async function SubmissionDetailPage({
   params,
@@ -52,7 +44,9 @@ export default async function SubmissionDetailPage({
   const { submission, related, assetUnresolved, assetRented } = record;
 
   const reference = submissionReference(submission.id, submission.created_at);
-  const urgency = submissionUrgency(submission.form_type, submission.submission_data_json);
+  // Engineering Phase D2: the deterministic notification priority replaces the legacy urgency badge.
+  const priority = submissionPriority(submission)?.priority ?? null;
+  const showPriority = priority === "immediate" || priority === "follow_up";
   const attachmentCount = mediaCount(submission.media_urls);
 
   // Sign this submission's media once (shared helper) → the record derives its attachment list from the map.
@@ -108,8 +102,11 @@ export default async function SubmissionDetailPage({
             <Badge tone={submissionStatusTone(submission.status)}>
               {submissionStatusLabel(submission.status)}
             </Badge>
-            {urgency ? (
-              <Badge tone={urgencyTone(urgency)}>{titleCase(urgency)} urgency</Badge>
+            {priority && showPriority ? (
+              <Badge tone={notificationPriorityTone(priority)}>
+                <span className="sr-only">Notification priority: </span>
+                {PRIORITY_LABELS[priority]}
+              </Badge>
             ) : null}
             {attachmentCount > 0 ? (
               <Badge tone="neutral">

@@ -44,7 +44,7 @@ test.describe("public support form", () => {
     await page.getByLabel("Your name").fill("Renter Rita");
     // Support requires a contact method (email or phone).
     await page.getByRole("textbox", { name: "Email" }).fill("rita@example.test");
-    await page.getByLabel("What do you need help with?").fill("How do I fold the ramps?");
+    await page.getByLabel("Describe the problem").fill("How do I fold the ramps?");
     await page.getByRole("button", { name: "Send support request" }).click();
     await page.waitForURL(/\/forms\/a3-a-pub\/support\/thanks/);
     await expect(page.getByRole("heading", { name: /^Sent to/ })).toBeVisible();

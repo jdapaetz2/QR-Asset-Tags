@@ -28,7 +28,7 @@ export function OpenDamageAlert({
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Latest: <span className="font-medium text-foreground">{type}</span>
-            {latest.severity ? ` · ${latest.severity} damage` : ""} ·{" "}
+            {latest.severity ? ` · reported ${latest.severity.toLowerCase()} damage` : ""} ·{" "}
             <RelativeTime value={latest.createdAt} />
           </p>
         </div>

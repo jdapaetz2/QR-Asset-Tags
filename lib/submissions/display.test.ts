@@ -24,12 +24,59 @@ describe("formTypeLabel", () => {
 });
 
 describe("submissionFields", () => {
-  it("orders known damage fields and formats missing as dash", () => {
-    const fields = submissionFields("damage_report", { description: "Bent arm" });
-    expect(fields).toEqual([
-      { label: "Urgency", value: "—" },
+  it("shows only what a legacy damage report stored", () => {
+    expect(submissionFields("damage_report", { description: "Bent arm" })).toEqual([
       { label: "Description", value: "Bent arm" },
     ]);
+  });
+
+  it("labels a legacy urgency as reported urgency, never as severity", () => {
+    expect(submissionFields("damage_report", { urgency: "high", description: "Bent arm" })).toEqual([
+      { label: "Reported urgency", value: "High" },
+      { label: "Description", value: "Bent arm" },
+    ]);
+  });
+
+  it("renders D2 damage answers with reported labels, not-reported and not-sure values", () => {
+    expect(
+      submissionFields("damage_report", {
+        triage_version: 1,
+        reported_equipment_state: "unsafe_to_operate",
+        reported_response_need: null,
+        reported_damage_severity: "not_sure",
+        description: "Tipped over",
+      })
+    ).toEqual([
+      { label: "Reported equipment state", value: "Unsafe to operate" },
+      { label: "Reported response need", value: "Not reported" },
+      { label: "Reported damage severity", value: "Not sure" },
+      { label: "Description", value: "Tipped over" },
+    ]);
+  });
+
+  it("renders D2 support answers in order and hides the version marker", () => {
+    const fields = submissionFields("support_request", {
+      triage_version: 1,
+      reported_issue_type: "stuck_recovery",
+      reported_response_need: "immediate",
+      preferred_contact_method: "text",
+      description: "Sunk in mud",
+    });
+    expect(fields).toEqual([
+      { label: "Reported issue type", value: "Stuck or needs recovery" },
+      { label: "Reported response need", value: "Help needed now" },
+      { label: "Preferred contact", value: "text" },
+      { label: "Description", value: "Sunk in mud" },
+    ]);
+    expect(fields.some((field) => /triage/i.test(field.label))).toBe(false);
+  });
+
+  it("never shows triage keys on a row whose form did not ask them", () => {
+    expect(
+      submissionFields("damage_report", { reported_equipment_state: "unsafe_to_operate", description: "x" }).map(
+        (field) => field.label
+      )
+    ).toEqual(["Description"]);
   });
 
   it("renders return checklist fields in order", () => {

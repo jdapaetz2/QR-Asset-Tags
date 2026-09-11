@@ -56,7 +56,9 @@ export const EVIDENCE_RNT = rntRef(EVIDENCE.sessionId, EVIDENCE.startedAt);
 export type DisposableAsset = { assetId: string; shortCode: string };
 
 /** Create a public asset in org A with an active QR link and a resolvable return template. */
-export async function createAsset(opts: { templateKey?: string; category?: string } = {}): Promise<DisposableAsset> {
+export async function createAsset(
+  opts: { templateKey?: string; category?: string; supportPhone?: string } = {}
+): Promise<DisposableAsset> {
   const a = admin();
   const assetId = randomUUID();
   const shortCode = `e2e-${uniqueSuffix()}`;
@@ -68,6 +70,8 @@ export async function createAsset(opts: { templateKey?: string; category?: strin
     category: opts.category ?? "Utility Trailer",
     public_status: "public",
     return_inspection_template_key: opts.templateKey ?? "utility_trailer",
+    // D2: a per-asset support phone, so the confirmation page's call-now button can be exercised.
+    support_phone_override: opts.supportPhone ?? null,
   });
   if (aErr) throw new Error(`createAsset: ${aErr.message}`);
   const { error: pErr } = await a
@@ -304,6 +308,23 @@ export async function countSubmissions(assetId: string, formType?: string): Prom
   if (formType) q = q.eq("form_type", formType);
   const { count } = await q;
   return count ?? 0;
+}
+
+/** The stored `submission_data_json` of an asset's newest submission of a form type (service read) — D2 triage. */
+export async function readLatestSubmissionData(
+  assetId: string,
+  formType: string
+): Promise<Record<string, unknown> | null> {
+  const { data, error } = await admin()
+    .from("form_submissions")
+    .select("submission_data_json")
+    .eq("asset_id", assetId)
+    .eq("form_type", formType)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(`readLatestSubmissionData: ${error.message}`);
+  return (data?.submission_data_json as Record<string, unknown> | null) ?? null;
 }
 
 export type ScanEventRow = {

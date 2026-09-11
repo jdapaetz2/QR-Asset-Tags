@@ -107,7 +107,7 @@ describe("damage report — legacy rows (no triage yet)", () => {
 describe("damage report — explicit triage (D2 contract)", () => {
   it("renders reported fields, severity and the not-verified line", () => {
     const email = emailFor(
-      damageRow({ triage_version: 1, equipment_state: "unsafe", damage_severity: "major", description: "Tipped over." }),
+      damageRow({ triage_version: 1, reported_equipment_state: "unsafe_to_operate", reported_damage_severity: "major", description: "Tipped over." }),
       EXC
     );
     expect(email.subject).toBe("Immediate attention: EXC-001 — reported unsafe to operate");
@@ -121,8 +121,45 @@ describe("damage report — explicit triage (D2 contract)", () => {
   });
 
   it("omits the severity line when not reported", () => {
-    const email = emailFor(damageRow({ triage_version: 1, equipment_state: "operating", description: "x" }));
+    const email = emailFor(damageRow({ triage_version: 1, reported_equipment_state: "operating", description: "x" }));
     expect(email.text).not.toContain("Reported damage severity");
+  });
+});
+
+describe("damage report — every D2 answer reaches the email", () => {
+  it("shows each reported answer, and keeps 'Not sure' out of the preview line", () => {
+    const email = emailFor(
+      damageRow({
+        triage_version: 1,
+        reported_equipment_state: "not_sure",
+        reported_response_need: "prompt",
+        reported_damage_severity: "minor",
+        description: "Scraped the side.",
+      })
+    );
+    expect(email.subject).toBe("Follow up: GEN-003 — follow-up requested");
+    expect(email.text.split("\n")[0]).toBe("Reported: Follow up soon · severity Minor · no photos · Jamie Rivera");
+    expectInBoth(email, [
+      "Reported equipment state: Not sure",
+      "Reported response need: Follow up soon",
+      "Reported damage severity: Minor",
+      "These are the submitter's selections, not a verified inspection.",
+    ]);
+  });
+
+  it("a report where every question was skipped reads as not reported, not as never asked", () => {
+    const email = emailFor(
+      damageRow({
+        triage_version: 1,
+        reported_equipment_state: null,
+        reported_response_need: null,
+        reported_damage_severity: null,
+        description: "x",
+      })
+    );
+    expect(email.subject).toBe("New damage report — GEN-003");
+    expectInBoth(email, ["Reported equipment state: Not reported", "Reported response need: Not reported"]);
+    expect(email.text).not.toContain("were not asked");
   });
 });
 
@@ -145,7 +182,7 @@ describe("support request", () => {
   });
 
   it("renders reported issue type when triage exists", () => {
-    const email = emailFor(supportRow({ triage_version: 1, issue_type: "stuck_recovery", description: "Sunk in." }));
+    const email = emailFor(supportRow({ triage_version: 1, reported_issue_type: "stuck_recovery", description: "Sunk in." }));
     expect(email.subject).toBe("Follow up: GEN-003 — reported stuck, recovery needed");
     expectInBoth(email, ["Reported issue type: Stuck or needs recovery", "Reported response need: Not reported"]);
   });
@@ -292,7 +329,7 @@ describe("safety of the rendered message", () => {
 describe("subjects", () => {
   it("never carry urgency hooks or exclamation marks", () => {
     const rows = [
-      damageRow({ triage_version: 1, equipment_state: "unsafe", description: "x" }),
+      damageRow({ triage_version: 1, reported_equipment_state: "unsafe_to_operate", description: "x" }),
       damageRow({ urgency: "high", description: "x" }),
       supportRow({ description: "x" }),
       exceptionReturn(),
@@ -305,7 +342,7 @@ describe("subjects", () => {
   });
 
   it("keeps the prefix and asset code when trimming a long headline", () => {
-    const base = brief(damageRow({ triage_version: 1, equipment_state: "unsafe", description: "x" }), EXC);
+    const base = brief(damageRow({ triage_version: 1, reported_equipment_state: "unsafe_to_operate", description: "x" }), EXC);
     const subject = incidentSubject({ ...base, headline: "reported ".repeat(40) });
     expect(subject.length).toBe(SUBJECT_MAX_LENGTH);
     expect(subject.startsWith("Immediate attention: EXC-001 — reported")).toBe(true);

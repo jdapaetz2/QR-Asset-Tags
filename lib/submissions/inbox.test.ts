@@ -14,8 +14,6 @@ import {
   shouldWarnBeforeRent,
   submissionFilterQuery,
   submissionReference,
-  submissionUrgency,
-  urgencyTone,
 } from "./inbox";
 
 describe("submissionReference", () => {
@@ -44,23 +42,6 @@ describe("mediaCount / hasMedia", () => {
     expect(hasMedia(["a"])).toBe(true);
     expect(hasMedia([])).toBe(false);
     expect(hasMedia(undefined)).toBe(false);
-  });
-});
-
-describe("submissionUrgency / urgencyTone", () => {
-  it("returns urgency only for damage reports", () => {
-    expect(submissionUrgency("damage_report", { urgency: "high" })).toBe("high");
-    expect(submissionUrgency("support_request", { urgency: "high" })).toBeNull();
-    expect(submissionUrgency("damage_report", { urgency: "  " })).toBeNull();
-    expect(submissionUrgency("damage_report", {})).toBeNull();
-    expect(submissionUrgency("damage_report", null)).toBeNull();
-  });
-
-  it("maps urgency levels to tones", () => {
-    expect(urgencyTone("high")).toBe("danger");
-    expect(urgencyTone("medium")).toBe("warning");
-    expect(urgencyTone("low")).toBe("neutral");
-    expect(urgencyTone("weird")).toBe("neutral");
   });
 });
 

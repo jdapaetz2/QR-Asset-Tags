@@ -75,13 +75,25 @@ describe("isOpenDamageRow", () => {
 });
 
 describe("damageSeverityLabel", () => {
-  it("reads V2 return severity and damage-report urgency", () => {
+  it("reads V2 return severity and a damage report's REPORTED severity — never its legacy urgency (D2)", () => {
     expect(
       damageSeverityLabel({ form_type: "return_checklist", submission_data_json: v2Return(true, "moderate") })
     ).toBe("Moderate");
     expect(
       damageSeverityLabel({ form_type: "damage_report", submission_data_json: { urgency: "high" } })
-    ).toBe("High");
+    ).toBeNull();
+    expect(
+      damageSeverityLabel({
+        form_type: "damage_report",
+        submission_data_json: { triage_version: 1, reported_damage_severity: "major" },
+      })
+    ).toBe("Major");
+    expect(
+      damageSeverityLabel({
+        form_type: "damage_report",
+        submission_data_json: { triage_version: 1, reported_damage_severity: "not_sure" },
+      })
+    ).toBeNull();
     expect(
       damageSeverityLabel({ form_type: "return_checklist", submission_data_json: { damage_observed: "yes" } })
     ).toBeNull();

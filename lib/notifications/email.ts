@@ -217,10 +217,17 @@ function reportPreview(brief: NotificationBrief): string {
   const reported = brief.reported;
   const parts: string[] = [];
   if (reported.triageRecorded) {
-    if (reported.issueType) parts.push(ISSUE_TYPE_LABELS[reported.issueType]);
-    if (reported.equipmentState) parts.push(EQUIPMENT_STATE_LABELS[reported.equipmentState]);
-    if (reported.responseNeed) parts.push(RESPONSE_NEED_LABELS[reported.responseNeed]);
-    if (reported.damageSeverity) parts.push(`severity ${DAMAGE_SEVERITY_LABELS[reported.damageSeverity]}`);
+    // The preview line carries only real answers; "Not sure" appears in the body, not in the phone preview.
+    if (reported.issueType && reported.issueType !== "not_sure") parts.push(ISSUE_TYPE_LABELS[reported.issueType]);
+    if (reported.equipmentState && reported.equipmentState !== "not_sure") {
+      parts.push(EQUIPMENT_STATE_LABELS[reported.equipmentState]);
+    }
+    if (reported.responseNeed && reported.responseNeed !== "not_sure") {
+      parts.push(RESPONSE_NEED_LABELS[reported.responseNeed]);
+    }
+    if (reported.damageSeverity && reported.damageSeverity !== "not_sure") {
+      parts.push(`severity ${DAMAGE_SEVERITY_LABELS[reported.damageSeverity]}`);
+    }
   } else if (reported.legacyUrgency) {
     parts.push(`urgency ${LEGACY_URGENCY_LABELS[reported.legacyUrgency]}`);
   }

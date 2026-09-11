@@ -9,11 +9,15 @@ import {
   validateDamageReport,
   validateSupportRequest,
 } from "@/lib/forms/validate";
+import { captureDamageReport, captureSupportRequest } from "@/lib/forms/triage-capture";
 import { submitReturnInspectionCore } from "@/lib/inspections/submit";
 import { submitOutboundInspectionCore } from "@/lib/inspections/outbound-submit";
 import { submitStaffReturnInspectionCore } from "@/lib/inspections/staff-return-submit";
 
-/** Public damage-report intake. */
+/**
+ * Public damage-report intake. Engineering Phase D2: optional reported triage answers are validated and stored by
+ * `captureDamageReport`; a post from a page rendered before D2 is stored in its legacy `urgency` shape.
+ */
 export async function submitDamageReport(
   shortCode: string,
   _prev: PublicFormState,
@@ -22,19 +26,20 @@ export async function submitDamageReport(
   const name = readString(formData, "name");
   const email = readString(formData, "email");
   const phone = readString(formData, "phone");
-  const urgency = readString(formData, "urgency");
   const description = readString(formData, "description");
+  const capture = captureDamageReport(formData, description);
 
   return submitPublicForm(shortCode, formData, {
     formType: "damage_report",
     thanksSlug: "damage",
-    fieldError: validateDamageReport({ name, email, phone, urgency, description }),
+    fieldError: validateDamageReport({ name, email, phone, urgency: capture.legacyUrgency, description }),
     submittedBy: { name, email, phone },
-    dataJson: { urgency: urgency ?? null, description },
+    dataJson: capture.dataJson,
+    callNow: capture.callNow,
   });
 }
 
-/** Public support-request intake. */
+/** Public support-request intake, with the same optional D2 triage capture. */
 export async function submitSupportRequest(
   shortCode: string,
   _prev: PublicFormState,
@@ -45,6 +50,7 @@ export async function submitSupportRequest(
   const phone = readString(formData, "phone");
   const preferred = readString(formData, "preferred_contact_method");
   const description = readString(formData, "description");
+  const capture = captureSupportRequest(formData, { preferredContactMethod: preferred, description });
 
   return submitPublicForm(shortCode, formData, {
     formType: "support_request",
@@ -57,7 +63,8 @@ export async function submitSupportRequest(
       description,
     }),
     submittedBy: { name, email, phone },
-    dataJson: { preferred_contact_method: preferred ?? null, description },
+    dataJson: capture.dataJson,
+    callNow: capture.callNow,
   });
 }
 

@@ -5,7 +5,23 @@
  * a tone explicitly at the call site.
  */
 
+import type { NotificationPriority } from "@/lib/notifications/priority";
+
 export type BadgeTone = "neutral" | "success" | "warning" | "danger" | "info";
+
+/** Engineering Phase D2: the admin badge for the deterministic notification priority (display only). */
+export function notificationPriorityTone(priority: NotificationPriority): BadgeTone {
+  switch (priority) {
+    case "immediate":
+      return "danger";
+    case "follow_up":
+      return "warning";
+    case "routine":
+    case "record":
+    default:
+      return "neutral";
+  }
+}
 
 export function submissionStatusTone(status: string): BadgeTone {
   switch (status) {

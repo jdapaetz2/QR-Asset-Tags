@@ -63,9 +63,12 @@ function formWithPhoto(): FormData {
   return fd;
 }
 
-async function run(fd: FormData): Promise<{ result?: { error?: string }; redirectedTo?: string }> {
+async function run(
+  fd: FormData,
+  config: PublicFormConfig = CONFIG
+): Promise<{ result?: { error?: string }; redirectedTo?: string }> {
   try {
-    const result = await submitPublicForm("short1", fd, CONFIG);
+    const result = await submitPublicForm("short1", fd, config);
     return { result };
   } catch (err) {
     const m = (err as Error).message;
@@ -146,6 +149,8 @@ describe("C6 — a notification is scheduled only after a durable commit", () =>
     const { redirectedTo } = await run(formWithPhoto());
 
     expect(redirectedTo).toContain("/thanks?ref=SUB-");
+    // D2: no call-now flag unless the validated answers ask for it.
+    expect(redirectedTo).not.toContain("call=1");
     expect(scheduleSubmissionNotification).toHaveBeenCalledTimes(1);
     // Exactly the immutable values derived during the request — no client, no FormData, no request handle.
     const arg = scheduleSubmissionNotification.mock.calls[0][0] as Record<string, unknown>;
@@ -188,6 +193,33 @@ describe("C6 — a notification is scheduled only after a durable commit", () =>
 
     expect(result?.error).toBeTruthy();
     expect(scheduleSubmissionNotification).not.toHaveBeenCalled();
+  });
+});
+
+describe("D2 — the display-only call-now flag on the confirmation redirect", () => {
+  it("appends call=1 when the validated answers need immediate attention", async () => {
+    const { client, insert } = makeClient({ error: null });
+    createPublicClient.mockReturnValue(client);
+    const { redirectedTo } = await run(formWithPhoto(), { ...CONFIG, callNow: true });
+    expect(redirectedTo).toMatch(/^\/forms\/short1\/damage\/thanks\?ref=SUB-\d{4}-[0-9A-F]{6}&call=1$/);
+    // Everything else about the commit is unchanged: one insert, one scheduled notification.
+    expect(insert).toHaveBeenCalledTimes(1);
+    expect(scheduleSubmissionNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the flag on the duplicate-submit redirect", async () => {
+    const { client } = makeClient({ error: { code: "23505" } });
+    createPublicClient.mockReturnValue(client);
+    const { redirectedTo } = await run(formWithPhoto(), { ...CONFIG, callNow: true });
+    expect(redirectedTo).toContain("&call=1");
+    expect(scheduleSubmissionNotification).not.toHaveBeenCalled();
+  });
+
+  it("a rate-limited request still returns the generic error, flag or not", async () => {
+    checkRateLimit.mockResolvedValue({ allowed: false, shortCodeHash: "h" });
+    const { result, redirectedTo } = await run(formWithPhoto(), { ...CONFIG, callNow: true });
+    expect(result?.error).toBe(RATE_LIMITED_MESSAGE);
+    expect(redirectedTo).toBeUndefined();
   });
 });
 

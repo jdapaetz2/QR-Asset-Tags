@@ -13,22 +13,15 @@ import { PREFERRED_CONTACT_METHODS } from "@/lib/forms/validate";
 import { submissionPathPrefix } from "@/lib/forms/media";
 import { isImagePath, mediaCount, submissionReference } from "@/lib/submissions/inbox";
 import { normalizeOrigin, submissionTypeLabel } from "@/lib/submissions/origin";
-import {
-  readLegacyUrgency,
-  readTriage,
-  type DamageSeverity,
-  type EquipmentState,
-  type IssueType,
-  type LegacyUrgency,
-  type ResponseNeed,
-} from "@/lib/submissions/triage";
 import { mailtoHref, telHref } from "@/lib/contact/links";
 import { summarizeReturnChecklist, type ReturnChecklistSummary } from "@/lib/notifications/return-summary";
 import {
-  reportPriority,
+  priorityForReport,
+  reportedValuesFor,
   returnExceptionCount,
   returnPriority,
   type NotificationPriority,
+  type ReportedValues,
 } from "@/lib/notifications/priority";
 import type { SubmissionFormType } from "@/lib/notifications/settings";
 
@@ -92,15 +85,7 @@ export type NotificationBrief = {
   asset: BriefAsset;
   priority: NotificationPriority;
   headline: string;
-  reported: {
-    /** True only when the row carries `triage_version: 1` — i.e. the form actually asked. */
-    triageRecorded: boolean;
-    issueType: IssueType | null;
-    equipmentState: EquipmentState | null;
-    responseNeed: ResponseNeed | null;
-    damageSeverity: DamageSeverity | null;
-    legacyUrgency: LegacyUrgency | null;
-  };
+  reported: ReportedValues;
   description: Excerpt | null;
   returnDetail: ReturnDetail | null;
   contact: {
@@ -244,7 +229,7 @@ function individualFormType(value: string): SubmissionFormType | null {
   return value === "damage_report" || value === "support_request" || value === "return_checklist" ? value : null;
 }
 
-const NO_TRIAGE: NotificationBrief["reported"] = {
+const NO_TRIAGE: ReportedValues = {
   triageRecorded: false,
   issueType: null,
   equipmentState: null,
@@ -317,46 +302,22 @@ export function projectSubmissionBrief(input: {
       },
       photos: {
         count: mediaCount(row.media_urls),
-        slotCounts: summary.slotCounts
-          .map((slot) => ({ label: cleanText(slot.label, LABEL_LIMIT) ?? "Photos", count: slot.count })),
+        slotCounts: summary.slotCounts.map((slot) => ({
+          label: cleanText(slot.label, LABEL_LIMIT) ?? "Photos",
+          count: slot.count,
+        })),
         previewCandidates: previewCandidates(row, summary.slotPaths),
       },
     };
   }
 
-  const triage = readTriage(data);
-  const damage = formType === "damage_report";
-  // Only the questions each form asks are carried, so a stray key can never influence the other form's rules.
-  const reported: NotificationBrief["reported"] = triage
-    ? {
-        triageRecorded: true,
-        issueType: damage ? null : triage.issueType,
-        equipmentState: damage ? triage.equipmentState : null,
-        responseNeed: triage.responseNeed,
-        damageSeverity: damage ? triage.damageSeverity : null,
-        legacyUrgency: null,
-      }
-    : { ...NO_TRIAGE, legacyUrgency: damage ? readLegacyUrgency(data) : null };
-
-  const decision = reportPriority({
-    formType,
-    triage: reported.triageRecorded
-      ? {
-          issueType: reported.issueType,
-          equipmentState: reported.equipmentState,
-          responseNeed: reported.responseNeed,
-          damageSeverity: reported.damageSeverity,
-        }
-      : null,
-    legacyUrgency: reported.legacyUrgency,
-  });
-
+  const decision = priorityForReport(formType, data);
   return {
     ...common,
-    event: damage ? "damage_report" : "support_request",
+    event: formType === "damage_report" ? "damage_report" : "support_request",
     priority: decision.priority,
     headline: decision.headline,
-    reported,
+    reported: reportedValuesFor(formType, data),
     description: excerpt(data.description, DESCRIPTION_LIMIT),
     returnDetail: null,
     photos: {

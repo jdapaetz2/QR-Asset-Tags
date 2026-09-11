@@ -10,6 +10,7 @@ import { submissionFields } from "@/lib/submissions/display";
 import { submissionReference } from "@/lib/submissions/inbox";
 import { isInspectionFormType, returnChecklistFlags } from "@/lib/submissions/returns";
 import { normalizeOrigin } from "@/lib/submissions/origin";
+import { PRIORITY_LABELS, submissionPriority } from "@/lib/notifications/priority";
 import type {
   RelatedSubmissionRow,
   SubmissionDetailRow,
@@ -44,6 +45,8 @@ export function SubmissionDetailRecord({
     : "Related staff return checklist";
 
   const fields = submissionFields(submission.form_type, submission.submission_data_json);
+  // Engineering Phase D2: the deterministic notification priority, labelled apart from the reported answers.
+  const priority = submissionPriority(submission);
   const v2Data = isReturnInspectionV2(submission.submission_data_json)
     ? submission.submission_data_json
     : null;
@@ -162,6 +165,12 @@ export function SubmissionDetailRecord({
       <section className="rounded-lg border bg-card p-4 text-sm">
         <h2 className="mb-3 font-medium">Details</h2>
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-muted-foreground">
+          {priority ? (
+            <div className="contents">
+              <dt>Notification priority</dt>
+              <dd className="text-foreground">{PRIORITY_LABELS[priority.priority]}</dd>
+            </div>
+          ) : null}
           {fields.map((field) => (
             <div key={field.label} className="contents">
               <dt>{field.label}</dt>

@@ -1,7 +1,8 @@
 # Actionable Notification Design — Engineering Phase D
 
 **Status: D0 designed (2026-09-10, `0415d81`) · D0.1 operator decisions locked (`70e6917`) · D1 built — the
-saved-record brief, deterministic priority and actionable text-first email. D2–D5 are not built.** Branch `pilot-credibility`. Production deployment `jswtabswl` → `mulemark.io`.
+saved-record brief, deterministic priority and actionable text-first email · D2 built — optional reported triage,
+"Reported" admin labels and the truthful call-now confirmation. D3A–D5 are not built.** Branch `pilot-credibility`. Production deployment `jswtabswl` → `mulemark.io`.
 
 > **This is Engineering Phase D (actionable notifications).** It is *not* the business roadmap's
 > "Phase D - Controlled pilots" in `roadmap.md`, which is untouched by this work.
@@ -205,8 +206,8 @@ whether photos exist.
 |---|---|---|---|
 | F1 | The summary plumbing is dead: `ScheduledNotification` has no `summary` field, so `notifySubmission` always passes `""` | `schedule.ts:42-49`, `notify.ts:56,109` | Replaced by the projection in D1 |
 | F2 | Submitter contact in the email comes from browser form values passed through the scheduler, not from the committed row | `lib/forms/submit.ts:232`, `inspections/submit.ts:234` | D1 reads the row |
-| F3 | The damage form's urgency **defaults to `medium`**, so a stored `medium` is not evidence of a renter's choice | `components/public/damage-form.tsx:17` | D2 replaces the question with optional, unselected triage; D1 never escalates on `medium` |
-| F4 | `damageSeverityLabel` uses damage-report **urgency** as severity, conflating the two concepts this phase separates | `lib/submissions/damage.ts:62-65` | D2 |
+| F3 | The damage form's urgency **defaults to `medium`**, so a stored `medium` is not evidence of a renter's choice | `components/public/damage-form.tsx:17` | **Resolved in D2:** the select is replaced by optional, unselected triage; a page cached from before D2 still stores legacy urgency, and `medium` never escalates |
+| F4 | `damageSeverityLabel` uses damage-report **urgency** as severity, conflating the two concepts this phase separates | `lib/submissions/damage.ts:62-65` | **Resolved in D2:** a damage report's severity now reads `reported_damage_severity` only; the open-damage alert says "reported … damage" |
 | F5 | The tag-request notifier runs on **every save**, including notes-only saves; dedupe holds only for Resend's 24 h window, so a later notes-only save re-sends. `delivered_at` is re-stamped on every save while delivered. | `lib/tags/owner-actions.ts:35-55`, `idempotency.ts:6-8` | D3A: notify only on an actual status change |
 | F6 | `scripts/production/qa-notification-recipient.mjs` also writes `notify_damage_reports = true` on `--set`, contrary to its own "exactly one column" header | `:19`, `:119-122` | Documentation fix at the next touch |
 | F7 | `parseAnswerValues` stores values for fields hidden by `visible_when`; only visible fields are validated | `lib/inspections/validate.ts:98-99,120-125` | The projection applies visibility (§10) |
@@ -215,7 +216,8 @@ whether photos exist.
 | F10 | The `audience` type comment says staff outbound inspections carry `audience:"staff"`; outbound never writes it | `lib/inspections/types.ts:158-160`, `outbound-submit.ts:157-163` | Comment fix at the next touch |
 | F11 | The staff return route exports no `maxDuration`, unlike the public form routes (`maxDuration = 60`) | `app/forms/[shortCode]/{damage,support,return}/page.tsx` | No longer blocks Phase D: staff returns are never emailed individually (§16 #11–12). The summary route sets its own `maxDuration` (D3B). |
 | F12 | No length or size limit is enforced on subject, text or HTML | `send.ts:135-143` | D1 adds caps (§13) |
-| F13 | The public confirmation page says the team "has been notified", which is not guaranteed; its call link puts the raw stored phone into `tel:` | `components/public/form-thanks.tsx:55,65` | D2 (§16 #7–8) |
+| F13 | The public confirmation page says the team "has been notified", which is not guaranteed; its call link puts the raw stored phone into `tel:` | `components/public/form-thanks.tsx:55,65` | **Resolved in D2** (§16 #7–8): "has your report" wording, normalized call links, call-now block for immediate answers |
+| F14 | CSV export still has only the legacy `urgency` column; D2's reported answers are not exported | `lib/submissions/csv.ts:21-40` | Follow-up: adding columns widens the export contract, so it was deliberately left out of D2 |
 
 ---
 
@@ -444,16 +446,28 @@ type ReturnSummary = {
 | Reported damage severity | Damage form (optional) | minor · moderate · major |
 | Reported issue type | Support form (optional) | breakdown or no-start · stuck or needs recovery · rollover or safety incident · operating question · other |
 
-No answer is pre-selected. Exact renter-facing wording is finalized in D2. If D2 offers a "Not sure" option, it
-is stored as unknown and behaves exactly like an omitted answer. Answers are stored in `submission_data_json`
-with `triage_version: 1`.
+No answer is pre-selected, every question is optional, and every question offers "Not sure". `not_sure` is
+stored as the renter's answer and displayed as "Not sure", but for priority it behaves exactly like an omitted
+answer. Answers are stored in `submission_data_json` with `triage_version: 1`.
 
-**Storage contract (established in D1, `lib/submissions/triage.ts`):** top-level keys `issue_type`
-(`breakdown_no_start`, `stuck_recovery`, `rollover_safety`, `operating_question`, `other`, `unknown`),
-`equipment_state` (`operating`, `operating_limited`, `not_operating`, `cannot_be_moved`, `unsafe`, `unknown`),
-`response_need` (`routine`, `prompt`, `immediate`, `unknown`) and `damage_severity` (`minor`, `moderate`, `major`,
-`unknown`). They are read only when `triage_version === 1`; an unknown value is treated as not reported. D1 reads
-this contract but no form writes it yet.
+**Storage contract (D2, `lib/submissions/triage.ts`; no migration):** top-level keys
+`reported_equipment_state` (`operating`, `operating_with_limitations`, `not_operating`, `cannot_be_moved`,
+`unsafe_to_operate`, `not_sure`), `reported_response_need` (`routine`, `prompt`, `immediate`, `not_sure`),
+`reported_damage_severity` (`minor`, `moderate`, `major`, `not_sure`) and `reported_issue_type`
+(`operating_question`, `breakdown_no_start`, `stuck_recovery`, `rollover_safety`, `other`, `not_sure`). A damage
+report stores state, need and severity; a support request stores issue type and need. An omitted answer is stored
+as `null`; the server validates each value and stores `null` for anything unexpected. They are read only when
+`triage_version === 1`, so a skipped question reads "Not reported" while a pre-D2 row shows none of them. The D1
+key names (`equipment_state`, `unsafe`, `unknown`, …) were never written by any form and are superseded.
+
+**Old clients.** A page rendered before D2 posts `urgency` and no `triage_version` marker; the server stores that
+post in its legacy shape (`urgency`, `description`) and never backfills or rewrites historical rows. The admin
+shows it as "Reported urgency", never as severity.
+
+**Confirmation.** When the validated answers make a report immediate attention, the server redirects to the
+confirmation page with a display-only `call=1` flag. The page shows a full-width call button in the tenant colour
+(normalized `tel:` URI, formatted number visible) or, with no usable phone, contact guidance and no button. The
+flag unlocks no data and changes no state.
 
 ### 5.2 Rules — applied in this order
 
@@ -525,10 +539,10 @@ renter_return | staff_return:
     otherwise                                → record
 damage_report | support_request:
     responseNeed = immediate
-      | equipmentState ∈ {cannot_be_moved, unsafe}
+      | equipmentState ∈ {cannot_be_moved, unsafe_to_operate}
       | issueType = rollover_safety          → immediate
     responseNeed = prompt
-      | equipmentState ∈ {not_operating, operating_limited}
+      | equipmentState ∈ {not_operating, operating_with_limitations}
       | issueType ∈ {breakdown_no_start, stuck_recovery}
       | (no triage_version & urgency = high) → follow_up
     otherwise                                → routine
@@ -565,7 +579,7 @@ and the brief states that the selections are not a verified inspection.
 | Event | Stored values | Priority | Headline |
 |---|---|---|---|
 | Damage | state `operating`, need `routine` | routine | damage reported |
-| Damage | state `unsafe`, need omitted | **immediate** | reported unsafe to operate |
+| Damage | state `unsafe_to_operate`, need omitted | **immediate** | reported unsafe to operate |
 | Damage | state omitted, need `immediate` | **immediate** | help requested now |
 | Damage | state `not_operating`, need omitted | follow up | reported not operating |
 | Damage | severity `major`, state `operating`, need `routine` | routine | damage reported |

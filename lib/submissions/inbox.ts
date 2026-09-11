@@ -5,7 +5,6 @@
  * are display-only — derived from id + created_at, never stored (no DB sequence).
  */
 
-import type { BadgeTone } from "@/lib/ui/status";
 import {
   SUBMISSION_STATUSES,
   isSubmissionStatus,
@@ -75,36 +74,6 @@ export function firstImagePath(mediaUrls: unknown): string | null {
     if (isImagePath(path)) return path as string;
   }
   return null;
-}
-
-/**
- * Urgency for a submission. Only damage reports carry an urgency level (stored in
- * `submission_data_json.urgency`); everything else returns null so no badge shows.
- */
-export function submissionUrgency(
-  formType: string,
-  data: unknown
-): string | null {
-  if (formType !== "damage_report") return null;
-  const obj =
-    data && typeof data === "object" ? (data as Record<string, unknown>) : {};
-  const raw = obj.urgency;
-  if (typeof raw !== "string") return null;
-  const trimmed = raw.trim();
-  return trimmed.length === 0 ? null : trimmed;
-}
-
-/** Visual tone for an urgency level. Unknown levels stay neutral. */
-export function urgencyTone(urgency: string): BadgeTone {
-  switch (urgency) {
-    case "high":
-      return "danger";
-    case "medium":
-      return "warning";
-    case "low":
-    default:
-      return "neutral";
-  }
 }
 
 /**

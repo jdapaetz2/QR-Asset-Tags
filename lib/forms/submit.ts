@@ -16,6 +16,7 @@ import { logAbuseEvent } from "@/lib/ratelimit/log";
 import { scheduleSubmissionNotification } from "@/lib/notifications/schedule";
 import { submissionReference } from "@/lib/submissions/inbox";
 import { revalidateSubmissionSurfaces } from "@/lib/submissions/revalidate";
+import { confirmationUrl } from "@/lib/public/confirmation";
 
 /**
  * Shared server-side core for all public form submissions (damage / support /
@@ -43,6 +44,11 @@ export type PublicFormConfig = {
   fieldError: string | null;
   submittedBy: SubmittedBy;
   dataJson: Record<string, unknown>;
+  /**
+   * Engineering Phase D2 — whether the validated answers map to Immediate attention, so the confirmation page shows
+   * a call-now block. Display-only: it travels as `&call=1` and unlocks nothing.
+   */
+  callNow?: boolean;
 };
 
 const SUBMISSIONS_BUCKET = "submissions";
@@ -198,7 +204,7 @@ export async function submitPublicForm(
         shortCodeHash: rl.shortCodeHash,
         failure: "duplicate",
       });
-      redirect(`${thanks}?ref=${reference}`);
+      redirect(confirmationUrl(thanks, reference, config.callNow === true));
     }
     // Real insert failure → clean up the just-uploaded objects so they are not orphaned.
     await cleanupUploadedMedia(supabase, mediaPaths, {
@@ -241,5 +247,5 @@ export async function submitPublicForm(
   // Pass the canonical reference to the thanks page for a display-only confirmation
   // number — the same string the rental company sees in the admin inbox. Anon cannot
   // read submissions back, so this exposes nothing (and is less revealing than the id).
-  redirect(`${thanks}?ref=${reference}`);
+  redirect(confirmationUrl(thanks, reference, config.callNow === true));
 }

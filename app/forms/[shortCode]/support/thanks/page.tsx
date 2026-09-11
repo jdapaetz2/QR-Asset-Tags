@@ -2,6 +2,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { resolvePublicEquipment } from "@/lib/public/resolve";
 import { resolveSupportContact } from "@/lib/public/equipment";
 import { readSubmissionReference } from "@/lib/public/reference";
+import { readCallNowFlag } from "@/lib/public/confirmation";
 import { FormThanks } from "@/components/public/form-thanks";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +34,8 @@ export default async function SupportThanksPage({
           ? resolveSupportContact(resolved.asset, resolved.org)
           : { phone: null, email: null }
       }
+      callNow={readCallNowFlag(sp.call)}
+      brandColor={resolved?.org.primary_color ?? null}
     />
   );
 }

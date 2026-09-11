@@ -10,6 +10,7 @@
  * Missing accessories are a separate concern and are NOT open damage.
  */
 import { returnChecklistFlags } from "@/lib/submissions/returns";
+import { DAMAGE_SEVERITY_LABELS, readTriage } from "@/lib/submissions/triage";
 
 /** Shared select for the damage columns (extends the existing unresolved-submissions query). */
 export const OPEN_DAMAGE_COLUMNS =
@@ -47,9 +48,10 @@ function cap(v: string): string {
 }
 
 /**
- * Human severity label for a damage item, or null when unknown. A V2 return carries
- * `answers.values.damage_severity` (minor/moderate/severe); a damage_report carries `urgency`
- * (low/medium/high). V1 returns have no structured severity.
+ * Human REPORTED severity label for a damage item, or null when not reported. A V2 return carries
+ * `answers.values.damage_severity` (minor/moderate/severe). A damage report carries `reported_damage_severity`
+ * (Engineering Phase D2) — never its legacy `urgency`, which described how soon, not how bad. "Not sure" is not a
+ * severity, so it reads as not reported. V1 returns have no structured severity.
  */
 export function damageSeverityLabel(row: {
   form_type: string;
@@ -60,8 +62,8 @@ export function damageSeverityLabel(row: {
       ? (row.submission_data_json as Record<string, unknown>)
       : {};
   if (row.form_type === "damage_report") {
-    const u = data.urgency;
-    return typeof u === "string" && u.trim() ? cap(u.trim()) : null;
+    const severity = readTriage(data)?.damageSeverity;
+    return severity && severity !== "not_sure" ? DAMAGE_SEVERITY_LABELS[severity] : null;
   }
   if (row.form_type === "return_checklist") {
     const answers = data.answers as { values?: Record<string, unknown> } | undefined;

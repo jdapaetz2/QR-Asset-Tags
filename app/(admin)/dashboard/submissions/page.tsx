@@ -31,9 +31,12 @@ import {
   resolveStatusFilter,
   submissionFilterQuery,
   submissionReference,
-  submissionUrgency,
-  urgencyTone,
 } from "@/lib/submissions/inbox";
+import {
+  PRIORITY_LABELS,
+  submissionPriority,
+  type NotificationPriority,
+} from "@/lib/notifications/priority";
 import { Badge } from "@/components/ui/badge";
 import { AssetCodeChip } from "@/components/ui/asset-code-chip";
 import { ListCard, ListCardGroup, ListCardMeta } from "@/components/ui/list-card";
@@ -47,7 +50,7 @@ import {
   canQuickResolveReturn,
   returnChecklistFlags,
 } from "@/lib/submissions/returns";
-import { submissionStatusTone } from "@/lib/ui/status";
+import { notificationPriorityTone, submissionStatusTone } from "@/lib/ui/status";
 import { submissionStatusLabel } from "@/lib/ui/status-labels";
 import { time } from "@/lib/diagnostics/server-timing";
 import { logQueryFailure, throwOnEssentialFailure } from "@/lib/diagnostics/query-failure";
@@ -55,8 +58,21 @@ import { signPaths } from "@/lib/storage/signed-urls";
 
 const SUBMISSIONS_BUCKET = "submissions";
 
-function titleCase(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1);
+/**
+ * Engineering Phase D2 — the inbox badge that asks for action: a damage or support report whose notification priority
+ * is Immediate attention or Follow up. Routine reports show nothing, so a legacy form default ("medium") no longer
+ * looks like a signal. Return checklists already carry their damage/missing badges.
+ */
+function actionPriority(row: {
+  form_type: string;
+  submission_origin: string | null;
+  submission_data_json: unknown;
+}): NotificationPriority | null {
+  if (row.form_type !== "damage_report" && row.form_type !== "support_request") return null;
+  const decision = submissionPriority(row);
+  return decision && (decision.priority === "immediate" || decision.priority === "follow_up")
+    ? decision.priority
+    : null;
 }
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
@@ -242,7 +258,7 @@ export default async function SubmissionsPage({
       row,
       count: mediaCount(row.media_urls),
       thumb: thumbs.get(row.id),
-      urgency: submissionUrgency(row.form_type, row.submission_data_json),
+      priority: actionPriority(row),
       flags,
       rowDamage: row.form_type === "damage_report" ? true : flags.damage,
       submitter:
@@ -481,7 +497,7 @@ export default async function SubmissionsPage({
                 </td>
               </tr>
             ) : (
-              viewRows.map(({ row, count, thumb, urgency, flags, rowDamage, submitter, reference, isNew, quickResolve }) => {
+              viewRows.map(({ row, count, thumb, priority, flags, rowDamage, submitter, reference, isNew, quickResolve }) => {
                 return (
                   <tr
                     key={row.id}
@@ -534,9 +550,10 @@ export default async function SubmissionsPage({
                           missing={flags.missing}
                           showStatus={false}
                         />
-                        {urgency ? (
-                          <Badge tone={urgencyTone(urgency)}>
-                            {titleCase(urgency)}
+                        {priority ? (
+                          <Badge tone={notificationPriorityTone(priority)}>
+                            <span className="sr-only">Notification priority: </span>
+                            {PRIORITY_LABELS[priority]}
                           </Badge>
                         ) : null}
                       </div>
@@ -636,7 +653,7 @@ export default async function SubmissionsPage({
           Select all visible
         </label>
         <ListCardGroup>
-          {viewRows.map(({ row, count, urgency, flags, rowDamage, submitter, reference, isNew, quickResolve }) => (
+          {viewRows.map(({ row, count, priority, flags, rowDamage, submitter, reference, isNew, quickResolve }) => (
             <ListCard
               key={row.id}
               title={
@@ -691,7 +708,12 @@ export default async function SubmissionsPage({
                   missing={flags.missing}
                   showStatus={false}
                 />
-                {urgency ? <Badge tone={urgencyTone(urgency)}>{titleCase(urgency)}</Badge> : null}
+                {priority ? (
+                  <Badge tone={notificationPriorityTone(priority)}>
+                    <span className="sr-only">Notification priority: </span>
+                    {PRIORITY_LABELS[priority]}
+                  </Badge>
+                ) : null}
               </div>
               <ListCardMeta label="Submitter" value={submitter} />
               <ListCardMeta label="Received" value={<RelativeTime value={row.created_at} />} />

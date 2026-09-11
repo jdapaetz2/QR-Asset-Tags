@@ -165,6 +165,28 @@ describe("buildAttentionItems", () => {
   });
 });
 
+describe("summarizeUnresolvedByAsset — D2 notification priority", () => {
+  const damage = (data: unknown) => ({
+    id: "d",
+    asset_id: "a",
+    form_type: "damage_report",
+    status: "new",
+    created_at: "2026-07-02T00:00:00Z",
+    submission_data_json: data,
+  });
+
+  it.each([
+    [{ triage_version: 1, reported_equipment_state: "unsafe_to_operate" }, true],
+    [{ triage_version: 1, reported_response_need: "prompt" }, true],
+    [{ triage_version: 1, reported_damage_severity: "major" }, false],
+    [{ triage_version: 1, reported_equipment_state: "not_sure" }, false],
+    [{ urgency: "high" }, true],
+    [{ urgency: "medium" }, false],
+  ])("damage %j → prompt attention %s", (data, urgent) => {
+    expect(summarizeUnresolvedByAsset([damage(data)]).get("a")?.hasUrgentDamage).toBe(urgent);
+  });
+});
+
 describe("summarizeUnresolvedByAsset", () => {
   it("rolls up damage/urgency/return/oldest; ignores resolved + unlinked rows", () => {
     const map = summarizeUnresolvedByAsset([

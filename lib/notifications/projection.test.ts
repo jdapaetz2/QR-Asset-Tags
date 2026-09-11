@@ -95,10 +95,10 @@ describe("damage reports", () => {
     const brief = mustProject(
       damageRow({
         triage_version: 1,
-        equipment_state: "unsafe",
-        response_need: "immediate",
-        damage_severity: "major",
-        issue_type: "rollover_safety",
+        reported_equipment_state: "unsafe_to_operate",
+        reported_response_need: "immediate",
+        reported_damage_severity: "major",
+        reported_issue_type: "rollover_safety",
         urgency: "low",
         description: "Tipped over.",
       })
@@ -106,7 +106,7 @@ describe("damage reports", () => {
     expect(brief.reported).toEqual({
       triageRecorded: true,
       issueType: null,
-      equipmentState: "unsafe",
+      equipmentState: "unsafe_to_operate",
       responseNeed: "immediate",
       damageSeverity: "major",
       legacyUrgency: null,
@@ -129,13 +129,13 @@ describe("support requests", () => {
   });
 
   it("ignores an equipment state a support form never asks", () => {
-    const brief = mustProject(supportRow({ triage_version: 1, equipment_state: "unsafe", description: "x" }));
+    const brief = mustProject(supportRow({ triage_version: 1, reported_equipment_state: "unsafe_to_operate", description: "x" }));
     expect(brief.reported.equipmentState).toBeNull();
     expect(brief.priority).toBe("routine");
   });
 
   it("support issue type drives priority", () => {
-    expect(mustProject(supportRow({ triage_version: 1, issue_type: "stuck_recovery", description: "x" })).priority).toBe(
+    expect(mustProject(supportRow({ triage_version: 1, reported_issue_type: "stuck_recovery", description: "x" })).priority).toBe(
       "follow_up"
     );
   });

@@ -5,7 +5,8 @@
  */
 
 import { type ReadinessReason } from "@/lib/ui/status-view";
-import { isUnresolvedStatus, submissionUrgency } from "@/lib/submissions/inbox";
+import { isUnresolvedStatus } from "@/lib/submissions/inbox";
+import { priorityForReport } from "@/lib/notifications/priority";
 import { returnChecklistFlags } from "@/lib/submissions/returns";
 
 // ---------------------------------------------------------------------------
@@ -110,7 +111,7 @@ export function buildAttentionItems(
         key: `${a.id}:damage-rented`,
         title: "Open damage on a rented asset",
         reason: a.hasUrgentDamage
-          ? "Marked urgent. Review before the next handoff."
+          ? "Reported as needing prompt attention. Review before the next handoff."
           : "Review before the next handoff.",
         tone: "danger",
         priority: 1,
@@ -248,7 +249,10 @@ export function summarizeUnresolvedByAsset(
 
     if (s.form_type === "damage_report") {
       cur.hasOpenDamage = true;
-      if (submissionUrgency(s.form_type, s.submission_data_json) === "high") {
+      // Engineering Phase D2: the same deterministic notification priority — reported immediate or follow-up
+      // answers, or a legacy "high" urgency. A legacy "medium" was the old form's default and no longer counts.
+      const { priority } = priorityForReport("damage_report", s.submission_data_json);
+      if (priority === "immediate" || priority === "follow_up") {
         cur.hasUrgentDamage = true;
       }
     }
