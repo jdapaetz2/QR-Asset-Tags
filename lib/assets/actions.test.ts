@@ -18,7 +18,8 @@ vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/lib/inspections/category-defaults-data", () => ({ getOrgCategoryDefaults: vi.fn(async () => []) }));
 vi.mock("@/lib/assets/list", () => ({ deleteEligibility: vi.fn() }));
 
-import { prepareCoverUpload, updateAsset } from "@/lib/assets/actions";
+import { deleteAsset, prepareCoverUpload, updateAsset } from "@/lib/assets/actions";
+import { deleteEligibility } from "@/lib/assets/list";
 import { FILE_VERIFY_FAILED_MESSAGE } from "@/lib/storage/direct-upload";
 
 const ORG = "11111111-1111-4111-8111-111111111111";
@@ -148,5 +149,93 @@ describe("updateAsset with an uploaded cover", () => {
     });
     expect(storageApi.remove).toHaveBeenCalledWith([COVER]);
     expect(storageApi.remove).not.toHaveBeenCalledWith([OLD_COVER]);
+  });
+});
+
+describe("deleteAsset", () => {
+  function deleteClient(
+    opts: {
+      asset?: { id: string; organization_id: string; cover_image_url: string | null } | null;
+      deleteResult?: { data: unknown; error: { message: string } | null };
+      removeResult?: { data: unknown; error: { message: string } | null };
+    } = {}
+  ) {
+    const order: string[] = [];
+    const asset =
+      opts.asset === undefined ? { id: ASSET, organization_id: ORG, cover_image_url: publicUrl(OLD_COVER) } : opts.asset;
+    const storageApi = {
+      remove: vi.fn(async (paths: string[]) => {
+        order.push("object");
+        return opts.removeResult ?? { data: paths.map((name) => ({ name })), error: null };
+      }),
+    };
+    const assets = {
+      select: vi.fn(() => assets),
+      eq: vi.fn(() => assets),
+      maybeSingle: vi.fn(async () => ({ data: asset, error: null })),
+      delete: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          select: vi.fn(async () => {
+            order.push("row");
+            return opts.deleteResult ?? { data: [{ id: ASSET }], error: null };
+          }),
+        })),
+      })),
+    };
+    const dependents = { select: vi.fn(() => ({ eq: vi.fn(async () => ({ count: 0 })) })) };
+    createClient.mockResolvedValue({
+      from: vi.fn((table: string) => (table === "assets" ? assets : dependents)),
+      storage: { from: vi.fn(() => storageApi) },
+    });
+    return { order, storageApi, assets };
+  }
+
+  beforeEach(() => {
+    vi.mocked(deleteEligibility).mockReturnValue({ canDelete: true } as never);
+  });
+
+  it("deletes the asset row, then its managed cover object", async () => {
+    const { order, storageApi } = deleteClient();
+    await expect(deleteAsset(ASSET, undefined, {}, new FormData())).rejects.toThrow("REDIRECT:/dashboard/assets");
+    expect(order).toEqual(["row", "object"]);
+    expect(storageApi.remove).toHaveBeenCalledWith([OLD_COVER]);
+  });
+
+  it.each([
+    ["an external cover URL", "https://cdn.example.com/cover.jpg"],
+    ["demo artwork", "/demo-assets/excavator-017.svg"],
+    ["another asset's object", publicUrl(`org/${ORG}/asset/${OTHER}/cover/33333333-3333-4333-8333-333333333333.jpg`)],
+    ["no cover", null],
+  ])("never removes %s", async (_name, cover) => {
+    const { storageApi } = deleteClient({ asset: { id: ASSET, organization_id: ORG, cover_image_url: cover } });
+    await expect(deleteAsset(ASSET, undefined, {}, new FormData())).rejects.toThrow("REDIRECT:");
+    expect(storageApi.remove).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["the delete errors", { data: null, error: { message: "boom" } }],
+    ["RLS deletes no row", { data: [], error: null }],
+  ])("keeps the cover and reports failure when %s", async (_name, deleteResult) => {
+    const { storageApi } = deleteClient({ deleteResult });
+    expect(await deleteAsset(ASSET, undefined, {}, new FormData())).toEqual({ error: "Could not delete the asset." });
+    expect(storageApi.remove).not.toHaveBeenCalled();
+  });
+
+  it("still succeeds when the cover cannot be removed, logging the orphan without its path", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    deleteClient({ removeResult: { data: [], error: null } });
+    await expect(deleteAsset(ASSET, undefined, {}, new FormData())).rejects.toThrow("REDIRECT:");
+    const logged = warn.mock.calls.map((call) => call.join(" ")).join("\n");
+    expect(logged).toContain("asset_cover_orphaned");
+    expect(logged).not.toContain("org/");
+    warn.mockRestore();
+  });
+
+  it("does not delete when dependents block it", async () => {
+    vi.mocked(deleteEligibility).mockReturnValue({ canDelete: false, reason: "Has scans." } as never);
+    const { assets, storageApi } = deleteClient();
+    expect(await deleteAsset(ASSET, undefined, {}, new FormData())).toEqual({ error: "Has scans." });
+    expect(assets.delete).not.toHaveBeenCalled();
+    expect(storageApi.remove).not.toHaveBeenCalled();
   });
 });

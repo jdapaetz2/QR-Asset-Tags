@@ -16,7 +16,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient }));
 vi.mock("@/lib/storage/verify-object", () => ({ verifyClaimedObject }));
 vi.mock("next/navigation", () => ({ redirect }));
 
-import { createDocument, prepareDocumentUpload } from "@/lib/documents/actions";
+import { createDocument, deleteDocument, prepareDocumentUpload } from "@/lib/documents/actions";
 import { FILE_CHECK_FAILED_MESSAGE, FILE_VERIFY_FAILED_MESSAGE } from "@/lib/storage/direct-upload";
 
 const ORG = "11111111-1111-4111-8111-111111111111";
@@ -168,5 +168,85 @@ describe("createDocument with an uploaded file", () => {
       await createDocument(ASSET, {}, form({ ...BASE, url: "https://example.com/manual.pdf", storage_claim: CLAIM }))
     ).toEqual({ error: "Provide either a link or a file, not both." });
     expect(createClient).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleteDocument", () => {
+  function deleteClient(
+    opts: {
+      doc?: { id: string; storage_path: string | null } | null;
+      loadError?: { message: string } | null;
+      deleteResult?: { data: unknown; error: { message: string } | null };
+      removeResult?: { data: unknown; error: { message: string } | null };
+    } = {}
+  ) {
+    const order: string[] = [];
+    const doc = opts.doc === undefined ? { id: DOC, storage_path: CLAIM } : opts.doc;
+    const storageApi = {
+      remove: vi.fn(async (paths: string[]) => {
+        order.push("object");
+        return opts.removeResult ?? { data: paths.map((name) => ({ name })), error: null };
+      }),
+    };
+    const deleteSelect = vi.fn(async () => {
+      order.push("row");
+      return opts.deleteResult ?? { data: [{ id: DOC }], error: null };
+    });
+    const documents = {
+      select: vi.fn(() => documents),
+      eq: vi.fn(() => documents),
+      maybeSingle: vi.fn(async () => ({ data: opts.loadError ? null : doc, error: opts.loadError ?? null })),
+      delete: vi.fn(() => ({ eq: vi.fn(() => ({ select: deleteSelect })) })),
+    };
+    createClient.mockResolvedValue({ from: vi.fn(() => documents), storage: { from: vi.fn(() => storageApi) } });
+    return { order, storageApi, documents };
+  }
+
+  it("deletes the row first, then the stored file, and returns to the list", async () => {
+    const { order, storageApi, documents } = deleteClient();
+    await expect(deleteDocument(ASSET, DOC, {}, new FormData())).rejects.toThrow(LIST);
+    expect(documents.eq).toHaveBeenCalledWith("asset_id", ASSET);
+    expect(order).toEqual(["row", "object"]);
+    expect(storageApi.remove).toHaveBeenCalledWith([CLAIM]);
+  });
+
+  it.each([
+    ["the delete errors", { data: null, error: { message: "boom" } }],
+    ["RLS deletes no row", { data: [], error: null }],
+  ])("keeps the stored file and reports failure when %s", async (_name, deleteResult) => {
+    const { storageApi } = deleteClient({ deleteResult });
+    expect(await deleteDocument(ASSET, DOC, {}, new FormData())).toEqual({ error: "Could not delete the document." });
+    expect(storageApi.remove).not.toHaveBeenCalled();
+  });
+
+  it("reports a document it cannot see, or an invalid id, as not found without deleting", async () => {
+    const { documents } = deleteClient({ doc: null });
+    expect(await deleteDocument(ASSET, DOC, {}, new FormData())).toEqual({ error: "Document not found." });
+    expect(await deleteDocument(ASSET, "not-a-uuid", {}, new FormData())).toEqual({ error: "Document not found." });
+    expect(documents.delete).not.toHaveBeenCalled();
+  });
+
+  it("does not delete when the document cannot be loaded", async () => {
+    const { documents } = deleteClient({ loadError: { message: "timeout" } });
+    expect(await deleteDocument(ASSET, DOC, {}, new FormData())).toEqual({ error: "Could not delete the document." });
+    expect(documents.delete).not.toHaveBeenCalled();
+  });
+
+  it("still succeeds when the file cannot be removed, logging the orphan without its path", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    deleteClient({ removeResult: { data: null, error: { message: "denied" } } });
+    await expect(deleteDocument(ASSET, DOC, {}, new FormData())).rejects.toThrow(LIST);
+    expect(warn).toHaveBeenCalledTimes(1);
+    const logged = warn.mock.calls[0].join(" ");
+    expect(logged).toContain("document_object_orphaned");
+    expect(logged).toContain(DOC);
+    expect(logged).not.toContain("org/");
+    warn.mockRestore();
+  });
+
+  it("deletes a link document without touching storage", async () => {
+    const { storageApi } = deleteClient({ doc: { id: DOC, storage_path: null } });
+    await expect(deleteDocument(ASSET, DOC, {}, new FormData())).rejects.toThrow(LIST);
+    expect(storageApi.remove).not.toHaveBeenCalled();
   });
 });

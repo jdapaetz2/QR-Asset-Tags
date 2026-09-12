@@ -243,21 +243,32 @@ export async function deleteDocument(
   _formData: FormData
 ): Promise<DocumentFormState> {
   await requireProfile();
+  if (!isUuid(documentId)) return { error: "Document not found." };
   const supabase = await createClient();
 
-  const { data: doc } = await supabase
+  // The caller's own client (RLS): a document outside their organization reads as not found.
+  const { data: doc, error: loadError } = await supabase
     .from("documents")
-    .select("storage_path")
+    .select("id, storage_path")
     .eq("id", documentId)
+    .eq("asset_id", assetId)
     .maybeSingle();
+  if (loadError) return { error: "Could not delete the document." };
+  if (!doc) return { error: "Document not found." };
 
-  if (doc?.storage_path) {
-    // Best-effort; the row delete is the source of truth.
-    await supabase.storage.from(DOCUMENTS_BUCKET).remove([doc.storage_path]);
+  // The row goes first and must actually go: RLS turns a refused delete into zero rows, not an error. If it fails the
+  // stored file is left untouched, so the document still opens.
+  const { data: deleted, error } = await supabase.from("documents").delete().eq("id", documentId).select("id");
+  if (error || deleted?.length !== 1) return { error: "Could not delete the document." };
+
+  if (doc.storage_path) {
+    // Best-effort once nothing references the file. A leftover object is found by the abandoned-upload report
+    // (docs/ORPHAN_MEDIA_CLEANUP.md); the log never carries the path.
+    const { data: removed, error: removeError } = await supabase.storage.from(DOCUMENTS_BUCKET).remove([doc.storage_path]);
+    if (removeError || !removed?.length) {
+      console.warn("[storage]", JSON.stringify({ event: "document_object_orphaned", documentId }));
+    }
   }
-
-  const { error } = await supabase.from("documents").delete().eq("id", documentId);
-  if (error) return { error: "Could not delete the document." };
 
   redirect(`/dashboard/assets/${assetId}/documents`);
 }

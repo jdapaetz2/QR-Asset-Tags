@@ -378,7 +378,7 @@ export async function deleteAsset(
   // Confirm the asset is the caller's (RLS) before counting dependencies.
   const { data: asset } = await supabase
     .from("assets")
-    .select("id")
+    .select("id, organization_id, cover_image_url")
     .eq("id", assetId)
     .maybeSingle();
   if (!asset) return { error: "Asset not found." };
@@ -400,8 +400,19 @@ export async function deleteAsset(
   const { canDelete, reason } = deleteEligibility(deps);
   if (!canDelete) return { error: reason };
 
-  const { error } = await supabase.from("assets").delete().eq("id", assetId);
-  if (error) return { error: "Could not delete the asset." };
+  // RLS turns a refused delete into zero rows, not an error, so require the one row back.
+  const { data: deleted, error } = await supabase.from("assets").delete().eq("id", assetId).select("id");
+  if (error || deleted?.length !== 1) return { error: "Could not delete the asset." };
+
+  // Best-effort: the app-managed cover object would otherwise outlive its asset (never external URLs or demo art).
+  // A leftover is found by the abandoned-upload report; the log never carries the path.
+  const coverPath = managedCoverObjectPath(asset.cover_image_url, asset.organization_id, assetId);
+  if (coverPath) {
+    const { data: removed, error: removeError } = await supabase.storage.from(COVER_BUCKET).remove([coverPath]);
+    if (removeError || !removed?.length) {
+      console.warn("[storage]", JSON.stringify({ event: "asset_cover_orphaned", assetId }));
+    }
+  }
 
   // The asset is gone → return to the (filtered) list the operator came from (Wave 3N.2).
   redirect(backHref(returnTo, "/dashboard/assets"));
