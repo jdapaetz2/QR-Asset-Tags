@@ -21,6 +21,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import { chromium } from "playwright";
+import sharp from "sharp";
 
 import { assertTarget } from "../lib/env-target.mjs";
 import { assertSmokeTarget } from "../lib/smoke-target.mjs";
@@ -184,8 +185,13 @@ async function coverScenario() {
     return;
   }
 
+  // A real, decodable JPEG padded after its end marker: the page prepares picked photos by their bytes (D4.1) and the
+  // server reads the frame size, so the magic bytes alone are no longer enough.
+  const image = await sharp({ create: { width: 640, height: 480, channels: 3, background: { r: 96, g: 120, b: 144 } } })
+    .jpeg()
+    .toBuffer();
   const jpeg = Buffer.alloc(COVER_BYTES, 0x5a);
-  jpeg.set([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01], 0);
+  image.copy(jpeg, 0);
 
   await page.goto(`${BASE}/dashboard/assets/${assetId}`, { waitUntil: "load", timeout: 60_000 });
   await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});

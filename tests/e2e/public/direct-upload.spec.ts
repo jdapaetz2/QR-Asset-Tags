@@ -30,7 +30,7 @@ test("a damage report with 7.5 MB of photos uploads directly and submits @critic
   await fillDamage(page);
   await page
     .locator('input[name="media"]')
-    .setInputFiles([largeJpeg("one.jpg"), largeJpeg("two.jpg"), largeJpeg("three.jpg")]);
+    .setInputFiles(await Promise.all([largeJpeg("one.jpg"), largeJpeg("two.jpg"), largeJpeg("three.jpg")]));
   await page.getByRole("button", { name: "Submit damage report" }).click();
 
   await page.waitForURL(/\/damage\/thanks\?ref=SUB-/, { timeout: 60_000 });
@@ -43,8 +43,8 @@ test("a return checklist uploads photos from two slots directly", async ({ page 
   const { assetId, shortCode } = await createAsset();
   await page.goto(`/forms/${shortCode}/return`);
   await answerConditionStage(page, { damage: false });
-  await page.locator('input[name="photo:front_hitch_photo"]').setInputFiles(largeJpeg("front.jpg"));
-  await page.locator('input[name="photo:deck_photo"]').setInputFiles(largeJpeg("deck.jpg"));
+  await page.locator('input[name="photo:front_hitch_photo"]').setInputFiles(await largeJpeg("front.jpg"));
+  await page.locator('input[name="photo:deck_photo"]').setInputFiles(await largeJpeg("deck.jpg"));
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByText("Step 2 of 3 · Return details")).toBeVisible();
   await page.getByRole("checkbox").check();

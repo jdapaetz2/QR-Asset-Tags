@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { startTransition, useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { fieldClass } from "@/components/public/public-form";
 import { prepareReturnUploads, submitReturnInspection } from "@/lib/forms/actions";
 import { HONEYPOT_FIELD, IDEMPOTENCY_FIELD } from "@/lib/forms/validate";
-import { ALLOWED_IMAGE_TYPES } from "@/lib/forms/media";
+import { EVIDENCE_PHOTO, PHOTO_ACCEPT } from "@/lib/media/photo-policy";
+import { usePhotoInput } from "@/lib/media/consumer-photo/use-photo-input";
+import { PhotoInputStatus } from "@/components/photo-input-status";
 import type { PublicFormState } from "@/lib/forms/submit";
 import { withActionErrorRecovery } from "@/lib/forms/action-recovery";
 import { MEDIA_PATHS_FIELD, type PrepareUploadsAction } from "@/lib/forms/upload-contract";
@@ -163,7 +165,15 @@ export function ReturnInspectionForm({
   const [state, formAction, pending] = useActionState<PublicFormState, FormData>(recoveringAction, {});
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
-  const busy = pending || serverPending || progress !== null;
+  // Photo slots still preparing picked photos on the device; the checklist cannot submit until they finish.
+  const [preparingSlots, setPreparingSlots] = useState<Record<string, boolean>>({});
+  const onPreparing = useCallback(
+    (slotId: string, preparing: boolean) =>
+      setPreparingSlots((prev) => (Boolean(prev[slotId]) === preparing ? prev : { ...prev, [slotId]: preparing })),
+    []
+  );
+  const preparingPhotos = Object.values(preparingSlots).some(Boolean);
+  const busy = pending || serverPending || progress !== null || preparingPhotos;
   const formError = uploadError ?? state.error ?? serverState.error;
   const [values, setValues] = useState<Values>({});
   const [fileCounts, setFileCounts] = useState<Record<string, number>>({});
@@ -421,6 +431,7 @@ export function ReturnInspectionForm({
               onText={setVal}
               onItem={setItem}
               onFiles={(id, n) => setFileCounts((p) => ({ ...p, [id]: n }))}
+              onPreparing={onPreparing}
             />
           ))}
         </div>
@@ -532,9 +543,11 @@ export function ReturnInspectionForm({
           <Button type="submit" onClick={handleSubmitClick} disabled={busy} className="h-11 flex-1">
             {progress
               ? `Uploading photos ${progress.done} of ${progress.total}…`
-              : pending || serverPending
-                ? submittingCta
-                : submitCta}
+              : preparingPhotos
+                ? "Preparing photos…"
+                : pending || serverPending
+                  ? submittingCta
+                  : submitCta}
           </Button>
         </div>
       )}
@@ -584,6 +597,45 @@ export function ReturnInspectionForm({
 
 type AccessoryOption = { value: string; label: string };
 
+/**
+ * A checklist photo slot's file input. Picked photos are prepared on the device (lib/media/consumer-photo/) and the
+ * prepared files replace the picked ones in the input, so this slot's photos keep their slot when uploaded.
+ */
+function PhotoSlotInput({
+  id,
+  name,
+  aria,
+  onFiles,
+  onPreparing,
+}: {
+  id: string;
+  name: string;
+  aria: { "aria-invalid": boolean | undefined; "aria-describedby": string | undefined };
+  onFiles: (n: number) => void;
+  onPreparing: (preparing: boolean) => void;
+}) {
+  const photos = usePhotoInput(EVIDENCE_PHOTO, { onPrepared: (files) => onFiles(files.length) });
+  const preparing = photos.preparing !== null;
+  useEffect(() => {
+    onPreparing(preparing);
+  }, [preparing, onPreparing]);
+  return (
+    <>
+      <input
+        id={id}
+        className={fieldClass}
+        type="file"
+        name={name}
+        accept={PHOTO_ACCEPT}
+        multiple
+        onChange={photos.onChange}
+        {...aria}
+      />
+      <PhotoInputStatus preparing={photos.preparing} problems={photos.problems} onCancel={photos.cancel} />
+    </>
+  );
+}
+
 function SectionFieldset({
   section,
   values,
@@ -594,6 +646,7 @@ function SectionFieldset({
   onText,
   onItem,
   onFiles,
+  onPreparing,
 }: {
   section: InspectionSection;
   values: Values;
@@ -604,6 +657,7 @@ function SectionFieldset({
   onText: (id: string, v: string) => void;
   onItem: (fieldId: string, itemId: string, v: string) => void;
   onFiles: (id: string, n: number) => void;
+  onPreparing: (id: string, preparing: boolean) => void;
 }) {
   return (
     <fieldset className="flex flex-col gap-4 rounded-lg border bg-card p-4">
@@ -622,6 +676,7 @@ function SectionFieldset({
               onText={(v) => onText(field.id, v)}
               onItem={(itemId, v) => onItem(field.id, itemId, v)}
               onFiles={(n) => onFiles(field.id, n)}
+              onPreparing={(preparing) => onPreparing(field.id, preparing)}
             />
             {baseline?.[field.id] ? (
               <details className="rounded-md border bg-muted/30 px-2 py-1 text-xs text-muted-foreground">
@@ -644,6 +699,7 @@ function FieldControl({
   onText,
   onItem,
   onFiles,
+  onPreparing,
 }: {
   field: InspectionField;
   value: string | Record<string, string> | undefined;
@@ -653,6 +709,7 @@ function FieldControl({
   onText: (v: string) => void;
   onItem: (itemId: string, v: string) => void;
   onFiles: (n: number) => void;
+  onPreparing: (preparing: boolean) => void;
 }) {
   const req = field.required ? " *" : "";
   const strVal = typeof value === "string" ? value : "";
@@ -760,18 +817,15 @@ function FieldControl({
           <span className="text-xs text-muted-foreground">
             {photoSlotHelp(field.id, isOutbound)}
           </span>
-          <input
+          <PhotoSlotInput
             id={domId}
-            className={fieldClass}
-            type="file"
             name={`photo:${field.id}`}
-            accept={ALLOWED_IMAGE_TYPES.join(",")}
-            multiple
-            onChange={(e) => onFiles(e.target.files?.length ?? 0)}
-            {...aria}
+            aria={aria}
+            onFiles={onFiles}
+            onPreparing={onPreparing}
           />
           <span className="text-xs text-muted-foreground">
-            Up to {field.photo?.maxPhotos ?? 6} photos, 10 MB each.
+            Up to {field.photo?.maxPhotos ?? 6} photos.
           </span>
           {errorNote}
         </label>

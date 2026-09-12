@@ -25,6 +25,7 @@ import {
 } from "@/lib/assets/cover";
 import { COVER_OBJECT_RULES, coverStorage } from "@/lib/assets/cover-storage";
 import { verifyClaimedObject } from "@/lib/storage/verify-object";
+import { isStoredImage } from "@/lib/media/classify";
 import {
   FILE_CHECK_FAILED_MESSAGE,
   FILE_VERIFY_FAILED_MESSAGE,
@@ -244,6 +245,10 @@ export async function updateAsset(
       assetId
     )}/${coverObjectName(randomUUID(), file.type)}`;
     const bytes = new Uint8Array(await file.arrayBuffer());
+    // Without JavaScript nothing converts the image first: store only a web-safe image of the declared type.
+    if (!isStoredImage(bytes, file.type)) {
+      return { error: "The image must be a JPG, PNG or WebP up to 40 megapixels." };
+    }
     const { error: uploadError } = await supabase.storage
       .from(COVER_BUCKET)
       .upload(uploadedPath, bytes, { contentType: file.type, upsert: false });

@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import sharp from "sharp";
 
 import { E2E_PASSWORD, ROLES, type RoleKey } from "./roles";
 
@@ -23,12 +24,16 @@ export function tinyPng(name = "photo.png"): { name: string; mimeType: string; b
 }
 
 /**
- * A JPEG-signed payload of `bytes` bytes: real JPEG magic bytes, filler body. Large enough to exceed the 4 MB action
- * body limit, so it only reaches storage through the direct-upload path (lib/forms/upload-contract.ts).
+ * A real, decodable 640×480 JPEG padded to `bytes` bytes with filler after its end-of-image marker (decoders ignore
+ * it). Large enough to exceed the 4 MB action body limit, so it only reaches storage through the direct-upload path
+ * (lib/forms/upload-contract.ts); a real frame header, because the photo adapter and the server read its size.
  */
-export function largeJpeg(name = "large.jpg", bytes = 2_500_000): { name: string; mimeType: string; buffer: Buffer } {
-  const buffer = Buffer.alloc(bytes, 0x5a);
-  buffer.set([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01], 0);
+export async function largeJpeg(name = "large.jpg", bytes = 2_500_000): Promise<{ name: string; mimeType: string; buffer: Buffer }> {
+  const image = await sharp({ create: { width: 640, height: 480, channels: 3, background: { r: 96, g: 120, b: 144 } } })
+    .jpeg()
+    .toBuffer();
+  const buffer = Buffer.alloc(Math.max(bytes, image.length), 0x5a);
+  image.copy(buffer, 0);
   return { name, mimeType: "image/jpeg", buffer };
 }
 

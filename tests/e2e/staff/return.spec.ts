@@ -44,7 +44,7 @@ test("staff return uploads a photo larger than the request limit directly", asyn
   await page.goto(`/staff/t/${shortCode}/return`);
 
   await answerConditionStage(page, { damage: false });
-  await page.locator('input[type="file"][name^="photo:"]').first().setInputFiles(largeJpeg("front.jpg", 4_500_000));
+  await page.locator('input[type="file"][name^="photo:"]').first().setInputFiles(await largeJpeg("front.jpg", 4_500_000));
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Review return checklist" }).click();
   await page.getByRole("button", { name: "Complete return checklist" }).click();

@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 
 import { extForMime, isAllowedImageType, MAX_FILE_BYTES, mediaObjectName } from "@/lib/forms/media";
 import { SUBMISSION_OBJECT_RE, SUBMISSION_PREFIX_RE } from "@/lib/ratelimit/orphan";
-import { sniffImageType } from "@/lib/media/sniff";
+import { IMAGE_HEAD_MAX_BYTES, imageHeadComplete, isStoredImage } from "@/lib/media/classify";
+import { isRecentUpload } from "@/lib/storage/verify-object";
 import {
   isObjectUnderPrefix as isUnderPrefix,
   scopedBucket,
@@ -29,8 +30,8 @@ export type { ListedObject } from "@/lib/storage/scoped-bucket";
  *   - an object that FAILS content verification (type, size, bytes) is deleted — a committed submission can only
  *     reference objects that passed the same checks, so a failing object is never someone's evidence;
  *   - unclaimed objects under the prefix are deleted only AFTER this submission's row is committed;
- *   - nothing is deleted on a duplicate submit, a missing object or a transient storage failure — abandoned objects
- *     are swept by the orphan tool (scripts/cleanup-orphan-media.mjs), which never touches a prefix with a row.
+ *   - nothing is deleted on a duplicate submit, a missing or stale object or a transient storage failure — abandoned
+ *     objects are swept by the orphan tool (scripts/cleanup-orphan-media.mjs), which never touches a prefix with a row.
  */
 
 export const SUBMISSIONS_BUCKET = "submissions";
@@ -116,16 +117,17 @@ export function readMediaClaims(formData: FormData, maxClaims: number): ClaimsRe
 
 export type VerifiedMedia = { slotId: string | null; path: string; size: number; type: string };
 
-export type VerifyFailure = "claim" | "missing" | "content" | "total" | "storage";
+export type VerifyFailure = "claim" | "missing" | "stale" | "content" | "total" | "storage";
 
 export type VerifyResult =
   | { ok: true; media: VerifiedMedia[]; totalBytes: number }
   | { ok: false; reason: VerifyFailure; deleted: number };
 
 /**
- * Every claim must be a strict path under this prefix that exists, is JPEG/PNG/WebP by stored type, extension AND
- * leading bytes, is non-empty and ≤ 10 MB, within the file count and (when given) total-byte caps. Objects failing
- * a content check are deleted; nothing else is.
+ * Every claim must be a strict path under this prefix that exists, was uploaded within the last 24 hours, is
+ * JPEG/PNG/WebP by stored type, extension AND leading bytes with a readable frame size within 16,384 px per side and
+ * 40 MP (read from up to the first 1 MB), is non-empty and ≤ 10 MB, within the file count and (when given) total-byte
+ * caps. Objects failing a content check are deleted; nothing else is.
  */
 export async function verifyClaimedMedia(
   bucket: ScopedSubmissionBucket,
@@ -146,6 +148,7 @@ export async function verifyClaimedMedia(
     const name = claim.path.slice(bucket.prefix.length + 1);
     const object = byName.get(name);
     if (!object) return reject("missing");
+    if (!isRecentUpload(object.createdAt)) return reject("stale");
     const type = object.mimetype ?? "";
     const size = object.size ?? 0;
     const extensionMatches = name.toLowerCase().endsWith(`.${extForMime(type)}`);
@@ -157,12 +160,14 @@ export async function verifyClaimedMedia(
   }
 
   if (invalid.length === 0) {
-    const heads = await bucket.readHeads(media.map((item) => item.path));
+    const heads = await bucket.readHeads(
+      media.map((item) => item.path),
+      { maxBytes: IMAGE_HEAD_MAX_BYTES, isComplete: imageHeadComplete }
+    );
     for (const item of media) {
       const head = heads.get(item.path);
       if (!head) return reject("storage");
-      const sniffed = sniffImageType(head);
-      if (!sniffed || `image/${sniffed}` !== item.type) invalid.push(item.path);
+      if (!isStoredImage(head, item.type)) invalid.push(item.path);
     }
   }
 

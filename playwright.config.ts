@@ -50,8 +50,9 @@ export default defineConfig({
     // far more stable for browser tests. `reuseExistingServer` locally skips the rebuild when a server
     // is already up on the port.
     // Remove any dev-only generated types (left by a prior `next dev`) so the production type-check is
-    // deterministic, then build + start.
-    command: `node -e "require('fs').rmSync('.next/dev',{recursive:true,force:true})" && next build && next start -p ${E2E_PORT}`,
+    // deterministic, copy the on-demand HEIC decoder into public/ (scripts/vendor-libheif.mjs — `next build` alone
+    // skips the npm prebuild hook), then build + start.
+    command: `node -e "require('fs').rmSync('.next/dev',{recursive:true,force:true})" && node scripts/vendor-libheif.mjs && next build && next start -p ${E2E_PORT}`,
     url: E2E_BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 420_000,

@@ -52,3 +52,8 @@ qa-artifacts/
 
 # Smoke failure artifacts (Phase B5) — screenshots + HTML, written only when a check fails.
 smoke-artifacts/
+
+# libheif-js build copied from node_modules by scripts/vendor-libheif.mjs (D4.1). NOTICE.md there is tracked.
+/public/vendor/libheif/libheif.js
+/public/vendor/libheif/libheif.wasm
+/public/vendor/libheif/LICENSE

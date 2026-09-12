@@ -14,14 +14,21 @@ import { SNIFF_BYTES } from "@/lib/media/sniff";
 
 export type StorageBucketApi = ReturnType<SupabaseClient["storage"]["from"]>;
 
-export type ListedObject = { name: string; size: number | null; mimetype: string | null };
+export type ListedObject = { name: string; size: number | null; mimetype: string | null; createdAt: string | null };
+
+export type HeadReadOptions = {
+  /** Read at most this many leading bytes (default: the sniffers' SNIFF_BYTES). */
+  maxBytes?: number;
+  /** Stop as soon as the bytes read so far are enough — e.g. once a JPEG's frame header has arrived. */
+  isComplete?: (head: Uint8Array) => boolean;
+};
 
 export type ScopedBucket = {
   readonly prefix: string;
   signUpload(path: string): Promise<string | null>;
   list(): Promise<ListedObject[] | null>;
-  /** The first bytes of each object (null when unreadable). Signed read URLs never leave this function. */
-  readHeads(paths: string[]): Promise<Map<string, Uint8Array | null>>;
+  /** The leading bytes of each object (null when unreadable). Signed read URLs never leave this function. */
+  readHeads(paths: string[], options?: HeadReadOptions): Promise<Map<string, Uint8Array | null>>;
   upload(path: string, bytes: Uint8Array, contentType: string): Promise<boolean>;
   remove(paths: string[]): Promise<{ removed: number; failed: boolean }>;
 };
@@ -63,27 +70,29 @@ function stringOrNull(value: unknown): string | null {
  * body can be a tee whose cancel promise only settles when the other branch is also consumed, so awaiting it hung
  * the request indefinitely. `no-store` keeps the read out of Next's fetch cache.
  */
-async function readHead(fetchImpl: typeof fetch, url: string): Promise<Uint8Array | null> {
+async function readHead(fetchImpl: typeof fetch, url: string, options: HeadReadOptions): Promise<Uint8Array | null> {
+  const maxBytes = options.maxBytes ?? SNIFF_BYTES;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), READ_HEAD_TIMEOUT_MS);
   try {
     const res = await fetchImpl(url, {
-      headers: { Range: `bytes=0-${SNIFF_BYTES - 1}` },
+      headers: { Range: `bytes=0-${maxBytes - 1}` },
       cache: "no-store",
       signal: controller.signal,
     });
     if (!res.ok || !res.body) return null;
     const reader = res.body.getReader();
-    const out = new Uint8Array(SNIFF_BYTES);
+    const out = new Uint8Array(maxBytes);
     let filled = 0;
-    while (filled < SNIFF_BYTES) {
+    while (filled < maxBytes) {
       const { done, value } = await reader.read();
       if (done || !value) break;
-      const take = Math.min(value.byteLength, SNIFF_BYTES - filled);
+      const take = Math.min(value.byteLength, maxBytes - filled);
       out.set(value.subarray(0, take), filled);
       filled += take;
+      if (options.isComplete?.(out.subarray(0, filled))) break;
     }
-    return out.subarray(0, filled);
+    return out.slice(0, filled);
   } catch {
     return null;
   } finally {
@@ -122,13 +131,18 @@ export function scopedBucket(
           .filter((entry) => Boolean((entry as { id?: unknown }).id) && Boolean(entry.name))
           .map((entry) => {
             const metadata = (entry.metadata ?? {}) as Record<string, unknown>;
-            return { name: entry.name, size: numberOrNull(metadata.size), mimetype: stringOrNull(metadata.mimetype) };
+            return {
+              name: entry.name,
+              size: numberOrNull(metadata.size),
+              mimetype: stringOrNull(metadata.mimetype),
+              createdAt: stringOrNull((entry as { created_at?: unknown }).created_at),
+            };
           });
       } catch {
         return null;
       }
     },
-    async readHeads(paths) {
+    async readHeads(paths, options = {}) {
       paths.forEach(assertPath);
       const heads = new Map<string, Uint8Array | null>();
       if (paths.length === 0) return heads;
@@ -142,7 +156,7 @@ export function scopedBucket(
       await Promise.all(
         paths.map(async (path) => {
           const url = signed.find((entry) => entry.path === path)?.signedUrl;
-          heads.set(path, url ? await readHead(fetchImpl, url) : null);
+          heads.set(path, url ? await readHead(fetchImpl, url, options) : null);
         })
       );
       return heads;

@@ -5,7 +5,10 @@ import { startTransition, useActionState, useEffect, useMemo, useState } from "r
 import { Button } from "@/components/ui/button";
 import type { PublicFormState } from "@/lib/forms/submit";
 import { HONEYPOT_FIELD, IDEMPOTENCY_FIELD } from "@/lib/forms/validate";
-import { ALLOWED_IMAGE_TYPES, MAX_FILES } from "@/lib/forms/media";
+import { MAX_FILES } from "@/lib/forms/media";
+import { EVIDENCE_PHOTO, PHOTO_ACCEPT } from "@/lib/media/photo-policy";
+import { usePhotoInput } from "@/lib/media/consumer-photo/use-photo-input";
+import { PhotoInputStatus } from "@/components/photo-input-status";
 import { withActionErrorRecovery } from "@/lib/forms/action-recovery";
 import { MEDIA_PATHS_FIELD, type PrepareUploadsAction } from "@/lib/forms/upload-contract";
 import { collectSelectedPhotos, stripSelectedPhotos, uploadPhotosDirect } from "@/lib/forms/upload-client";
@@ -63,7 +66,9 @@ export function PublicForm({
     setIdempotencyKey(crypto.randomUUID());
   }, []);
 
-  const busy = pending || serverPending || progress !== null;
+  // Picked photos are prepared on the device first (HEIC, AVIF and very large photos become JPEG).
+  const photos = usePhotoInput(EVIDENCE_PHOTO);
+  const busy = pending || serverPending || progress !== null || photos.preparing !== null;
   const error = uploadError ?? state.error ?? serverState.error;
 
   async function submit(form: HTMLFormElement) {
@@ -141,22 +146,22 @@ export function PublicForm({
       {children}
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">
-          Photos (optional, up to {MAX_FILES}, 10 MB each)
-        </span>
+        <span className="font-medium">Photos (optional, up to {MAX_FILES})</span>
         <input
           className={fieldClass}
           type="file"
           name="media"
-          accept={ALLOWED_IMAGE_TYPES.join(",")}
+          accept={PHOTO_ACCEPT}
           multiple
+          onChange={photos.onChange}
         />
         <span className="text-xs text-muted-foreground">
           Photos are optional but helpful, especially for visible damage.
         </span>
+        <PhotoInputStatus preparing={photos.preparing} problems={photos.problems} onCancel={photos.cancel} />
         <noscript>
           <span className="text-xs text-muted-foreground">
-            With JavaScript turned off, photos must total less than 4 MB.
+            With JavaScript turned off, photos must be JPG, PNG or WebP and total less than 4 MB.
           </span>
         </noscript>
       </label>
@@ -172,9 +177,11 @@ export function PublicForm({
       <Button type="submit" disabled={busy}>
         {progress
           ? `Uploading photos ${progress.done} of ${progress.total}…`
-          : pending || serverPending
-            ? "Submitting…"
-            : submitLabel}
+          : photos.preparing
+            ? "Preparing photos…"
+            : pending || serverPending
+              ? "Submitting…"
+              : submitLabel}
       </Button>
     </form>
   );

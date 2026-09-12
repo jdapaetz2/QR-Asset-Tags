@@ -98,10 +98,19 @@ async function labelledPhoto({ label, hue, width = 2400, height = 1600, format =
   return { name: `${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.${ext}`, mimeType: `image/${format}`, buffer };
 }
 
-function corruptJpeg(name) {
-  const body = Buffer.alloc(40_000);
-  for (let i = 0; i < body.length; i++) body[i] = (i * 31 + 7) & 0xff;
-  return { name, mimeType: "image/jpeg", buffer: Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), body]) };
+/**
+ * A JPEG whose headers are valid (so the page keeps it and the server stores it — D4.1 reads the frame size) but which
+ * ends before any image data, so decoding it for a preview fails.
+ */
+async function corruptJpeg(name) {
+  const real = await sharp({ create: { width: 320, height: 240, channels: 3, background: { r: 200, g: 60, b: 60 } } })
+    .jpeg()
+    .toBuffer();
+  let offset = 2;
+  while (offset + 4 <= real.length && !(real[offset] === 0xff && real[offset + 1] === 0xda)) {
+    offset += 2 + real.readUInt16BE(offset + 2);
+  }
+  return { name, mimeType: "image/jpeg", buffer: Buffer.concat([real.subarray(0, offset), Buffer.from([0xff, 0xd9])]) };
 }
 
 const GPS_EXIF = {
@@ -149,7 +158,7 @@ const SCENARIOS = [
     expect: "2 previews (corrupt first file omitted), 2 of 3; log previewFailureClass decode_failed",
     form: "damage",
     files: async () => [
-      corruptJpeg("corrupt-first.jpg"),
+      await corruptJpeg("corrupt-first.jpg"),
       await labelledPhoto({ label: "Partial good A", hue: 30 }),
       await labelledPhoto({ label: "Partial good B", hue: 90 }),
     ],
@@ -158,7 +167,7 @@ const SCENARIOS = [
     id: "damage-all-corrupt",
     expect: "text-only: 'Photo previews: none included.'; no images; still delivered",
     form: "damage",
-    files: async () => [corruptJpeg("corrupt-a.jpg"), corruptJpeg("corrupt-b.jpg")],
+    files: async () => [await corruptJpeg("corrupt-a.jpg"), await corruptJpeg("corrupt-b.jpg")],
   },
   {
     id: "previews-off",

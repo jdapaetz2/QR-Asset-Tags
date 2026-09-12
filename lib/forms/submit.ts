@@ -8,9 +8,11 @@ import { HONEYPOT_FIELD, IDEMPOTENCY_FIELD } from "@/lib/forms/validate";
 import {
   MAX_FILES,
   mediaObjectName,
+  NO_JS_PHOTO_MESSAGE,
   submissionPathPrefix,
   validateUploadFiles,
 } from "@/lib/forms/media";
+import { readNoJsPhotoBytes } from "@/lib/forms/no-js-photos";
 import { cleanupUploadedMedia } from "@/lib/forms/cleanup";
 import { readMediaClaims, removeUnclaimedObjects, verifyClaimedMedia } from "@/lib/forms/media-verify";
 import { publicSubmissionBucket } from "@/lib/forms/upload-intake";
@@ -186,10 +188,12 @@ export async function submitPublicForm(
       files.map((f) => ({ type: f.type, size: f.size }))
     );
     if (fileError) return { error: fileError };
+    const bytesByFile = await readNoJsPhotoBytes(files);
+    if (!bytesByFile) return { error: NO_JS_PHOTO_MESSAGE };
 
     for (const file of files) {
       const path = `${bucket.prefix}/${mediaObjectName(randomUUID(), file.type)}`;
-      const bytes = new Uint8Array(await file.arrayBuffer());
+      const bytes = bytesByFile.get(file) as Uint8Array;
       totalBytes += bytes.byteLength;
       if (!(await bucket.upload(path, bytes, file.type))) {
         // Clean up this request's already-uploaded objects before bailing (best effort).

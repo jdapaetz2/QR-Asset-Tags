@@ -19,6 +19,7 @@ import {
   managedLogoObjectPath,
   validateLogoFile,
 } from "@/lib/org/logo";
+import { isStoredImage } from "@/lib/media/classify";
 import { parseExportSettingsForm } from "@/lib/export/types";
 import { normalizePlanForm, type RawPlanForm } from "@/lib/plans/settings";
 import { normalizeNewOrg, type RawNewOrgForm } from "@/lib/org/create";
@@ -96,6 +97,10 @@ async function saveOrgSettings(
       file.type
     )}`;
     const bytes = new Uint8Array(await file.arrayBuffer());
+    // The logo travels in this request, so check its bytes: a web-safe image of the declared type, never a lookalike.
+    if (!isStoredImage(bytes, file.type)) {
+      return { error: "Logo must be a JPG, PNG or WebP image up to 40 megapixels." };
+    }
     const { error: uploadError } = await supabase.storage
       .from(LOGO_BUCKET)
       .upload(uploadedPath, bytes, { contentType: file.type, upsert: false });

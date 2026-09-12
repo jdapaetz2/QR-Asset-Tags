@@ -15,6 +15,9 @@ export const ALLOWED_IMAGE_TYPES = [
 export const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
 export const MAX_FILES = 5;
 
+/** Without JavaScript photos are not converted on the device (lib/forms/no-js-photos.ts). */
+export const NO_JS_PHOTO_MESSAGE = "Without JavaScript, photos must be JPG, PNG or WebP images up to 40 megapixels.";
+
 // Guided return inspections allow more photos (overview + angles + damage), but with a hard total-byte
 // cap so a submission stays well under the server-action body limit (next.config.ts) and storage cost
 // stays bounded. Per-file size + allowed types are unchanged.

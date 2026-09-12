@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { JPEG_HEAD, PNG_HEAD } from "@/tests/setup/image-heads";
+
 // Behavioral tests for the public submit core's Phase A4 guarantees, with the DB/storage/limiter mocked:
 // no upload after a preflight reject; cleanup after insert failure; PK-conflict → cleanup + idempotent
 // success; committed submission survives a notification step (media never deleted after commit).
@@ -63,8 +65,6 @@ const ASSET = "22222222-2222-4222-8222-222222222222";
 const SUB = "33333333-3333-4333-8333-333333333333";
 const OTHER_SUB = "55555555-5555-4555-8555-555555555555";
 const PREFIX = `org/${ORG}/asset/${ASSET}/submission/${SUB}`;
-const JPEG_HEAD = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01]);
-const PNG_HEAD = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d]);
 const PHOTO_1 = "44444441-4444-4444-8444-444444444444.jpg";
 const PHOTO_2 = "44444442-4444-4444-8444-444444444444.jpg";
 
@@ -80,7 +80,12 @@ function makeBucket(objects: Record<string, StoredObject> = {}, uploadOk = true)
     remove,
     signUpload: vi.fn(),
     list: vi.fn(async () =>
-      Object.entries(objects).map(([name, object]) => ({ name, size: object.size, mimetype: object.mimetype }))
+      Object.entries(objects).map(([name, object]) => ({
+        name,
+        size: object.size,
+        mimetype: object.mimetype,
+        createdAt: new Date().toISOString(),
+      }))
     ),
     readHeads: vi.fn(
       async (paths: string[]) =>
@@ -99,7 +104,8 @@ function makeClient(insertResult: { error: { code?: string } | null }) {
 function formWithPhoto(): FormData {
   const fd = new FormData();
   fd.set("name", "Renter");
-  fd.append("media", new File([new Uint8Array([1, 2, 3])], "p.png", { type: "image/png" }));
+  // A real PNG head: without JavaScript the server checks a photo's bytes before storing it.
+  fd.append("media", new File([PNG_HEAD], "p.png", { type: "image/png" }));
   return fd;
 }
 
@@ -364,6 +370,20 @@ describe("direct uploads — finalize with verified claims", () => {
     expect(insert.mock.calls[0][0]).toMatchObject({ id: SUB, media_urls: [`${PREFIX}/${PHOTO_1}`] });
     expect(remove).toHaveBeenCalledWith([`${PREFIX}/${PHOTO_2}`]);
     expect(scheduleSubmissionNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses a no-JavaScript photo whose bytes are not the declared image, before storing anything", async () => {
+    const { upload } = makeBucket();
+    const { client, insert } = makeClient({ error: null });
+    createPublicClient.mockReturnValue(client);
+    const fd = new FormData();
+    fd.set("name", "Renter");
+    fd.append("media", new File([new Uint8Array([1, 2, 3])], "p.png", { type: "image/png" }));
+
+    const { result } = await run(fd);
+    expect(result?.error).toBe("Without JavaScript, photos must be JPG, PNG or WebP images up to 40 megapixels.");
+    expect(upload).not.toHaveBeenCalled();
+    expect(insert).not.toHaveBeenCalled();
   });
 
   it("refuses claims sent alongside files, before any work", async () => {

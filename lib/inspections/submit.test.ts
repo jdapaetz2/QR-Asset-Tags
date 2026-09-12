@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { JPEG_HEAD, PNG_HEAD } from "@/tests/setup/image-heads";
+
 /**
  * Phase C6.1 — behavioural tests for the PUBLIC guided return-checklist core.
  *
@@ -100,7 +102,6 @@ const ORG = "11111111-1111-4111-8111-111111111111";
 const ASSET = "22222222-2222-4222-8222-222222222222";
 const SUB = "33333333-3333-4333-8333-333333333333";
 const PREFIX = `org/${ORG}/asset/${ASSET}/submission/${SUB}`;
-const JPEG_HEAD = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01]);
 const photoName = (n: number) => `4444444${n}-4444-4444-8444-444444444444.jpg`;
 
 type StoredObject = { size: number; mimetype: string; head: Uint8Array };
@@ -114,7 +115,12 @@ function makeBucket(objects: Record<string, StoredObject> = {}, uploadOk = true)
     remove,
     signUpload: vi.fn(),
     list: vi.fn(async () =>
-      Object.entries(objects).map(([name, object]) => ({ name, size: object.size, mimetype: object.mimetype }))
+      Object.entries(objects).map(([name, object]) => ({
+        name,
+        size: object.size,
+        mimetype: object.mimetype,
+        createdAt: new Date().toISOString(),
+      }))
     ),
     readHeads: vi.fn(
       async (paths: string[]) =>
@@ -138,7 +144,8 @@ function baseForm(): FormData {
 
 function formWithPhoto(): FormData {
   const fd = baseForm();
-  fd.append("photo:overall", new File([new Uint8Array([1, 2, 3])], "p.png", { type: "image/png" }));
+  // A real PNG head: without JavaScript the server checks a photo's bytes before storing it.
+  fd.append("photo:overall", new File([PNG_HEAD], "p.png", { type: "image/png" }));
   return fd;
 }
 

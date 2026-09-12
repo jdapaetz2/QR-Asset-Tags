@@ -14,7 +14,7 @@ test.use({ storageState: ROLES.admin.storageState });
 
 const SAVE_TIMEOUT_MS = 60_000;
 
-async function saveCover(page: Page, assetId: string, file: ReturnType<typeof largeJpeg>) {
+async function saveCover(page: Page, assetId: string, file: Awaited<ReturnType<typeof largeJpeg>>) {
   await page.goto(`/dashboard/assets/${assetId}`);
   // Use the form that holds the cover image input. The file input's own accessible name ends "…when you click Save
   // changes", so the submit button is matched exactly.
@@ -46,12 +46,12 @@ test("a 4.8 MB cover image saves, and a replacement removes the previous one @cr
   const { assetId } = await createAsset();
   const coverUrl = new RegExp(`/storage/v1/object/public/public-assets/org/[0-9a-f-]{36}/asset/${assetId}/cover/[0-9a-f-]{36}\\.jpg$`);
 
-  await saveCover(page, assetId, largeJpeg("cover.jpg", 4_800_000));
+  await saveCover(page, assetId, await largeJpeg("cover.jpg", 4_800_000));
   await expect.poll(() => readAssetCover(assetId), { timeout: SAVE_TIMEOUT_MS }).toMatch(coverUrl);
   const first = await readAssetCover(assetId);
   expect(await listCoverObjects(assetId)).toHaveLength(1);
 
-  await saveCover(page, assetId, largeJpeg("cover-2.jpg", 4_700_000));
+  await saveCover(page, assetId, await largeJpeg("cover-2.jpg", 4_700_000));
   await expect
     .poll(async () => {
       const current = await readAssetCover(assetId);

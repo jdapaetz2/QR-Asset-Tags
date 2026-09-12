@@ -6,7 +6,9 @@
     "node": "22.x"
   },
   "scripts": {
+    "predev": "node scripts/vendor-libheif.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/vendor-libheif.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -53,6 +55,7 @@
     "qa:staging:loops": "node --env-file=.env.staging.local scripts/qa/staging-audit.mjs --loops",
     "qa:staging:qr": "node --env-file=.env.staging.local scripts/qa/staging-audit.mjs --qr",
     "qa:staging:vitals": "node --env-file=.env.staging.local scripts/qa/staging-vitals.mjs",
+    "check:scan-bundle": "node scripts/qa/check-scan-bundle.mjs",
     "cleanup:orphans:staging": "node --env-file=.env.staging.local scripts/cleanup-orphan-media.mjs --target=staging",
     "cleanup:orphans:production": "node --env-file=.env.local --env-file=.env.production-ops.local scripts/cleanup-orphan-media.mjs --target=production"
   },
@@ -62,6 +65,7 @@
     "@vercel/speed-insights": "^2.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "libheif-js": "1.23.2",
     "lucide-react": "^1.18.0",
     "next": "16.2.9",
     "qrcode": "^1.5.4",

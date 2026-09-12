@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { COVER_OBJECT_RULES } from "@/lib/assets/cover-storage";
+import { IMAGE_HEAD_MAX_BYTES } from "@/lib/media/classify";
+import { jpegHead } from "@/tests/setup/image-heads";
 import type { ListedObject, ScopedBucket } from "./scoped-bucket";
-import { verifyClaimedObject, type ObjectRules } from "./verify-object";
+import { MAX_CLAIM_AGE_MS, isRecentUpload, verifyClaimedObject, type ObjectRules } from "./verify-object";
 
 // Server-side verification of one directly uploaded object (lib/storage/verify-object.ts).
 
@@ -25,13 +28,14 @@ function fakeBucket(objects: ListedObject[] | null, head: Uint8Array | null = JP
   const list = vi.fn(async () => objects);
   const readHeads = vi.fn(async (paths: string[]) => new Map(paths.map((path) => [path, head])));
   const bucket: ScopedBucket = { prefix: PREFIX, signUpload: vi.fn(), list, readHeads, upload: vi.fn(), remove };
-  return { bucket, remove, list };
+  return { bucket, remove, list, readHeads };
 }
 
 const stored = (overrides: Partial<ListedObject> = {}): ListedObject => ({
   name: NAME,
   size: 500,
   mimetype: "image/jpeg",
+  createdAt: new Date().toISOString(),
   ...overrides,
 });
 
@@ -86,5 +90,40 @@ describe("verifyClaimedObject", () => {
     const { bucket, remove } = fakeBucket([stored()], new Uint8Array([0x25, 0x50, 0x44, 0x46]));
     expect(await verifyClaimedObject(bucket, PATH, RULES)).toEqual({ ok: false, reason: "content", deleted: true });
     expect(remove).toHaveBeenCalledWith([PATH]);
+  });
+
+  it.each([
+    ["uploaded more than 24 hours ago", new Date(Date.now() - MAX_CLAIM_AGE_MS - 60_000).toISOString()],
+    ["with no recorded upload time", null],
+  ])("refuses an object %s and keeps it", async (_name, createdAt) => {
+    const { bucket, remove } = fakeBucket([stored({ createdAt })]);
+    expect(await verifyClaimedObject(bucket, PATH, RULES)).toEqual({ ok: false, reason: "stale", deleted: false });
+    expect(remove).not.toHaveBeenCalled();
+  });
+
+  it("reads as much of the object as the rules ask for", async () => {
+    const head = { maxBytes: 4096, isComplete: () => true };
+    const { bucket, readHeads } = fakeBucket([stored()]);
+    await verifyClaimedObject(bucket, PATH, { ...RULES, head });
+    expect(readHeads).toHaveBeenCalledWith([PATH], head);
+  });
+});
+
+describe("isRecentUpload", () => {
+  it("allows up to 24 hours and never an unknown or unreadable time", () => {
+    const now = Date.parse("2026-09-12T12:00:00Z");
+    expect(isRecentUpload("2026-09-11T12:00:00Z", now)).toBe(true);
+    expect(isRecentUpload("2026-09-11T11:59:00Z", now)).toBe(false);
+    expect(isRecentUpload(null, now)).toBe(false);
+    expect(isRecentUpload("yesterday", now)).toBe(false);
+  });
+});
+
+describe("COVER_OBJECT_RULES", () => {
+  it("reads up to 1 MB and accepts only a web image within 40 MP", () => {
+    expect(COVER_OBJECT_RULES.head?.maxBytes).toBe(IMAGE_HEAD_MAX_BYTES);
+    expect(COVER_OBJECT_RULES.bytesMatch(jpegHead(1920, 1080), "image/jpeg")).toBe(true);
+    expect(COVER_OBJECT_RULES.bytesMatch(jpegHead(8000, 6000), "image/jpeg")).toBe(false);
+    expect(COVER_OBJECT_RULES.bytesMatch(jpegHead(1920, 1080), "image/png")).toBe(false);
   });
 });

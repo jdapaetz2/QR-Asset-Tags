@@ -11,6 +11,8 @@ import {
 } from "./media-verify";
 import { MAX_FILE_BYTES } from "./media";
 import { MEDIA_PATHS_FIELD } from "./upload-contract";
+import { IMAGE_HEAD_MAX_BYTES } from "@/lib/media/classify";
+import { JPEG_HEAD, PNG_HEAD, jpegHead } from "@/tests/setup/image-heads";
 
 // Direct-upload storage capability and server-side verification (lib/forms/media-verify.ts).
 
@@ -22,12 +24,10 @@ const OTHER_PREFIX = `org/${ORG}/asset/${ASSET}/submission/55555555-5555-4555-85
 const JPEG = "44444441-4444-4444-8444-444444444444.jpg";
 const JPEG_2 = "44444442-4444-4444-8444-444444444444.jpg";
 const PNG = "44444443-4444-4444-8444-444444444444.png";
-const JPEG_HEAD = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01]);
-const PNG_HEAD = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d]);
-
 const at = (name: string, prefix = PREFIX) => `${prefix}/${name}`;
 
-type Stored = { size: number | null; mimetype: string | null; head: Uint8Array | null };
+/** `createdAt` defaults to just now; pass null or an old timestamp to test the age rule. */
+type Stored = { size: number | null; mimetype: string | null; head: Uint8Array | null; createdAt?: string | null };
 
 function fakeBucket(objects: Record<string, Stored>, opts: { listFails?: boolean; signFails?: boolean } = {}) {
   const remove = vi.fn(async (paths: string[]) => ({ removed: paths.length, failed: false }));
@@ -37,7 +37,12 @@ function fakeBucket(objects: Record<string, Stored>, opts: { listFails?: boolean
     list: vi.fn(async () =>
       opts.listFails
         ? null
-        : Object.entries(objects).map(([name, object]) => ({ name, size: object.size, mimetype: object.mimetype }))
+        : Object.entries(objects).map(([name, object]) => ({
+            name,
+            size: object.size,
+            mimetype: object.mimetype,
+            createdAt: object.createdAt === undefined ? new Date().toISOString() : object.createdAt,
+          }))
     ),
     readHeads: vi.fn(async (paths: string[]) => new Map(paths.map((path) => [path, objects[path.slice(PREFIX.length + 1)]?.head ?? null]))),
     upload: vi.fn(async () => true),
@@ -130,6 +135,24 @@ describe("verifyClaimedMedia", () => {
       ],
     });
     expect(remove).not.toHaveBeenCalled();
+    // Enough of each object to find its frame size, up to 1 MB.
+    expect(bucket.readHeads).toHaveBeenCalledWith(
+      [at(JPEG), at(PNG)],
+      expect.objectContaining({ maxBytes: IMAGE_HEAD_MAX_BYTES })
+    );
+  });
+
+  it.each([
+    ["uploaded more than 24 hours ago", new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()],
+    ["with no recorded upload time", null],
+  ])("refuses an object %s without deleting it", async (_name, createdAt) => {
+    const { bucket, remove } = fakeBucket({ [JPEG]: { size: 10, mimetype: "image/jpeg", head: JPEG_HEAD, createdAt } });
+    expect(await verifyClaimedMedia(bucket, [{ slotId: null, path: at(JPEG) }], limits)).toEqual({
+      ok: false,
+      reason: "stale",
+      deleted: 0,
+    });
+    expect(remove).not.toHaveBeenCalled();
   });
 
   it("refuses a claim outside the prefix without listing or deleting", async () => {
@@ -162,6 +185,9 @@ describe("verifyClaimedMedia", () => {
     ["an extension that does not match the type", { size: 10, mimetype: "image/png", head: PNG_HEAD }, JPEG],
     ["bytes that are not the stored type", { size: 10, mimetype: "image/jpeg", head: PNG_HEAD }, JPEG],
     ["bytes that are not an image", { size: 10, mimetype: "image/jpeg", head: new Uint8Array(12) }, JPEG],
+    ["a frame over 40 megapixels", { size: 10, mimetype: "image/jpeg", head: jpegHead(8000, 6000) }, JPEG],
+    ["a side over 16,384 pixels", { size: 10, mimetype: "image/jpeg", head: jpegHead(20_000, 100) }, JPEG],
+    ["no readable frame size", { size: 10, mimetype: "image/jpeg", head: JPEG_HEAD.subarray(0, 12) }, JPEG],
   ])("deletes and refuses an object with %s", async (_name, object, name) => {
     const { bucket, remove } = fakeBucket({ [name]: object });
     expect(await verifyClaimedMedia(bucket, [{ slotId: null, path: at(name) }], limits)).toEqual({
@@ -220,7 +246,7 @@ describe("scopedSubmissionBucket — every storage call is confined to one prefi
       })),
       list: vi.fn(async () => ({
         data: [
-          { name: JPEG, id: "obj-1", metadata: { size: 123, mimetype: "image/jpeg" } },
+          { name: JPEG, id: "obj-1", created_at: "2026-09-12T10:00:00.000Z", metadata: { size: 123, mimetype: "image/jpeg" } },
           { name: "folder", id: null, metadata: null },
         ],
         error: null,
@@ -256,7 +282,9 @@ describe("scopedSubmissionBucket — every storage call is confined to one prefi
     const bucket = scopedSubmissionBucket(asApi(api), PREFIX);
     expect(await bucket.signUpload(at(JPEG))).toContain("token=x");
     expect(api.createSignedUploadUrl).toHaveBeenCalledWith(at(JPEG));
-    expect(await bucket.list()).toEqual([{ name: JPEG, size: 123, mimetype: "image/jpeg" }]);
+    expect(await bucket.list()).toEqual([
+      { name: JPEG, size: 123, mimetype: "image/jpeg", createdAt: "2026-09-12T10:00:00.000Z" },
+    ]);
     expect(api.list).toHaveBeenCalledWith(PREFIX, { limit: 1000 });
   });
 
@@ -267,9 +295,21 @@ describe("scopedSubmissionBucket — every storage call is confined to one prefi
     );
     const bucket = scopedSubmissionBucket(asApi(api), PREFIX, fetchImpl as unknown as typeof fetch);
     const heads = await bucket.readHeads([at(JPEG)]);
-    expect(heads.get(at(JPEG))?.byteLength).toBe(12);
+    expect(heads.get(at(JPEG))?.byteLength).toBe(64);
     expect(api.createSignedUrls).toHaveBeenCalledWith([at(JPEG)], 60);
-    expect((fetchImpl.mock.calls[0][1] as RequestInit).headers).toEqual({ Range: "bytes=0-11" });
+    expect((fetchImpl.mock.calls[0][1] as RequestInit).headers).toEqual({ Range: "bytes=0-63" });
+  });
+
+  it("reads up to a larger range and stops as soon as the bytes are enough", async () => {
+    const api = storageApi();
+    const chunks = [new Uint8Array(300).fill(1), new Uint8Array(300).fill(2), new Uint8Array(300).fill(3)];
+    const fetchImpl = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) =>
+      new Response(new ReadableStream<Uint8Array>({ pull: (controller) => { const next = chunks.shift(); if (next) controller.enqueue(next); else controller.close(); } }), { status: 206 })
+    );
+    const bucket = scopedSubmissionBucket(asApi(api), PREFIX, fetchImpl as unknown as typeof fetch);
+    const heads = await bucket.readHeads([at(JPEG)], { maxBytes: 1000, isComplete: (head) => head.length >= 500 });
+    expect(heads.get(at(JPEG))?.byteLength).toBe(600);
+    expect((fetchImpl.mock.calls[0][1] as RequestInit).headers).toEqual({ Range: "bytes=0-999" });
   });
 
   it("aborts once it has the bytes, even when the body never ends and its cancel never settles", async () => {
@@ -277,11 +317,13 @@ describe("scopedSubmissionBucket — every storage call is confined to one prefi
     // awaiting `reader.cancel()` there hung every direct-upload submission.
     const api = storageApi();
     let signal: AbortSignal | null | undefined;
+    const sniffed = new Uint8Array(64);
+    sniffed.set(JPEG_HEAD);
     const fetchImpl = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
       signal = init?.signal;
       const body = new ReadableStream<Uint8Array>({
         start(controller) {
-          controller.enqueue(JPEG_HEAD);
+          controller.enqueue(sniffed);
         },
         cancel: () => new Promise<void>(() => {}),
       });
@@ -289,7 +331,7 @@ describe("scopedSubmissionBucket — every storage call is confined to one prefi
     });
     const bucket = scopedSubmissionBucket(asApi(api), PREFIX, fetchImpl as unknown as typeof fetch);
     const heads = await bucket.readHeads([at(JPEG)]);
-    expect(heads.get(at(JPEG))).toEqual(JPEG_HEAD);
+    expect(heads.get(at(JPEG))).toEqual(sniffed);
     expect(signal?.aborted).toBe(true);
     expect((fetchImpl.mock.calls[0][1] as RequestInit).cache).toBe("no-store");
   });

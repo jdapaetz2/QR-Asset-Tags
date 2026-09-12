@@ -16,6 +16,7 @@ import {
 } from "@/lib/documents/upload";
 import { DOCUMENT_OBJECT_RULES, documentStorage } from "@/lib/documents/storage";
 import { verifyClaimedObject } from "@/lib/storage/verify-object";
+import { sniffDocumentType, sniffedTypeMatchesMime } from "@/lib/media/sniff";
 import {
   FILE_CHECK_FAILED_MESSAGE,
   FILE_VERIFY_FAILED_MESSAGE,
@@ -151,6 +152,10 @@ export async function createDocument(
     )}/${documentObjectName(newId, file.type)}`;
 
     const bytes = new Uint8Array(await file.arrayBuffer());
+    // The file travels in this request: its bytes must be the declared type, as a direct upload's are.
+    if (!sniffedTypeMatchesMime(sniffDocumentType(bytes), file.type)) {
+      return { error: "The file's contents don't match its type. Choose the file again." };
+    }
     const { error: uploadError } = await supabase.storage
       .from(DOCUMENTS_BUCKET)
       .upload(storagePath, bytes, { contentType: file.type, upsert: false });

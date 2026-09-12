@@ -4,7 +4,9 @@ import { useActionState, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import type { OrgSettingsState } from "@/lib/org/actions";
-import { LOGO_ALLOWED_TYPES } from "@/lib/org/logo";
+import { LOGO_IMAGE, PHOTO_ACCEPT } from "@/lib/media/photo-policy";
+import { usePhotoInput } from "@/lib/media/consumer-photo/use-photo-input";
+import { PhotoInputStatus } from "@/components/photo-input-status";
 import { isHexColor, safeBrandColor } from "@/lib/public/brand";
 
 const inputClass =
@@ -48,14 +50,16 @@ export function OrgSettingsForm({
   const [logoFilePreview, setLogoFilePreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  function onLogoFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null;
-    setLogoFilePreview((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return file ? URL.createObjectURL(file) : null;
-    });
-  }
+  // A picked logo is prepared on the device first (HEIC, AVIF and large images become PNG); preview the result.
+  const logoPhoto = usePhotoInput(LOGO_IMAGE, {
+    onPrepared: (files) =>
+      setLogoFilePreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return files[0] ? URL.createObjectURL(files[0]) : null;
+      }),
+  });
   function removeLogo() {
+    logoPhoto.cancel();
     setLogo("");
     setLogoFilePreview((prev) => {
       if (prev) URL.revokeObjectURL(prev);
@@ -69,7 +73,14 @@ export function OrgSettingsForm({
   const colorPickerValue = isHexColor(color) ? color : "#1d4ed8";
 
   return (
-    <form action={formAction} className="flex w-full flex-col gap-6">
+    <form
+      action={formAction}
+      onSubmit={(e) => {
+        // Never post a picked logo before it has been prepared.
+        if (logoPhoto.preparing) e.preventDefault();
+      }}
+      className="flex w-full flex-col gap-6"
+    >
       {state.error ? (
         <p
           role="alert"
@@ -159,12 +170,13 @@ export function OrgSettingsForm({
             ref={fileRef}
             type="file"
             name="file"
-            accept={LOGO_ALLOWED_TYPES.join(",")}
-            onChange={onLogoFileChange}
+            accept={PHOTO_ACCEPT}
+            onChange={logoPhoto.onChange}
             className="block w-full text-sm file:mr-3 file:rounded-md file:border file:bg-background file:px-3 file:py-1.5 file:text-sm"
           />
+          <PhotoInputStatus preparing={logoPhoto.preparing} problems={logoPhoto.problems} onCancel={logoPhoto.cancel} />
           <span className="text-xs text-muted-foreground">
-            JPG, PNG, or WebP · up to 2 MB. Uploads when you save.
+            JPG, PNG, WebP, HEIC or AVIF. Large images are resized to 1024 px. Uploads when you save.
           </span>
           <label className="flex flex-col gap-1">
             <span className="text-xs text-muted-foreground">
@@ -269,8 +281,8 @@ export function OrgSettingsForm({
       </section>
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={pending}>
-          {pending ? "Saving…" : submitLabel}
+        <Button type="submit" disabled={pending || logoPhoto.preparing !== null}>
+          {logoPhoto.preparing ? "Preparing logo…" : pending ? "Saving…" : submitLabel}
         </Button>
       </div>
     </form>

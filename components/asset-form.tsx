@@ -6,7 +6,10 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { AssetFormState } from "@/lib/assets/actions";
 import type { AssetInput } from "@/lib/assets/validate";
-import { COVER_ALLOWED_TYPES, COVER_CLAIM_FIELD } from "@/lib/assets/cover";
+import { COVER_CLAIM_FIELD } from "@/lib/assets/cover";
+import { COVER_PHOTO, PHOTO_ACCEPT } from "@/lib/media/photo-policy";
+import { usePhotoInput } from "@/lib/media/consumer-photo/use-photo-input";
+import { PhotoInputStatus } from "@/components/photo-input-status";
 import { withActionErrorRecovery } from "@/lib/forms/action-recovery";
 import { FILE_SAVE_FAILED_MESSAGE, type PrepareSingleUploadAction } from "@/lib/storage/direct-upload";
 import { uploadFileDirect } from "@/lib/storage/signed-upload-client";
@@ -119,7 +122,15 @@ export function AssetForm({
   );
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const busy = pending || directPending || uploading;
+  // A picked image is prepared on the device first (HEIC, AVIF and large photos become JPEG); preview the result.
+  const coverPhoto = usePhotoInput(COVER_PHOTO, {
+    onPrepared: (files) =>
+      setFilePreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return files[0] ? URL.createObjectURL(files[0]) : null;
+      }),
+  });
+  const busy = pending || directPending || uploading || coverPhoto.preparing !== null;
   const error = uploadError ?? directState.error ?? state.error;
   const [cover, setCover] = useState(asset?.cover_image_url ?? "");
   const [filePreview, setFilePreview] = useState<string | null>(null);
@@ -168,15 +179,8 @@ export function AssetForm({
           ? "System suggestion."
           : "Generic fallback — review recommended.";
 
-  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null;
-    setFilePreview((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return file ? URL.createObjectURL(file) : null;
-    });
-  }
-
   function removeCover() {
+    coverPhoto.cancel();
     setCover("");
     setFilePreview((prev) => {
       if (prev) URL.revokeObjectURL(prev);
@@ -208,6 +212,11 @@ export function AssetForm({
       action={formAction}
       onSubmit={(e) => {
         setUploadError(null);
+        // Never post a picked image before it has been prepared.
+        if (coverPhoto.preparing) {
+          e.preventDefault();
+          return;
+        }
         const file = assetId && prepareCoverUpload ? fileRef.current?.files?.[0] : undefined;
         if (!file || file.size === 0 || !prepareCoverUpload) return; // no image: the form posts to the action as before
         e.preventDefault();
@@ -338,12 +347,17 @@ export function AssetForm({
               ref={fileRef}
               type="file"
               name="file"
-              accept={COVER_ALLOWED_TYPES.join(",")}
-              onChange={onFileChange}
+              accept={PHOTO_ACCEPT}
+              onChange={coverPhoto.onChange}
               className="block w-full text-sm file:mr-3 file:rounded-md file:border file:bg-background file:px-3 file:py-1.5 file:text-sm"
             />
+            <PhotoInputStatus
+              preparing={coverPhoto.preparing}
+              problems={coverPhoto.problems}
+              onCancel={coverPhoto.cancel}
+            />
             <span className="text-xs text-muted-foreground">
-              JPG, PNG, or WebP · up to 5 MB. Uploads when you click {submitLabel}.
+              JPG, PNG, WebP, HEIC or AVIF. Large photos are resized before upload. Uploads when you click {submitLabel}.
             </span>
           </label>
         ) : null}
@@ -385,7 +399,13 @@ export function AssetForm({
 
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={busy}>
-          {uploading ? "Uploading image…" : busy ? "Saving…" : submitLabel}
+          {coverPhoto.preparing
+            ? "Preparing image…"
+            : uploading
+              ? "Uploading image…"
+              : busy
+                ? "Saving…"
+                : submitLabel}
         </Button>
         <Link
           href={cancelHref}

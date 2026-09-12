@@ -1,4 +1,4 @@
-import { sniffImageType } from "@/lib/media/sniff";
+import { IMAGE_HEAD_MAX_BYTES, imageHeadComplete, isStoredImage } from "@/lib/media/classify";
 import { scopedBucket, type ScopedBucket, type StorageBucketApi } from "@/lib/storage/scoped-bucket";
 import type { ObjectRules } from "@/lib/storage/verify-object";
 import {
@@ -20,14 +20,15 @@ export function coverStorage(bucketApi: StorageBucketApi, prefix: string): Scope
   return scopedBucket(bucketApi, prefix, { label: "cover", prefixRe: COVER_PREFIX_RE, objectRe: COVER_OBJECT_RE });
 }
 
-/** JPEG, PNG or WebP by stored type, extension and leading bytes; ≤ 5 MB. */
+/**
+ * JPEG, PNG or WebP by stored type, extension and leading bytes, with a readable frame size within 16,384 px per side
+ * and 40 MP (read from up to the first 1 MB); ≤ 5 MB.
+ */
 export const COVER_OBJECT_RULES: ObjectRules = {
   objectRe: COVER_OBJECT_RE,
   allowedTypes: COVER_ALLOWED_TYPES,
   maxBytes: COVER_MAX_BYTES,
   extForMime: extForCoverMime,
-  bytesMatch: (head, mime) => {
-    const kind = sniffImageType(head);
-    return kind !== null && `image/${kind}` === mime;
-  },
+  bytesMatch: isStoredImage,
+  head: { maxBytes: IMAGE_HEAD_MAX_BYTES, isComplete: imageHeadComplete },
 };

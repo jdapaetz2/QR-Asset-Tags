@@ -1,13 +1,22 @@
-import { isObjectUnderPrefix, type ScopedBucket } from "@/lib/storage/scoped-bucket";
+import { isObjectUnderPrefix, type HeadReadOptions, type ScopedBucket } from "@/lib/storage/scoped-bucket";
 
 /**
  * Server-side verification of ONE file a signed-in user uploaded straight to storage (hosted documents, asset cover
- * images), before any row references it. Nothing from the browser is trusted: the stored object is listed, its
- * stored type, extension, size and leading bytes are checked against the kind's rules.
+ * images), before any row references it. Nothing from the browser is trusted: the stored object is listed, and its
+ * stored type, extension, size, age and leading bytes are checked against the kind's rules.
  *
  * Deletion rule: only an object that fails a content check is deleted (nothing legitimate can ever reference it). A
- * missing object or a storage error deletes nothing.
+ * missing or stale object, or a storage error, deletes nothing.
  */
+
+/** A claim must name an object uploaded within this window; signed upload URLs last 2 hours. */
+export const MAX_CLAIM_AGE_MS = 24 * 60 * 60 * 1000;
+
+/** Whether an object's storage `created_at` is recent enough to claim. An unknown age never is. */
+export function isRecentUpload(createdAt: string | null, now = Date.now()): boolean {
+  const created = createdAt ? Date.parse(createdAt) : NaN;
+  return Number.isFinite(created) && now - created <= MAX_CLAIM_AGE_MS;
+}
 
 export type ObjectRules = {
   /** The strict object pattern for this kind; the claim must match it directly under the bucket's prefix. */
@@ -16,11 +25,13 @@ export type ObjectRules = {
   maxBytes: number;
   /** The extension a stored MIME type must carry, or null when the type has none. */
   extForMime: (mime: string) => string | null;
-  /** Whether the object's leading bytes are the stored type. */
+  /** Whether the object's leading bytes are the stored type (and, for images, a readable size within limits). */
   bytesMatch: (head: Uint8Array, mime: string) => boolean;
+  /** How much of the object `bytesMatch` needs (default: the sniffers' leading bytes). */
+  head?: HeadReadOptions;
 };
 
-export type ObjectVerifyFailure = "claim" | "missing" | "content" | "storage";
+export type ObjectVerifyFailure = "claim" | "missing" | "stale" | "content" | "storage";
 
 export type VerifyObjectResult =
   | { ok: true; path: string; size: number; type: string }
@@ -39,6 +50,7 @@ export async function verifyClaimedObject(
   if (!listed) return fail("storage");
   const object = listed.find((entry) => entry.name === name);
   if (!object) return fail("missing");
+  if (!isRecentUpload(object.createdAt)) return fail("stale");
 
   const type = object.mimetype ?? "";
   const size = object.size ?? 0;
@@ -51,7 +63,7 @@ export async function verifyClaimedObject(
     size <= rules.maxBytes;
 
   if (valid) {
-    const head = (await bucket.readHeads([path])).get(path);
+    const head = (await bucket.readHeads([path], rules.head)).get(path);
     if (!head) return fail("storage");
     valid = rules.bytesMatch(head, type);
   }

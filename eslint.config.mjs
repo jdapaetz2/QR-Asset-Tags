@@ -30,6 +30,8 @@ const eslintConfig = defineConfig([
     "playwright-report/**",
     "test-results/**",
     "tests/e2e/.auth/**",
+    // Unmodified third-party build copied by scripts/vendor-libheif.mjs (gitignored).
+    "public/vendor/**",
   ]),
 ]);
 

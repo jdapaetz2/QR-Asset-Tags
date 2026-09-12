@@ -9,9 +9,11 @@ import {
   INSPECTION_MAX_FILES,
   INSPECTION_MAX_TOTAL_BYTES,
   mediaObjectName,
+  NO_JS_PHOTO_MESSAGE,
   submissionPathPrefix,
   validateInspectionFiles,
 } from "@/lib/forms/media";
+import { readNoJsPhotoBytes } from "@/lib/forms/no-js-photos";
 import { cleanupUploadedMedia } from "@/lib/forms/cleanup";
 import { resolveSubmissionId } from "@/lib/forms/submit";
 import { readMediaClaims, removeUnclaimedObjects, verifyClaimedMedia } from "@/lib/forms/media-verify";
@@ -176,13 +178,16 @@ export async function submitReturnInspectionCore(
       if (count > max) return { error: `"${slot.label}" allows at most ${max} photos.` };
     }
 
+    const bytesByFile = await readNoJsPhotoBytes(allFiles);
+    if (!bytesByFile) return { error: NO_JS_PHOTO_MESSAGE };
+
     // Upload each slot's files; record flat paths (media_urls) + per-slot metadata (answers.photos).
     for (const slot of slots) {
       const files = filesBySlot.get(slot.id) ?? [];
       const slotPhotos: PhotoAnswer[] = [];
       for (const file of files) {
         const path = `${bucket.prefix}/${mediaObjectName(randomUUID(), file.type)}`;
-        const bytes = new Uint8Array(await file.arrayBuffer());
+        const bytes = bytesByFile.get(file) as Uint8Array;
         totalBytes += bytes.byteLength;
         if (!(await bucket.upload(path, bytes, file.type))) {
           await cleanupUploadedMedia(bucket, mediaPaths, {
