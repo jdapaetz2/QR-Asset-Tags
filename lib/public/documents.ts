@@ -17,7 +17,14 @@ export type PublicDocument = {
   href: string;
   external: boolean;
   link_status: LinkStatus;
+  /** A hosted HEIC/HEIF original, which most browsers cannot show: offered as a download, never as "Open". */
+  downloadOnly?: true;
 };
+
+/** Hosted HEIC/HEIF originals display only in Safari (D4.1). Kept inline so the scan page's client bundle stays small. */
+export function isDownloadOnlyPath(storagePath: string): boolean {
+  return /\.(heic|heif)$/i.test(storagePath);
+}
 
 export type DocRow = {
   id: string;
@@ -71,6 +78,7 @@ export function toPreviewDocuments(rows: DocRow[]): PublicDocument[] {
         href: "#",
         external: false,
         link_status,
+        ...(isDownloadOnlyPath(row.storage_path) ? { downloadOnly: true as const } : {}),
       });
     }
   }

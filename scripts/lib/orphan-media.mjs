@@ -33,7 +33,7 @@ const SUBMISSION_OBJECT_RE = new RegExp(
   `^org/(${UUID_ANY_CASE})/asset/(${UUID_ANY_CASE})/submission/(${UUID_ANY_CASE})/[^/]+$`
 );
 const DOCUMENT_OBJECT_RE = new RegExp(
-  `^org/(${UUID})/asset/(${UUID})/documents/(${UUID})/(${UUID})\\.(pdf|jpg|png|webp|mp4|mov|webm)$`
+  `^org/(${UUID})/asset/(${UUID})/documents/(${UUID})/(${UUID})\\.(pdf|jpg|png|webp|heic|heif|avif|mp4|mov|webm)$`
 );
 const COVER_OBJECT_RE = new RegExp(`^org/(${UUID})/asset/(${UUID})/cover/${UUID}\\.(jpg|png|webp)$`);
 const LOGO_OBJECT_RE = new RegExp(`^org/(${UUID})/logo/${UUID}\\.(jpg|png|webp)$`);

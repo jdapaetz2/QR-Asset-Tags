@@ -12,6 +12,12 @@ import { safeBrandColor, readableTextOn } from "@/lib/public/brand";
 import { PublicFooter } from "@/components/public/public-footer";
 import { QuickStart } from "@/components/public/quick-start";
 
+/** "Open", or "Download" for a HEIC/HEIF original most browsers cannot show; flagged links say they are being verified. */
+function documentActionLabel(doc: PublicDocument): string {
+  const action = doc.downloadOnly ? "Download" : "Open";
+  return doc.link_status === "needs_review" ? `${action} · being verified` : action;
+}
+
 /**
  * Shared presentational scanner page used by BOTH the public route (/t/[shortCode])
  * and the editor live preview, so the two can never visually diverge.
@@ -309,7 +315,7 @@ export function PublicScannerView({
                     </span>
                   ) : preview ? (
                     <span className="shrink-0 text-xs text-muted-foreground">
-                      {doc.link_status === "needs_review" ? "Open · being verified" : "Open"}
+                      {documentActionLabel(doc)}
                     </span>
                   ) : (
                     <a
@@ -322,7 +328,7 @@ export function PublicScannerView({
                           : "shrink-0 text-sm font-medium underline-offset-4 hover:underline"
                       }
                     >
-                      {doc.link_status === "needs_review" ? "Open · being verified" : "Open"}
+                      {documentActionLabel(doc)}
                     </a>
                   )}
                 </li>

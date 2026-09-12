@@ -11,7 +11,8 @@ import {
   DOCUMENT_VISIBILITIES,
   LINK_STATUSES,
 } from "@/lib/documents/validate";
-import { DOC_ALLOWED_TYPES, STORAGE_CLAIM_FIELD } from "@/lib/documents/upload";
+import { DOC_ACCEPT, STORAGE_CLAIM_FIELD, documentMimeFromBytes } from "@/lib/documents/upload";
+import { SNIFF_BYTES, sniffDocumentType } from "@/lib/media/sniff";
 import { withActionErrorRecovery } from "@/lib/forms/action-recovery";
 import { FILE_SAVE_FAILED_MESSAGE, type PrepareSingleUploadAction } from "@/lib/storage/direct-upload";
 import { uploadFileDirect } from "@/lib/storage/signed-upload-client";
@@ -36,6 +37,20 @@ function chosenFile(form: HTMLFormElement): File | null {
   const input = form.elements.namedItem("file");
   const file = input instanceof HTMLInputElement ? input.files?.[0] : undefined;
   return file && file.size > 0 ? file : null;
+}
+
+/**
+ * The file with the type its bytes prove (lib/documents/upload.ts). Windows often leaves a HEIC untyped and names can
+ * mislead; the server verifies the stored bytes either way. Documents are never converted.
+ */
+async function withTypeFromBytes(file: File): Promise<File> {
+  try {
+    const head = new Uint8Array(await file.slice(0, SNIFF_BYTES).arrayBuffer());
+    const type = documentMimeFromBytes(sniffDocumentType(head), file.type);
+    return type && type !== file.type ? new File([file], file.name, { type, lastModified: file.lastModified }) : file;
+  } catch {
+    return file;
+  }
 }
 
 /**
@@ -81,7 +96,7 @@ export function DocumentForm({
 
   async function uploadThenSave(form: HTMLFormElement, file: File, prepare: PrepareSingleUploadAction) {
     setUploading(true);
-    const result = await uploadFileDirect({ file, prepare });
+    const result = await uploadFileDirect({ file: await withTypeFromBytes(file), prepare });
     setUploading(false);
     if (!result.ok) {
       setUploadError(result.error);
@@ -199,10 +214,10 @@ export function DocumentForm({
             className={fieldClass}
             type="file"
             name="file"
-            accept={DOC_ALLOWED_TYPES.join(",")}
+            accept={DOC_ACCEPT}
           />
           <span className="text-xs text-muted-foreground">
-            Provide a link or a file — not both.
+            Provide a link or a file — not both. Phone photos (HEIC) are kept as the original file.
           </span>
         </label>
       ) : null}

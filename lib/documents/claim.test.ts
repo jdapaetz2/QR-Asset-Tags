@@ -16,6 +16,10 @@ describe("parseDocumentClaim", () => {
     const path = `org/${ORG}/asset/${ASSET}/documents/${DOC}/${DOC}.pdf`;
     expect(parseDocumentClaim(path, ORG, ASSET)).toEqual({ documentId: DOC, path });
     expect(parseDocumentClaim(`org/${ORG}/asset/${ASSET}/documents/${DOC}/${DOC}.mov`, ORG, ASSET)).not.toBeNull();
+    // Phone and camera image originals (D4.1, migration 0039).
+    for (const ext of ["heic", "heif", "avif"]) {
+      expect(parseDocumentClaim(`org/${ORG}/asset/${ASSET}/documents/${DOC}/${DOC}.${ext}`, ORG, ASSET)).not.toBeNull();
+    }
   });
 
   it.each([

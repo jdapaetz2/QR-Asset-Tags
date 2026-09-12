@@ -163,6 +163,46 @@ describe("admin direct uploads — documents and public-assets (signed with the 
     await serviceClient().storage.from("documents").remove([path]);
   });
 
+  it("documents keeps HEIC, HEIF and AVIF originals privately; public-assets still refuses HEIC (0039)", async () => {
+    const service = serviceClient();
+    const { data: bucket } = await service.storage.getBucket("documents");
+    expect(bucket?.public, "documents/public").toBe(false);
+    expect(bucket?.file_size_limit, "documents/file_size_limit").toBe(52428800);
+    expect([...(bucket?.allowed_mime_types ?? [])].sort(), "documents/allowed_mime_types").toEqual(
+      [
+        "application/pdf",
+        "image/avif",
+        "image/heic",
+        "image/heif",
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "video/mp4",
+        "video/quicktime",
+        "video/webm",
+      ]
+    );
+
+    const heic = () =>
+      new Blob([new Uint8Array([0, 0, 0, 0x18, ...new TextEncoder().encode("ftypheicmif1heic")])], { type: "image/heic" });
+    const id = randomUUID();
+    const documentPath = `org/${ORG_A}/asset/${ASSET.A_PUBLIC}/documents/${id}/${id}.heic`;
+    const { data: signed } = await adminA.storage.from("documents").createSignedUploadUrl(documentPath);
+    const { error: uploadError } = await adminA.storage.from("documents").uploadToSignedUrl(documentPath, signed?.token ?? "", heic());
+    expect(uploadError?.message ?? null, "admin_a/documents/signed-upload-heic").toBeNull();
+    const { data: anonRead, error: anonError } = await anon.storage.from("documents").download(documentPath);
+    expect(!anonRead || !!anonError, "anon/documents/download-heic should be DENIED").toBe(true);
+    await service.storage.from("documents").remove([documentPath]);
+
+    const coverPath = coverObjectPath(ORG_A, "heic");
+    const { data: coverSigned } = await adminA.storage.from("public-assets").createSignedUploadUrl(coverPath);
+    const { error: coverError } = await adminA.storage
+      .from("public-assets")
+      .uploadToSignedUrl(coverPath, coverSigned?.token ?? "", heic());
+    expect(coverError, "admin_a/public-assets/signed-upload-heic should be DENIED").toBeTruthy();
+    await service.storage.from("public-assets").remove([coverPath]);
+  });
+
   it("public-assets accepts only JPEG, PNG and WebP up to 5 MB, and refuses a PDF (0038)", async () => {
     const service = serviceClient();
     const { data: bucket } = await service.storage.getBucket("public-assets");

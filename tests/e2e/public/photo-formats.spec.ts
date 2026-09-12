@@ -5,7 +5,13 @@ import { test, expect, type Page } from "@playwright/test";
 
 import { answerConditionStage, largeJpeg, tinyPng } from "../support/actions";
 import { ROLES } from "../support/roles";
-import { createAsset, createRentedStaffAsset, readAssetCover, readLatestSubmissionMedia } from "../support/seed";
+import {
+  createAsset,
+  createRentedStaffAsset,
+  readAssetCover,
+  readAssetDocuments,
+  readLatestSubmissionMedia,
+} from "../support/seed";
 
 /**
  * Engineering Phase D4.1 — photos from phones and computers in the formats they really produce. Picked photos are
@@ -180,5 +186,22 @@ test.describe("admin", () => {
     await expect
       .poll(() => readAssetCover(assetId), { timeout: PREPARE_TIMEOUT_MS })
       .toMatch(new RegExp(`/public-assets/org/[0-9a-f-]{36}/asset/${assetId}/cover/[0-9a-f-]{36}\\.jpg$`));
+  });
+
+  test("an untyped HEIC document is kept as the original and offered as a download", async ({ page }) => {
+    const { assetId } = await createAsset();
+    const title = `Warranty photo ${assetId.slice(0, 8)}`;
+    await page.goto(`/dashboard/assets/${assetId}/documents`);
+    await page.getByLabel("Title").fill(title);
+    // Windows leaves a HEIC untyped: the form identifies it by its bytes, and never converts a document.
+    await page.locator('input[name="file"]').setInputFiles(sample("example.heic", "application/octet-stream"));
+    await page.getByRole("button", { name: "Add document" }).click();
+
+    await expect.poll(async () => (await readAssetDocuments(assetId)).length, { timeout: PREPARE_TIMEOUT_MS }).toBe(1);
+    const [document] = await readAssetDocuments(assetId);
+    expect(document.storage_path).toMatch(new RegExp(`^org/[0-9a-f-]{36}/asset/${assetId}/documents/([0-9a-f-]{36})/\\1\\.heic$`));
+    const row = page.getByRole("row", { name: new RegExp(title) });
+    await expect(row.getByRole("link", { name: "Download original" })).toBeVisible({ timeout: PREPARE_TIMEOUT_MS });
+    await expect(row.getByText(/HEIC image · \d/)).toBeVisible();
   });
 });

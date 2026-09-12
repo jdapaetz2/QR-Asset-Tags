@@ -14,8 +14,35 @@ import { documentLinkTone } from "@/lib/ui/status";
 import { sanitizeReturnTo, withReturnTo } from "@/lib/nav/return-to";
 import { AssetSubnav } from "@/components/assets/asset-subnav";
 import { signPaths } from "@/lib/storage/signed-urls";
+import { documentFileFormat, documentOpensInBrowser, formatFileSize } from "@/lib/documents/upload";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const DOCUMENTS_BUCKET = "documents";
+
+/**
+ * Stored sizes of hosted files, for the "HEIC image · 3.2 MB" label. One small listing per file with the caller's RLS
+ * client (a handful per asset); a file whose size cannot be read simply shows its format alone.
+ */
+async function hostedFileSizes(supabase: SupabaseClient, paths: string[]): Promise<Map<string, number>> {
+  const sizes = new Map<string, number>();
+  await Promise.all(
+    paths.map(async (path) => {
+      const slash = path.lastIndexOf("/");
+      const name = path.slice(slash + 1);
+      try {
+        const { data } = await supabase.storage
+          .from(DOCUMENTS_BUCKET)
+          .list(path.slice(0, slash), { search: name, limit: 10 });
+        const entry = data?.find((item) => item.name === name);
+        const size = (entry?.metadata as { size?: unknown } | null | undefined)?.size;
+        if (typeof size === "number") sizes.set(path, size);
+      } catch {
+        // Label without a size.
+      }
+    })
+  );
+  return sizes;
+}
 
 type DocumentRow = {
   id: string;
@@ -73,18 +100,27 @@ export default async function DocumentsPage({
 
   // Short-lived signed URLs for hosted files (private bucket). External docs use url.
   // C4: one batch request for the hosted paths instead of one per document.
-  const signedByPath = await signPaths(
-    supabase,
-    DOCUMENTS_BUCKET,
-    documents.filter((d) => d.storage_path).map((d) => d.storage_path as string),
-    3600,
-    "asset-documents"
-  );
+  const hostedPaths = documents.filter((d) => d.storage_path).map((d) => d.storage_path as string);
+  const [signedByPath, sizeByPath] = await Promise.all([
+    signPaths(supabase, DOCUMENTS_BUCKET, hostedPaths, 3600, "asset-documents"),
+    hostedFileSizes(supabase, hostedPaths),
+  ]);
   const links = documents.map((doc) => {
-    if (!doc.storage_path) return { id: doc.id, href: doc.url, hosted: false };
-    // `?? null` keeps the previous contract: a hosted doc that could not be signed has no href, and
-    // never falls back to the raw storage path.
-    return { id: doc.id, href: signedByPath.get(doc.storage_path) ?? null, hosted: true };
+    if (!doc.storage_path) return { id: doc.id, href: doc.url, hosted: false, label: "Open", fileLabel: null };
+    const size = sizeByPath.get(doc.storage_path);
+    return {
+      id: doc.id,
+      // `?? null` keeps the previous contract: a hosted doc that could not be signed has no href, and
+      // never falls back to the raw storage path.
+      href: signedByPath.get(doc.storage_path) ?? null,
+      hosted: true,
+      // HEIC/HEIF originals display only in Safari: say plainly that the link downloads the original.
+      label: documentOpensInBrowser(doc.storage_path) ? "Download" : "Download original",
+      fileLabel:
+        [documentFileFormat(doc.storage_path), size === undefined ? null : formatFileSize(size)]
+          .filter(Boolean)
+          .join(" · ") || null,
+    };
   });
   const linkById = new Map(links.map((l) => [l.id, l]));
 
@@ -157,11 +193,14 @@ export default async function DocumentsPage({
                           rel="noopener noreferrer"
                           className="underline-offset-4 hover:underline"
                         >
-                          {link.hosted ? "Download" : "Open"}
+                          {link.label}
                         </a>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
+                      {link?.fileLabel ? (
+                        <span className="block text-xs text-muted-foreground">{link.fileLabel}</span>
+                      ) : null}
                     </td>
                     <td className="px-4 py-2 text-muted-foreground">
                       {formatDate(doc.created_at)}

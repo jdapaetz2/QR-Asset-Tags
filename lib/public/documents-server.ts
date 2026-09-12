@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { isHttpUrl } from "@/lib/documents/validate";
 import { signPaths } from "@/lib/storage/signed-urls";
-import { normalizeLinkStatus, type DocRow, type PublicDocument } from "./documents";
+import { isDownloadOnlyPath, normalizeLinkStatus, type DocRow, type PublicDocument } from "./documents";
 
 /**
  * The server half of public-document loading, split out in Phase C4.
@@ -92,6 +92,7 @@ export async function getPublicDocuments(
           href: signedUrl,
           external: false,
           link_status,
+          ...(isDownloadOnlyPath(row.storage_path) ? { downloadOnly: true as const } : {}),
         });
       }
       // If signing fails (e.g. policy not yet applied), skip silently.
