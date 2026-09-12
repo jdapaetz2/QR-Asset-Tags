@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { resolveSupportContact } from "@/lib/public/equipment";
+import { mailtoHref, telHref } from "@/lib/contact/links";
 import {
   findDocumentHref,
   isDocumentOpenable,
@@ -336,20 +337,22 @@ export function PublicScannerView({
         <p className={`mb-2 ${EYEBROW_CLS}`}>Contact support</p>
         {support.phone || support.email ? (
           <div className="flex flex-col gap-2 text-base">
+            {/* Links only for values that survive strict normalization (lib/contact/links.ts); anything else is
+                shown as plain text, never as a broken or smuggled tel:/mailto: URI. */}
             {support.phone ? (
-              preview ? (
+              preview || !telHref(support.phone) ? (
                 <span>Call {support.phone}</span>
               ) : (
-                <a href={`tel:${support.phone}`} className="font-medium underline-offset-4 hover:underline">
+                <a href={telHref(support.phone) ?? undefined} className="font-medium underline-offset-4 hover:underline">
                   Call {support.phone}
                 </a>
               )
             ) : null}
             {support.email ? (
-              preview ? (
+              preview || !mailtoHref(support.email) ? (
                 <span>Email {support.email}</span>
               ) : (
-                <a href={`mailto:${support.email}`} className="underline-offset-4 hover:underline">
+                <a href={mailtoHref(support.email) ?? undefined} className="underline-offset-4 hover:underline">
                   Email {support.email}
                 </a>
               )
@@ -394,6 +397,7 @@ export function PublicScannerStickyActions({
   const docHref = startupHref ?? manualHref;
   const docLabel = startupHref ? "Start-Up" : "Manual";
   const preview = mode === "preview";
+  const supportPhoneHref = telHref(supportPhone);
 
   const cellBase =
     "flex h-12 flex-1 items-center justify-center rounded-md px-1 text-center text-xs font-semibold leading-tight";
@@ -411,8 +415,9 @@ export function PublicScannerStickyActions({
       : []),
     { kind: "link", href: `/forms/${shortCode}/damage`, variant: "primary", label: "Report Damage" },
     { kind: "link", href: `/forms/${shortCode}/return`, variant: "outline", label: "Return" },
-    ...(supportPhone
-      ? [{ kind: "tel" as const, href: `tel:${supportPhone}`, label: "Call" }]
+    // A Call cell only for a phone number that survives strict normalization; otherwise the support form.
+    ...(supportPhoneHref
+      ? [{ kind: "tel" as const, href: supportPhoneHref, label: "Call" }]
       : [{ kind: "link" as const, href: `/forms/${shortCode}/support`, variant: "outline" as const, label: "Support" }]),
   ];
 

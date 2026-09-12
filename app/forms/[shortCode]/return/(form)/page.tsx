@@ -4,6 +4,7 @@ import { resolveReturnTemplate } from "@/lib/inspections/resolve";
 import { getAssetReturnTemplate } from "@/lib/inspections/org-templates-data";
 import { ReturnInspectionForm } from "@/components/public/return-inspection-form";
 import { ReturnChecklistNoScript } from "@/components/public/return-checklist-noscript";
+import { resolveSupportContact } from "@/lib/public/equipment";
 import { PublicFormLayout } from "@/components/public/public-form-layout";
 import { UnavailableNotice } from "@/components/public/unavailable-notice";
 import { getProfile } from "@/lib/auth/session";
@@ -64,7 +65,12 @@ export default async function ReturnInspectionPage({
       assetName={resolved.asset.asset_name}
       assetCode={resolved.asset.asset_code}
     >
-      <ReturnChecklistNoScript shortCode={shortCode} />
+      <ReturnChecklistNoScript
+        shortCode={shortCode}
+        orgName={resolved.org.name}
+        brandColor={resolved.org.primary_color}
+        contact={resolveSupportContact(resolved.asset, resolved.org)}
+      />
       <ReturnInspectionForm
         template={template}
         shortCode={shortCode}

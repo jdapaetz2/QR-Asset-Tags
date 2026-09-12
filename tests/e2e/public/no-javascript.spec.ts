@@ -70,8 +70,8 @@ test.describe("without JavaScript", () => {
     expect(await readScanEvents(assetId)).toHaveLength(1);
   });
 
-  test("the return checklist explains it needs JavaScript and offers the damage form", async ({ page }) => {
-    const { shortCode } = await createAsset();
+  test("the return checklist explains it needs JavaScript and offers only honest next steps", async ({ page }) => {
+    const { shortCode } = await createAsset({ supportPhone: "(604) 555-0100" });
     await page.goto(`/forms/${shortCode}/return`);
     await page.waitForURL(`**/forms/${shortCode}/return?nojs=1`);
 
@@ -79,8 +79,14 @@ test.describe("without JavaScript", () => {
     // browser without JavaScript renders it as ordinary content.
     const notice = page.locator(NOTICE);
     await expect(notice).toBeVisible();
-    await expect(notice.locator("a")).toHaveAttribute("href", `/forms/${shortCode}/damage`);
+    await expect(notice.locator('[data-noscript-action="back"]')).toHaveAttribute("href", `/t/${shortCode}`);
+    await expect(notice.locator('[data-noscript-action="call"]')).toHaveAttribute("href", "tel:6045550100");
+    // A damage report is not a return checklist: the notice never offers it (or any other form) in its place.
+    await expect(notice.locator('a[href*="/forms/"]')).toHaveCount(0);
     await expect(page.locator("form[data-requires-javascript]")).toBeHidden();
+    // No redirect: the renter stays on the return page they opened.
+    await page.waitForTimeout(1_000);
+    expect(page.url()).toContain(`/forms/${shortCode}/return`);
   });
 });
 

@@ -53,7 +53,9 @@ submits once; there are no per-step server calls and no local-storage autosave.
 
 **Requires JavaScript.** Answers are posted from client state (hidden inputs fed by the choice buttons and the
 confirmation), so a plain no-JavaScript post would arrive empty. Without JavaScript the public return page hides the
-form (`data-requires-javascript`) and shows a notice with a link to the damage report, which does work without it
+form (`data-requires-javascript`) and shows a notice — "The return checklist needs JavaScript. Turn on JavaScript
+and reload this page to complete it." — with Back to equipment page and, when the contact is valid, Call / Email
+support actions. It never offers the damage report in place of a return (D4.1)
 (`components/public/return-checklist-noscript.tsx`; see `docs/PHASE_C_BASELINE.md` §9j follow-up).
 
 **Server-authoritative + DB-enforced session integrity.** The browser sends only contact + `answer:*` +

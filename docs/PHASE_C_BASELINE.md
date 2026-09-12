@@ -1060,7 +1060,8 @@ measured above is unchanged. The first request of a no-JavaScript visit already 
 scan page records none (`PublicScanRoute`, `recordScan`). The form skeletons moved into `(form)` route groups
 (`app/forms/[shortCode]/*/(form)/`): a `loading.tsx` wraps every child route, so the C8 skeletons had in fact also
 covered the `/thanks` confirmations, which without JavaScript would have refreshed into a loop. The return checklist posts its answers from client state,
-so without JavaScript it shows a notice and a link to the damage form instead. Covered by
+so without JavaScript it shows a notice with Back to equipment page and, when valid, Call / Email support actions
+(D4.1 removed an earlier link to the damage form: a damage report is not a return). Covered by
 `tests/e2e/public/no-javascript.spec.ts`.
 
 ### No regression
