@@ -81,8 +81,9 @@ process memory would not be. Keys are `(action, salted-IP-hash, salted-short-cod
 NAT-friendly (per short code), stricter for media-bearing writes; thresholds are centralized in
 `lib/ratelimit/policy.ts`. **Scans stay unlimited** (product rule). Failed uploads are cleaned up best-effort
 (`lib/forms/cleanup.ts`), a client idempotency token makes a rapid resubmit a PK no-op, and an operator
-orphan-media tool (`scripts/cleanup-orphan-media.mjs`, dry-run default) is the backstop. See
-`docs/ORPHAN_MEDIA_CLEANUP.md`.
+abandoned-upload tool (`scripts/cleanup-orphan-media.mjs`: service role, report by default, submissions + documents +
+covers + logos, target stated twice and verified, `--confirm=<target>:<count>` plus a production acknowledgement to
+delete, per-object re-check, never scheduled) is the backstop. See `docs/ORPHAN_MEDIA_CLEANUP.md`.
 
 ## Privacy / data minimization
 

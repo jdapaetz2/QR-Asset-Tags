@@ -52,7 +52,9 @@
     "qa:staging:devices": "node --env-file=.env.staging.local scripts/qa/staging-audit.mjs --devices",
     "qa:staging:loops": "node --env-file=.env.staging.local scripts/qa/staging-audit.mjs --loops",
     "qa:staging:qr": "node --env-file=.env.staging.local scripts/qa/staging-audit.mjs --qr",
-    "qa:staging:vitals": "node --env-file=.env.staging.local scripts/qa/staging-vitals.mjs"
+    "qa:staging:vitals": "node --env-file=.env.staging.local scripts/qa/staging-vitals.mjs",
+    "cleanup:orphans:staging": "node --env-file=.env.staging.local scripts/cleanup-orphan-media.mjs --target=staging",
+    "cleanup:orphans:production": "node --env-file=.env.local --env-file=.env.production-ops.local scripts/cleanup-orphan-media.mjs --target=production"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

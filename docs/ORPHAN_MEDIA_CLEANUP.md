@@ -1,72 +1,93 @@
-# Orphan Media Cleanup — Runbook (Phase A4)
+# Abandoned-Upload Cleanup — Runbook (Phase A4; hardened in D4.1)
 
-Public submission photos reach the private `submissions` bucket **before** the `form_submissions` row is
-written — with JavaScript the browser uploads them directly through server-issued signed upload URLs (migration
-0037). In-request failures are cleaned up automatically: objects that fail verification are deleted, unclaimed
-objects under the prefix are removed after the row commits, and the no-JavaScript path deletes its own uploads on
-insert failure (`lib/forms/cleanup.ts`). This tool is the **operator backstop** for anything that still slips
-through (e.g. a renter who uploads photos and then abandons the form, or a process killed between upload and
-insert): submission objects whose owning row never materialized.
+Browsers upload straight to storage **before** the row that references the object exists: public and staff
+submission photos (migration 0037), hosted documents and asset cover images (0038). In-request failures clean up after
+themselves — objects that fail verification are deleted, unclaimed objects under a submission are removed after the
+row commits, a refused document or cover save removes its upload, and deleting a document or asset removes its file
+after the row is gone. `scripts/cleanup-orphan-media.mjs` is the **operator backstop** for what still slips through:
+a form abandoned after uploading, a process killed between upload and save, or a best-effort removal that failed
+(logged as `document_object_orphaned` / `asset_cover_orphaned`, without the path).
 
-**Not covered yet (follow-up):** admin hosted documents and cover images also upload straight to storage before their
-row exists (`lib/storage/direct-upload.ts`). Abandoned admin uploads leave unreferenced objects under
-`org/{org}/asset/{asset}/documents/{id}/` (no `documents` row with that `storage_path`) or `…/cover/` (not the asset's
-`cover_image_url`); this tool does not scan those buckets today.
-
-**Invariant it honors:** it deletes only *bytes with no record*. A submission that has a
-`form_submissions` row is never touched, so the timeline/record is never lost
+**Invariant:** it deletes only *bytes with no record*. Anything a row references is never touched
 (see [`STORAGE_MEDIA_LIFECYCLE.md`](STORAGE_MEDIA_LIFECYCLE.md)).
 
-## What it does
+## What it covers
 
-`scripts/cleanup-orphan-media.mjs` walks the `submissions` bucket, and for every path matching the exact
-convention `org/{uuid}/asset/{uuid}/submission/{uuid}/…`:
+| Bucket | Managed path | Referenced by | Deletion candidate (≥ 48 h old) | Reported for review only |
+|---|---|---|---|---|
+| `submissions` | `org/{org}/asset/{asset}/submission/{id}/{file}` | a `form_submissions` row with that id | every object under an id with **no row**, when all of them are old enough | objects under a recorded submission that its `media_urls` do not list |
+| `documents` | `org/{org}/asset/{asset}/documents/{id}/{id}.{ext}` | any `documents.storage_path` | an object no row points at | document rows whose file is missing |
+| `public-assets` | `org/{org}/asset/{asset}/cover/{uuid}.{ext}` | any `assets.cover_image_url` or `organizations.logo_url` naming it | an object no stored URL names (including covers of deleted assets) | — |
+| `public-assets` | `org/{org}/logo/{uuid}.{ext}` | as above | as above | — |
+| any | anything else (legacy paths, demo artwork, placeholders) | — | **never** | counted as "outside the managed paths" |
 
-1. Reads the submission id from the path.
-2. Skips it if a `form_submissions` row with that id exists.
-3. Skips it if the newest object is younger than the age threshold (avoids racing an in-flight upload).
-4. Reports (dry-run) or deletes (with explicit flags) the remaining orphans, in bounded batches.
+## Safety
 
-It **never** deletes a non-conforming path, never wipes a bucket broadly, and prints **raw storage paths
-only — never signed URLs**.
+- **Report by default.** Nothing is deleted without `--delete` **and** `--confirm=<target>:<count>`, where the count
+  is the candidate count the same run finds. If anything changed since the report, the count differs and the run
+  refuses. Production also needs `--acknowledge-production-deletion`.
+- **Target stated twice.** `--target` (fixed in the npm script) must equal `MULEMARK_TARGET` (from the env file),
+  and the Supabase URL must resolve to that target: the staging ref from `STAGING_SUPABASE_REF`, the known production
+  ref, or a loopback URL for local. Anything unrecognised is treated as production and refused.
+- **Strict arguments.** Unknown or repeated flags, and numbers that are not plain whole numbers, stop the run —
+  no silent defaults. The age floor is 48 hours on staging and production (signed upload URLs last 2 hours and saves
+  refuse objects older than 24 hours); only `local` may go lower.
+- **Bounded.** At most `--max-delete` objects per run (default 50, hard cap 200), oldest first.
+- **Re-checked.** Immediately before each removal the tool asks the database again whether anything references the
+  object; one that became referenced is skipped, and a re-check that errors stops the run. Objects are removed one at
+  a time through the Storage API with a per-object result.
+- **Quiet output.** Counts and bytes by kind and organization. Object paths appear only with `--verbose`. Keys and
+  signed URLs are never printed.
+- **Never scheduled.** It is a manual operator tool; there is no cron or automatic deletion.
 
 ## Who runs it
 
-The **platform operator** only. It requires `SUPABASE_SERVICE_ROLE_KEY` and is a CLI script, not a route —
-customer roles (admin/staff) cannot reach it.
+The **platform operator** only. It needs the service-role key and is a CLI script, not a route — customer roles cannot
+reach it.
 
 ## How to run
 
-Requires env: `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (the value is never printed).
+Staging (`.env.staging.local` carries the URL, key, `STAGING_SUPABASE_REF` and `MULEMARK_TARGET=staging`):
 
 ```bash
-# 1) Dry-run first (DEFAULT) — reports candidates, deletes nothing.
-node scripts/cleanup-orphan-media.mjs
-
-# 2) Widen/narrow the age threshold (default 48h).
-node scripts/cleanup-orphan-media.mjs --older-than-hours=72
-
-# 3) Review the printed ORPHAN paths. When satisfied, delete (bounded by --limit, default 500):
-node scripts/cleanup-orphan-media.mjs --delete --yes
-
-# 4) If the run reports "more remain", repeat until clean.
-node scripts/cleanup-orphan-media.mjs --delete --yes --limit=500
+npm run cleanup:orphans:staging
+npm run cleanup:orphans:staging -- --verbose
+npm run cleanup:orphans:staging -- --delete --confirm=staging:12
 ```
 
-Flags: `--delete` + `--yes` (both required to delete), `--older-than-hours=N`, `--limit=N`.
+Production (`.env.local` carries the URL and key; the untracked `.env.production-ops.local` holds only
+`MULEMARK_TARGET=production`):
+
+```bash
+npm run cleanup:orphans:production
+```
+
+Deleting on production is a separate, explicitly approved step: review the report, then re-run with
+`--delete --confirm=production:<count> --acknowledge-production-deletion`. D4.1 ran reports only.
+
+Flags: `--older-than-hours=N` (≥ 48 hosted), `--max-delete=N` (1–200), `--verbose`, `--delete`,
+`--confirm=<target>:<count>`, `--acknowledge-production-deletion`. Exit codes: 0 done, 1 stopped or a removal failed,
+2 refused (arguments, target or confirmation).
+
+## Reading the report
+
+- **candidates** — what a deleting run would consider, by kind (`submission`, `document`, `cover`, `logo`) and by
+  organization.
+- **kept** — referenced objects, objects newer than the threshold (or with no known age), and objects outside the
+  managed paths.
+- **for review** — never deleted. Extra objects under a recorded submission, or document rows whose file is missing,
+  point at a failed in-request cleanup or a manual storage change; look at them with `--verbose` before acting.
 
 ## Local smoke test
 
-Against the local Supabase stack (`npx supabase start`):
+Against the local stack (`npx supabase start`), with the local URL and service-role key exported and
+`MULEMARK_TARGET=local`:
 
-1. Upload an object under a fake orphan prefix using the service role, with no matching `form_submissions`
-   row, e.g. `org/<uuid>/asset/<uuid>/submission/<uuid>/x.png`.
-2. `node scripts/cleanup-orphan-media.mjs --older-than-hours=0` → it lists the orphan path.
-3. Insert a `form_submissions` row with that submission id → re-run → it is no longer listed (record wins).
-4. Delete the row, then `--delete --yes --older-than-hours=0` → the object is removed.
+1. Upload an object with the service role to an unreferenced managed path, e.g.
+   `org/<uuid>/asset/<uuid>/documents/<id>/<id>.pdf` in `documents`.
+2. `node scripts/cleanup-orphan-media.mjs --target=local --older-than-hours=0 --verbose` → it is a candidate.
+3. Insert a `documents` row with that `storage_path` → re-run → it is kept (record wins).
+4. Delete the row, then re-run with `--delete --confirm=local:<count>` → the object is removed.
 
-## Scheduling
-
-A **manual pilot-scale tool is intentional** — no scheduler. The in-request cleanup handles the common case;
-this is for rare residue. The `rate_limit_gc()` housekeeping function (migration 0033) similarly needs no
-scheduler because `rate_limit_touch` self-prunes per key.
+Unit tests: `scripts/lib/orphan-media.test.mjs` (arguments, target, grammars checked against the application's path
+rules, planning, confirmation, re-check and stop rules).

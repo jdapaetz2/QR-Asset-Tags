@@ -25,7 +25,7 @@
  * Mirror of `productionBaseUrlIssue` in lib/qr/production.ts — kept in sync by hand because this is a
  * plain-JS script and cannot import the TypeScript module. The authoritative rule lives there and is
  * unit-tested (lib/qr/production.test.ts), including the `*.vercel.app` case. Same mirroring pattern as
- * scripts/cleanup-orphan-media.mjs. If the rule changes there, change it here.
+ * scripts/lib/orphan-media.mjs. If the rule changes there, change it here.
  */
 const PLACEHOLDER_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "::1", "example.com", "placeholder"];
 
