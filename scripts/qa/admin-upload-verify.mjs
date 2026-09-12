@@ -12,6 +12,10 @@
  *      object under the asset's cover folder, stored at the size sent. The original cover URL is then restored and the
  *      QA object removed. Skipped when the QA asset's current cover is itself an uploaded object (saving a new cover
  *      would delete it).
+ *   4. With --samples=<dir> (Engineering Phase D4.1): adds a public sample HEIC as a document with no declared type and
+ *      expects the original kept byte-for-byte as a .heic object offered as "Download original" (then deleted), and
+ *      saves the same HEIC as the cover and expects a JPEG object (original cover restored). With --after-0039 it also
+ *      asserts the documents bucket allows HEIC, HEIF and AVIF.
  *
  * REFUSALS: the Supabase project must resolve to staging (env-target.mjs) and QA_BASE_URL to a Preview host
  * (smoke-target.mjs); the tag is the fixed seeded QA tag; without --confirm it prints the plan and writes nothing.
@@ -19,13 +23,16 @@
  *
  * Usage: node --env-file=.env.staging.local scripts/qa/admin-upload-verify.mjs --target=staging --confirm
  */
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { createClient } from "@supabase/supabase-js";
 import { chromium } from "playwright";
 import sharp from "sharp";
 
 import { assertTarget } from "../lib/env-target.mjs";
 import { assertSmokeTarget } from "../lib/smoke-target.mjs";
-import { bypassHeaders, createRun } from "../smoke/lib/runner.mjs";
+import { bypassHeaders, createRun, visible } from "../smoke/lib/runner.mjs";
 
 const QA_SHORT_CODE = "stg-qa-public";
 const QA_ADMIN = "qa.admin@mulemark-staging.invalid";
@@ -36,11 +43,16 @@ const SAVE_TIMEOUT_MS = 90_000;
 const args = process.argv.slice(2);
 const TARGET = (args.find((a) => a.startsWith("--target=")) ?? "").slice("--target=".length);
 const CONFIRMED = args.includes("--confirm");
+const AFTER_0039 = args.includes("--after-0039");
+const SAMPLES = (args.find((a) => a.startsWith("--samples=")) ?? "").slice("--samples=".length);
+const HEIC_SAMPLE = "example.heic";
 
 function refuse(message) {
   console.error(`\n[admin-upload] REFUSING TO RUN\n\n  ${message}\n`);
   process.exit(1);
 }
+
+if (SAMPLES && !existsSync(join(SAMPLES, HEIC_SAMPLE))) refuse(`--samples folder is missing ${HEIC_SAMPLE}`);
 
 if (TARGET !== "staging") refuse("--target=staging is required (Production is verified separately, after its migration).");
 
@@ -69,6 +81,8 @@ console.log(`\n[admin-upload] target verified: STAGING (project host ${project.h
 console.log("  - public-assets bucket settings (read-only)");
 console.log("  - hosted document: generated 12 MB PDF (then deleted)");
 console.log("  - cover image: generated 4.8 MB JPEG (original cover restored)");
+console.log(`  - documents bucket allows HEIC/HEIF/AVIF (0039)${AFTER_0039 ? "" : " — SKIPPED until --after-0039"}`);
+console.log(`  - HEIC document kept as the original, HEIC cover stored as JPEG${SAMPLES ? "" : " — SKIPPED without --samples=<dir>"}`);
 if (!CONFIRMED) {
   console.log("\n  DRY RUN — nothing written. Pass --confirm to run.\n");
   process.exit(0);
@@ -113,6 +127,29 @@ async function objectSize(bucket, folder, name) {
     "public-assets is 5 MB, JPEG/PNG/WebP only (0038)",
     bucket?.file_size_limit === 5242880 && types.join() === "image/jpeg,image/png,image/webp",
     `file_size_limit ${bucket?.file_size_limit ?? "none"}, types ${types.join(" ") || "any"}`
+  );
+}
+
+if (AFTER_0039) {
+  const { data: bucket } = await service.storage.getBucket("documents");
+  const types = [...(bucket?.allowed_mime_types ?? [])].sort();
+  const expected = [
+    "application/pdf",
+    "image/avif",
+    "image/heic",
+    "image/heif",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "video/mp4",
+    "video/quicktime",
+    "video/webm",
+  ];
+  run.check(
+    "bucket",
+    "documents is private, 50 MB, and allows HEIC/HEIF/AVIF originals (0039)",
+    bucket?.public === false && bucket?.file_size_limit === 52428800 && types.join() === expected.join(),
+    `public ${bucket?.public}, file_size_limit ${bucket?.file_size_limit ?? "none"}, types ${types.join(" ") || "any"}`
   );
 }
 
@@ -228,11 +265,111 @@ async function coverScenario() {
   run.check(area, "original cover restored", !restoreError);
 }
 
+// ---------------------------------------------------------------------------
+// Photo formats (D4.1) — a public sample HEIC
+// ---------------------------------------------------------------------------
+
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+async function heicDocumentScenario() {
+  const area = "heic-document";
+  const buffer = readFileSync(join(SAMPLES, HEIC_SAMPLE));
+  const title = `HEIC document QA ${new Date().toISOString().slice(0, 19)}`;
+
+  await page.goto(`${BASE}/dashboard/assets/${assetId}/documents`, { waitUntil: "load", timeout: 60_000 });
+  await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+  await page.getByLabel("Title").fill(title);
+  // No declared type, as Windows hands over a HEIC: the form must identify it by its bytes.
+  await page.locator('input[name="file"]').setInputFiles({ name: HEIC_SAMPLE, mimeType: "application/octet-stream", buffer });
+  const clickedAt = Date.now();
+  await page.getByRole("button", { name: "Add document" }).click();
+
+  const readRows = async () =>
+    (await service.from("documents").select("id, storage_path").eq("asset_id", assetId).eq("title", title)).data ?? [];
+  const rows = await poll(readRows, (value) => value.length > 0);
+  if (rows.length !== 1) {
+    const alert = await page.getByRole("alert").first().textContent({ timeout: 1_000 }).catch(() => null);
+    run.fail(area, "untyped HEIC document saved", alert ? `form says: ${alert.slice(0, 140)}` : `${rows.length} rows`);
+    await run.capture(page, area);
+    return;
+  }
+  const [row] = rows;
+  run.pass(area, "untyped HEIC document saved", `in ${Date.now() - clickedAt} ms`);
+  const shaped = new RegExp(`^org/${orgId}/asset/${assetId}/documents/([0-9a-f-]{36})/\\1\\.heic$`).test(row.storage_path ?? "");
+  run.check(area, "kept as the original .heic object", shaped);
+  if (shaped) {
+    const folder = row.storage_path.slice(0, row.storage_path.lastIndexOf("/"));
+    const size = await objectSize("documents", folder, row.storage_path.slice(row.storage_path.lastIndexOf("/") + 1));
+    run.check(area, "object is the original file's size", size === buffer.length, size === null ? "not found" : `${size} bytes`);
+  }
+  const download = page.getByRole("row", { name: new RegExp(escapeRegExp(title)) }).getByRole("link", { name: "Download original" });
+  run.check(area, "the documents list offers it as Download original", await visible(download, 60_000));
+
+  if (shaped) await service.storage.from("documents").remove([row.storage_path]);
+  const { error: deleteError } = await service.from("documents").delete().eq("id", row.id);
+  run.check(area, "QA document cleaned up", !deleteError);
+}
+
+async function heicCoverScenario() {
+  const area = "heic-cover";
+  const { data: before } = await service.from("assets").select("cover_image_url").eq("id", assetId).maybeSingle();
+  const original = before?.cover_image_url ?? null;
+  if (original && original.includes("/storage/v1/object/public/")) {
+    run.skip(area, "HEIC cover stored as JPEG", "the QA asset's cover is an uploaded object; saving a new cover would delete it");
+    return;
+  }
+
+  await page.goto(`${BASE}/dashboard/assets/${assetId}`, { waitUntil: "load", timeout: 60_000 });
+  await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+  const assetForm = page.locator("form", { has: page.locator('input[name="file"]') });
+  await assetForm
+    .locator('input[name="file"]')
+    .setInputFiles({ name: HEIC_SAMPLE, mimeType: "image/heic", buffer: readFileSync(join(SAMPLES, HEIC_SAMPLE)) });
+  await page.waitForFunction(
+    () => Array.from(document.querySelector('form input[name="file"]')?.files ?? []).some((file) => file.name === "photo-1.jpg"),
+    null,
+    { timeout: 90_000 }
+  );
+  const clickedAt = Date.now();
+  await assetForm.getByRole("button", { name: "Save changes", exact: true }).click();
+
+  const marker = "/storage/v1/object/public/public-assets/";
+  const readCover = async () =>
+    (await service.from("assets").select("cover_image_url").eq("id", assetId).maybeSingle()).data?.cover_image_url ?? null;
+  const cover = await poll(readCover, (value) => typeof value === "string" && value !== original && value.includes(marker));
+  if (!(typeof cover === "string" && cover !== original && cover.includes(marker))) {
+    const alert = await page.getByRole("alert").first().textContent({ timeout: 1_000 }).catch(() => null);
+    run.fail(area, "HEIC cover saved", alert ? `form says: ${alert.slice(0, 140)}` : "cover not updated in time");
+    await run.capture(page, area);
+    return;
+  }
+  run.pass(area, "HEIC cover saved", `in ${Date.now() - clickedAt} ms`);
+
+  const objectPath = cover.slice(cover.indexOf(marker) + marker.length).split("?")[0];
+  const shaped = new RegExp(`^org/${orgId}/asset/${assetId}/cover/[0-9a-f-]{36}\\.jpg$`).test(objectPath);
+  run.check(area, "cover points at a JPEG object in the asset's cover folder", shaped);
+  if (shaped) {
+    const { data: blob } = await service.storage.from("public-assets").download(objectPath);
+    const meta = blob ? await sharp(Buffer.from(await blob.arrayBuffer())).metadata() : null;
+    run.check(area, "the stored cover decodes as a JPEG without EXIF", meta?.format === "jpeg" && !meta?.exif, meta ? `${meta.width}×${meta.height}` : "download failed");
+  }
+
+  const { error: restoreError } = await service.from("assets").update({ cover_image_url: original }).eq("id", assetId);
+  if (shaped) await service.storage.from("public-assets").remove([objectPath]);
+  run.check(area, "original cover restored", !restoreError);
+}
+
 try {
   await signIn();
   for (const [area, scenario] of [
     ["document", documentScenario],
     ["cover", coverScenario],
+    ...(SAMPLES
+      ? [
+          ["heic-document", heicDocumentScenario],
+          ["heic-cover", heicCoverScenario],
+        ]
+      : []),
   ]) {
     try {
       await scenario();

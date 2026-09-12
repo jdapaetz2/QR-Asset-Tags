@@ -5,7 +5,7 @@ import { badTypeFile } from "../support/actions";
 
 /**
  * Part F — failure & idempotency. Browser-observable guarantees that only show up under real POSTs:
- * a double-fired submit creates ONE record, a rejected upload preserves the typed values, a rate-limited
+ * a double-fired submit creates ONE record, a refused photo preserves the typed values, a rate-limited
  * submit writes NOTHING and shows the generic message, and an unauthenticated protected route redirects.
  * All mutations run on DISPOSABLE assets and assert via a service-role read.
  */
@@ -24,18 +24,18 @@ test("a submit creates exactly one record (idempotency-guarded) @critical", asyn
   expect(await countSubmissions(asset.assetId, "damage_report")).toBe(1);
 });
 
-test("a rejected upload preserves the entered values and writes nothing", async ({ page }) => {
+test("a picked file that is not a photo is refused with guidance, keeping the entered values and writing nothing", async ({ page }) => {
   const asset = await createAsset();
   await page.goto(`/forms/${asset.shortCode}/damage`);
   await page.getByLabel("Your name").fill("Renter Rita");
   await page.getByRole("textbox", { name: "Email" }).fill("rita@example.test");
   await page.getByLabel("What's damaged?").fill("Cracked windshield");
   await page.locator('input[name="media"]').setInputFiles(badTypeFile());
-  await page.getByRole("button", { name: "Submit damage report" }).click();
 
-  // Server-side media validation fails → inline error, still on the form, values intact. Wait for the server's own
-  // message: Next's empty route announcer is also role="alert", so waiting on the role checked values too early.
-  await expect(page.getByText("Only JPG, PNG, or WebP images are allowed.")).toBeVisible();
+  // D4.1: picked files are identified by their bytes on the device. A non-photo is listed with guidance and dropped
+  // from the input before anything is sent; the server still refuses one that arrives another way.
+  await expect(page.getByText(/notes\.txt: This photo couldn't be prepared/)).toBeVisible();
+  expect(await page.locator('input[name="media"]').evaluate((input) => (input as HTMLInputElement).files?.length ?? 0)).toBe(0);
   await expect(page).toHaveURL(new RegExp(`/forms/${asset.shortCode}/damage$`));
   await expect(page.getByLabel("Your name")).toHaveValue("Renter Rita");
   await expect(page.getByLabel("What's damaged?")).toHaveValue("Cracked windshield");
