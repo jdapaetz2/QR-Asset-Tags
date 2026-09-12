@@ -105,6 +105,82 @@ describe("submissions bucket (private; no direct anon writes — 0037)", () => {
   });
 });
 
+describe("admin direct uploads — documents and public-assets (signed with the user's own session)", () => {
+  const documentObjectPath = (orgId: string) => {
+    const id = randomUUID();
+    return `org/${orgId}/asset/${ASSET.A_PUBLIC}/documents/${id}/${id}.pdf`;
+  };
+  const coverObjectPath = (orgId: string, ext = "jpg") =>
+    `org/${orgId}/asset/${ASSET.A_PUBLIC}/cover/${randomUUID()}.${ext}`;
+  const pdf = () => new Blob([new TextEncoder().encode("%PDF-1.7\n%security test\n")], { type: "application/pdf" });
+  const jpeg = () => new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10])], { type: "image/jpeg" });
+
+  it.each([
+    ["documents", documentObjectPath, pdf],
+    ["public-assets", coverObjectPath, jpeg],
+  ] as const)("an org admin can sign and upload exactly one %s path in its own org, once", async (bucket, pathFor, body) => {
+    const path = pathFor(ORG_A);
+    const { data: signed, error } = await adminA.storage.from(bucket).createSignedUploadUrl(path);
+    expect(error?.message ?? null, `admin_a/${bucket}/sign-own-org`).toBeNull();
+    const token = signed?.token ?? "";
+
+    const { error: uploadError } = await adminA.storage.from(bucket).uploadToSignedUrl(path, token, body());
+    expect(uploadError?.message ?? null, `admin_a/${bucket}/signed-upload`).toBeNull();
+
+    const { error: overwriteError } = await adminA.storage.from(bucket).uploadToSignedUrl(path, token, body());
+    expect(overwriteError, `admin_a/${bucket}/signed-upload-overwrite should be DENIED`).toBeTruthy();
+
+    await serviceClient().storage.from(bucket).remove([path]);
+  });
+
+  it.each([
+    ["documents", documentObjectPath],
+    ["public-assets", coverObjectPath],
+  ] as const)("signing a %s path in another org is denied", async (bucket, pathFor) => {
+    const { data, error } = await adminA.storage.from(bucket).createSignedUploadUrl(pathFor(ORG_B));
+    expect(!!error || !data?.signedUrl, `admin_a/${bucket}/sign-cross-org should be DENIED`).toBe(true);
+  });
+
+  it.each([
+    ["documents", documentObjectPath],
+    ["public-assets", coverObjectPath],
+  ] as const)("anon cannot sign or write a %s path", async (bucket, pathFor) => {
+    const path = pathFor(ORG_A);
+    const { data, error } = await anon.storage.from(bucket).createSignedUploadUrl(path);
+    expect(!!error || !data?.signedUrl, `anon/${bucket}/sign should be DENIED`).toBe(true);
+    const { error: insertError } = await anon.storage.from(bucket).upload(path, bucket === "documents" ? pdf() : jpeg());
+    expect(insertError, `anon/${bucket}/insert should be DENIED`).toBeTruthy();
+  });
+
+  it("an uploaded document with no public document row is not anon-readable", async () => {
+    const path = documentObjectPath(ORG_A);
+    const { data: signed } = await adminA.storage.from("documents").createSignedUploadUrl(path);
+    const { error: uploadError } = await adminA.storage.from("documents").uploadToSignedUrl(path, signed?.token ?? "", pdf());
+    expect(uploadError?.message ?? null).toBeNull();
+
+    const { data, error } = await anon.storage.from("documents").download(path);
+    expect(!data || !!error, "anon/documents/download-unregistered should be DENIED").toBe(true);
+    await serviceClient().storage.from("documents").remove([path]);
+  });
+
+  it("public-assets accepts only JPEG, PNG and WebP up to 5 MB, and refuses a PDF (0038)", async () => {
+    const service = serviceClient();
+    const { data: bucket } = await service.storage.getBucket("public-assets");
+    expect(bucket?.file_size_limit, "public-assets/file_size_limit").toBe(5242880);
+    expect([...(bucket?.allowed_mime_types ?? [])].sort(), "public-assets/allowed_mime_types").toEqual([
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ]);
+
+    const path = coverObjectPath(ORG_A, "pdf");
+    const { data: signed } = await adminA.storage.from("public-assets").createSignedUploadUrl(path);
+    const { error } = await adminA.storage.from("public-assets").uploadToSignedUrl(path, signed?.token ?? "", pdf());
+    expect(error, "admin_a/public-assets/signed-upload-pdf should be DENIED").toBeTruthy();
+    await service.storage.from("public-assets").remove([path]);
+  });
+});
+
 describe("documents bucket (private unless a published-public document backs the object)", () => {
   it("anon MAY NOT read a PRIVATE document object", async () => {
     const { data, error } = await anon.storage.from("documents").download(STORAGE.A_DOC_PRIVATE);

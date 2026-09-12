@@ -1,9 +1,15 @@
 import { randomUUID } from "node:crypto";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { extForMime, isAllowedImageType, MAX_FILE_BYTES, mediaObjectName } from "@/lib/forms/media";
 import { SUBMISSION_OBJECT_RE, SUBMISSION_PREFIX_RE } from "@/lib/ratelimit/orphan";
-import { SNIFF_BYTES, sniffImageType } from "@/lib/media/sniff";
+import { sniffImageType } from "@/lib/media/sniff";
+import {
+  isObjectUnderPrefix as isUnderPrefix,
+  scopedBucket,
+  type PathRules,
+  type ScopedBucket,
+  type StorageBucketApi,
+} from "@/lib/storage/scoped-bucket";
 import {
   MEDIA_PATHS_FIELD,
   type DeclaredFile,
@@ -11,11 +17,13 @@ import {
   type PreparedUpload,
 } from "@/lib/forms/upload-contract";
 
+export type { ListedObject } from "@/lib/storage/scoped-bucket";
+
 /**
  * Direct-upload storage operations for ONE submission, and the server-side verification of what the browser
  * uploaded. Holds no credentials: the caller passes a bucket handle — the scoped service-role handle for public
  * intake (lib/forms/upload-intake.ts) or the staff user's RLS client — and every path is re-checked against the
- * submission's own prefix before any storage call.
+ * submission's own prefix before any storage call (lib/storage/scoped-bucket.ts).
  *
  * Deletion rules (evidence is never lost):
  *   - an object that FAILS content verification (type, size, bytes) is deleted — a committed submission can only
@@ -27,22 +35,13 @@ import {
 
 export const SUBMISSIONS_BUCKET = "submissions";
 
-const LIST_LIMIT = 1000;
-const SIGNED_READ_SECONDS = 60;
-
-type StorageBucketApi = ReturnType<SupabaseClient["storage"]["from"]>;
-
-export type ListedObject = { name: string; size: number | null; mimetype: string | null };
-
 /** A submissions-bucket capability confined to one `org/{uuid}/asset/{uuid}/submission/{uuid}` prefix. */
-export type ScopedSubmissionBucket = {
-  readonly prefix: string;
-  signUpload(path: string): Promise<string | null>;
-  list(): Promise<ListedObject[] | null>;
-  /** The first bytes of each object (null when unreadable). Signed read URLs never leave this function. */
-  readHeads(paths: string[]): Promise<Map<string, Uint8Array | null>>;
-  upload(path: string, bytes: Uint8Array, contentType: string): Promise<boolean>;
-  remove(paths: string[]): Promise<{ removed: number; failed: boolean }>;
+export type ScopedSubmissionBucket = ScopedBucket;
+
+const SUBMISSION_PATH_RULES: PathRules = {
+  label: "submission",
+  prefixRe: SUBMISSION_PREFIX_RE,
+  objectRe: SUBMISSION_OBJECT_RE,
 };
 
 export function isSubmissionPrefix(prefix: string): boolean {
@@ -51,57 +50,7 @@ export function isSubmissionPrefix(prefix: string): boolean {
 
 /** A strict object path directly under this submission's prefix. */
 export function isObjectUnderPrefix(prefix: string, path: unknown): path is string {
-  return (
-    typeof path === "string" &&
-    path.startsWith(`${prefix}/`) &&
-    SUBMISSION_OBJECT_RE.test(path) &&
-    !path.slice(prefix.length + 1).includes("..")
-  );
-}
-
-function numberOrNull(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function stringOrNull(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-const READ_HEAD_TIMEOUT_MS = 10_000;
-
-/**
- * The first bytes of one object through a short-lived signed read with a Range header. The request is ABORTED once
- * enough bytes arrive (or on timeout) rather than awaiting `reader.cancel()`: inside Next's server runtime the fetch
- * body can be a tee whose cancel promise only settles when the other branch is also consumed, so awaiting it hung
- * the submission indefinitely. `no-store` keeps the read out of Next's fetch cache.
- */
-async function readHead(fetchImpl: typeof fetch, url: string): Promise<Uint8Array | null> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), READ_HEAD_TIMEOUT_MS);
-  try {
-    const res = await fetchImpl(url, {
-      headers: { Range: `bytes=0-${SNIFF_BYTES - 1}` },
-      cache: "no-store",
-      signal: controller.signal,
-    });
-    if (!res.ok || !res.body) return null;
-    const reader = res.body.getReader();
-    const out = new Uint8Array(SNIFF_BYTES);
-    let filled = 0;
-    while (filled < SNIFF_BYTES) {
-      const { done, value } = await reader.read();
-      if (done || !value) break;
-      const take = Math.min(value.byteLength, SNIFF_BYTES - filled);
-      out.set(value.subarray(0, take), filled);
-      filled += take;
-    }
-    return out.subarray(0, filled);
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-    controller.abort();
-  }
+  return isUnderPrefix(prefix, path, SUBMISSION_OBJECT_RE);
 }
 
 export function scopedSubmissionBucket(
@@ -109,76 +58,7 @@ export function scopedSubmissionBucket(
   prefix: string,
   fetchImpl: typeof fetch = fetch
 ): ScopedSubmissionBucket {
-  if (!isSubmissionPrefix(prefix)) throw new Error("invalid submission prefix");
-  const assertPath = (path: string) => {
-    if (!isObjectUnderPrefix(prefix, path)) throw new Error("path outside the submission prefix");
-  };
-
-  return {
-    prefix,
-    async signUpload(path) {
-      assertPath(path);
-      try {
-        const { data, error } = await bucket.createSignedUploadUrl(path);
-        return error || !data?.signedUrl ? null : data.signedUrl;
-      } catch {
-        return null;
-      }
-    },
-    async list() {
-      try {
-        const { data, error } = await bucket.list(prefix, { limit: LIST_LIMIT });
-        if (error || !data) return null;
-        return data
-          .filter((entry) => Boolean((entry as { id?: unknown }).id) && Boolean(entry.name))
-          .map((entry) => {
-            const metadata = (entry.metadata ?? {}) as Record<string, unknown>;
-            return { name: entry.name, size: numberOrNull(metadata.size), mimetype: stringOrNull(metadata.mimetype) };
-          });
-      } catch {
-        return null;
-      }
-    },
-    async readHeads(paths) {
-      paths.forEach(assertPath);
-      const heads = new Map<string, Uint8Array | null>();
-      if (paths.length === 0) return heads;
-      let signed: { path: string | null; signedUrl: string | null }[] = [];
-      try {
-        const { data, error } = await bucket.createSignedUrls(paths, SIGNED_READ_SECONDS);
-        if (!error && data) signed = data;
-      } catch {
-        signed = [];
-      }
-      await Promise.all(
-        paths.map(async (path) => {
-          const url = signed.find((entry) => entry.path === path)?.signedUrl;
-          heads.set(path, url ? await readHead(fetchImpl, url) : null);
-        })
-      );
-      return heads;
-    },
-    async upload(path, bytes, contentType) {
-      assertPath(path);
-      try {
-        const { error } = await bucket.upload(path, bytes, { contentType, upsert: false });
-        return !error;
-      } catch {
-        return false;
-      }
-    },
-    async remove(paths) {
-      paths.forEach(assertPath);
-      if (paths.length === 0) return { removed: 0, failed: false };
-      try {
-        const { data, error } = await bucket.remove(paths);
-        if (error) return { removed: 0, failed: true };
-        return { removed: Array.isArray(data) ? data.length : 0, failed: false };
-      } catch {
-        return { removed: 0, failed: true };
-      }
-    },
-  };
+  return scopedBucket(bucket, prefix, SUBMISSION_PATH_RULES, fetchImpl);
 }
 
 // ---------------------------------------------------------------------------

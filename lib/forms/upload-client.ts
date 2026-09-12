@@ -3,6 +3,7 @@ import {
   type MediaClaim,
   type PrepareUploadsAction,
 } from "@/lib/forms/upload-contract";
+import { putFileToSignedUrl } from "@/lib/storage/signed-upload-client";
 
 /**
  * Browser side of direct photo uploads (see lib/forms/upload-contract.ts). No Supabase SDK: the server returns a
@@ -39,17 +40,8 @@ export function stripSelectedPhotos(formData: FormData): void {
   }
 }
 
-async function putPhoto(fetchImpl: typeof fetch, url: string, file: File): Promise<boolean> {
-  try {
-    const res = await fetchImpl(url, {
-      method: "PUT",
-      body: file,
-      headers: { "content-type": file.type, "x-upsert": "false" },
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+function putPhoto(fetchImpl: typeof fetch, url: string, file: File): Promise<boolean> {
+  return putFileToSignedUrl(url, file, fetchImpl);
 }
 
 export async function uploadPhotosDirect(input: {

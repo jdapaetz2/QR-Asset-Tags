@@ -42,6 +42,16 @@ the `?nojs=1` rewrite in `lib/public/nojs.ts`; `noindex`). They run the same pag
 `resolvePublicEquipment` eligibility and the same form actions — only without a streamed loading skeleton, and the
 scan copy records no scan (the visit's first request already did).
 
+Admin hosted documents (up to 50 MB, private `documents` bucket) and asset cover images (up to 5 MB, public bucket)
+also upload **browser → storage directly** (`lib/storage/direct-upload.ts`), because both can exceed Vercel's 4.5 MB
+request limit. `prepareDocumentUpload` / `prepareCoverUpload` require a signed-in user with an organization, an asset
+visible under RLS and valid declared metadata, then sign ONE server-built path with the user's **own RLS client** — so
+the org storage policies (0002, 0005) still decide the organization. The save (`createDocument` / `updateAsset`)
+re-parses the claimed path for this organization and asset and verifies the stored object (type, extension, size,
+leading bytes; `lib/storage/verify-object.ts`) before any row references it; a failing object is deleted. **No
+service-role importer was added.** An unfinalized document object is never publicly readable (0006 requires a public
+`documents` row).
+
 ## Submissions and uploads
 
 Public users submit forms with the asset prefilled and not editable; the server validates that the asset/QR exists and derives `organization_id` server-side rather than trusting client input. Media uploads:

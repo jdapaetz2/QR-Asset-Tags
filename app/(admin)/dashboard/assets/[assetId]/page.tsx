@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
 import {
+  prepareCoverUpload,
   updateAsset,
   setAssetPublicStatus,
   archiveAsset,
@@ -345,6 +346,7 @@ export default async function EditAssetPage({
       {/* Asset fields (includes the unified cover-image section) */}
       <AssetForm
         action={updateAsset.bind(null, assetId)}
+        prepareCoverUpload={prepareCoverUpload.bind(null, assetId)}
         asset={asset}
         assetId={assetId}
         categories={categories}

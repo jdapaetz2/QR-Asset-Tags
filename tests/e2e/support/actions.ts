@@ -32,6 +32,13 @@ export function largeJpeg(name = "large.jpg", bytes = 2_500_000): { name: string
   return { name, mimeType: "image/jpeg", buffer };
 }
 
+/** A PDF-signed payload of `bytes` bytes: a real `%PDF-` header, filler body. For hosted documents over 4.5 MB. */
+export function largePdf(name = "manual.pdf", bytes = 12_000_000): { name: string; mimeType: string; buffer: Buffer } {
+  const buffer = Buffer.alloc(bytes, 0x20);
+  buffer.write("%PDF-1.7\n%Mulemark E2E document\n", 0, "latin1");
+  return { name, mimeType: "application/pdf", buffer };
+}
+
 /** A wrong-type file (text) to trigger server-side media validation rejection. */
 export function badTypeFile(name = "notes.txt"): { name: string; mimeType: string; buffer: Buffer } {
   return { name, mimeType: "text/plain", buffer: Buffer.from("not an image", "utf8") };

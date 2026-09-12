@@ -8,6 +8,11 @@ insert failure (`lib/forms/cleanup.ts`). This tool is the **operator backstop** 
 through (e.g. a renter who uploads photos and then abandons the form, or a process killed between upload and
 insert): submission objects whose owning row never materialized.
 
+**Not covered yet (follow-up):** admin hosted documents and cover images also upload straight to storage before their
+row exists (`lib/storage/direct-upload.ts`). Abandoned admin uploads leave unreferenced objects under
+`org/{org}/asset/{asset}/documents/{id}/` (no `documents` row with that `storage_path`) or `…/cover/` (not the asset's
+`cover_image_url`); this tool does not scan those buckets today.
+
 **Invariant it honors:** it deletes only *bytes with no record*. A submission that has a
 `form_submissions` row is never touched, so the timeline/record is never lost
 (see [`STORAGE_MEDIA_LIFECYCLE.md`](STORAGE_MEDIA_LIFECYCLE.md)).

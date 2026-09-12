@@ -341,6 +341,31 @@ export async function readLatestSubmissionMedia(assetId: string, formType: strin
   return (data?.media_urls as string[] | null) ?? [];
 }
 
+/** An asset's documents (service read), oldest first. */
+export async function readAssetDocuments(assetId: string): Promise<{ title: string; storage_path: string | null }[]> {
+  const { data, error } = await admin()
+    .from("documents")
+    .select("title, storage_path")
+    .eq("asset_id", assetId)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(`readAssetDocuments: ${error.message}`);
+  return (data ?? []) as { title: string; storage_path: string | null }[];
+}
+
+/** An asset's stored cover image URL (service read). */
+export async function readAssetCover(assetId: string): Promise<string | null> {
+  const { data, error } = await admin().from("assets").select("cover_image_url").eq("id", assetId).maybeSingle();
+  if (error) throw new Error(`readAssetCover: ${error.message}`);
+  return (data?.cover_image_url as string | null) ?? null;
+}
+
+/** Object names in an org-A asset's cover folder (service list). */
+export async function listCoverObjects(assetId: string): Promise<string[]> {
+  const { data, error } = await admin().storage.from("public-assets").list(`org/${ORG_A}/asset/${assetId}/cover`, { limit: 100 });
+  if (error) throw new Error(`listCoverObjects: ${error.message}`);
+  return (data ?? []).filter((entry) => entry.id).map((entry) => entry.name);
+}
+
 export type ScanEventRow = {
   qr_link_id: string;
   asset_id: string;

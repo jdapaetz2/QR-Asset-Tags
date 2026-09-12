@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireOrgId } from "@/lib/auth/session";
-import { createDocument, deleteDocument } from "@/lib/documents/actions";
+import { createDocument, deleteDocument, prepareDocumentUpload } from "@/lib/documents/actions";
 import { DOCUMENT_TYPE_LABELS, type DocumentType } from "@/lib/documents/validate";
 import { DocumentForm } from "@/components/document-form";
 import { ActionButton } from "@/components/action-button";
@@ -197,6 +197,7 @@ export default async function DocumentsPage({
         <h2 className="mb-3 font-medium">Add a document</h2>
         <DocumentForm
           action={createDocument.bind(null, assetId)}
+          prepareUpload={prepareDocumentUpload.bind(null, assetId)}
           submitLabel="Add document"
           showUrl
           showFile

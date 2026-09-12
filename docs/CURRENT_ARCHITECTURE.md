@@ -60,8 +60,9 @@ storage write policy (0037): form photos upload browser → storage through serv
 URLs and are verified server-side before insert; anon cannot list; admin views mint short-lived (1h) signed URLs.
 **Note:** `public-assets` objects are public by URL (see limitations). Caps are code constants (8 img / 40 MB
 inspections; 5 × 10 MB public forms) plus the bucket's 10 MB JPEG/PNG/WebP limit. Server-action bodies are capped at
-4 MB to match Vercel's 4.5 MB Function limit; admin documents and cover images still upload through server actions
-and share that limit (follow-up).
+4 MB to match Vercel's 4.5 MB Function limit; admin hosted documents (50 MB) and cover images (5 MB) upload
+browser → storage too, signed with the admin's own RLS client and verified before the row references them (0038 caps
+the public bucket at 5 MB JPEG/PNG/WebP). Org logos (2 MB) still post through the settings action.
 
 ## Notifications
 `lib/notifications/*` sends via Resend (server-only). **Dry-run capable:** without `RESEND_API_KEY` /

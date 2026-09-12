@@ -1,12 +1,15 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { startTransition, useActionState, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import type { AssetFormState } from "@/lib/assets/actions";
 import type { AssetInput } from "@/lib/assets/validate";
-import { COVER_ALLOWED_TYPES } from "@/lib/assets/cover";
+import { COVER_ALLOWED_TYPES, COVER_CLAIM_FIELD } from "@/lib/assets/cover";
+import { withActionErrorRecovery } from "@/lib/forms/action-recovery";
+import { FILE_SAVE_FAILED_MESSAGE, type PrepareSingleUploadAction } from "@/lib/storage/direct-upload";
+import { uploadFileDirect } from "@/lib/storage/signed-upload-client";
 import {
   GENERIC_TEMPLATE_KEY,
   RETURN_TEMPLATE_PICKER,
@@ -73,6 +76,7 @@ function Field({
 
 export function AssetForm({
   action,
+  prepareCoverUpload,
   asset,
   assetId,
   categories = [],
@@ -83,6 +87,11 @@ export function AssetForm({
   returnTo,
 }: {
   action: AssetFormAction;
+  /**
+   * Edit mode: uploads a chosen cover image straight to storage before saving (lib/storage/direct-upload.ts), so the
+   * save carries only its path and never approaches Vercel's 4.5 MB request limit.
+   */
+  prepareCoverUpload?: PrepareSingleUploadAction;
   asset?: AssetDefaults;
   /** When set (edit mode), enables cover-image file upload in the same save. */
   assetId?: string;
@@ -102,6 +111,16 @@ export function AssetForm({
     action,
     {}
   );
+  // After a direct cover upload the save is dispatched here, wrapped so an undeliverable request keeps the form.
+  const recoveringAction = useMemo(() => withActionErrorRecovery(action, FILE_SAVE_FAILED_MESSAGE), [action]);
+  const [directState, directFormAction, directPending] = useActionState<AssetFormState, FormData>(
+    recoveringAction,
+    {}
+  );
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const busy = pending || directPending || uploading;
+  const error = uploadError ?? directState.error ?? state.error;
   const [cover, setCover] = useState(asset?.cover_image_url ?? "");
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -170,15 +189,40 @@ export function AssetForm({
   const previewSrc = filePreview ?? (cover.trim() || null);
   const hasSomething = Boolean(previewSrc);
 
+  async function uploadCoverThenSave(form: HTMLFormElement, file: File, prepare: PrepareSingleUploadAction) {
+    setUploading(true);
+    const result = await uploadFileDirect({ file, prepare });
+    setUploading(false);
+    if (!result.ok) {
+      setUploadError(result.error);
+      return;
+    }
+    const formData = new FormData(form);
+    formData.delete("file");
+    formData.set(COVER_CLAIM_FIELD, result.path);
+    startTransition(() => directFormAction(formData));
+  }
+
   return (
-    <form action={formAction} className="flex max-w-2xl flex-col gap-4">
+    <form
+      action={formAction}
+      onSubmit={(e) => {
+        setUploadError(null);
+        const file = assetId && prepareCoverUpload ? fileRef.current?.files?.[0] : undefined;
+        if (!file || file.size === 0 || !prepareCoverUpload) return; // no image: the form posts to the action as before
+        e.preventDefault();
+        if (busy) return;
+        void uploadCoverThenSave(e.currentTarget, file, prepareCoverUpload);
+      }}
+      className="flex max-w-2xl flex-col gap-4"
+    >
       {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
-      {state.error ? (
+      {error ? (
         <p
           role="alert"
           className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
         >
-          {state.error}
+          {error}
         </p>
       ) : null}
 
@@ -340,8 +384,8 @@ export function AssetForm({
       />
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={pending}>
-          {pending ? "Saving…" : submitLabel}
+        <Button type="submit" disabled={busy}>
+          {uploading ? "Uploading image…" : busy ? "Saving…" : submitLabel}
         </Button>
         <Link
           href={cancelHref}

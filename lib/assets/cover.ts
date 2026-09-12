@@ -6,6 +6,8 @@
  * allowed only for local /demo-assets paths, never customer uploads).
  */
 
+import { UUID_PATTERN } from "@/lib/storage/direct-upload";
+
 export const COVER_BUCKET = "public-assets";
 
 export const COVER_ALLOWED_TYPES = [
@@ -51,6 +53,32 @@ export function coverPathPrefix(
 /** Opaque object name (no user-controlled filename). */
 export function coverObjectName(uuid: string, mime: string): string {
   return `${uuid}.${EXT_BY_MIME[mime] ?? "bin"}`;
+}
+
+// ---------------------------------------------------------------------------
+// Direct upload (lib/storage/direct-upload.ts)
+// ---------------------------------------------------------------------------
+
+/** Form field carrying the uploaded cover object's path to `updateAsset`. */
+export const COVER_CLAIM_FIELD = "cover_claim";
+
+/** `org/{org}/asset/{asset}/cover` */
+export const COVER_PREFIX_RE = new RegExp(`^org/${UUID_PATTERN}/asset/${UUID_PATTERN}/cover$`);
+
+/** `org/{org}/asset/{asset}/cover/{uuid}.{jpg|png|webp}` */
+export const COVER_OBJECT_RE = new RegExp(
+  `^org/(${UUID_PATTERN})/asset/(${UUID_PATTERN})/cover/${UUID_PATTERN}\\.(jpg|png|webp)$`
+);
+
+export function extForCoverMime(mime: string): string | null {
+  return EXT_BY_MIME[mime] ?? null;
+}
+
+/** Whether `path` is a cover object path for exactly this organization and asset. */
+export function isCoverClaim(path: unknown, organizationId: string, assetId: string): path is string {
+  if (typeof path !== "string") return false;
+  const m = COVER_OBJECT_RE.exec(path);
+  return Boolean(m && m[1] === organizationId && m[2] === assetId);
 }
 
 /**

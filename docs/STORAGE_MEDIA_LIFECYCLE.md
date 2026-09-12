@@ -15,6 +15,11 @@
 > dry-run default) removes any residual objects whose `form_submissions` row never materialized — never
 > touching a submission that has a row. See [`ORPHAN_MEDIA_CLEANUP.md`](ORPHAN_MEDIA_CLEANUP.md). This is
 > orphan cleanup, distinct from the quota/retention wave below.
+>
+> **Admin uploads (documents, cover images) also go browser → storage** before their row is written. A failing object
+> is deleted at save time and a failed insert removes its object, but an admin who uploads and then abandons the form
+> leaves an unreferenced object in `documents` or the public cover bucket. The orphan tool covers `submissions` only;
+> extending it to document and cover prefixes is a recorded follow-up.
 
 ## Principle
 
