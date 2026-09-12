@@ -1,11 +1,17 @@
+import { NoScriptContinue } from "@/components/public/noscript-continue";
+
 /**
  * Route-level loading fallback for the public scanner page. Pure-CSS skeleton
  * (no client libraries) so the page feels instant while the server resolves the
  * asset and signs document URLs. Scan logging stays best-effort in page.tsx.
+ *
+ * Without JavaScript the streamed page never replaces this skeleton, so it carries a
+ * `<noscript>` refresh to the non-streaming copy of the route (lib/public/nojs.ts).
  */
 export default function Loading() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 px-4 pb-28 pt-6 sm:pb-6">
+      <NoScriptContinue />
       <div className="h-1.5 w-full rounded-full bg-muted" />
 
       {/* Org header */}

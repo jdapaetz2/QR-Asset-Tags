@@ -3,6 +3,7 @@ import { resolvePublicEquipment } from "@/lib/public/resolve";
 import { resolveReturnTemplate } from "@/lib/inspections/resolve";
 import { getAssetReturnTemplate } from "@/lib/inspections/org-templates-data";
 import { ReturnInspectionForm } from "@/components/public/return-inspection-form";
+import { ReturnChecklistNoScript } from "@/components/public/return-checklist-noscript";
 import { PublicFormLayout } from "@/components/public/public-form-layout";
 import { UnavailableNotice } from "@/components/public/unavailable-notice";
 import { getProfile } from "@/lib/auth/session";
@@ -63,6 +64,7 @@ export default async function ReturnInspectionPage({
       assetName={resolved.asset.asset_name}
       assetCode={resolved.asset.asset_code}
     >
+      <ReturnChecklistNoScript shortCode={shortCode} />
       <ReturnInspectionForm
         template={template}
         shortCode={shortCode}

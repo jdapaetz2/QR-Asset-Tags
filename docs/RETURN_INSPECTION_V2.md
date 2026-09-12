@@ -51,6 +51,11 @@ refuses Function bodies over 4.5 MB; the limit is now 4 MB to match, for the no-
 **No browser autosave.** The guided form keeps every step mounted (hidden via the `hidden` attribute) and
 submits once; there are no per-step server calls and no local-storage autosave.
 
+**Requires JavaScript.** Answers are posted from client state (hidden inputs fed by the choice buttons and the
+confirmation), so a plain no-JavaScript post would arrive empty. Without JavaScript the public return page hides the
+form (`data-requires-javascript`) and shows a notice with a link to the damage report, which does work without it
+(`components/public/return-checklist-noscript.tsx`; see `docs/PHASE_C_BASELINE.md` §9j follow-up).
+
 **Server-authoritative + DB-enforced session integrity.** The browser sends only contact + `answer:*` +
 `photo:*` + honeypot. The server derives org/asset/`form_type`/`status`/flags/template/snapshot. A
 `BEFORE INSERT` trigger (`set_return_submission_session`, SECURITY DEFINER, `search_path=public`)
@@ -103,7 +108,7 @@ renaming. The final resolved key is still stored on each asset.
 - **Resolution order** is now **explicit assignment → organization category default → conservative system
   suggestion → generic** (`resolveReturnTemplateKey` takes an optional `categoryDefaults` lookup;
   `source` gains `category_default`). Matching is exact-normalized (`normalizeCategoryKey`), never fuzzy.
-- **Public route unchanged / never reads the table.** `app/forms/[shortCode]/return/page.tsx` and
+- **Public route unchanged / never reads the table.** `app/forms/[shortCode]/return/(form)/page.tsx` and
   `lib/inspections/submit.ts` resolve purely from the asset's stored key and do **not** pass or fetch
   `categoryDefaults` — the mapping table is admin-time only (create/edit asset, import, bulk-apply).
 - **Templates → Return inspections** page: read-only system catalog with an inert
@@ -161,7 +166,7 @@ rental-session + asset-timeline context; done-with-you implementation.
 ---
 
 ## 1. Current state (audited)
-- **Public return:** `app/forms/[shortCode]/return/page.tsx` → `PublicFormLayout` (locked-asset card) →
+- **Public return:** `app/forms/[shortCode]/return/(form)/page.tsx` → `PublicFormLayout` (locked-asset card) →
   `ReturnForm` inside the shared `PublicForm` shell (name/contact/photos/honeypot/submit).
 - **Shared submit core:** `lib/forms/submit.ts` `submitPublicForm` — honeypot → `resolvePublicEquipment`
   (org/asset server-derived) → validate fields+files → org-scoped upload → insert (id + created_at set
@@ -345,7 +350,7 @@ capture, expected-accessories/baseline load on return, side-by-side comparison, 
 - **New:** `supabase/migrations/0024_return_inspection_v2.sql`; `lib/inspections/{templates,resolve,schema}.ts`
   (+ tests); `components/public/return-inspection-form.tsx` (+ step/review/photo-slot subcomponents);
   `components/submissions/return-inspection-summary.tsx`.
-- **Edit:** `app/forms/[shortCode]/return/page.tsx`; `lib/forms/{actions,submit,validate,media}.ts`;
+- **Edit:** `app/forms/[shortCode]/return/(form)/page.tsx`; `lib/forms/{actions,submit,validate,media}.ts`;
   `lib/submissions/returns.ts`; `app/(admin)/dashboard/submissions/[submissionId]/page.tsx`; and (when
   Phase 1 lands) cross-links in `YARD_STAFF_SCANNER_MODE.md` + `ROADMAP_DEFERRED.md`.
 - **Untouched:** `mark_return_and_resolve` (0022), `asset_rental_sessions`, timeline builder, resolver,

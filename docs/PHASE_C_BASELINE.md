@@ -1044,6 +1044,25 @@ after navigation, so anything standing between `goto` and the form made it find 
 nothing, and fail later somewhere else**. The assumption was always unsafe; the skeleton only made it
 visible. Fixed where it lived, in the helper. 39/39 public specs stable on repeat, full suite 75/75 clean.
 
+### Follow-up (2026-09-12) — the skeletons without JavaScript
+
+A streamed skeleton is replaced by React's inline scripts, so **without JavaScript it never goes away**: the scan page
+and the damage, support and return forms showed only their skeleton (confirmed against a local production build).
+Two CSS-only reveals were tried and rejected: Tailwind v4's base layer hides `[hidden]` with a layered `!important`
+that an unlayered override cannot beat, and the page arrives as nested hidden segments (the form in its own segment
+after the footer), so a revealed page renders out of order in a way that varies per request.
+
+**What shipped:** each skeleton carries a `<noscript>` refresh (plus a "Continue without JavaScript" link) to the same
+URL with `?nojs=1`. A `beforeFiles` rewrite (`lib/public/nojs.ts`, `next.config.ts`) sends only those requests to
+copies of the routes under `app/nojs/`, which have no loading boundary — and with no `Suspense` anywhere in the app,
+React renders the whole document in order. JavaScript users never match the rewrite, so the skeleton-first behaviour
+measured above is unchanged. The first request of a no-JavaScript visit already records its scan, so the copy of the
+scan page records none (`PublicScanRoute`, `recordScan`). The form skeletons moved into `(form)` route groups
+(`app/forms/[shortCode]/*/(form)/`): a `loading.tsx` wraps every child route, so the C8 skeletons had in fact also
+covered the `/thanks` confirmations, which without JavaScript would have refreshed into a loop. The return checklist posts its answers from client state,
+so without JavaScript it shows a notice and a link to the damage form instead. Covered by
+`tests/e2e/public/no-javascript.spec.ts`.
+
 ### No regression
 
 The C7 inbox measurement was re-run because C8 touches the same page: **still 1 request visible per 90 s,

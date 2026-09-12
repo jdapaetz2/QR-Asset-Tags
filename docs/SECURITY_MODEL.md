@@ -37,6 +37,11 @@ The public equipment page is served by an anonymous role. It may read:
 
 The public role may **insert** into `form_submissions`, but has **no select/update/delete** on submissions. Since migration 0037 it has **no storage write policy**: public photos reach the private `submissions` bucket only through server-issued, path-bound signed upload URLs. It cannot list or read storage objects.
 
+Browsers without JavaScript are served copies of the public scan and form routes under `/nojs/…` (reached through
+the `?nojs=1` rewrite in `lib/public/nojs.ts`; `noindex`). They run the same page code — the same
+`resolvePublicEquipment` eligibility and the same form actions — only without a streamed loading skeleton, and the
+scan copy records no scan (the visit's first request already did).
+
 ## Submissions and uploads
 
 Public users submit forms with the asset prefilled and not editable; the server validates that the asset/QR exists and derives `organization_id` server-side rather than trusting client input. Media uploads:

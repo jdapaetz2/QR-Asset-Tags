@@ -321,7 +321,7 @@ DB/RLS/storage/auth/session change; media limits unchanged.
   flips Add → View on re-render (no polling).
 
 ### Phase 3C.8 — scalable timeline + rental-session search (migration 0031: additive indexes only)
-- **Same-org contact prefill (Part B).** The public renter return route (`app/forms/[shortCode]/return/page.tsx`, already
+- **Same-org contact prefill (Part B).** The public renter return route (`app/forms/[shortCode]/return/(form)/page.tsx`, already
   `force-dynamic`) now reads an optional authenticated viewer via `getProfile()` and passes name/email defaults to the form
   ONLY when the pure `resolveContactPrefill` (`lib/inspections/contact-prefill.ts`) confirms the viewer is an ACTIVE,
   SAME-ORG `customer_admin`/`customer_staff` (cross-org, incl. platform-owner-in-another-org, and anonymous → blank).

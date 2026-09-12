@@ -361,6 +361,9 @@ export function ReturnInspectionForm({
     <form
       action={serverFormAction}
       ref={formRef}
+      // Answers are posted from client state, so this form cannot work without JavaScript; the public return page
+      // hides it then and shows components/public/return-checklist-noscript.tsx instead.
+      data-requires-javascript=""
       onSubmit={(e) => {
         // Only an intended submit path (final Submit / confirmed dialog) sets allowSubmitRef. Everything else —
         // Enter in a field, a stray submit, entering Review — is cancelled here before the action can run.

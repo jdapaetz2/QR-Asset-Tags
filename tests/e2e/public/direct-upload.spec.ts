@@ -102,6 +102,5 @@ test.describe("a request the platform refuses keeps the form", () => {
   });
 });
 
-// No browser test for the no-JavaScript file post: with JavaScript off the streamed form never replaces the route's
-// loading skeleton (app/forms/[shortCode]/damage/loading.tsx), so the form is not visible at all. That predates this
-// change; the server's file-post path is covered by lib/forms/submit-cleanup.test.ts.
+// The no-JavaScript file post (a plain form post, photos under 4 MB) is covered end to end by
+// tests/e2e/public/no-javascript.spec.ts.

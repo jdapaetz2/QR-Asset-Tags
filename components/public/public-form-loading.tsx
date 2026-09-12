@@ -1,3 +1,5 @@
+import { NoScriptContinue } from "@/components/public/noscript-continue";
+
 /**
  * Route-level loading skeleton for the public renter forms (Phase C8).
  *
@@ -27,6 +29,9 @@ export function PublicFormLoading() {
       aria-busy="true"
       aria-live="polite"
     >
+      {/* Without JavaScript this skeleton is never replaced: send the browser to the non-streaming copy. */}
+      <NoScriptContinue />
+
       {/* Screen readers get the state as words; the blocks below are decoration to them. */}
       <span className="sr-only">Loading the form…</span>
 

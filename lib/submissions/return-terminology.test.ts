@@ -24,7 +24,7 @@ describe("user-facing return-checklist copy (Wave 3N.1)", () => {
     const scanner = read("components/public/public-scanner-view.tsx");
     expect(scanner).toContain("Return checklist");
     expect(scanner).not.toContain("Return Checklist"); // casing fixed
-    expect(read("app/forms/[shortCode]/return/page.tsx")).toContain('title="Return checklist"');
+    expect(read("app/forms/[shortCode]/return/(form)/page.tsx")).toContain('title="Return checklist"');
     expect(read("app/forms/[shortCode]/return/thanks/page.tsx")).toContain(
       'title="Return checklist submitted"'
     );
@@ -59,7 +59,7 @@ describe("user-facing return-checklist copy (Wave 3N.1)", () => {
       s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
     for (const p of [
       "components/public/public-scanner-view.tsx",
-      "app/forms/[shortCode]/return/page.tsx",
+      "app/forms/[shortCode]/return/(form)/page.tsx",
       "app/(staff)/staff/t/[shortCode]/return/page.tsx",
       "app/(staff)/staff/t/[shortCode]/return/complete/page.tsx",
       "components/submissions/return-inspection-summary.tsx",
