@@ -1398,6 +1398,43 @@ for every row; a row not run stays marked **not run**.
 | M5 | Preview switch off | Text-only |
 | M6 | Provider failure | Submission unaffected; `failed_*` logged |
 
+### 15.6 D4 live QA record — Production, 2026-09-11
+
+Build `4cd69d2`, promoted to Production as deployment `5UkcrjUxg`; `smoke:production` 13 pass / 0 fail / 1 skip;
+`cron:verify-production` 3/3. Tooling: `npm run production:qa-previews` — Production QA organization and the
+`prod-qa-perf-probe` tag only, recipients allowlisted to `support@mulemark.io` and `delivered@resend.dev`, the QA
+organization's notification settings restored and verified after every run. Photos are generated and labelled;
+no customer media was used.
+
+| Scenario | Reference | Vercel runtime log | Observed |
+|---|---|---|---|
+| Damage, 1 photo | `SUB-2026-9F4B24` | `sent` · requested 1 · attached 1 · 963 ms · `lt_250kb` | Gmail web: preview inline in the body with caption; "Photo previews included: 1 of 1 photo"; inbox |
+| Damage, 5 photos (GPS EXIF, EXIF rotation, PNG, WebP, JPEG; 1.6 MB upload) | `SUB-2026-119CDF` | `sent` · 3 / 3 · 1,087 ms · `lt_250kb`; storage `info` + download for photos 1–3 only, no signed URL | Gmail web: three inline previews in upload order, rotation applied (portrait 320 × 481); "3 of 5 photos". Raw source: `multipart/related` with three `image/jpeg` parts named `incident-photo-N.jpg`, `Content-ID <mm-preview-N@mulemark>`, `Content-Disposition: inline`; HTML references `cid:` only; delivered after 1 s; SPF / DKIM / DMARC pass |
+| Damage, 1 corrupt + 2 good | `SUB-2026-DE44BE` | `sent` · requested 3 · attached 2 · `decode_failed` · 1,503 ms | Partial success |
+| Damage, all corrupt | `SUB-2026-D56B0F` | `sent` · requested 2 · attached 0 · `decode_failed` · `none` | Text-only email still delivered (M4) |
+| Organization switch off | `SUB-2026-F6F290` | `sent` · requested 0 · attached 0 | Text-only, no preview line (M5) |
+| Immediate report, urgent = main address | `SUB-2026-D9688E` | one send, `main_and_urgent` · 1 / 1 · 698 ms | De-duplicated |
+| Immediate report, urgent = Resend sandbox | `SUB-2026-169EC3` | two sends (`main` support inbox, `urgent` resend.dev), both 1 / 1, one 645 ms build | Same preview set on both routes |
+| Renter return with damage (damage slot + condition slot) | `SUB-2026-9F4D6A` | `sent` · 2 / 2 · 829 ms | M1 (two slots) |
+| Clean renter return | `SUB-2026-C62AB9` | `sent` · requested 0 | Photo count only, no preview |
+
+- **Response path:** `perf:action:production` (tiny image, 3 samples, QA organization without a recipient) — POST
+  median 766 ms (p75 / max 1,217 ms, the cold first sample), click → confirmation median 1,118 ms, against the C6 single
+  observation of 704 ms / 834–949 ms. Preview work runs only inside `after()` (source-scan test); on
+  `SUB-2026-169EC3` the response finished in 912 ms and `notify.media` ran afterwards. Function memory 294–325 MB.
+- **Metadata:** EXIF/GPS/ICC absence in preview bytes is asserted by the unit tests on real Sharp output, including
+  a GPS-tagged original through the full builder; Gmail's raw view elides attachment bodies, so the delivered bytes
+  were not re-read here.
+- **Found, pre-existing, not D4:** a public damage report with five ~1–2 MB photos never reached the server action (no
+  rate-limit line, no function invocation), consistent with Vercel's 4.5 MB function request-body limit while the
+  forms advertise 5 × 10 MB. Recorded as a separate follow-up; the five-photo scenario was re-run within 4.5 MB.
+  **Resolved by `30f4d7a`:** photos now upload browser → storage through signed upload URLs and are verified before
+  insert, and migration 0037 closes the anon storage insert policy (see `docs/MIGRATION_LEDGER.md`).
+- **Not run live:** M3 (10 MB original; the input cap is unit-tested), M6 (provider failure; unit-tested).
+- **Operator clients (passed, operator-checked 2026-09-11):** Gmail mobile, Outlook web / desktop (inline vs
+  attachment), images blocked (alt text), dark mode, reply, forward, and the return email's preview order
+  (`SUB-2026-9F4D6A`: first preview "Return damage slot", second "Return other slot"). D4 live QA is complete.
+
 ---
 
 ## 16. Locked operator decisions

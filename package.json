@@ -29,6 +29,7 @@
     "verify:linked-project": "node scripts/check-linked-project.mjs",
     "staging:seed": "node scripts/staging/seed-staging-qa.mjs",
     "production:qa-recipient": "node --env-file=.env.local scripts/production/qa-notification-recipient.mjs",
+    "production:qa-previews": "node --env-file=.env.local scripts/production/qa-preview-run.mjs",
     "production:seed-qa": "node --env-file=.env.local --env-file-if-exists=.env.production-perf.local scripts/production/seed-production-qa.mjs",
     "staging:verify": "node --env-file=.env.staging.local scripts/staging/verify-staging-workflows.mjs",
     "staging:verify-revalidation": "node --env-file=.env.staging.local scripts/staging/verify-revalidation.mjs",
