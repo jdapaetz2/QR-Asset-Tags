@@ -540,6 +540,7 @@ reported equipment state or response need.
 | **D3A** — routing/settings migration, independent urgent route, return modes, photo-preview switch, log schema, tag-status correctness | migration 0034 | ✅ built |
 | **D3B** — daily return-exceptions summary, secured schedule, missed-run catch-up, quiet-day behaviour | migration 0036 (0035 went to the tag-request internal-column fix), first scheduled job | ✅ built |
 | **D4** — up to three bounded inline photo previews, metadata-stripped, text-only fallback | direct `sharp` 0.34.5 dependency (no migration) | ✅ built |
+| **D4.1** — broad consumer photo inputs (HEIC/HEIF/AVIF/GIF/large photos converted on the device, identified by bytes), private HEIC document originals, correct no-JS return fallback, document/asset delete integrity, hardened abandoned-upload report | migration 0039, `libheif-js` 1.23.2 (vendored, LGPL) | ✅ built — see `docs/STORAGE_MEDIA_LIFECYCLE.md` |
 | **D5** — live QA and Engineering Phase D closeout | operator | not started |
 
 **All operator decisions are locked** (design doc §16): priority subject prefixes, tap-to-call and tap-to-email

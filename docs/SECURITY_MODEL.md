@@ -67,6 +67,14 @@ Public users submit forms with the asset prefilled and not editable; the server 
   objects that fail verification and, after the row commits, any unclaimed extras (`lib/forms/media-verify.ts`).
   Staff flows mint with their own RLS client, so the org upload policy still applies. Without JavaScript the form
   posts small photos (under 4 MB in total) through the server action.
+- Are identified by their **bytes**, never the extension or declared type (Engineering Phase D4.1). The browser
+  converts HEIC/AVIF/GIF and oversized photos to JPEG before upload, but that is convenience only: the server verifies
+  every stored photo, cover and logo as JPEG/PNG/WebP by leading bytes with a readable frame size (≤ 40 MP,
+  ≤ 16,384 px per side, read from up to 1 MB) and refuses a claimed object uploaded more than 24 hours earlier.
+  No-JavaScript and logo uploads get the same byte check before anything is stored. The HEIC decoder (libheif-js,
+  LGPL-3.0) runs only in the user's own browser worker on their own file and is never loaded by the scan page. Private
+  hosted documents may hold HEIC/HEIF/AVIF originals (migration 0039); `submissions` and `public-assets` still accept
+  only JPEG/PNG/WebP. Deleting a document removes its row before its file; deleting an asset removes its managed cover.
 - Are stored in organization-scoped storage paths (e.g. `org/{organization_id}/...`).
 - Are not publicly listable; public users can upload through forms only and cannot enumerate or read other files.
 - Admin users can view uploads only for their own organization.

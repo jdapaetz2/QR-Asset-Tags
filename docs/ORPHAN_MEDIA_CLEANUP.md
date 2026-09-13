@@ -78,6 +78,17 @@ Flags: `--older-than-hours=N` (≥ 48 hosted), `--max-delete=N` (1–200), `--ve
 - **for review** — never deleted. Extra objects under a recorded submission, or document rows whose file is missing,
   point at a failed in-request cleanup or a manual storage change; look at them with `--verbose` before acting.
 
+## D4.1 reports (no deletion)
+
+- **Staging, 2026-09-12** (after the D4.1 QA runs): 31 objects scanned, **0 candidates**, 31 referenced; for review:
+  2 document rows without a file — the seeded "Staging QA operator manual (public)" and "Staging QA internal notes
+  (private)" rows from the 2026-08-19 staging seed, which never had files. Not a D4.1 defect.
+- **Production, 2026-09-12:** 111 objects scanned, **11 candidates (5.5 MB), all submission photos** of the
+  Northridge Rentals demo organization with no `form_submissions` row and older than 48 hours; 100 referenced; nothing
+  for review. **Not deleted** — removing them is a separate operator decision
+  (`--delete --confirm=production:<count> --acknowledge-production-deletion` after a fresh report). A transient failed
+  Production QA upload on 2026-09-13 may add objects that appear once they are 48 hours old.
+
 ## Local smoke test
 
 Against the local stack (`npx supabase start`), with the local URL and service-role key exported and

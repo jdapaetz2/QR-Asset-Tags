@@ -204,6 +204,31 @@ then goes inert with no further change.
 Public-intake abuse controls emit `[rate-limit]` logs; the limiter fails open on infra error so it never
 blocks a real renter. Orphaned-media cleanup is [`ORPHAN_MEDIA_CLEANUP.md`](ORPHAN_MEDIA_CLEANUP.md).
 
+## Photo uploads and storage hygiene (Engineering Phase D4.1)
+
+Formats, limits and the full decision table: [`STORAGE_MEDIA_LIFECYCLE.md`](STORAGE_MEDIA_LIFECYCLE.md) →
+"Consumer photo formats".
+
+- **"This photo couldn't be prepared…" under a photo field.** The file was identified by its bytes as something the
+  device could not turn into a photo (RAW, SVG, PDF, TIFF outside Safari, a damaged file). The rest of the form and
+  the other photos are kept. Ask the renter to take the photo again or share it as a standard photo (JPEG).
+- **HEIC photos fail on Chrome/Edge but work in Safari.** The on-demand decoder may be missing: check that
+  `/vendor/libheif/libheif.wasm` and `/vendor/libheif/libheif.js` return 200 on the deployment. They are copied at
+  build time by `scripts/vendor-libheif.mjs` (`prebuild`); a build that skipped the npm hook will not have them.
+- **"One of the photos couldn't be verified."** The server refused a claimed object: wrong type, bytes, frame size
+  (over 40 MP or 16,384 px), more than 10 MB, or uploaded more than 24 hours earlier. A content failure deletes the
+  object; a stale one is kept for the cleanup report.
+- **Log events** (never carry a storage path): `document_object_orphaned` and `asset_cover_orphaned` — a delete
+  succeeded but its file could not be removed; the abandoned-upload report will list it.
+- **Abandoned uploads.** `npm run cleanup:orphans:staging` / `npm run cleanup:orphans:production` print counts and
+  bytes by kind and organization and delete nothing. Deleting is a separate, approved step
+  (`--delete --confirm=<target>:<count>`, plus `--acknowledge-production-deletion` on Production) and is never
+  scheduled. Procedure: [`ORPHAN_MEDIA_CLEANUP.md`](ORPHAN_MEDIA_CLEANUP.md).
+- **After a dependency or build change:** `npm run build && npm run check:scan-bundle` confirms the scan page still
+  loads no photo-adapter code.
+- **Updating libheif-js:** pin the exact version, review upstream advisories, update `THIRD_PARTY_NOTICES.md` and
+  `public/vendor/libheif/NOTICE.md`, then re-run the photo-formats e2e spec and the staging `--samples` QA runs.
+
 ## Security boundaries
 
 RLS/role/storage boundaries and the executed test suite are documented in
