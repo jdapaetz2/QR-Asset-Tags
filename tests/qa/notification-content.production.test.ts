@@ -166,8 +166,9 @@ describe("Production notification content, rendered from saved QA submissions", 
     expect(brief).not.toBeNull();
     const b = brief as NotificationBrief;
     expect(b.reference).toBe(scenario.reference);
-    expect(b.priority).toBe(scenario.expect.priority);
-    if (scenario.expect.headline) expect(b.headline).toBe(scenario.expect.headline);
+    const context = `photos ${b.photos.count}; notes: ${b.returnDetail?.notes.join(" | ") || "none"}`;
+    expect(b.priority, context).toBe(scenario.expect.priority);
+    if (scenario.expect.headline) expect(b.headline, context).toBe(scenario.expect.headline);
 
     // Routing and preview request, from the settings in force when it was submitted.
     const settings = readNotificationSettings(dealias(scenario.settings));

@@ -306,10 +306,25 @@ const SCENARIOS = [
   // ---- Returns --------------------------------------------------------------
   { id: "staff-outbound-setup", kind: "staff-outbound", expect: {} },
   {
+    // As built: every visible empty photo slot, including the optional Additional photos, is stored in
+    // `missing_recommended_photo_slots`, which the design maps to Routine review (design §5.3).
     id: "return-clean-instant",
     kind: "return",
     damage: false,
     photos: async () => ({ eachCondition: conditionPhoto }),
+    expect: {
+      priority: "routine",
+      headline: "renter return checklist, review when convenient",
+      routes: ["main"],
+      previewsRequested: 0,
+      digest: false,
+    },
+  },
+  {
+    id: "return-clean-all-photos",
+    kind: "return",
+    damage: false,
+    photos: async () => ({ eachCondition: conditionPhoto, additional: [await photo({ label: "Additional photo", hue: 300 })] }),
     expect: { priority: "record", headline: "renter return checklist, no exceptions", routes: ["main"], previewsRequested: 0, digest: false },
   },
   {
@@ -334,7 +349,13 @@ const SCENARIOS = [
     damage: false,
     settings: DAILY,
     photos: async () => ({ eachCondition: conditionPhoto }),
-    expect: { priority: "record", headline: "renter return checklist, no exceptions", routes: [], previewsRequested: 0, digest: false },
+    expect: {
+      priority: "routine",
+      headline: "renter return checklist, review when convenient",
+      routes: [],
+      previewsRequested: 0,
+      digest: false,
+    },
   },
   {
     id: "return-damage-daily",
@@ -384,7 +405,7 @@ const SCENARIOS = [
     id: "return-missing-accessory",
     kind: "return",
     damage: false,
-    accessories: { Straps: "Missing" },
+    accessories: { straps: "missing" },
     expect: {
       priority: "follow_up",
       headline: "renter return checklist, 1 exception",
@@ -916,6 +937,12 @@ try {
     } catch (err) {
       row.status = "failed";
       row.note = errorLine(err);
+      // QA forms only — no secret, address or storage path is on these pages. Kept in the gitignored artifact folder.
+      const shot = page ?? staffPage;
+      if (shot) {
+        const file = `${ARTIFACT_DIR}/notification-qa-failure-${scenario.id}.png`;
+        await shot.screenshot({ path: file, fullPage: true }).then(() => (row.screenshot = file), () => {});
+      }
     } finally {
       if (page) await page.close();
     }

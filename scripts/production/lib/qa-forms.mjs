@@ -256,25 +256,43 @@ export async function submitSupport(page, { description, name, email, phone = nu
 /**
  * Answer the guided inspection's Condition stage: every visible choice group gets its first option (Pass / Yes /
  * Returned), the damage question is set explicitly, then `answers` override individual fields by id
- * (`{ tires_wheels: "Fail" }`) and `accessories` mark items (`{ Straps: "Missing" }`).
+ * (`{ tires_wheels: "Fail" }`). Accessory items are marked separately by `applyAccessories`, on whichever stage
+ * shows them.
  */
-export async function answerConditionStage(page, { damage, answers = {}, accessories = {} }) {
+export async function answerConditionStage(page, { damage, answers = {} }) {
   const groups = page.locator('fieldset[id^="field-"]:visible');
   await groups.first().waitFor({ state: "visible", timeout: 30_000 });
   const count = await groups.count();
   for (let i = 0; i < count; i++) {
     const group = groups.nth(i);
     const id = (await group.getAttribute("id")) ?? "";
-    if (/damage/.test(id)) await group.getByText(damage ? "Yes" : "No", { exact: true }).click();
-    else await group.locator("label").first().click();
+    // A click that lands before hydration is lost silently; confirm a choice registered and retry.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (/damage/.test(id)) await group.getByText(damage ? "Yes" : "No", { exact: true }).click();
+      else await group.locator("label").first().click();
+      const radios = await group.locator('input[type="radio"]').count();
+      if (radios === 0 || (await group.locator('input[type="radio"]:checked').count()) > 0) break;
+      await sleep(1_000);
+    }
   }
   for (const [fieldId, label] of Object.entries(answers)) {
     await page.locator(`#field-${fieldId}`).getByText(label, { exact: true }).click();
   }
-  for (const [item, label] of Object.entries(accessories)) {
-    const row = page.locator('fieldset[id="field-accessories"] fieldset').filter({ has: page.getByText(item, { exact: true }) });
-    await row.getByText(label, { exact: true }).click();
+}
+
+/**
+ * Mark accessory items by item id and stored value (`{ straps: "missing" }`) when the accessories field is on screen.
+ * Returns the ids still to mark, so callers can retry on the next stage.
+ */
+export async function applyAccessories(page, pending) {
+  const remaining = { ...pending };
+  if (Object.keys(remaining).length === 0) return remaining;
+  if (!(await page.locator("#field-accessories").isVisible().catch(() => false))) return remaining;
+  for (const [item, value] of Object.entries(remaining)) {
+    await page.locator(`label:has(input[name="ui:answer:accessories:${item}"][value="${value}"])`).click();
+    delete remaining[item];
   }
+  return remaining;
 }
 
 /** The file inputs currently rendered for photo slots. */
@@ -290,6 +308,7 @@ function photoFiller(page, photos) {
   const state = {
     damageSet: (photos.damage ?? []).length === 0,
     otherSet: (photos.other ?? []).length === 0,
+    additionalSet: (photos.additional ?? []).length === 0,
     filled: new Set(),
   };
   const fill = async () => {
@@ -297,6 +316,10 @@ function photoFiller(page, photos) {
     if (!state.damageSet && names.includes("photo:damage_photos")) {
       await page.locator('input[name="photo:damage_photos"]').setInputFiles(photos.damage);
       state.damageSet = true;
+    }
+    if (!state.additionalSet && names.includes("photo:additional_photos")) {
+      await page.locator('input[name="photo:additional_photos"]').setInputFiles(photos.additional);
+      state.additionalSet = true;
     }
     const condition = names.filter((name) => name !== "photo:damage_photos" && name !== "photo:additional_photos");
     if (!state.otherSet && condition.length > 0) {
@@ -341,15 +364,19 @@ export async function submitReturn(page, { id, damage, answers = {}, accessories
   if (!hasChecklist) return { notRun: "the QA tag has no guided return checklist" };
 
   const filler = photoFiller(page, photos);
-  await answerConditionStage(page, { damage, answers, accessories });
+  await answerConditionStage(page, { damage, answers });
+  let pendingAccessories = await applyAccessories(page, accessories);
   await filler.fill();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByText(/Step 2 of 3/).first().waitFor({ timeout: 30_000 });
 
   if (damage) await fillDamageDetails(page, id);
+  pendingAccessories = await applyAccessories(page, pendingAccessories);
   await filler.fill();
+  if (Object.keys(pendingAccessories).length > 0) return { notRun: "the accessories question never appeared" };
   if (!filler.state.damageSet) return { notRun: "no damage photo slot appeared on the QA template" };
   if (!filler.state.otherSet) return { notRun: "no condition photo slot on the QA template" };
+  if (!filler.state.additionalSet) return { notRun: "no additional photos slot on the QA template" };
 
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Review return checklist" }).click();
@@ -460,9 +487,13 @@ export async function submitStaffReturn(page, { id, damage, answers = {}, access
     .waitFor({ state: "visible", timeout: 30_000 })
     .then(() => true, () => false);
   if (!onForm) return { notRun: "the QA asset has no active rental session to return" };
-  await answerConditionStage(page, { damage, answers, accessories });
+  await page.getByText(/Step 1 of 3/).first().waitFor({ state: "visible", timeout: 30_000 });
+  await answerConditionStage(page, { damage, answers });
+  let pendingAccessories = await applyAccessories(page, accessories);
   await page.getByRole("button", { name: "Continue" }).click();
   if (damage) await fillDamageDetails(page, id);
+  pendingAccessories = await applyAccessories(page, pendingAccessories);
+  if (Object.keys(pendingAccessories).length > 0) return { notRun: "the accessories question never appeared" };
   await page.getByRole("button", { name: "Review return checklist" }).click();
   const clickedAt = Date.now();
   await page.getByRole("button", { name: "Complete return checklist" }).click();
