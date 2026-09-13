@@ -57,6 +57,8 @@ const TARGET = (args.find((a) => a.startsWith("--target=")) ?? "").slice("--targ
 const CONFIRMED = args.includes("--confirm");
 const AFTER_0037 = args.includes("--after-0037");
 const SAMPLES = (args.find((a) => a.startsWith("--samples=")) ?? "").slice("--samples=".length);
+/** --only=formats-damage,return runs just those scenarios (the bucket and anon-upload checks always run). */
+const ONLY = (args.find((a) => a.startsWith("--only=")) ?? "").slice("--only=".length).split(",").filter(Boolean);
 const SAMPLE_FILES = {
   heic: ["example.heic", "image/heic"],
   avif: ["paris_icc_exif_xmp.avif", "image/avif"],
@@ -216,6 +218,17 @@ async function openPage(path) {
     await context.route(`${BASE}/**`, (route) => route.continue({ headers: { ...route.request().headers(), ...bypass } }));
   }
   const page = await context.newPage();
+  // For a failed run: method, host and status of refused or failed requests — never the URL, since signed upload URLs
+  // are credentials and paths identify private objects.
+  page.failedRequests = [];
+  page.on("response", (response) => {
+    if (response.status() >= 400) {
+      page.failedRequests.push(`${response.request().method()} ${new URL(response.url()).host} ${response.status()}`);
+    }
+  });
+  page.on("requestfailed", (request) => {
+    page.failedRequests.push(`${request.method()} ${new URL(request.url()).host} ${request.failure()?.errorText ?? "failed"}`);
+  });
   await page.goto(`${BASE}${path}`, { waitUntil: "load", timeout: 60_000 });
   // Photos must go through the hydrated form (direct upload), not a pre-hydration native post.
   await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
@@ -229,7 +242,12 @@ async function awaitConfirmation(area, page, pattern, clickedAt) {
   );
   if (!reached) {
     const alert = await page.getByRole("alert").first().textContent({ timeout: 1_000 }).catch(() => null);
-    run.fail(area, "confirmation page reached", alert ? `form says: ${alert.slice(0, 140)}` : "no confirmation in time");
+    const requests = page.failedRequests?.length ? `; requests: ${page.failedRequests.slice(-5).join(", ")}` : "";
+    run.fail(
+      area,
+      "confirmation page reached",
+      `${alert ? `form says: ${alert.slice(0, 140)}` : "no confirmation in time"}${requests}`
+    );
     await run.capture(page, area);
     return false;
   }
@@ -510,17 +528,19 @@ async function formatsReturnScenario() {
   }
 }
 
+const SCENARIOS = [
+  ["damage", damageScenario],
+  ["return", returnScenario],
+  ...(SAMPLES
+    ? [
+        ["formats-damage", formatsDamageScenario],
+        ["formats-return", formatsReturnScenario],
+      ]
+    : []),
+].filter(([area]) => ONLY.length === 0 || ONLY.includes(area));
+
 try {
-  for (const [area, scenario] of [
-    ["damage", damageScenario],
-    ["return", returnScenario],
-    ...(SAMPLES
-      ? [
-          ["formats-damage", formatsDamageScenario],
-          ["formats-return", formatsReturnScenario],
-        ]
-      : []),
-  ]) {
+  for (const [area, scenario] of SCENARIOS) {
     try {
       await scenario();
     } catch (err) {
