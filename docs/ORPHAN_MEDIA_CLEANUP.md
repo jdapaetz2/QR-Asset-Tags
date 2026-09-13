@@ -85,9 +85,13 @@ Flags: `--older-than-hours=N` (≥ 48 hosted), `--max-delete=N` (1–200), `--ve
   (private)" rows from the 2026-08-19 staging seed, which never had files. Not a D4.1 defect.
 - **Production, 2026-09-12:** 111 objects scanned, **11 candidates (5.5 MB), all submission photos** of the
   Northridge Rentals demo organization with no `form_submissions` row and older than 48 hours; 100 referenced; nothing
-  for review. **Not deleted** — removing them is a separate operator decision
-  (`--delete --confirm=production:<count> --acknowledge-production-deletion` after a fresh report). A transient failed
-  Production QA upload on 2026-09-13 may add objects that appear once they are 48 hours old.
+  for review.
+- **Production deletion, 2026-09-13 (operator-approved; "they are all trial/test photos"):** a fresh report showed the
+  same 11 candidates (123 objects scanned, 112 referenced, nothing newer than 48 hours or outside the managed paths —
+  the transient failed QA upload left no objects). `npm run cleanup:orphans:production -- --delete
+  --confirm=production:11 --acknowledge-production-deletion` removed **11 of 11 (5.5 MB)**, each re-checked just
+  before removal, 0 skipped, 0 failed. A follow-up report: 112 objects, **0 candidates**, 112 referenced, nothing for
+  review.
 
 ## Local smoke test
 
