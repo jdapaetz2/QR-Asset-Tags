@@ -1480,14 +1480,14 @@ email builders: 25/27, 3/3 and 2/2 — the two failures are the as-built clean-r
 | E9 | PASS | `daily_exceptions` (`SUB-2026-1ACF71`, `SUB-2026-914E29`) and `off` (`SUB-2026-847999`) → `skipped_disabled`, no send |
 | E10 | PASS | staff return with a failed check `SUB-2026-3D75E6` → no `[notifications]` line (projection refuses staff rows); listed in the next summary |
 | E11 | PASS | staff outbound → no log line |
-| E12 | PARTIAL (operator) | QA tag request `1943f10f-1243-4c4c-a5eb-081c2294ee8c` saved to `delivered` 2026-09-14 16:08:48 UTC, `delivered_at` stamped by that save. The emails produced and the same-status / notes-only saves were not reported, and no later save is recorded; unit-tested (`owner-actions.test.ts`, `status-transition.test.ts`) |
+| E12 | PASS (operator, 2026-09-14) | QA tag request `1943f10f-1243-4c4c-a5eb-081c2294ee8c`: the saves to In review and to Delivered each produced one "Tag request updated" email; saving notes without a status change sent nothing; `delivered_at` stamped only by the Delivered save (16:08:48 UTC) |
 | E13 | PASS | staging smoke 2026-09-13: `SUB-2026-CEE146`, `SUB-2026-675C7A` → `dry_run`, `reason: preview_environment`, attempts 0 |
 
 **Urgent routing**
 
 | ID | Result | Evidence |
 |---|---|---|
-| R1 | PARTIAL | `SUB-2026-0D7A41`: urgent send to `resend.dev` `sent` with a provider id. The request carries 7 log lines (5 for a single route), but the dashboard list shows one line per request, so the main-route line was not individually viewed, and the support-inbox copy was not reported |
+| R1 | PASS | `SUB-2026-0D7A41`: urgent send to `resend.dev` `sent` with a provider id (Vercel log); the main-route copy arrived in the support inbox (operator, Gmail, 2026-09-14) |
 | R2 | PASS | `SUB-2026-E1F855`: damage switch off, urgent on → one send, route `urgent` |
 | R3 | PASS | Immediate reports with the urgent switch off (`SUB-2026-3A7221`, `E714E1`, `A8B1B0`, `2840F5`) → `main` only |
 | R4 | PASS | `SUB-2026-5CA8BA` → one send, `main_and_urgent` |
@@ -1499,7 +1499,7 @@ email builders: 25/27, 3/3 and 2/2 — the two failures are the as-built clean-r
 
 | ID | Result | Evidence |
 |---|---|---|
-| S1 | PASS | window 2026-09-12 13:00 → 2026-09-13 13:00 UTC: QA organization `sent`, 7 items (renter and staff exceptions), provider id recorded, completed 13:07:04 UTC (6:07 AM PDT). Ordering, statuses, counts and links verified on staging; the delivered summary's content was not reported |
+| S1 | PASS | window 2026-09-12 13:00 → 2026-09-13 13:00 UTC: QA organization `sent`, 7 items (renter and staff exceptions), provider id recorded, completed 13:07:04 UTC (6:07 AM PDT). Ordering, statuses, counts and links verified on staging. The delivered email was checked in Gmail by the operator (2026-09-14): subject, first line, covered period, the seven items in the expected order with current statuses, photo counts, links, no images |
 | S2 | PASS (staging) | `instant_renter` → staff exceptions only (`digest:staging-check`). Live: Northridge demo organization in `instant_renter` → `skipped_quiet` 2026-09-12/13/14 |
 | S3 | PASS | QA organization `off` before and after D5 → no ledger row; staging `off` excluded |
 | S4 | PASS | 2026-09-14 window: QA organization and Northridge `skipped_quiet`, no email |
@@ -1513,7 +1513,7 @@ email builders: 25/27, 3/3 and 2/2 — the two failures are the as-built clean-r
 
 | ID | Result | Evidence |
 |---|---|---|
-| C1 | D4 evidence only | Gmail web 2026-09-11 (§15.6); the Gmail review of the D5 set was not reported |
+| C1 | PASS (operator, 2026-09-14) | Gmail web, support inbox: the summary, tag and routing emails in the Inbox; headers `spf=pass`, `dkim=pass` (`d=notify.mulemark.io`), `dmarc=pass`; record links unwrapped and no tracking image in the raw body (sample `SUB-2026-657935`) |
 | C2 | D4 evidence only | operator 2026-09-11 |
 | C3 / C4 | PASS (operator, 2026-09-14) | direct delivery to an Outlook/Hotmail mailbox: delivered; CID preview inline, not a detached attachment; complete text; record link; no storage path or signed URL. Desktop vs web client not recorded |
 | C5 | not run | — |
@@ -1544,7 +1544,8 @@ email builders: 25/27, 3/3 and 2/2 — the two failures are the as-built clean-r
    comes from the reported equipment state (for example unsafe to operate) while the submitter chose a lower
    response need (for example "Please follow up soon") reads as contradictory, although the rule is correct. D5.1
    must display why the report was escalated — the winning condition — clearly, and must never state or imply that
-   the submitter requested immediate help. No priority-rule change is implied.
+   the submitter requested immediate help. No priority-rule change is implied. A wording candidate for the same
+   slice: the summary line "Does not start or operate: Starts / operates?" repeats the template's question label.
 2. **Clean renter returns without Additional photos are Routine (as built, design-conformant).** §5.3 maps any
    non-empty `missing_recommended_photo_slots` to Routine review, and the renter submit stores every visible empty
    photo slot there, including the optional Additional photos (`lib/inspections/submit.ts:229-235`). A clean

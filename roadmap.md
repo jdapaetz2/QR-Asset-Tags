@@ -560,11 +560,11 @@ the same slice.
 |---|---|---|
 | 1 | Notification content usefulness | **CONDITIONAL GO** — D5.1 escalation reason |
 | 2 | Deterministic triage | **GO** |
-| 3 | Urgent routing | **CONDITIONAL GO** — two-address main line not individually viewed; failure isolation unit-tested only |
+| 3 | Urgent routing | **GO** |
 | 4 | Return notification and noise | **CONDITIONAL GO** — clean returns without Additional photos are Routine (as built) |
 | 5 | Daily summary reliability | **GO** |
 | 6 | Photo-preview privacy | **GO** |
-| 7 | Delivery and client rendering | **CONDITIONAL GO** — replay, provider failure, cold placement, Gmail review of the D5 set |
+| 7 | Delivery and client rendering | **CONDITIONAL GO** — live replay, provider failure, first-contact placement |
 | 8 | Limited-pilot readiness (notifications) | **CONDITIONAL GO** |
 
 ## Next recommended workstream

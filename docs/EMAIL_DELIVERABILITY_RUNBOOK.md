@@ -10,8 +10,10 @@ any provider, and never will be claimed.
 > (`sent` on `main`, `urgent` or `main_and_urgent`; `skipped_disabled` where routing sends nothing); inline previews
 > 2 of 2 attached; the first data-bearing daily summary `sent` with 7 items; quiet mornings `skipped_quiet`; Preview
 > `dry_run` observed again. A **direct Outlook/Hotmail delivery was operator-verified on 2026-09-14** (inline CID
-> preview, dark mode, record link, complete text, no storage path or signed URL). Still open: live replay (row 8),
-> live provider failure (row 7), cold-mailbox placement, and the Gmail review of the D5 set, which was not reported.
+> preview, dark mode, record link, complete text, no storage path or signed URL). The same day the operator
+> checked the support inbox in Gmail: the summary, tag and routing emails were in the Inbox, with `spf=pass`,
+> `dkim=pass` and `dmarc=pass`. Still open: live replay (row 8), live provider failure (row 7) and first-contact
+> placement.
 > Evidence: [`PHASE_D_NOTIFICATION_READINESS.md`](PHASE_D_NOTIFICATION_READINESS.md), design §15.7.
 
 ### Verified live on Production
@@ -92,7 +94,7 @@ The disabled-notification path is no longer on this list: D5 observed `skipped_d
 | Sending domain | `notify.mulemark.io` — transactional only |
 | API key | sending-only, restricted to `notify.mulemark.io` — **operator-confirmed**. The value appears nowhere outside Vercel Production and the Resend dashboard. |
 | Provider | Resend REST API (`POST https://api.resend.com/emails`), no SDK |
-| Tracking | open/click tracking should be **off** — a provider-side setting the app cannot assert and this document will not guess at. **Status in the Resend dashboard is unrecorded; check and record the actual value.** The app itself sends no pixel and no wrapped link. |
+| Tracking | open/click tracking should be **off** — a provider-side setting the app cannot assert and this document will not guess at. **Status in the Resend dashboard is unrecorded; check and record the actual value.** (2026-09-14: a delivered raw message carried unwrapped `mulemark.io` links and no tracking image, so neither was applied to that message.) The app itself sends no pixel and no wrapped link. |
 
 ## Behaviour by environment
 
