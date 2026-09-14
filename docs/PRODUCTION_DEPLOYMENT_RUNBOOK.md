@@ -14,7 +14,7 @@ secrets, or changes DNS automatically.
 1. `git fetch && git status` — confirm the intended **branch + commit** and a clean tree.
 2. `nvm use` (Node 22).
 3. `npm ci`.
-4. `npm run verify:production-config` — static config check (var names, migrations 0001–0031 present, Node version,
+4. `npm run verify:production-config` — static config check (var names, migrations 0001–0039 contiguous, Node version,
    server-only boundaries). Must be green.
 5. `npm run lint && npm run typecheck && npm test && npm run build` — all must pass.
 
@@ -43,7 +43,7 @@ set it manually.
 
 ## 3. Supabase project link + migration verification (read-only; approval-gated)
 1. Confirm the Supabase CLI is linked to the **target** project (`npx supabase projects list` / `supabase link`).
-2. `npx supabase migration list` — Local and Remote must both list 0001–0031 with no unmatched versions.
+2. `npx supabase migration list` — Local and Remote must both list 0001–0039 with no unmatched versions.
 3. `npx supabase db push --dry-run` — expect **"Remote database is up to date."**
 4. **If anything is pending:** stop. Show the dry-run output, identify the affected workflows (see the ledger), and get
    **explicit operator approval before** running `npx supabase db push`. Never edit an applied migration — fix forward
@@ -53,7 +53,8 @@ set it manually.
    the linked project (`npx supabase db dump` for schema, plus `--data-only` for rows) and store it **outside the
    repository** — it contains customer data. A database dump does **not** include Storage objects (photos, documents).
 
-Current state (Phase A2): 0001–0031 are **operator-verified applied**; no push is required.
+Current state (2026-09-13): 0001–0039 are **operator-verified applied** on staging and Production
+(`docs/MIGRATION_LEDGER.md`); no push is required.
 
 ## 4. Deploy (Vercel)
 - **A push does not deploy Production.** The Vercel Production branch is `main`; pushing a working branch such as

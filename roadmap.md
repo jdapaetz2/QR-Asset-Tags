@@ -514,7 +514,7 @@ that is the business roadmap and is untouched by this work.
 database backups** — recommended to fix (Supabase Pro) before a pilot holds real customer data; operator
 decision, not taken.
 
-## Engineering Phase D (actionable notifications) — **D0.1 DECISIONS LOCKED (2026-09-10)**
+## Engineering Phase D (actionable notifications) — **CLOSED (D5, 2026-09-14)**
 
 Audit, design and phased implementation plan:
 [`docs/ACTIONABLE_NOTIFICATION_DESIGN.md`](docs/ACTIONABLE_NOTIFICATION_DESIGN.md).
@@ -541,7 +541,8 @@ reported equipment state or response need.
 | **D3B** — daily return-exceptions summary, secured schedule, missed-run catch-up, quiet-day behaviour | migration 0036 (0035 went to the tag-request internal-column fix), first scheduled job | ✅ built |
 | **D4** — up to three bounded inline photo previews, metadata-stripped, text-only fallback | direct `sharp` 0.34.5 dependency (no migration) | ✅ built |
 | **D4.1** — broad consumer photo inputs (HEIC/HEIF/AVIF/GIF/large photos converted on the device, identified by bytes), private HEIC document originals, correct no-JS return fallback, document/asset delete integrity, hardened abandoned-upload report | migration 0039, `libheif-js` 1.23.2 (vendored, LGPL) | ✅ built — see `docs/STORAGE_MEDIA_LIFECYCLE.md` |
-| **D5** — live QA and Engineering Phase D closeout | operator | not started |
+| **D5** — live QA and Engineering Phase D closeout | QA tooling only — no migration, no application change | ✅ closed 2026-09-14 — [`docs/PHASE_D_NOTIFICATION_READINESS.md`](docs/PHASE_D_NOTIFICATION_READINESS.md) |
+| **D5.1** — show why a report was escalated (the winning condition) without implying the submitter asked for immediate help | operator requirement recorded 2026-09-14 (design §15.8) | not started |
 
 **All operator decisions are locked** (design doc §16): priority subject prefixes, tap-to-call and tap-to-email
 contact links, optional unselected triage questions (renter damage severity displayed but never raising
@@ -553,7 +554,24 @@ operational hold / out-of-service workflow — newly triggered by the incident e
 phase (`docs/ROADMAP_DEFERRED.md` #3). `docs/ROADMAP_DEFERRED.md` was reconciled against the product in
 the same slice.
 
+**D5 verdicts (2026-09-14)** — evidence in `docs/PHASE_D_NOTIFICATION_READINESS.md`:
+
+| # | Verdict | Result |
+|---|---|---|
+| 1 | Notification content usefulness | **CONDITIONAL GO** — D5.1 escalation reason |
+| 2 | Deterministic triage | **GO** |
+| 3 | Urgent routing | **CONDITIONAL GO** — two-address main line not individually viewed; failure isolation unit-tested only |
+| 4 | Return notification and noise | **CONDITIONAL GO** — clean returns without Additional photos are Routine (as built) |
+| 5 | Daily summary reliability | **GO** |
+| 6 | Photo-preview privacy | **GO** |
+| 7 | Delivery and client rendering | **CONDITIONAL GO** — replay, provider failure, cold placement, Gmail review of the D5 set |
+| 8 | Limited-pilot readiness (notifications) | **CONDITIONAL GO** |
+
 ## Next recommended workstream
+
+**Updated 2026-09-14:** Engineering Phase D is closed. The next engineering step is the small **D5.1** slice
+(escalation-reason display), then an operator decision on the **operational hold** phase candidate
+(`docs/ROADMAP_DEFERRED.md` #3). Neither is started automatically. The pilot-onboarding recommendation below stands.
 
 **Updated 2026-09-10:** the operator started Engineering Phase D (actionable notifications) ahead of pilot
 onboarding. It does not change the recommendation below; it sharpens the part of a pilot a customer feels

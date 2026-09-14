@@ -5,6 +5,15 @@ verified end-to-end.** Production sends real, authenticated email; staging sends
 observed rather than inferred. Two gaps remain, both named below. Inbox placement is not guaranteed for
 any provider, and never will be claimed.
 
+> **Engineering Phase D5 (2026-09-13/14).** The actionable notification set was exercised live on the Production QA
+> organization: 18 damage and support reports and 10 renter returns, each with the expected route and outcome
+> (`sent` on `main`, `urgent` or `main_and_urgent`; `skipped_disabled` where routing sends nothing); inline previews
+> 2 of 2 attached; the first data-bearing daily summary `sent` with 7 items; quiet mornings `skipped_quiet`; Preview
+> `dry_run` observed again. A **direct Outlook/Hotmail delivery was operator-verified on 2026-09-14** (inline CID
+> preview, dark mode, record link, complete text, no storage path or signed URL). Still open: live replay (row 8),
+> live provider failure (row 7), cold-mailbox placement, and the Gmail review of the D5 set, which was not reported.
+> Evidence: [`PHASE_D_NOTIFICATION_READINESS.md`](PHASE_D_NOTIFICATION_READINESS.md), design §15.7.
+
 ### Verified live on Production
 
 | Check | Result |
@@ -24,7 +33,7 @@ any provider, and never will be claimed.
 All four events are now covered, which matters because they are not variations of one path: the return
 checklist enters through `lib/inspections/submit.ts` rather than the damage/support forms, and the
 tag-request notification uses a different orchestrator, a different subject builder, and the only
-idempotency key that carries a status (`<id>:<status>`).
+idempotency key that carries a status (B4: `<id>:<status>`; since D3A the transition, `<id>:<from>-<to>:<saved-at ms>`).
 
 The working Reply-To also proves the deployed build carries the B4 code — `reply_to` did not exist
 before it.
@@ -68,9 +77,11 @@ summary can only ever be sent from Production.
 | Gap | Why it matters |
 |---|---|
 | **Replay** never tested in production | "exactly one email per event" is a different measurement. Our duplicate protection depends on **Resend honouring the `Idempotency-Key` header**, which we have taken from their documentation and proven only in unit tests against a mocked provider. Nothing has yet confirmed the live API accepts and dedupes on it. |
-| **Provider-failure path** never exercised live | unit-tested only |
-| **Disabled-notification path** never exercised live | unit-tested only |
+| **Provider-failure path** never exercised live | unit-tested only; D5 could not force a provider rejection without a secret-bearing call |
 | **Cold-mailbox placement** unmeasured | the Outlook mailbox carries an allow/safe-sender rule — see the Outlook section |
+| **Forwarded copies** | a Gmail-forwarded copy lost its inline preview in D5; direct delivery rendered it. Forwarding clients may drop CID images |
+
+The disabled-notification path is no longer on this list: D5 observed `skipped_disabled` live on 2026-09-13 (row 5).
 
 ## The sender
 
@@ -122,8 +133,9 @@ accepted the message we stopped waiting for, and the old code would then send it
 customer. The same key goes out on every attempt, so it cannot.
 
 - A **submission** notifies exactly once, ever — the key is its submission id.
-- A **tag request** notifies on every status *change* — the key includes the status, so
-  `requested → delivered` sends and a replay of `delivered` does not.
+- A **tag request** notifies on every real status *change* — since D3A the key is
+  `<id>:<from>-<to>:<saved-at ms>`, so a replay of one save sends nothing and a later genuine transition is a new
+  email. A same-status or notes-only save schedules nothing at all.
 - Changing an org's notification address changes the key, so a legitimate new recipient is never silently
   swallowed by the dedupe window.
 
@@ -190,10 +202,10 @@ Run against **demo/QA data only**, after the Production variables are set and th
 | 2 | Damage report | one email | ✅ **PASS** |
 | 3 | Return checklist (org flag on) | one email | ✅ **PASS** |
 | 4 | Tag-request status update | one email, subject names the organization | ✅ **PASS** |
-| 5 | Notification type disabled | `skipped_disabled`, no send | ⬜ not run |
+| 5 | Notification type disabled | `skipped_disabled`, no send | ✅ **PASS** (D5, 2026-09-13: `SUB-2026-61DC77`; returns in `daily_exceptions` / `off`) |
 | 6 | Org with no `notification_email` | `skipped_no_recipient`, no send | ✅ observed on staging |
-| 7 | Provider failure | submission still succeeds; `failed_*` logged | ⬜ **not run** |
-| 8 | Replay of the same event | **no second email** (idempotency) | ⬜ **not run** |
+| 7 | Provider failure | submission still succeeds; `failed_*` logged | ⬜ **not run** (D5: needs a forced provider rejection; unit-tested) |
+| 8 | Replay of the same event | **no second email** (idempotency) | ⬜ **not run** (D5: needs a direct provider call carrying the API key, which the D5 rules forbid) |
 | 9 | Staging submission with a recipient set | `dry_run`, `reason":"preview_environment"`, no send | ✅ **PASS** (log line captured) |
 
 **Row 8 is the one that matters most of the remaining three.** It is the only check that proves Resend
@@ -259,6 +271,13 @@ Response, in order:
    [`EMAIL_ALLOWLIST_GUIDE.md`](EMAIL_ALLOWLIST_GUIDE.md) — a fallback, not the strategy.
 
 **Inbox placement is never guaranteed, by anyone.** Report what was observed, per provider, with a date.
+
+**D5, 2026-09-14 (operator).** A Production QA notification sent directly to an Outlook/Hotmail mailbox was
+delivered; its CID photo preview rendered inline (not as a detached attachment); text and image were readable in
+dark mode; the canonical record link and the complete text explanation were present; no storage path or signed URL
+was visible. Whether that mailbox had the sender allowlisted was not recorded, so this is **not** a cold-placement
+result. An earlier missing-image result came from a Gmail-forwarded copy: a forwarding-client limitation, not a
+failure of direct delivery.
 
 ## DMARC policy
 

@@ -119,6 +119,12 @@ environment and redeploy.
     covers the missed day. Check Vercel → Project → Settings → Cron Jobs if it repeats.
   - The run ledger is `notification_digest_runs` (service role only). Never edit it by hand to "resend" — the cursor
     already guarantees the next run includes anything not successfully summarized.
+  - **Morning check (Engineering Phase D5).** The Vercel runtime-log view keeps only recent lines, so the durable
+    evidence is the ledger: `npm run production:notification-config` (read-only) prints each organization's return
+    mode and address state (domain only), the ledger by window and the QA organization's last runs. Expect one row
+    per organization per window — `sent` with a provider id, or `skipped_quiet`; a `failed` row is caught up the
+    next morning. First live windows: 2026-09-12 quiet; 2026-09-13 QA organization `sent` (7 items, 13:07 UTC);
+    2026-09-14 quiet.
 - **Sudden spike in failures:** confirm `deploymentContext`, check the Resend dashboard for an outage or a
   suspended domain/key, and verify SPF/DKIM/DMARC still resolve.
 
@@ -133,6 +139,39 @@ environment and redeploy.
   add them to Production and test there against demo data.
 - Do not tighten DMARC to `quarantine`/`reject` during an incident. It cannot fix a placement problem and
   can silently destroy Google Workspace mail.
+
+### Notification QA tools (Engineering Phase D5)
+
+Production QA organization and the `prod-qa-perf-probe` tag only; recipients allowlisted to `support@mulemark.io`
+and `delivered@resend.dev`; no command takes an organization, tag or address argument.
+
+```bash
+npm run production:notification-config            # read-only: configuration, ledger, QA asset and tag requests
+npm run production:qa-notifications                # dry run: prints the scenario plan
+npm run production:qa-notifications -- --confirm --tag-setup --leave-digest
+npm run production:qa-notifications -- --restore --confirm
+npm run production:qa-notification-content         # read-only content check of the latest matrix artifact
+npm run digest:staging-check                       # staging summary worker, injected clocks, fake sender
+```
+
+- The matrix saves every setting it changes to `qa-artifacts/notification-qa-snapshot.json` (gitignored) and
+  restores it in a `finally`. `--leave-digest` keeps the QA organization in `daily_exceptions` for the next morning;
+  a new run refuses until `--restore --confirm`. The restore writes the snapshot back even if someone changed the QA
+  settings by hand in between — that is intended.
+- A failed scenario saves a screenshot of the QA page to `qa-artifacts/`. Staff steps use the Production QA login
+  from the gitignored `.env.production-perf.local`; without it they are recorded as not run.
+- Space runs: public media intake allows 3 per minute and 15 per hour per action, IP and tag.
+
+### `CRON_SECRET` — manual procedure
+
+- Generate a random value of at least 32 characters in the password manager; it is kept there.
+- Set it in Vercel → Project → Settings → Environment Variables for **Production only** (never Preview), then
+  redeploy.
+- Never place it in `.env.local`, source, a prompt, a ticket or a command argument.
+- Verify outside the 6 AM Pacific hour with `npm run cron:verify-production` (expects 401, 401, 200
+  `outside_window`).
+- To rotate: replace the value in the password manager and in Vercel, redeploy, verify again. A missing or
+  mismatched value turns every summary request into a bare 401 — summaries stop; nothing else is affected.
 
 ## Deployment smoke (Phase B5)
 

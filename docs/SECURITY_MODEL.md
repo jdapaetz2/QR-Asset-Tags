@@ -99,6 +99,17 @@ Raw IP addresses are not stored. `scan_events.ip_hash` holds a hashed or truncat
 
 **Notification logs (Phase A5)** emit only redacted, structured `[notifications]` records: event, outcome, org id, reference, the recipient **domain** and a **redacted** recipient (`r***@domain`), and provider metadata (id/status/attempts/failure class). They never contain the full recipient address, the message body, a media URL (the email builders never include media), the Resend API key, the auth header, or a raw IP. Email is always best-effort and never blocks a submission.
 
+**Actionable notifications (Engineering Phase D, closed at D5 2026-09-14).**
+
+- **The saved record is authoritative.** The deferred job carries identifiers only; the notifier reloads the committed submission, and the asset scoped to the scheduling organization, and refuses any mismatch (`record_missing`, `organization_mismatch`, `asset_mismatch`, `form_type_mismatch`, `origin_mismatch`, `asset_missing`). Nothing is sent and only the class is logged.
+- **No browser-chosen recipient.** Recipients come only from the organization's stored settings through `lib/notifications/routing.ts`; the forms have no recipient input, stored addresses are re-validated before every send, and each recipient gets its own provider request (never To+CC/BCC). Only a customer admin can change notification settings, and the database refuses an urgent switch without an address (CHECK, migration 0034; refused live in D5).
+- **Preview never sends.** `lib/notifications/send.ts` returns `dry_run` / `preview_environment` before any credential is read (observed live again 2026-09-13).
+- **Scheduled summary.** `/api/cron/return-digest` accepts only Production and a constant-time `CRON_SECRET` bearer (a bare 401 otherwise); the run ledger `notification_digest_runs` is service-role only (0036); every query is organization-scoped.
+- **Email content.** No storage path, bucket, signed URL, raw JSON or original filename. Previews are at most three server-generated, metadata-stripped JPEGs from the submission's own objects, referenced by `cid:`. Links are the canonical host plus normalized `tel:` / `mailto:`; no link changes state.
+- **Logs and keys.** Counts, route, coarse failure class and a redacted recipient only; idempotency keys carry a recipient hash, never an address.
+- **No automatic state change.** Notification code never writes asset, rental or submission status.
+- **Evidence.** `lib/notifications/*.test.ts`, the security suite, and the live D5 record in `docs/PHASE_D_NOTIFICATION_READINESS.md` (design §15.7).
+
 ## Role enforcement at the database (Phase A3.1, migration 0032 — APPLIED)
 
 `customer_admin` / `customer_staff` are application roles in `profiles.role`; both authenticate as the Postgres

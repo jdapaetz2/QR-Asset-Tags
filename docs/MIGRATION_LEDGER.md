@@ -60,7 +60,8 @@ select version, name from supabase_migrations.schema_migrations order by version
 ```
 
 Migrations are applied by the operator via `supabase db push`; there is **no automated migration step in CI or the
-Vercel deploy**. Before the pilot, confirm **0001–0031 are all applied** on the target project (see A2).
+Vercel deploy**. Before the pilot, confirm **0001–0039 are all applied** on the target project (see A2; staging and
+Production matched 0001–0039 on 2026-09-12/13, and Engineering Phase D5 added no migration).
 
 ---
 
@@ -80,11 +81,11 @@ prior link to have run.
 
 ---
 
-## Ledger (0001–0031)
+## Ledger (0001–0039)
 
 Legend — Contains: RLS = policy, RPC = function, TRG = trigger, G/R = grant/revoke, IDX = index. Remote status for
-every row is **Confirmed applied (operator-verified, Phase A2)** — see the header for the evidence; omitted per-row to
-keep the table scannable.
+0001–0031 is **Confirmed applied (operator-verified, Phase A2)** — see the header for the evidence; omitted per-row to
+keep the table scannable. 0032–0039 carry their own evidence in the header (0032, 0033) or in their row.
 
 | # | Filename | Purpose | Depends on | Additive? | Contains | Code that assumes it | Safe verify query |
 |---|---|---|---|---|---|---|---|
@@ -131,7 +132,7 @@ keep the table scannable.
 
 ## Notes for A2 (deployment)
 
-- The application code on `pilot-credibility` assumes **all** of 0001–0031 (including the authoritative supersession
+- The application code on `pilot-credibility` assumes **all** of 0001–0039 (including the authoritative supersession
   endpoints 0019 / 0030 / 0029 / 0028 / 0009). If any are unapplied on the target project, the corresponding flows
   fail at runtime (staff outbound/return, org templates, guided inspections, outbound-attach, reconciliation, and the
   additive history indexes that keep the timeline/rentals queries bounded).

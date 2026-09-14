@@ -39,8 +39,8 @@ The short backlog bullets in [`COMMERCIAL_MODEL.md`](COMMERCIAL_MODEL.md) and
 
 | Item | Status | Notes |
 |---|---|---|
-| **Actionable incident notifications** | **Active — Engineering Phase D** (D0 designed, D0.1 decisions locked 2026-09-10) | [`ACTIONABLE_NOTIFICATION_DESIGN.md`](ACTIONABLE_NOTIFICATION_DESIGN.md). Promotes one narrow slice of the roadmap's "multi-recipient notifications" backlog item: a separate urgent route (switch + address). Adds a daily return-exceptions summary. Neither is a general notification queue; full multi-recipient routing remains deferred. |
-| **Operational hold / out-of-service workflow** | **Newly triggered candidate — separate future phase** | Extends #3. See R3. Explicitly **not** part of Engineering Phase D: Phase D must never change an asset's rental or service state from a report. |
+| **Actionable incident notifications** | **Shipped — Engineering Phase D closed (D5, 2026-09-14)**; D5.1 (escalation-reason display) recorded, not started | [`ACTIONABLE_NOTIFICATION_DESIGN.md`](ACTIONABLE_NOTIFICATION_DESIGN.md), [`PHASE_D_NOTIFICATION_READINESS.md`](PHASE_D_NOTIFICATION_READINESS.md). Promotes one narrow slice of the roadmap's "multi-recipient notifications" backlog item: a separate urgent route (switch + address). Adds a daily return-exceptions summary. Neither is a general notification queue; full multi-recipient routing remains deferred. |
+| **Operational hold / out-of-service workflow** | **Next-phase candidate (confirmed at D5 closeout, 2026-09-14) — not started** | Extends #3. See R3. Explicitly **not** part of Engineering Phase D: Phase D never changes an asset's rental or service state from a report. Needs its own plan and operator decision before any work begins. |
 
 ---
 
@@ -86,7 +86,12 @@ now wrong, the correction lives here.
 - **R8 — Storage lifecycle.** `storage_limit_mb` and `video_uploads_enabled` are stored and displayed but
   never read by upload code; `docs/STORAGE_MEDIA_LIFECYCLE.md` still reads "Deferred"; failed-upload and
   orphan cleanup exist (`lib/forms/cleanup.ts`, `scripts/cleanup-orphan-media.mjs`). Uploaded photos are
-  stored exactly as sent, with no resize and no EXIF stripping.
+  stored exactly as sent, with no resize and no EXIF stripping. *(Updated at the D5 closeout, 2026-09-14.)* Since
+  D4.1, HEIC/HEIF/AVIF/GIF and oversized photos are converted to JPEG on the device before upload and stored without
+  EXIF (staging check); JPEG/PNG/WebP within the limits are still stored exactly as sent, **keeping their metadata,
+  including GPS**, and hosted HEIC/AVIF document originals are kept byte for byte. Notification previews (D4) are
+  generated in memory, metadata-stripped and never stored. Original photos keep their metadata unless a later media
+  phase changes that.
 - **R9 — Tag production.** Software: tag requests (migrations 0010–0011), the owner production queue and
   QR SVG / sheet / CSV exports. Physical: every item in `docs/TAG_PRODUCTION_READINESS.md` is unchecked,
   and `PHASE_B_ENGINEERING_READINESS.md` verdict 6 (physical production) is "NOT YET ASSESSED".
@@ -96,7 +101,8 @@ now wrong, the correction lives here.
   product name" — the code comment overstates the legal position.
 - **R11 — Branded email.** Notifications: `EMAIL_DELIVERABILITY_RUNBOOK.md` — all four notification events
   verified live, SPF/DKIM/DMARC pass; two conditions remain (live replay/idempotency, cold-mailbox
-  placement). Auth email: `docs/SUPABASE_AUTH_CONFIG.md` — invitations are app-generated copyable links;
+  placement). *(D5, 2026-09-14:)* the actionable notification set and the daily summary ran live on the Production
+  QA organization and a direct Outlook/Hotmail delivery was operator-verified; both conditions are still open. Auth email: `docs/SUPABASE_AUTH_CONFIG.md` — invitations are app-generated copyable links;
   magic-link still depends on Supabase's default email.
 
 ---

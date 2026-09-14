@@ -11,9 +11,13 @@ skip; `089f707` promoted to Production 2026-09-11 (deployment `9FmryFHdh`), both
 13 pass / 0 fail / 1 skip; first scheduled run 2026-09-12 13:00–13:59 UTC · D4 built — up to three bounded CID
 inline photo previews (direct `sharp` 0.34.5, no migration): ranked damage first, metadata stripped, ≤ 640 px,
 ≤ 400 KB each, ≤ 1.2 MB total, built once per notification inside `after()`, text-only fallback on any failure; live
-QA in §15. D5 is not built.** Branch
+QA in §15 · D4.1 built — broad consumer photo inputs (migration 0039; `3fb3364`, Production deployment
+`6417386658`) · **D5 closed (2026-09-14)** — live QA matrix on the Production QA organization, the first scheduled
+summaries, a direct Outlook check and the phase closeout: §15.7 and
+[`PHASE_D_NOTIFICATION_READINESS.md`](PHASE_D_NOTIFICATION_READINESS.md). D5.1 (escalation-reason display, §15.8)
+is recorded and not started.** Branch
 `pilot-credibility` (Vercel's Production branch is `main`: a push builds a Preview; Production = promote).
-Production deployment `9FmryFHdh` → `mulemark.io`.
+Production deployment `6417386658` (`3fb3364`) → `mulemark.io`; D3B was first promoted as `9FmryFHdh`.
 
 > **This is Engineering Phase D (actionable notifications).** It is *not* the business roadmap's
 > "Phase D - Controlled pilots" in `roadmap.md`, which is untouched by this work.
@@ -641,13 +645,13 @@ never "urgent", never "!", never marketing phrasing.
 
 | | Daily return summary |
 |---|---|
-| **Subject** | `Returns with issues — {organization}: N since {day}`; staff-only scope: `Staff returns with issues — {organization}: N since {day}` |
+| **Subject** | *As built (D3B):* `Return exceptions summary - N returns with exceptions` for every scope. Designed: `Returns with issues — {organization}: N since {day}`; staff-only scope: `Staff returns with issues — {organization}: N since {day}` |
 | **Priority prefix** | none |
-| **First visible line** | `N returns with issues since {day} · {x} new · {y} resolved` |
-| **Body** | one block per return: asset code and name, event label, **current status**, exceptions, photo count, staff name for staff returns, record link |
+| **First visible line** | *As built:* `N returns with exceptions since {Pacific day, time} Pacific; {open} still open.` Designed: `N returns with issues since {day} · {x} new · {y} resolved` |
+| **Body** | one block per return: asset code and name, event label, **current status**, exceptions, photo count, record link. *As built:* the source label (`Renter return` / `Staff return`) stands in for the designed staff name |
 | **Photos** | counts only — **no previews** |
 | **Contact links** | none |
-| **Quiet day** | not sent (`skipped_empty` logged) |
+| **Quiet day** | not sent; *as built* the ledger and log record `skipped_quiet` (designed name `skipped_empty`) |
 | **Primary CTA** | a link to the return-checklist inbox |
 
 ### 6.3 Never individually emailed
@@ -910,6 +914,12 @@ existing support contact resolution — the asset's `support_phone_override`, th
 `support_phone` (`lib/public/equipment.ts:18-26`). Scan-page rules apply: tenant colours, system fonts, no
 Mulemark accent, no new client JavaScript. **No emergency-services wording in Phase D.** The copy never says
 the company "has been notified" and never implies an employee has read the report.
+
+**As built (D2; verified live in D5, §15.7).** The call-now block uses one heading for every Immediate answer —
+"You told us this needs attention now." — rather than a reason-specific sentence, then "Don't wait for a reply —
+call {company} directly." and a full-width `Call {phone}` button in the tenant colour. Without a usable number it
+reads "Don't wait for a reply — contact {company} directly.", with a plain `Phone: …` line when an unusable value
+is stored.
 
 ---
 
@@ -1226,6 +1236,11 @@ the operator trade-off.
 §15 executed against QA data; updates to `EMAIL_DELIVERABILITY_RUNBOOK.md`, `OPERATIONS_RUNBOOK.md`,
 `SECURITY_MODEL.md`, `roadmap.md`; a Phase D readiness note.
 
+**Done (2026-09-13/14), no application change:** `scripts/production/qa-notification-matrix.mjs` (live matrix with
+snapshot/restore), `scripts/production/notification-config-report.mjs` (read-only), `tests/qa/notification-content.production.test.ts`
+(content from saved rows), the extended `tests/staging/return-digest.staging.test.ts`; results in §15.7; readiness
+note `PHASE_D_NOTIFICATION_READINESS.md`.
+
 ---
 
 ## 13. Acceptance criteria
@@ -1295,6 +1310,8 @@ the operator trade-off.
 
 - Every §15 row executed or explicitly marked not run, with date and client; B4's outstanding replay check
   attempted.
+- **Result (2026-09-14):** every row is recorded in §15.7. The replay check (R7, B4 row 8) was **not attempted
+  live**: it needs a direct provider call carrying the API key, which the D5 rules forbid.
 
 ---
 
@@ -1347,7 +1364,7 @@ for every row; a row not run stays marked **not run**.
 
 | ID | Scenario | Expected |
 |---|---|---|
-| R1 | Damage switch on, urgent switch on, immediate report | Two emails, two providerIds, log roles `general` and `urgent` |
+| R1 | Damage switch on, urgent switch on, immediate report | Two emails, two providerIds, log routes `main` and `urgent` (designed name `general`) |
 | R2 | Damage switch off, urgent switch on, immediate report | Urgent only |
 | R3 | Damage switch on, urgent switch off, immediate report | General only |
 | R4 | Urgent address equals general address | One email |
@@ -1362,7 +1379,7 @@ for every row; a row not run stays marked **not run**.
 | S1 | `daily_exceptions`, renter + staff exceptions | One summary, 6:00–6:59 AM Pacific, all items with current status |
 | S2 | `instant_renter`, staff exception present | Staff-only summary |
 | S3 | `off` | No summary |
-| S4 | Quiet day | No email; `skipped_empty` logged |
+| S4 | Quiet day | No email; `skipped_quiet` logged (designed name `skipped_empty`) |
 | S5 | An item resolved before the run | Listed as Resolved |
 | S6 | A missed run (simulated by skipping a day in QA) | Next summary covers both days |
 | S7 | A duplicate invocation (manual re-trigger in QA) | No second email |
@@ -1434,6 +1451,107 @@ no customer media was used.
 - **Operator clients (passed, operator-checked 2026-09-11):** Gmail mobile, Outlook web / desktop (inline vs
   attachment), images blocked (alt text), dark mode, reply, forward, and the return email's preview order
   (`SUB-2026-9F4D6A`: first preview "Return damage slot", second "Return other slot"). D4 live QA is complete.
+
+### 15.7 D5 live QA record — Production, 2026-09-13/14
+
+Production deployment `6417386658` (`3fb3364`), unchanged through D5 (`git diff 3fb3364 HEAD -- lib app components
+public supabase` empty). Tooling `c5b3f24`, `71e20e3`. `npm run production:qa-notifications -- --confirm --tag-setup
+--leave-digest` on the Production QA organization and `prod-qa-perf-probe` only; recipients allowlisted to
+`support@mulemark.io` (main) and `delivered@resend.dev` (the separate urgent address); every changed setting
+snapshotted and restored (restore verified 2026-09-14 16:48 UTC). Runs (UTC, 2026-09-13): 04:51:51–05:07:23 (all
+scenarios), 05:12:54–05:15:18 and 05:16:58–05:17:25 (re-runs of three browser steps after automation fixes; no
+application change). Log evidence is the Vercel runtime `[notifications]` line per reference. Content evidence is
+`npm run production:qa-notification-content`, which renders each saved row with the real projection, routing and
+email builders: 25/27, 3/3 and 2/2 — the two failures are the as-built clean-return classification in §15.8.
+**Operator** = checked by the operator in a real client. **Not reported** = not reported back at closeout.
+
+**Individual events**
+
+| ID | Result | Evidence |
+|---|---|---|
+| E1 | PASS | `SUB-2026-E714E1` unsafe → Immediate attention, `sent` main; `SUB-2026-3A7221` cannot be moved → Immediate attention |
+| E2 | PASS | `SUB-2026-0925E7` operating / No rush / Minor → routine; `SUB-2026-6708C2` severity Major only → routine (severity never raises); subject `New damage report — PROD-QA-PERF` |
+| E3 | PASS | `SUB-2026-59A702` nothing answered → routine; "Not reported" lines |
+| E4 | PASS | `SUB-2026-A5A612` stuck/recovery, need omitted → `Follow up: PROD-QA-PERF — reported stuck, recovery needed` |
+| E5 | PASS | `SUB-2026-A8B1B0` rollover → Immediate attention |
+| E6 | PARTIAL | exceptions one per return, each Follow up `1 exception`, `sent` main: failed check `SUB-2026-95D443`, damage `SUB-2026-04421D`, missing accessory `SUB-2026-49E7A7` ("Accessories missing: Straps"), does not operate `SUB-2026-318F7F` (generator template, "Starts / operates? No"). A single return with two exceptions was not submitted live (unit-tested) |
+| E7 | PASS, with an as-built finding | every photo slot filled `SUB-2026-CFBA6D` → Record only, "No action required". Condition photos without the optional Additional photos `SUB-2026-EF0976` → Routine review — §15.8 #2 |
+| E8 | not run live | no custom template on the QA organization; unit-tested |
+| E9 | PASS | `daily_exceptions` (`SUB-2026-1ACF71`, `SUB-2026-914E29`) and `off` (`SUB-2026-847999`) → `skipped_disabled`, no send |
+| E10 | PASS | staff return with a failed check `SUB-2026-3D75E6` → no `[notifications]` line (projection refuses staff rows); listed in the next summary |
+| E11 | PASS | staff outbound → no log line |
+| E12 | PARTIAL (operator) | QA tag request `1943f10f-1243-4c4c-a5eb-081c2294ee8c` saved to `delivered` 2026-09-14 16:08:48 UTC, `delivered_at` stamped by that save. The emails produced and the same-status / notes-only saves were not reported, and no later save is recorded; unit-tested (`owner-actions.test.ts`, `status-transition.test.ts`) |
+| E13 | PASS | staging smoke 2026-09-13: `SUB-2026-CEE146`, `SUB-2026-675C7A` → `dry_run`, `reason: preview_environment`, attempts 0 |
+
+**Urgent routing**
+
+| ID | Result | Evidence |
+|---|---|---|
+| R1 | PARTIAL | `SUB-2026-0D7A41`: urgent send to `resend.dev` `sent` with a provider id. The request carries 7 log lines (5 for a single route), but the dashboard list shows one line per request, so the main-route line was not individually viewed, and the support-inbox copy was not reported |
+| R2 | PASS | `SUB-2026-E1F855`: damage switch off, urgent on → one send, route `urgent` |
+| R3 | PASS | Immediate reports with the urgent switch off (`SUB-2026-3A7221`, `E714E1`, `A8B1B0`, `2840F5`) → `main` only |
+| R4 | PASS | `SUB-2026-5CA8BA` → one send, `main_and_urgent` |
+| R5 | PASS | no follow-up or routine report used the urgent route; `SUB-2026-61DC77` (urgent on, damage off, routine) → `skipped_disabled` |
+| R6 | PASS | database CHECK refused the urgent switch without an address (`23514`, unchanged); the settings form showed "Add an urgent notification email to turn on urgent notifications." (unchanged) |
+| R7 | not run live | needs a direct provider call carrying the API key; B4 row 8 stays open |
+
+**Daily return summary**
+
+| ID | Result | Evidence |
+|---|---|---|
+| S1 | PASS | window 2026-09-12 13:00 → 2026-09-13 13:00 UTC: QA organization `sent`, 7 items (renter and staff exceptions), provider id recorded, completed 13:07:04 UTC (6:07 AM PDT). Ordering, statuses, counts and links verified on staging; the delivered summary's content was not reported |
+| S2 | PASS (staging) | `instant_renter` → staff exceptions only (`digest:staging-check`). Live: Northridge demo organization in `instant_renter` → `skipped_quiet` 2026-09-12/13/14 |
+| S3 | PASS | QA organization `off` before and after D5 → no ledger row; staging `off` excluded |
+| S4 | PASS | 2026-09-14 window: QA organization and Northridge `skipped_quiet`, no email |
+| S5 | PASS (staging) | a resolved staff return listed `Resolved`; open count excludes it |
+| S6 | PASS (staging) | missed day and failed send caught up; a failed window never advanced |
+| S7 | PASS | live: one ledger row per organization per window (unique claim) across 13:00 and 14:00 UTC deliveries; staging: duplicate invocation sends nothing |
+| S8 | PASS (staging), PDT live | staging PDT and PST slots; live PDT run at 6:07 AM. A live DST-transition date has not occurred yet (2026-11-01) |
+| S9 | PASS | `cron:verify-production` 2026-09-13 04:52 UTC: no token 401, wrong token 401, real token 200 `outside_window` |
+
+**Clients and rendering**
+
+| ID | Result | Evidence |
+|---|---|---|
+| C1 | D4 evidence only | Gmail web 2026-09-11 (§15.6); the Gmail review of the D5 set was not reported |
+| C2 | D4 evidence only | operator 2026-09-11 |
+| C3 / C4 | PASS (operator, 2026-09-14) | direct delivery to an Outlook/Hotmail mailbox: delivered; CID preview inline, not a detached attachment; complete text; record link; no storage path or signed URL. Desktop vs web client not recorded |
+| C5 | not run | — |
+| C6 | not run | — |
+| C7 | D4 evidence only | operator 2026-09-11 |
+| C8 | PASS (operator, 2026-09-14) | Outlook dark mode: text and image readable |
+| C9 | PASS (automated) | text/plain parity asserted for every saved QA row |
+| C10 | D4 evidence only | operator 2026-09-11 |
+| Forwarding | limitation | a Gmail-forwarded copy lost its inline image; direct Outlook delivery rendered it. Recorded as a forwarding-client limitation, not a delivery failure |
+
+**Confirmation page, media and failure**
+
+| ID | Result | Evidence |
+|---|---|---|
+| P1 | PASS | Immediate reports with a fictional 555 number on the QA asset (`SUB-2026-3A7221`, `A8B1B0`, `E1F855`, `0D7A41`, `5CA8BA`): full-width button (width ratio 1.0), `tel:+16045550100`, label `Call +1 604 555 0100`, block and button in the organization colour (the QA organization has no brand colour, so only the default colour path was exercised) |
+| P2 | PASS | unusable phone `SUB-2026-E714E1` → contact copy and `Phone:` text, no button; no phone `SUB-2026-2840F5` → contact copy, no phone line |
+| P3 | PASS | 13 non-immediate damage/support pages: "has your report", "Need help now?", no "notified", no emergency wording |
+| M1 | PASS | `SUB-2026-04421D` damage slot first, 2/2 attached, 659 ms, < 250 KB; `SUB-2026-95D443` 2/2, 822 ms; `SUB-2026-5A95B9` 2/2, 720 ms |
+| M2 | unit + D4 | the `SUB-2026-04421D` damage photo carried GPS EXIF; preview metadata stripping is asserted by unit tests on real Sharp output |
+| M3 | not run live | unit-tested |
+| M4 | D4 live | `SUB-2026-D56B0F` |
+| M5 | PASS | `SUB-2026-5781D1` switch off → requested 0, no preview line |
+| M6 | not run live | unit-tested |
+
+### 15.8 Follow-ups recorded at D5 (not built in D5)
+
+1. **D5.1 — escalation reason (operator requirement, 2026-09-14).** An Immediate-attention email whose priority
+   comes from the reported equipment state (for example unsafe to operate) while the submitter chose a lower
+   response need (for example "Please follow up soon") reads as contradictory, although the rule is correct. D5.1
+   must display why the report was escalated — the winning condition — clearly, and must never state or imply that
+   the submitter requested immediate help. No priority-rule change is implied.
+2. **Clean renter returns without Additional photos are Routine (as built, design-conformant).** §5.3 maps any
+   non-empty `missing_recommended_photo_slots` to Routine review, and the renter submit stores every visible empty
+   photo slot there, including the optional Additional photos (`lib/inspections/submit.ts:229-235`). A clean
+   system-template renter return is therefore Record only only when the renter also adds an Additional photo, and
+   its email says "Recommended photos not provided: Additional photos". Candidate: exclude optional (`required:
+   false`, `min: 0`) slots from routine photo notes. Needs an operator decision.
+3. **Operational hold / out-of-service workflow** — the next-phase candidate (`ROADMAP_DEFERRED.md` #3). Not started.
 
 ---
 
