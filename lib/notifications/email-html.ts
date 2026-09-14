@@ -13,6 +13,15 @@
  *   - colour always accompanies a text label — it never carries meaning on its own.
  */
 import type { EmailAttachment, EmailContent } from "@/lib/notifications/email";
+import { EMAIL_LOGO } from "@/lib/notifications/email-logo";
+
+/** The brand lockup (lib/notifications/email-logo.ts), attached inline to every email and shown by the header. */
+export const LOGO_ATTACHMENT: EmailAttachment = {
+  filename: EMAIL_LOGO.filename,
+  contentType: EMAIL_LOGO.contentType,
+  contentId: EMAIL_LOGO.contentId,
+  content: Buffer.from(EMAIL_LOGO.base64, "base64"),
+};
 
 export const EMAIL_TOKENS = {
   ink: "#1A1917",
@@ -143,7 +152,10 @@ export function pillHtml(label: string, tone: Tone, size = 12): string {
   );
 }
 
-/** Wrap the blocks in the document frame: a 600 px white card on a warm-white canvas. */
+/**
+ * Wrap the blocks in the document frame: a 600 px white card on a warm-white canvas. Every email carries the logo as
+ * its first inline attachment (the header shows it); any preview attachments follow.
+ */
 export function renderDocument(input: {
   subject: string;
   blocks: (EmailBlock | null | undefined)[];
@@ -176,7 +188,5 @@ export function renderDocument(input: {
       `background-color:${EMAIL_TOKENS.canvas}`
     ) +
     `</body></html>`;
-  return input.attachments && input.attachments.length > 0
-    ? { subject: input.subject, text, html, attachments: input.attachments }
-    : { subject: input.subject, text, html };
+  return { subject: input.subject, text, html, attachments: [LOGO_ATTACHMENT, ...(input.attachments ?? [])] };
 }

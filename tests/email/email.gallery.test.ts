@@ -180,7 +180,7 @@ describe("operational email fixture gallery", () => {
     const mobileWidth = await screenshot(view, join(dir, "mobile.png"), 375, 2);
     expect(desktopWidth).toBeLessThanOrEqual(640);
     expect(mobileWidth, "horizontal overflow at 375 px").toBeLessThanOrEqual(375);
-    const hasPreviews = cids.length > 0;
+    const hasPreviews = cids.some((cid) => cid !== "mm-logo@mulemark");
     if (hasPreviews) {
       const blockedWidth = await screenshot(blocked, join(dir, "blocked-mobile.png"), 375, 2);
       expect(blockedWidth).toBeLessThanOrEqual(375);

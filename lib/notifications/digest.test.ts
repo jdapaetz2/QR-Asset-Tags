@@ -6,14 +6,20 @@ import {
   digestOrigins,
   groupDigestItems,
   isDigestMode,
-  limitDigestSections,
+  planDigestDisplay,
   projectDigestItem,
   sortDigestItems,
   type DigestAsset,
   type DigestItem,
   type DigestReturnRow,
 } from "./digest";
-import { DIGEST_MAX_ASSET_GROUPS, DIGEST_MAX_ITEMS, buildReturnDigestEmail, returnDigestSubject } from "./email";
+import {
+  DIGEST_COMPACT_NOTE,
+  DIGEST_HTML_BUDGET_BYTES,
+  DIGEST_TEXT_BUDGET_BYTES,
+  buildReturnDigestEmail,
+  returnDigestSubject,
+} from "./email";
 import { submissionReference } from "@/lib/submissions/inbox";
 
 const ORG = "c0000000-0000-4000-8000-0000000000a1";
@@ -147,7 +153,7 @@ describe("sortDigestItems", () => {
 });
 
 // ---------------------------------------------------------------------------
-// D5.1 grouping, counters and the display cap
+// D5.1 grouping, counters and how each return is displayed
 // ---------------------------------------------------------------------------
 
 const assetN = (n: number, code = `GEN-${String(n).padStart(3, "0")}`): DigestAsset => ({
@@ -163,6 +169,17 @@ function itemFor(
   overrides: Partial<DigestReturnRow> = {}
 ): DigestItem {
   return projectDigestItem(row(data, { asset_id: asset?.id ?? null, ...overrides }), asset, SITE)!;
+}
+
+/** A busy day: `count` mixed returns spread over `assets` assets. */
+function busyDay(count: number, assets: number): DigestItem[] {
+  const data = [V1_DAMAGE, failedCheck(), V1_MISSING_ACCESSORY, notOperating()];
+  const statuses = ["new", "reviewed", "new", "resolved", "archived"];
+  return sortDigestItems(
+    Array.from({ length: count }, (_, i) =>
+      itemFor(data[i % data.length], assetN((i % assets) + 1), { status: statuses[i % statuses.length], created_at: at(i) })
+    )
+  );
 }
 
 describe("groupDigestItems", () => {
@@ -188,7 +205,7 @@ describe("groupDigestItems", () => {
     expect(codes).toEqual([["GEN-004"], ["GEN-002"], ["GEN-001"], ["GEN-003"]]);
     // The resolved damage stays on its asset's card, after the open return.
     expect(sections[2].groups[0].items.map((item) => item.id)).toEqual([openAccessory.id, handledDamage.id]);
-    expect(sections[2].groups[0]).toMatchObject({ openCount: 1, exceptionCount: 2, leadClass: 3 });
+    expect(sections[2].groups[0]).toMatchObject({ openCount: 1, exceptionCount: 2, leadClass: 3, fullCount: 2 });
     expect(sections.flatMap((section) => section.groups).length).toBe(4);
     expect(sections.reduce((sum, section) => sum + section.itemCount, 0)).toBe(6);
   });
@@ -260,28 +277,36 @@ describe("digestCounters", () => {
   });
 });
 
-describe("limitDigestSections", () => {
-  it("stops at the first card that does not fit, so the order keeps its meaning", () => {
-    const big = Array.from({ length: 10 }, (_, i) => itemFor(V1_DAMAGE, assetN(1), { created_at: at(i) }));
-    const overflow = Array.from({ length: 6 }, (_, i) => itemFor(V1_DAMAGE, assetN(2), { created_at: at(20 + i) }));
-    const small = [itemFor(V1_MISSING_ACCESSORY, assetN(3), { created_at: at(40) })];
-    const limited = limitDigestSections(groupDigestItems([...big, ...overflow, ...small]), { maxRows: 15, maxGroups: 10 });
-    expect(limited).toMatchObject({ shownRows: 10, shownGroups: 1, totalRows: 17, totalGroups: 3 });
-    expect(limited.sections.flatMap((section) => section.groups.map((group) => group.assetCode))).toEqual(["GEN-001"]);
+describe("planDigestDisplay", () => {
+  const sections = () => {
+    const big = [1, 2, 3].map((minute) => itemFor(V1_DAMAGE, assetN(1), { created_at: at(minute) }));
+    const single = itemFor(V1_DAMAGE, assetN(2), { created_at: at(10) });
+    const accessory = itemFor(V1_MISSING_ACCESSORY, assetN(3), { created_at: at(20) });
+    return groupDigestItems([...big, single, accessory]);
+  };
+
+  it("shows every return in full when asked to", () => {
+    const plan = planDigestDisplay(sections(), { full: 5, compact: 0 });
+    expect(plan).toMatchObject({ fullRows: 5, compactRows: 0, hiddenRows: 0, totalRows: 5 });
+    expect(plan.sections.flatMap((section) => section.groups.map((group) => group.fullCount))).toEqual([3, 1, 1]);
   });
 
-  it(`shows at most ${DIGEST_MAX_ASSET_GROUPS} asset cards`, () => {
-    const items = Array.from({ length: 12 }, (_, i) => itemFor(V1_DAMAGE, assetN(i + 1), { created_at: at(i) }));
-    const limited = limitDigestSections(groupDigestItems(items), { maxRows: 15, maxGroups: DIGEST_MAX_ASSET_GROUPS });
-    expect(limited).toMatchObject({ shownRows: 10, shownGroups: 10, totalRows: 12, totalGroups: 12 });
+  it("walks returns in display order: full, then one-line, then not shown; empty cards and sections drop out", () => {
+    const plan = planDigestDisplay(sections(), { full: 2, compact: 2 });
+    expect(plan).toMatchObject({ fullRows: 2, compactRows: 2, hiddenRows: 1, totalRows: 5 });
+    expect(plan.sections.map((section) => section.key)).toEqual(["damage_or_not_operating"]);
+    const [big, single] = plan.sections[0].groups;
+    expect(big).toMatchObject({ assetCode: "GEN-001", fullCount: 2, hiddenItems: 0 });
+    expect(big.items).toHaveLength(3);
+    expect(single).toMatchObject({ assetCode: "GEN-002", fullCount: 0, hiddenItems: 0 });
   });
 
-  it("shows part of a first card that alone exceeds the row cap", () => {
-    const items = Array.from({ length: 20 }, (_, i) => itemFor(V1_DAMAGE, assetN(1), { created_at: at(i) }));
-    const limited = limitDigestSections(groupDigestItems(items), { maxRows: 15, maxGroups: 10 });
-    expect(limited.shownRows).toBe(15);
-    expect(limited.sections[0].groups[0]).toMatchObject({ hiddenItems: 5 });
-    expect(limited.sections[0].groups[0].items).toHaveLength(15);
+  it("a card keeps what it shows and counts what it leaves out", () => {
+    const plan = planDigestDisplay(sections(), { full: 1, compact: 0 });
+    expect(plan.sections[0].groups).toHaveLength(1);
+    expect(plan.sections[0].groups[0]).toMatchObject({ fullCount: 1, hiddenItems: 2 });
+    expect(plan.sections[0].groups[0].items).toHaveLength(1);
+    expect(plan.hiddenRows).toBe(4);
   });
 });
 
@@ -299,6 +324,10 @@ describe("buildReturnDigestEmail", () => {
     scanIncomplete: false,
     inboxUrl: `${SITE}/dashboard/submissions?form_type=return_checklist&status=unresolved`,
     settingsUrl: `${SITE}/dashboard/settings`,
+  };
+  const withinBudget = (email: { html: string; text: string }) => {
+    expect(Buffer.byteLength(email.html, "utf8")).toBeLessThanOrEqual(DIGEST_HTML_BUDGET_BYTES);
+    expect(Buffer.byteLength(email.text, "utf8")).toBeLessThanOrEqual(DIGEST_TEXT_BUDGET_BYTES);
   };
 
   it("subject counts returns with exceptions; the first line states the open count", () => {
@@ -370,31 +399,36 @@ describe("buildReturnDigestEmail", () => {
     expect(text).not.toContain("s1");
   });
 
-  it(`shows at most ${DIGEST_MAX_ITEMS} returns and says how many more exist`, () => {
-    const email = buildReturnDigestEmail({ ...base, items: items(31) });
-    expect(email.subject).toBe("Return exceptions summary - 31 returns with exceptions");
-    expect(email.text.match(/Reference: /g)).toHaveLength(DIGEST_MAX_ITEMS);
-    expect(email.text).toContain("16 more returns for this asset are in Submissions.");
-    expect(email.text).toContain(
-      `Showing ${DIGEST_MAX_ITEMS} of 31 returns from 1 of 1 asset. The rest are in Submissions: ${base.inboxUrl}`
-    );
+  it("has no count cap: a day that fits the size budget lists every return in full", () => {
+    const email = buildReturnDigestEmail({ ...base, items: items(20) });
+    expect(email.text.match(/^Open return checklist: /gm)).toHaveLength(20);
+    expect(email.text).not.toContain(DIGEST_COMPACT_NOTE);
+    expect(email.text).not.toContain("Showing ");
+    withinBudget(email);
   });
 
-  it("stays within the size budget at the cap", () => {
-    const data = [V1_DAMAGE, failedCheck(), V1_MISSING_ACCESSORY, notOperating(), { damage_observed: "yes", accessories_returned: "no" }];
-    const statuses = ["new", "reviewed", "new", "resolved", "new", "archived"];
-    const list = sortDigestItems(
-      Array.from({ length: 40 }, (_, i) =>
-        itemFor(data[i % data.length], { ...assetN((i % 15) + 1), asset_name: `Generator ${"x".repeat(100)}` }, {
-          status: statuses[i % statuses.length],
-          created_at: at(i),
-        })
-      )
-    );
+  it("on a busy day shortens the least urgent returns to one line and still lists every return", () => {
+    const list = busyDay(60, 12);
     const email = buildReturnDigestEmail({ ...base, items: list });
-    expect(Buffer.byteLength(email.html, "utf8")).toBeLessThanOrEqual(75_000);
-    expect(Buffer.byteLength(email.text, "utf8")).toBeLessThanOrEqual(30_000);
-    expect(email.text).toMatch(/Showing \d+ of 40 returns from \d+ of 15 assets\./);
+    withinBudget(email);
+    expect(email.text).toContain(DIGEST_COMPACT_NOTE);
+    expect(email.text).not.toContain("Showing ");
+    expect(email.text).toContain("Returns with exceptions: 60");
+    for (const item of list) expect(email.text).toContain(item.reference);
+    const fullRows = email.text.match(/^Open return checklist: /gm) ?? [];
+    expect(fullRows.length).toBeGreaterThan(0);
+    const lastFull = email.text.lastIndexOf("Open return checklist: ");
+    const firstCompact = email.text.search(/^SUB-\d{4}-[0-9A-F]{6} · /m);
+    expect(firstCompact).toBeGreaterThan(lastFull);
+  });
+
+  it("on a very busy day counts the returns that do not fit and points to Submissions", () => {
+    const email = buildReturnDigestEmail({ ...base, items: busyDay(600, 150) });
+    withinBudget(email);
+    expect(email.subject).toBe("Return exceptions summary - 600 returns with exceptions");
+    expect(email.text).toContain("Returns with exceptions: 600");
+    expect(email.text).toMatch(new RegExp(`Showing \\d+ of 600 returns\\. The rest are in Submissions: ${base.inboxUrl.replace(/[?]/g, "\\?")}`));
+    expect(email.text.match(/^Open return checklist: /gm)).toBeNull();
   });
 
   it("states a shortened period and an incomplete scan", () => {
@@ -403,17 +437,20 @@ describe("buildReturnDigestEmail", () => {
     expect(email.text).toContain("complete list is in Submissions");
   });
 
-  it("carries no images, escapes free text, and keeps the text part complete", () => {
+  it("carries no photos, escapes free text, and keeps the text part complete", () => {
     const hostile = sortDigestItems([
       projectDigestItem(row(V1_DAMAGE), { ...ASSET, asset_name: '<img src=x onerror="alert(1)">' }, SITE)!,
     ]);
     const email = buildReturnDigestEmail({ ...base, items: hostile });
-    expect(email.html).not.toMatch(/<img/i);
+    expect(email.html.match(/<img [^>]*>/g)).toHaveLength(1);
+    expect(email.html).toContain('<img src="cid:mm-logo@mulemark"');
+    expect(email.attachments?.map((attachment) => attachment.contentId)).toEqual(["mm-logo@mulemark"]);
     expect(email.html).toContain("&lt;img");
     expect(email.text).toContain('<img src=x onerror="alert(1)">');
-    for (const banned of ["storage/v1", "signedurl", "token=", "cid:"]) {
+    for (const banned of ["storage/v1", "signedurl", "token="]) {
       expect(email.html.toLowerCase()).not.toContain(banned);
       expect(email.text.toLowerCase()).not.toContain(banned);
     }
+    expect(email.text).not.toContain("cid:");
   });
 });

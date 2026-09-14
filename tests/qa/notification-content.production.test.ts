@@ -264,8 +264,9 @@ describe("Production notification content, rendered from saved QA submissions", 
     }
 
     // Text-only unless previews were requested; with previews, one cid: per attachment and the count line.
-    expect(content.html).not.toContain("cid:");
-    expect(content.attachments).toBeUndefined();
+    // D5.1: the brand logo is the only image without previews.
+    expect(content.html.match(/src="cid:[^"]+"/g)).toEqual(['src="cid:mm-logo@mulemark"']);
+    expect(content.attachments?.map((attachment) => attachment.contentId)).toEqual(["mm-logo@mulemark"]);
     if (requested > 0) {
       const figures = b.photos.previewCandidates.slice(0, requested).map((candidate, index) => ({
         contentId: `qa-preview-${index + 1}`,
@@ -286,8 +287,8 @@ describe("Production notification content, rendered from saved QA submissions", 
       const withPreviews = buildIncidentEmail(b, previews);
       expect(withPreviews.text).toContain(`Photo previews included: ${requested} of `);
       expect(withPreviews.text).toContain(PREVIEW_POINTER);
-      expect((withPreviews.html.match(/src="cid:/g) ?? []).length).toBe(requested);
-      expect(withPreviews.attachments).toHaveLength(requested);
+      expect((withPreviews.html.match(/src="cid:/g) ?? []).length).toBe(requested + 1);
+      expect(withPreviews.attachments).toHaveLength(requested + 1);
       if (b.returnDetail?.damage) expect(b.photos.previewCandidates[0].rank).toBe(1);
     } else {
       expect(content.text).not.toContain("Photo previews");

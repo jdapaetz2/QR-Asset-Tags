@@ -157,16 +157,7 @@ beforeEach(() => {
   );
   state.submissionError = null;
   state.assetRow = { asset_code: "EXC-001", asset_name: "Mini Excavator", category: "Excavators" };
-  state.tagRow = {
-    id: "tr-9",
-    organization_id: ORG_ID,
-    status: "in_production",
-    material: "anodized aluminum",
-    tag_size: "2in x 1in",
-    mounting_method: "rivet",
-    created_at: "2026-09-08T23:30:00.000Z",
-    tag_request_assets: [{ count: 2 }],
-  };
+  state.tagRow = { id: "tr-9", organization_id: ORG_ID, status: "in_production", created_at: "2026-09-08T23:30:00.000Z" };
   state.tagError = null;
   state.selects = [];
   state.queries = [];
@@ -534,6 +525,11 @@ describe("priority routing (D3A)", () => {
 });
 
 describe("inline photo previews (D4)", () => {
+  /** D5.1: every email carries the brand logo as its first inline attachment. */
+  const LOGO_ONLY = [
+    expect.objectContaining({ filename: "mulemark-logo.png", contentType: "image/png", contentId: "mm-logo@mulemark" }),
+  ];
+
   beforeEach(() => {
     state.submissionRow = immediateDamageRow();
   });
@@ -545,6 +541,7 @@ describe("inline photo previews (D4)", () => {
     expect(recipients()).toEqual(["owner@yard.test", "oncall@yard.test"]);
     expect(sentContent(0)).toBe(sentContent(1));
     expect(sentContent(0).attachments).toEqual([
+      ...LOGO_ONLY,
       expect.objectContaining({ filename: "incident-photo-1.jpg", contentType: "image/jpeg", contentId: "mm-preview-1@mulemark" }),
     ]);
     expect(sentContent(0).html).toContain('src="cid:mm-preview-1@mulemark"');
@@ -564,8 +561,8 @@ describe("inline photo previews (D4)", () => {
     await notifySubmission(baseInput);
     state.orgRow = orgWith({ notify_include_photo_previews: false });
     await notifySubmission(baseInput);
-    expect(sentContent(0).attachments).toHaveLength(1);
-    expect(sentContent(1).attachments).toBeUndefined();
+    expect(sentContent(0).attachments).toHaveLength(2);
+    expect(sentContent(1).attachments).toEqual(LOGO_ONLY);
     expect(sendOptions(1).idempotencyKey).toBe(sendOptions(0).idempotencyKey);
     expect(sendOptions(0).idempotencyKey).toBe(
       notificationIdempotencyKey({ event: "submission", reference: SUBMISSION_ID, recipient: "owner@yard.test" })
@@ -579,8 +576,8 @@ describe("inline photo previews (D4)", () => {
     state.storageMode = mode;
     await notifySubmission(baseInput);
     expect(sendMock).toHaveBeenCalledTimes(1);
-    expect(sentContent().attachments).toBeUndefined();
-    expect(sentContent().html).not.toContain("<img");
+    expect(sentContent().attachments).toEqual(LOGO_ONLY);
+    expect(sentContent().html).not.toContain("cid:mm-preview");
     expect(sentContent().text).toContain("Photo previews: none included.");
     expect(loggedLines()[0]).toMatchObject({
       previewRequestedCount: 1,
@@ -593,7 +590,7 @@ describe("inline photo previews (D4)", () => {
   it("a transform failure still sends the text-only email", async () => {
     transformMock.mockResolvedValueOnce({ ok: false, failureClass: "decode_failed" });
     await notifySubmission(baseInput);
-    expect(sentContent().attachments).toBeUndefined();
+    expect(sentContent().attachments).toEqual(LOGO_ONLY);
     expect(loggedLines()[0]).toMatchObject({ outcome: "dry_run", previewAttachedCount: 0, previewFailureClass: "decode_failed" });
   });
 
@@ -601,7 +598,7 @@ describe("inline photo previews (D4)", () => {
     transformMock.mockRejectedValueOnce(new Error("native crash"));
     await expect(notifySubmission(baseInput)).resolves.toBeUndefined();
     expect(sendMock).toHaveBeenCalledTimes(1);
-    expect(sentContent().attachments).toBeUndefined();
+    expect(sentContent().attachments).toEqual(LOGO_ONLY);
     expect(loggedLines()[0]).toMatchObject({ previewAttachedCount: 0, previewFailureClass: "exception" });
   });
 
@@ -611,7 +608,7 @@ describe("inline photo previews (D4)", () => {
     expect(state.storageReads).toEqual([]);
     expect(transformMock).not.toHaveBeenCalled();
     expect(phases()).not.toContain("notify.media");
-    expect(sentContent().attachments).toBeUndefined();
+    expect(sentContent().attachments).toEqual(LOGO_ONLY);
     expect(sentContent().text).not.toContain("Photo previews");
   });
 
@@ -624,7 +621,7 @@ describe("inline photo previews (D4)", () => {
     });
     await notifySubmission({ ...baseInput, formType: "return_checklist" });
     expect(state.storageReads).toEqual([]);
-    expect(sentContent().attachments).toBeUndefined();
+    expect(sentContent().attachments).toEqual(LOGO_ONLY);
     expect(sentContent().text).toContain("Photos: 1 on the record");
     expect(loggedLines()[0]).toMatchObject({ previewRequestedCount: 0, previewAttachedCount: 0 });
   });
@@ -636,7 +633,7 @@ describe("inline photo previews (D4)", () => {
     expect(loggedLines()[0]).toMatchObject({ outcome: "dry_run", reason: "preview_environment", previewAttachedCount: 1 });
   });
 
-  it("tag request emails never read storage or carry attachments", async () => {
+  it("tag request emails never read storage and carry only the logo", async () => {
     await notifyTagRequestStatus({
       organizationId: ORG_ID,
       tagRequestId: "tr-9",
@@ -645,7 +642,7 @@ describe("inline photo previews (D4)", () => {
       changedAt: "2026-09-11T17:30:00.123Z",
     });
     expect(state.storageReads).toEqual([]);
-    expect(sentContent().attachments).toBeUndefined();
+    expect(sentContent().attachments).toEqual(LOGO_ONLY);
     expect(loggedLines()[0]).toMatchObject({ previewRequestedCount: null, previewAttachedCount: null });
   });
 });
@@ -709,29 +706,21 @@ describe("notifyTagRequestStatus (B4, D3A)", () => {
     expect(text).toContain("Status: In production");
   });
 
-  it("renders the request card from the saved row, never the free-text quantity notes (D5.1)", async () => {
+  it("shows the requested date and support id, and loads none of the request's details (D5.1)", async () => {
     await notifyTagRequestStatus(tagInput);
     const { text } = sentContent();
-    for (const fact of [
-      "Requested: 2026-09-08",
-      "Assets: 2",
-      "Material: anodized aluminum",
-      "Tag size: 2in x 1in",
-      "Mounting: rivet",
-      "Support ID: tr-9",
-    ]) {
-      expect(text).toContain(fact);
-    }
+    expect(text).toContain("Requested: 2026-09-08");
+    expect(text).toContain("Support ID: tr-9");
+    expect(text).not.toMatch(/Material|Tag size|Mounting|Assets:/);
     const columns = state.selects.find((entry) => entry.table === "tag_requests")?.columns ?? "";
-    expect(columns).toContain("tag_request_assets(count)");
-    expect(columns).not.toContain("quantity_notes");
+    expect(columns).toBe("id, organization_id, status, created_at");
   });
 
-  it("still sends without the asset count when the count embed is missing", async () => {
-    state.tagRow = { ...state.tagRow, tag_request_assets: null };
+  it("still sends without a requested date when the saved row has none", async () => {
+    state.tagRow = { ...state.tagRow, created_at: null };
     await notifyTagRequestStatus(tagInput);
     expect(sendMock).toHaveBeenCalledTimes(1);
-    expect(sentContent().text).not.toContain("Assets:");
+    expect(sentContent().text).not.toContain("Requested:");
   });
 
   it("loads the saved request scoped to the organization", async () => {

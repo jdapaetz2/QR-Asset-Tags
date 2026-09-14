@@ -12,6 +12,8 @@ import { HTML_ONLY_LABELS } from "./email-components";
  */
 
 const LINK_LINE = /^(.*?): ((?:https?:\/\/|tel:|mailto:)\S+)$/;
+/** A one-line summary row: "SUB-… · New · Renter return · Damage · Sun, Sep 13, 8:10 AM · https://…". */
+const TAIL_LINK = /^(.*) · (https?:\/\/\S+)$/;
 const CAPTION = /^.+ \(\d+ of \d+\)$/;
 const escapeAttr = (value: string) => value.replace(/&/g, "&amp;");
 
@@ -28,6 +30,12 @@ describe.each(EMAIL_FIXTURES.map((fixture) => [fixture.id, fixture] as const))("
       if (link) {
         expect(visible, raw).toContain(normalizeFact(link[1]));
         expect(email.html.includes(`href="${escapeAttr(link[2])}"`) || visible.includes(link[2]), raw).toBe(true);
+        continue;
+      }
+      const tail = TAIL_LINK.exec(raw);
+      if (tail) {
+        expect(visible, raw).toContain(normalizeFact(tail[1]));
+        expect(email.html, raw).toContain(`href="${escapeAttr(tail[2])}"`);
         continue;
       }
       expect(visible, raw).toContain(normalizeFact(raw));
@@ -58,7 +66,8 @@ describe.each(EMAIL_FIXTURES.map((fixture) => [fixture.id, fixture] as const))("
     const cids = images.map((img) => /src="cid:([^"]+)"/.exec(img)?.[1]);
     for (const img of images) expect(img).toMatch(/ width="\d+" height="\d+" alt="[^"]+"/);
     expect(cids).toEqual((email.attachments ?? []).map((attachment) => attachment.contentId));
-    if (fixture.kind !== "incident") expect(email.attachments).toBeUndefined();
+    expect(email.attachments?.[0]?.contentId).toBe("mm-logo@mulemark");
+    if (fixture.kind !== "incident") expect(email.attachments).toHaveLength(1);
 
     for (const [, href] of html.matchAll(/href="([^"]+)"/g)) {
       expect(href.startsWith(`${SITE_URL}/`) || href.startsWith("tel:") || href.startsWith("mailto:"), href).toBe(true);

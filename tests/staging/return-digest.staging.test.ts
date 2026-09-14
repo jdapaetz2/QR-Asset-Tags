@@ -23,7 +23,7 @@ import { submissionReference } from "@/lib/submissions/inbox";
  *   - a duplicate invocation sends nothing; a quiet day records `skipped_quiet`;
  *   - instant_renter lists staff exceptions only; off excludes the organization;
  *   - a missed or failed day is caught up (a failed send never advances the window);
- *   - more than 15 returns: 15 listed, the rest pointed to Submissions.
+ *   - 27 returns on one asset: all listed in full (D5.1 fits the summary to its size budget; there is no count cap).
  *
  * Bounded writes: disposable return checklists on the two staging QA organizations (deleted afterwards), their
  * notification settings (restored afterwards), and ledger rows for 2001 windows (deleted before and after; cron never
@@ -279,8 +279,9 @@ describe("daily return-exceptions summary on staging (fake sender, injected cloc
     );
     expect(a.text).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:/);
     for (const path of PLACEHOLDER_MEDIA) expect(`${a.text}${a.html}`).not.toContain(path);
-    expect(a.html).not.toMatch(/<img|cid:/);
-    expect(a.attachments).toBeUndefined();
+    // No photos: the only image is the brand logo every email carries.
+    expect(a.html.match(/src="cid:[^"]+"/g)).toEqual(['src="cid:mm-logo@mulemark"']);
+    expect(a.attachments?.map((attachment) => attachment.contentId)).toEqual(["mm-logo@mulemark"]);
 
     expect(b.subject).toBe("Return exceptions summary - 1 return with exceptions");
     expect(b.text).toContain(ref("b1"));
@@ -369,7 +370,7 @@ describe("daily return-exceptions summary on staging (fake sender, injected cloc
     });
   });
 
-  it("more than 15 returns: the first 15 are listed and the rest point to Submissions", async () => {
+  it("a busy day of 27 returns on one asset is listed in full, with no count cap", async () => {
     await seed(
       Array.from({ length: 27 }, (_, i) => ({
         key: `cap${i}`,
@@ -381,11 +382,11 @@ describe("daily return-exceptions summary on staging (fake sender, injected cloc
     expect(captured).toHaveLength(1);
     const { subject, text } = captured[0].content;
     expect(subject).toBe("Return exceptions summary - 27 returns with exceptions");
-    expect((text.match(/^Open return checklist: /gm) ?? []).length).toBe(15);
-    expect(text).toContain("12 more returns for this asset are in Submissions.");
-    expect(text).toContain("Showing 15 of 27 returns from 1 of 1 asset. The rest are in Submissions: ");
+    expect((text.match(/^Open return checklist: /gm) ?? []).length).toBe(27);
+    expect(text).not.toContain("Showing ");
+    expect(text).not.toContain("shortened to one line");
     expect(text).toContain(ref("cap0"));
-    expect(text).not.toContain(ref("cap26"));
+    expect(text).toContain(ref("cap26"));
     expect(await ledgerRow("A", utc("2001-01-18T14:00:00.000Z"))).toMatchObject({ status: "sent", item_count: 27 });
   });
 });

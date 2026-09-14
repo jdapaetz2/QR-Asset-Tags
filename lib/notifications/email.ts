@@ -1,6 +1,7 @@
 /**
  * Pure email content builders for notification messages. No I/O and no secrets — just `{ subject, text, html }`, plus
- * (Engineering Phase D4) up to three small inline preview attachments on individual incident emails.
+ * inline image attachments: the brand logo on every email (D5.1) and up to three small previews on individual incident
+ * emails (D4).
  *
  * Engineering Phase D1: submission emails are rendered from a `NotificationBrief` (lib/notifications/projection.ts),
  * which is projected from the committed record. This module never sees `submission_data_json`.
@@ -16,8 +17,8 @@
  *  - The authenticated Mulemark record link is the first link and the primary button. Contact actions are `tel:` /
  *    `mailto:` only, and only when the saved value survives strict normalization (lib/contact/links.ts). No link changes
  *    workflow state.
- *  - No remote image, tracking pixel, link shortener, signed media URL or storage path. The only images are D4 previews,
- *    embedded by `cid:` reference to their own attachment. The daily summary never carries images.
+ *  - No remote image, tracking pixel, link shortener, signed media URL or storage path. Images are embedded by `cid:`
+ *    reference to their own attachment: the brand logo, and D4 previews. The daily summary never carries photos.
  *  - An explicit reason the recipient is receiving the message, plus where to turn it off.
  */
 import type { NotificationBrief } from "@/lib/notifications/projection";
@@ -25,8 +26,9 @@ import {
   DIGEST_SECTION_TITLES,
   digestCounters,
   groupDigestItems,
-  limitDigestSections,
+  planDigestDisplay,
   type DigestItem,
+  type DigestSection,
 } from "@/lib/notifications/digest";
 import { DIGEST_MAX_LOOKBACK_DAYS, formatPacific } from "@/lib/notifications/digest-window";
 import {
@@ -45,7 +47,6 @@ import {
   primaryButton,
   priorityBanner,
   sectionHeading,
-  statusPillBlock,
   type Counter,
   type Fact,
 } from "@/lib/notifications/email-components";
@@ -59,8 +60,13 @@ import {
   RESPONSE_NEED_LABELS,
 } from "@/lib/submissions/triage";
 
-/** A generated inline preview (D4). Generic filename and content id — never the original's name or path. */
-export type EmailAttachment = { filename: string; contentType: "image/jpeg"; contentId: string; content: Buffer };
+/** An inline image: a generated preview (D4) or the brand logo (D5.1). Generic filename and content id, never a path. */
+export type EmailAttachment = {
+  filename: string;
+  contentType: "image/jpeg" | "image/png";
+  contentId: string;
+  content: Buffer;
+};
 
 export type EmailContent = { subject: string; text: string; html: string; attachments?: EmailAttachment[] };
 
@@ -300,9 +306,9 @@ function returnIssueBlocks(brief: NotificationBrief): EmailBlock[] {
 // ---------------------------------------------------------------------------
 
 /**
- * `previews` is omitted (or `requested: 0`) for a text-only email. When present, the evidence strip shows the preview
- * count line and the figures, and the attachments ride along; the two are produced together by
- * lib/notifications/previews.ts so every `cid:` reference has its attachment.
+ * `previews` is omitted (or `requested: 0`) for an email without previews. When present, the evidence strip shows the
+ * preview count line and the figures, and the preview attachments ride along after the logo; the two are produced
+ * together by lib/notifications/previews.ts so every `cid:` reference has its attachment.
  */
 export function buildIncidentEmail(brief: NotificationBrief, previews?: IncidentPreviews | null): EmailContent {
   const isReturn = brief.event === "renter_return";
@@ -361,26 +367,16 @@ export function buildIncidentEmail(brief: NotificationBrief, previews?: Incident
   });
 }
 
-/** What a tag-request status email can show about the request. Free-text notes are never rendered. */
-export type TagRequestCard = {
-  requestedAt: string | null;
-  assetCount: number | null;
-  material: string | null;
-  tagSize: string | null;
-  mountingMethod: string | null;
-};
-
 export type TagStatusEmailInput = {
   orgName: string;
   statusLabel: string;
-  /** The stored status value, for the pill colour only. */
-  status?: string | null;
-  /** Canonical tag-request id — shown only as a support id. */
+  /** Canonical tag-request id — shown only as a small support id. */
   reference?: string | null;
+  /** When the request was created, shown as a date so a customer with several open requests can tell them apart. */
+  requestedAt?: string | null;
   /** The tag request's own page. */
   manageUrl: string;
   settingsUrl?: string | null;
-  request?: TagRequestCard | null;
 };
 
 function isoDate(value: string | null | undefined): string | null {
@@ -391,23 +387,18 @@ function isoDate(value: string | null | undefined): string | null {
 
 /**
  * Tag-request status updates are always RECORD ONLY: no status in the existing tag workflow asks the customer to
- * act (Mulemark reviews, produces and ships). Named for the ORGANIZATION rather than the status, so a customer with
- * several requests open sees who it is about first.
+ * act (Mulemark reviews, produces and ships). Deliberately brief (operator decision, D5.1): the status, the organization
+ * and the requested date; the request's details live on its page. Named for the ORGANIZATION rather than the status, so
+ * a customer with several requests open sees who it is about first.
  */
 export function buildTagStatusEmail(input: TagStatusEmailInput): EmailContent {
   const orgName = subjectSafe(input.orgName) || "Your organization";
-  const request = input.request ?? null;
+  const requested = isoDate(input.requestedAt);
   const facts: Fact[] = [
     { label: "Organization", value: orgName },
     { label: "Status", value: input.statusLabel },
+    ...(requested ? [{ label: "Requested", value: requested }] : []),
   ];
-  const requested = isoDate(request?.requestedAt);
-  if (requested) facts.push({ label: "Requested", value: requested });
-  if (typeof request?.assetCount === "number") facts.push({ label: "Assets", value: String(request.assetCount) });
-  if (request?.material) facts.push({ label: "Material", value: request.material });
-  if (request?.tagSize) facts.push({ label: "Tag size", value: request.tagSize });
-  if (request?.mountingMethod) facts.push({ label: "Mounting", value: request.mountingMethod });
-  facts.push({ label: "Customer action", value: "None required" });
 
   return renderDocument({
     subject: `Tag request updated — ${orgName}`,
@@ -415,7 +406,6 @@ export function buildTagStatusEmail(input: TagStatusEmailInput): EmailContent {
       previewLineBlock(`Status: ${input.statusLabel}. No action required.`),
       headerBlock(),
       priorityBanner({ tone: "record", label: "RECORD ONLY", event: "Tag request" }),
-      statusPillBlock(input.statusLabel, input.status === "delivered" ? "resolved" : "neutral"),
       factGrid(facts),
       primaryButton({ label: "View tag request", href: input.manageUrl }),
       footerBlock({
@@ -430,10 +420,15 @@ export function buildTagStatusEmail(input: TagStatusEmailInput): EmailContent {
 // Daily return-exceptions summary (Engineering Phase D3B; layout D5.1)
 // ---------------------------------------------------------------------------
 
-/** Return rows displayed in one summary before pointing to Submissions for the rest. */
-export const DIGEST_MAX_ITEMS = 15;
-/** Asset cards displayed in one summary. */
-export const DIGEST_MAX_ASSET_GROUPS = 10;
+/**
+ * Size budgets for the daily summary. There is no count cap: the summary fits itself to these. Gmail clips a message
+ * whose HTML passes about 102 KB and hides everything below the clip; 75 KB leaves room for transfer encoding.
+ */
+export const DIGEST_HTML_BUDGET_BYTES = 75_000;
+export const DIGEST_TEXT_BUDGET_BYTES = 30_000;
+
+export const DIGEST_COMPACT_NOTE =
+  "This summary is long, so later returns are shortened to one line. Open any one for the full record.";
 
 export type ReturnDigestEmailInput = {
   orgName: string;
@@ -459,10 +454,35 @@ export function returnDigestSubject(total: number): string {
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
+function withinDigestBudget(email: EmailContent): boolean {
+  return (
+    Buffer.byteLength(email.html, "utf8") <= DIGEST_HTML_BUDGET_BYTES &&
+    Buffer.byteLength(email.text, "utf8") <= DIGEST_TEXT_BUDGET_BYTES
+  );
+}
+
+/** The largest n in [lo, hi] for which `fits(n)` holds, given that it holds at lo and stops holding as n grows. */
+function largestFitting(lo: number, hi: number, fits: (n: number) => boolean): number {
+  let best = lo;
+  let low = lo;
+  let high = hi;
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    if (fits(mid)) {
+      best = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+  return best;
+}
+
 /**
  * One summary per organization per Pacific day. Every return with an exception since the last summary, each with its
- * current status, grouped by asset under its most serious open issue. Counts and text only — no images, no previews,
- * no attachments, no storage paths.
+ * current status, grouped by asset under its most serious open issue. Every return renders in full when the email fits
+ * its size budget; on a busier day the least urgent returns (listed last) render on one line, and only if that still
+ * does not fit are the rest counted with a link to Submissions. Counts and text only — no photos, no storage paths.
  */
 export function buildReturnDigestEmail(input: ReturnDigestEmailInput): EmailContent {
   const orgName = subjectSafe(input.orgName) || "Your organization";
@@ -490,46 +510,65 @@ export function buildReturnDigestEmail(input: ReturnDigestEmailInput): EmailCont
   ].filter((counter) => counter.value > 0);
 
   const sections = groupDigestItems(input.items);
-  const limited = limitDigestSections(sections, { maxRows: DIGEST_MAX_ITEMS, maxGroups: DIGEST_MAX_ASSET_GROUPS });
-  const fullCounts = new Map(sections.map((section) => [section.key, section]));
+  const sectionTotals = new Map(sections.map((section) => [section.key, section]));
   const viewAll = { label: "View open return checklists", href: input.inboxUrl };
+  const subject = returnDigestSubject(total);
 
-  const sectionBlocks = limited.sections.flatMap((section) => {
-    const full = fullCounts.get(section.key) ?? section;
-    return [
-      sectionHeading(
-        section.title,
-        `${plural(full.groups.length, "asset", "assets")} · ${plural(full.itemCount, "return", "returns")}`
-      ),
-      ...section.groups.map(digestAssetCard),
-    ];
-  });
+  const head: (EmailBlock | null)[] = [
+    previewLineBlock(`${digestCount(total)} since ${since} Pacific; ${counters.open} still open.`),
+    headerBlock(),
+    priorityBanner({ tone: "neutral", label: "DAILY SUMMARY", event: "Return exceptions" }),
+    factGrid(
+      [
+        { label: "Organization", value: orgName },
+        { label: "Covers", value: `${since} to ${formatPacific(input.windowEnd)} (Pacific)` },
+      ],
+      notes
+    ),
+    counterBlock(statusCounters),
+    counterBlock(classCounters, "Each return is counted once, under its most serious issue."),
+    primaryButton(viewAll),
+  ];
+  const tail: (EmailBlock | null)[] = [
+    primaryButton(viewAll),
+    footerBlock({ reason: reasonText(orgName, "daily return exception summaries", input.settingsUrl) }),
+  ];
 
-  return renderDocument({
-    subject: returnDigestSubject(total),
-    blocks: [
-      previewLineBlock(`${digestCount(total)} since ${since} Pacific; ${counters.open} still open.`),
-      headerBlock(),
-      priorityBanner({ tone: "neutral", label: "DAILY SUMMARY", event: "Return exceptions" }),
-      factGrid(
-        [
-          { label: "Organization", value: orgName },
-          { label: "Covers", value: `${since} to ${formatPacific(input.windowEnd)} (Pacific)` },
-        ],
-        notes
-      ),
-      counterBlock(statusCounters),
-      counterBlock(classCounters, "Each return is counted once, under its most serious issue."),
-      primaryButton(viewAll),
-      ...sectionBlocks,
-      limited.shownRows < limited.totalRows
-        ? noticeBlock(
-            `Showing ${limited.shownRows} of ${limited.totalRows} returns from ${limited.shownGroups} of ` +
-              `${plural(limited.totalGroups, "asset", "assets")}. The rest are in Submissions: ${input.inboxUrl}`
-          )
-        : null,
-      primaryButton(viewAll),
-      footerBlock({ reason: reasonText(orgName, "daily return exception summaries", input.settingsUrl) }),
-    ],
-  });
+  const render = (full: number, compact: number): EmailContent => {
+    const plan = planDigestDisplay(sections, { full, compact });
+    const sectionBlocks = plan.sections.flatMap((section: DigestSection) => {
+      const totals = sectionTotals.get(section.key) ?? section;
+      return [
+        sectionHeading(
+          section.title,
+          `${plural(totals.groups.length, "asset", "assets")} · ${plural(totals.itemCount, "return", "returns")}`
+        ),
+        ...section.groups.map(digestAssetCard),
+      ];
+    });
+    return renderDocument({
+      subject,
+      blocks: [
+        ...head,
+        plan.compactRows > 0 ? noticeBlock(DIGEST_COMPACT_NOTE) : null,
+        ...sectionBlocks,
+        plan.hiddenRows > 0
+          ? noticeBlock(
+              `Showing ${plan.totalRows - plan.hiddenRows} of ${plural(plan.totalRows, "return", "returns")}. ` +
+                `The rest are in Submissions: ${input.inboxUrl}`
+            )
+          : null,
+        ...tail,
+      ],
+    });
+  };
+
+  const everythingInFull = render(total, 0);
+  if (withinDigestBudget(everythingInFull)) return everythingInFull;
+  if (withinDigestBudget(render(0, total))) {
+    const full = largestFitting(0, total, (n) => withinDigestBudget(render(n, total - n)));
+    return render(full, total - full);
+  }
+  const compact = largestFitting(0, total, (n) => withinDigestBudget(render(0, n)));
+  return render(0, compact);
 }

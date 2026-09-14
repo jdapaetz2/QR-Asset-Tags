@@ -2,13 +2,15 @@
  * Engineering Phase D5.1 — reusable email components. Pure, no I/O.
  *
  * Each component returns an `EmailBlock`: the HTML and the plain-text rendering of the same facts, so the builders in
- * `email.ts` assemble both parts from one list and they cannot disagree. HTML-only decoration (the product name, the
- * "Photo evidence" heading, preview captions, issue badges, secondary call/email buttons) carries no fact that the text
- * part lacks. Every value is escaped here; callers pass plain strings.
+ * `email.ts` assemble both parts from one list and they cannot disagree. HTML-only decoration (the logo, the "Photo
+ * evidence" heading, preview captions, issue badges, secondary call/email buttons) carries no fact that the text part
+ * lacks. Every value is escaped here; callers pass plain strings.
  */
+import { PRODUCT_NAME } from "@/lib/constants";
 import type { PreviewFigure } from "@/lib/notifications/email";
 import { DIGEST_ISSUE_LABELS, type DigestAssetGroup, type DigestIssueKind, type DigestItem } from "@/lib/notifications/digest";
 import { formatPacific } from "@/lib/notifications/digest-window";
+import { EMAIL_LOGO } from "@/lib/notifications/email-logo";
 import {
   CONTENT_WIDTH,
   EMAIL_TOKENS as T,
@@ -33,11 +35,9 @@ const html = (value: string): EmailBlock => ({ html: value, text: "" });
  * already states (plus preview captions, "<label> (N of M)"). Enforced by email-parity.test.ts.
  */
 export const HTML_ONLY_LABELS: readonly string[] = [
-  "Mulemark",
   "Photo evidence",
   "Call reporter",
   "Email reporter",
-  "Current status",
   ...Object.values(DIGEST_ISSUE_LABELS),
 ];
 
@@ -46,11 +46,17 @@ export function previewLineBlock(line: string): EmailBlock {
   return { html: `<div style="${textStyle(13, 18, T.muted, "margin:0 0 14px 0")}">${escapeHtml(line)}</div>`, text: line };
 }
 
-/** The platform identity as plain body text over a brass rule — never an imitation of the wordmark artwork. */
+/**
+ * The brand lockup artwork (BRAND.md: the email header source), attached inline by `renderDocument`. With images off
+ * the alt text shows the product name in bold. The glyph's brass is the header's only brass.
+ */
 export function headerBlock(): EmailBlock {
   return html(
     table(
-      `<tr><td style="padding:0 0 10px 0;border-bottom:2px solid ${T.brass};${textStyle(14, 18, T.ink, "font-weight:bold")}">Mulemark</td></tr>`
+      `<tr><td style="padding:0 0 12px 0;border-bottom:1px solid ${T.border}">` +
+        `<img src="cid:${EMAIL_LOGO.contentId}" width="${EMAIL_LOGO.width}" height="${EMAIL_LOGO.height}" alt="${escapeHtml(PRODUCT_NAME)}" ` +
+        `style="display:block;border:0;outline:none;text-decoration:none;${textStyle(16, 21, T.ink, "font-weight:bold")}">` +
+        `</td></tr>`
     ) + spacer(16)
   );
 }
@@ -245,14 +251,6 @@ export function footerBlock(input: { reference?: { label: string; value: string 
   };
 }
 
-/** A prominent status pill with its own label above it. The status fact itself is stated in the fact grid. */
-export function statusPillBlock(label: string, tone: Tone): EmailBlock {
-  return html(
-    `<div style="${textStyle(12, 16, T.muted)}">Current status</div>` +
-      `<div style="padding:4px 0 14px 0">${pillHtml(label, tone, 14)}</div>`
-  );
-}
-
 export type Counter = { label: string; value: number; detail?: string | null };
 
 export function counterBlock(counters: Counter[], note?: string | null): EmailBlock | null {
@@ -338,7 +336,28 @@ function itemBlock(item: DigestItem, sameSessionAs: string | null): EmailBlock {
   };
 }
 
-/** One asset with every summarized return for it; each return keeps its own source, status, reference and link. */
+/**
+ * One line per return when a long summary would otherwise pass its size budget: reference (linked), status, source,
+ * issues, time. Rendered as a plain block inside one shared cell that sets the font once (see `digestAssetCard`), so a
+ * busy day's rows stay small enough for many more of them to fit.
+ */
+function compactItemBlock(item: DigestItem): EmailBlock {
+  const when = formatPacific(new Date(item.createdAt));
+  const source = `${item.sourceLabel} return`;
+  const issues = item.kinds.map((kind) => DIGEST_ISSUE_LABELS[kind]).join(", ");
+  return {
+    html:
+      `<div style="border-top:1px solid ${T.border};padding:5px 0">` +
+      `<a href="${escapeHtml(item.recordUrl)}" style="color:${T.ink};font-family:${MONO}">${escapeHtml(item.reference)}</a>` +
+      ` · ${escapeHtml(item.statusLabel)} · ${escapeHtml(source)} · ${escapeHtml(issues)} · ${escapeHtml(when)}</div>`,
+    text: `${item.reference} · ${item.statusLabel} · ${source} · ${issues} · ${when} · ${item.recordUrl}`,
+  };
+}
+
+/**
+ * One asset with every displayed return for it; each return keeps its own source, status, reference and link. The first
+ * `fullCount` returns render in full, the rest on one line.
+ */
 export function digestAssetCard(group: DigestAssetGroup): EmailBlock {
   const identity = [group.assetCode, group.assetName].filter(Boolean).join(" — ") || "Unidentified asset";
   const code = group.assetCode ? `<span style="font-family:${MONO}">${escapeHtml(group.assetCode)}</span>` : "";
@@ -346,18 +365,29 @@ export function digestAssetCard(group: DigestAssetGroup): EmailBlock {
   const identityHtml = code && name ? `${code} — ${name}` : code || name || "Unidentified asset";
   const total = group.items.length + group.hiddenItems;
   const detail = `${plural(total, "return", "returns")} · ${group.openCount} open · ${plural(group.exceptionCount, "exception", "exceptions")}`;
-  const items = group.items.map((item) => itemBlock(item, group.sameSession[item.id] ?? null));
+  const fullRows = group.items
+    .slice(0, group.fullCount)
+    .map((item) => itemBlock(item, group.sameSession[item.id] ?? null));
+  const compactRows = group.items.slice(group.fullCount).map(compactItemBlock);
+  const fullText = fullRows.map((row) => row.text);
+  const compactText = compactRows.map((row) => row.text);
+  const compactHtml =
+    compactRows.length > 0 ? `<tr><td style="${textStyle(13, 18)}">${compactRows.map((row) => row.html).join("")}</td></tr>` : "";
   const hidden = group.hiddenItems > 0 ? `${plural(group.hiddenItems, "more return", "more returns")} for this asset are in Submissions.` : null;
   return {
     html:
       table(
         `<tr><td style="border:1px solid ${T.border};border-radius:6px;padding:12px 14px 4px 14px">` +
-          `<div style="${textStyle(16, 22, T.ink, "font-weight:bold")}">${identityHtml} <span style="${textStyle(13, 18, T.muted, "font-weight:normal")}">· ${escapeHtml(detail)}</span></div>` +
-          spacer(6) +
-          table(items.map((item) => item.html).join("")) +
-          (hidden ? `<div style="${textStyle(13, 18, T.muted, "padding:0 0 8px 0")}">${escapeHtml(hidden)}</div>` : "") +
+          `<div style="${textStyle(16, 22, T.ink, "font-weight:bold;padding-bottom:6px")}">${identityHtml} <span style="${textStyle(13, 18, T.muted, "font-weight:normal")}">· ${escapeHtml(detail)}</span></div>` +
+          table(fullRows.map((row) => row.html).join("") + compactHtml) +
+          (hidden ? `<div style="${textStyle(13, 18, T.muted, "padding:4px 0 8px 0")}">${escapeHtml(hidden)}</div>` : "") +
           `</td></tr>`
       ) + spacer(12),
-    text: [`${identity} · ${detail}`, ...items.map((item) => item.text), ...(hidden ? [hidden] : [])].join("\n\n"),
+    text: [
+      `${identity} · ${detail}`,
+      ...fullText,
+      ...(compactText.length > 0 ? [compactText.join("\n")] : []),
+      ...(hidden ? [hidden] : []),
+    ].join("\n\n"),
   };
 }

@@ -51,6 +51,7 @@
     "smoke:staging": "node --env-file=.env.staging.local scripts/smoke/staging.mjs",
     "smoke:production": "node --env-file-if-exists=.env.production-smoke.local scripts/smoke/production.mjs",
     "email:gallery": "vitest run --config vitest.email-gallery.config.ts",
+    "brand:email-logo": "node scripts/brand/export-email-logo.mjs",
     "digest:staging-check":"node --env-file=.env.staging.local node_modules/vitest/vitest.mjs run --config vitest.staging-digest.config.ts",
     "cron:verify-production": "node --env-file-if-exists=.env.production-cron.local scripts/production/verify-cron.mjs",
     "qa:overflow": "node --env-file=.env.staging.local scripts/qa/measure-responsive-overflow.mjs",

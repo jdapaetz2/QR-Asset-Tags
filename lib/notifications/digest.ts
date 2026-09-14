@@ -13,8 +13,8 @@
  * summary can never disagree with an individual email about what counts. Free text is one-lined and capped; no
  * storage path, media URL or raw JSON leaves this module.
  *
- * Engineering Phase D5.1 adds presentation grouping only — `groupDigestItems`, `digestCounters` and
- * `limitDigestSections`. They order and bound what is DISPLAYED; which returns are summarized is unchanged.
+ * Engineering Phase D5.1 adds presentation only — `digestCounters`, `groupDigestItems` and `planDigestDisplay`. They
+ * order the returns and decide which render in full or on one line; which returns are summarized is unchanged.
  */
 import { cleanText } from "@/lib/notifications/projection";
 import { returnExceptionCount } from "@/lib/notifications/priority";
@@ -179,7 +179,7 @@ export function sortDigestItems(items: DigestItem[]): DigestItem[] {
 }
 
 // ---------------------------------------------------------------------------
-// D5.1 presentation: counters, asset grouping, display cap
+// D5.1 presentation: counters, asset grouping, full and one-line rows
 // ---------------------------------------------------------------------------
 
 export type DigestCounters = {
@@ -232,15 +232,17 @@ export type DigestAssetGroup = {
   key: string;
   assetCode: string | null;
   assetName: string | null;
-  /** Every displayed return for this asset, open first. */
+  /** The displayed returns for this asset, open first. */
   items: DigestItem[];
+  /** The first `fullCount` items render in full; the rest of `items` render on one line. */
+  fullCount: number;
   openCount: number;
   exceptionCount: number;
   /** The most serious class among the open returns; null when every return is resolved or archived. */
   leadClass: 1 | 2 | 3 | null;
   /** Item id → the reference of an earlier-listed return from the same rental session. */
   sameSession: Record<string, string>;
-  /** Returns of this asset not displayed because of the cap. */
+  /** Returns of this asset not displayed at all. */
   hiddenItems: number;
 };
 
@@ -317,6 +319,7 @@ export function groupDigestItems(items: DigestItem[]): DigestSection[] {
       assetCode: sorted[0].assetCode,
       assetName: sorted[0].assetName,
       items: sorted,
+      fullCount: sorted.length,
       openCount: open.length,
       exceptionCount: sorted.reduce((sum, item) => sum + item.exceptionCount, 0),
       leadClass: open.length > 0 ? (Math.min(...open.map((item) => item.issueClass)) as 1 | 2 | 3) : null,
@@ -338,56 +341,44 @@ export function groupDigestItems(items: DigestItem[]): DigestSection[] {
   }).filter((section) => section.groups.length > 0);
 }
 
-export type DigestLimitResult = {
+export type DigestDisplayPlan = {
   sections: DigestSection[];
-  shownRows: number;
-  shownGroups: number;
+  fullRows: number;
+  compactRows: number;
+  hiddenRows: number;
   totalRows: number;
-  totalGroups: number;
 };
 
 /**
- * Bound what the email displays. Whole cards are taken in order while both caps allow; the walk stops at the first card
- * that does not fit, so the order keeps its meaning. A first card larger than the row cap is shown partially.
+ * Decide how each return is displayed, walking returns in display order: the first `full` render in full, the next
+ * `compact` on one line, and the rest are not shown. A card keeps the returns it shows and states how many of its own
+ * are left out; a card with nothing shown is dropped. The caller (email.ts) picks the counts that fit the size budget.
  */
-export function limitDigestSections(
-  sections: DigestSection[],
-  caps: { maxRows: number; maxGroups: number }
-): DigestLimitResult {
+export function planDigestDisplay(sections: DigestSection[], counts: { full: number; compact: number }): DigestDisplayPlan {
+  let fullLeft = Math.max(0, counts.full);
+  let compactLeft = Math.max(0, counts.compact);
   const totalRows = sections.reduce((sum, section) => sum + section.itemCount, 0);
-  const totalGroups = sections.reduce((sum, section) => sum + section.groups.length, 0);
   const shown: DigestSection[] = [];
-  let shownRows = 0;
-  let shownGroups = 0;
-  let stopped = false;
+  let fullRows = 0;
+  let compactRows = 0;
 
   for (const section of sections) {
     const groups: DigestAssetGroup[] = [];
     for (const group of section.groups) {
-      if (shownGroups >= caps.maxGroups) {
-        stopped = true;
-        break;
-      }
-      if (shownRows + group.items.length <= caps.maxRows) {
-        groups.push(group);
-        shownRows += group.items.length;
-        shownGroups++;
-        continue;
-      }
-      if (shownGroups === 0) {
-        const visible = group.items.slice(0, caps.maxRows);
-        groups.push({ ...group, items: visible, hiddenItems: group.items.length - visible.length });
-        shownRows += visible.length;
-        shownGroups++;
-      }
-      stopped = true;
-      break;
+      const full = Math.min(fullLeft, group.items.length);
+      fullLeft -= full;
+      const compact = Math.min(compactLeft, group.items.length - full);
+      compactLeft -= compact;
+      const visible = full + compact;
+      if (visible === 0) continue;
+      fullRows += full;
+      compactRows += compact;
+      groups.push({ ...group, items: group.items.slice(0, visible), fullCount: full, hiddenItems: group.items.length - visible });
     }
     if (groups.length > 0) {
       shown.push({ ...section, groups, itemCount: groups.reduce((sum, group) => sum + group.items.length, 0) });
     }
-    if (stopped) break;
   }
 
-  return { sections: shown, shownRows, shownGroups, totalRows, totalGroups };
+  return { sections: shown, fullRows, compactRows, hiddenRows: totalRows - fullRows - compactRows, totalRows };
 }

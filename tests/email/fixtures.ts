@@ -23,7 +23,6 @@ import {
   buildTagStatusEmail,
   type EmailContent,
   type IncidentPreviews,
-  type TagRequestCard,
 } from "@/lib/notifications/email";
 import { projectSubmissionBrief, type BriefAsset, type SavedSubmissionRow } from "@/lib/notifications/projection";
 import { tagRequestStatusLabel } from "@/lib/tags/tag-requests";
@@ -175,13 +174,14 @@ function digest(items: DigestItem[]): EmailContent {
   });
 }
 
-function overCapSpecs(): ReturnSpec[] {
+/** A busy day: `count` mixed returns spread over `assets` trailers and the 24-hour window. */
+function busyDaySpecs(count: number, assets: number): ReturnSpec[] {
   const data = [RETURNS.damage, RETURNS.failedCheck, RETURNS.missingAccessory, RETURNS.notOperating, RETURNS.damageAndCheck];
   const statuses = ["new", "new", "reviewed", "resolved", "new", "archived", "reviewed"];
-  return Array.from({ length: 40 }, (_, i) => ({
+  return Array.from({ length: count }, (_, i) => ({
     data: data[i % data.length](),
-    asset: digestAsset(10 + (i % 15), `TRL-${String(100 + (i % 15))}`, "Utility Trailer"),
-    minutes: 15 + i * 30,
+    asset: digestAsset(10 + (i % assets), `TRL-${String(100 + (i % assets))}`, "Utility Trailer"),
+    minutes: 5 + Math.floor((i * 1430) / count),
     status: statuses[i % statuses.length],
     origin: i % 4 === 0 ? ("staff" as const) : ("public" as const),
     photos: i % 3,
@@ -193,24 +193,14 @@ function overCapSpecs(): ReturnSpec[] {
 // ---------------------------------------------------------------------------
 
 const TAG_REQUEST_ID = "5f1c2a90-3b7e-4c1d-9a2b-6e8f0d4c7a11";
-/** Stored option values (lib/qr/production.ts), shown as stored — the same as the dashboard's tag request pages. */
-const TAG_CARD: TagRequestCard = {
-  requestedAt: "2026-09-08T23:30:00.000Z",
-  assetCount: 24,
-  material: "anodized aluminum",
-  tagSize: "2in x 1in",
-  mountingMethod: "rivet",
-};
-
 function tag(status: string): EmailContent {
   return buildTagStatusEmail({
     orgName: ORG,
     statusLabel: tagRequestStatusLabel(status),
-    status,
     reference: TAG_REQUEST_ID,
+    requestedAt: "2026-09-08T23:30:00.000Z",
     manageUrl: `${SITE_URL}/dashboard/tag-requests/${TAG_REQUEST_ID}`,
     settingsUrl: SETTINGS_URL,
-    request: TAG_CARD,
   });
 }
 
@@ -394,13 +384,19 @@ export const EMAIL_FIXTURES: EmailFixture[] = [
       ),
   },
   {
-    id: "10-digest-over-cap",
-    title: "Daily summary — 40 returns across 15 assets (over the display cap)",
+    id: "10-digest-busy-day",
+    title: "Daily summary — 120 returns across 30 assets (later returns on one line)",
     kind: "digest",
-    build: () => digest(digestItems("a4", overCapSpecs())),
+    build: () => digest(digestItems("a4", busyDaySpecs(120, 30))),
   },
   { id: "11-tag-requested", title: "Tag request — Requested", kind: "tag", build: () => tag("requested") },
   { id: "12-tag-in-review", title: "Tag request — In review", kind: "tag", build: () => tag("in_review") },
   { id: "13-tag-ready", title: "Tag request — Ready", kind: "tag", build: () => tag("ready") },
   { id: "14-tag-delivered", title: "Tag request — Delivered", kind: "tag", build: () => tag("delivered") },
+  {
+    id: "15-digest-very-busy-day",
+    title: "Daily summary — 400 returns across 80 assets (beyond one-line capacity)",
+    kind: "digest",
+    build: () => digest(digestItems("a5", busyDaySpecs(400, 80))),
+  },
 ];

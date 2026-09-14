@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildIncidentEmail, buildTagStatusEmail, incidentSubject, SUBJECT_MAX_LENGTH } from "./email";
+import { buildIncidentEmail, buildReturnDigestEmail, buildTagStatusEmail, incidentSubject, SUBJECT_MAX_LENGTH } from "./email";
 import { projectSubmissionBrief, type BriefAsset, type NotificationBrief, type SavedSubmissionRow } from "./projection";
 import {
   CLEAN_FLAGS,
@@ -21,6 +21,9 @@ import { normalizeFact, visibleHtml } from "./__fixtures__/visible-html";
 const GEN: BriefAsset = { code: "GEN-003", name: "Portable Generator", category: "Generators" };
 const EXC: BriefAsset = { code: "EXC-001", name: "Mini Excavator", category: "Excavators" };
 const RECORD_URL = `${SITE_URL}/dashboard/submissions/${SUBMISSION_ID}`;
+const LOGO_CID = "mm-logo@mulemark";
+/** Any image other than the brand logo. */
+const NON_LOGO_IMG = /<img(?! src="cid:mm-logo@mulemark")/i;
 
 function brief(row: SavedSubmissionRow, asset: BriefAsset = GEN): NotificationBrief {
   const projected = projectSubmissionBrief({ organizationName: "Northridge Rentals", row, asset, siteUrl: SITE_URL });
@@ -215,6 +218,36 @@ describe("priority reason (D5.1)", () => {
   });
 });
 
+describe("brand logo (D5.1)", () => {
+  const tag = () =>
+    buildTagStatusEmail({ orgName: "Northridge Rentals", statusLabel: "Ready", manageUrl: `${SITE_URL}/dashboard/tag-requests/tr-9` });
+  const digest = () =>
+    buildReturnDigestEmail({
+      orgName: "Northridge Rentals",
+      items: [],
+      windowStart: new Date("2026-07-14T13:00:00.000Z"),
+      windowEnd: new Date("2026-07-15T13:00:00.000Z"),
+      clamped: false,
+      scanIncomplete: false,
+      inboxUrl: `${SITE_URL}/dashboard/submissions`,
+      settingsUrl: `${SITE_URL}/dashboard/settings`,
+    });
+
+  it.each([
+    ["incident", () => emailFor(damageRow({ urgency: "low", description: "x" }))],
+    ["tag status", tag],
+    ["daily summary", digest],
+  ])("the %s email shows the lockup in its header and attaches it first", (_kind, build) => {
+    const email = build();
+    expect(email.html.match(/<img [^>]*>/)?.[0]).toContain(`src="cid:${LOGO_CID}"`);
+    expect(email.html).toContain('alt="Mulemark"');
+    expect(email.attachments?.[0]).toMatchObject({ filename: "mulemark-logo.png", contentType: "image/png", contentId: LOGO_CID });
+    // In the body, before the priority banner's label.
+    expect(email.html.indexOf(`cid:${LOGO_CID}`)).toBeGreaterThan(email.html.indexOf("<body"));
+    expect(email.html.indexOf(`cid:${LOGO_CID}`)).toBeLessThan(email.html.indexOf("<strong"));
+  });
+});
+
 describe("support request", () => {
   it("renders the preferred contact and the support CTA", () => {
     const email = emailFor(
@@ -360,13 +393,13 @@ describe("inline photo previews (D4)", () => {
       { media_urls: [mediaPath("damage-1"), mediaPath("damage-2"), mediaPath("damage-3"), mediaPath("damage-4")] }
     );
 
-  it("embeds each preview by cid with its own attachment, alt text and caption", () => {
+  it("embeds each preview by cid with its own attachment, after the logo, with alt text and caption", () => {
     const email = buildIncidentEmail(brief(photoRow()), previewSet(3));
-    const cids = [...email.html.matchAll(/<img src="cid:([^"]+)"/g)].map((match) => match[1]);
+    const cids = [...email.html.matchAll(/<img src="cid:([^"]+)"/g)].map((match) => match[1]).filter((cid) => cid !== LOGO_CID);
     expect(cids).toEqual(["mm-preview-1@mulemark", "mm-preview-2@mulemark", "mm-preview-3@mulemark"]);
-    expect(email.attachments?.map((attachment) => attachment.contentId)).toEqual(cids);
+    expect(email.attachments?.map((attachment) => attachment.contentId)).toEqual([LOGO_CID, ...cids]);
     expect(email.html).toContain('alt="Damage photos — preview 1 of 3"');
-    expect(email.html.match(/<img /g)).toHaveLength(3);
+    expect(email.html.match(/<img /g)).toHaveLength(4);
     expect(email.html).not.toMatch(/<a [^>]*>\s*<img/);
   });
 
@@ -384,10 +417,10 @@ describe("inline photo previews (D4)", () => {
     expectInBoth(email, ["Photos: 4 on the record", "Photo previews included: 2 of 4 photos, reduced in size.", POINTER]);
   });
 
-  it("falls back to text only when previews were requested but none survived", () => {
+  it("falls back to no previews when previews were requested but none survived", () => {
     const email = buildIncidentEmail(brief(photoRow()), { requested: 3, figures: [], attachments: [] });
-    expect(email.html).not.toMatch(/<img/i);
-    expect(email.attachments).toBeUndefined();
+    expect(email.html).not.toMatch(NON_LOGO_IMG);
+    expect(email.attachments?.map((attachment) => attachment.contentId)).toEqual([LOGO_CID]);
     expectInBoth(email, [`Photo previews: none included. ${POINTER}`]);
   });
 
@@ -408,19 +441,21 @@ describe("inline photo previews (D4)", () => {
     const email = buildIncidentEmail(brief(photoRow()), previewSet(3));
     for (const part of [email.text, email.html]) {
       const lower = part.toLowerCase();
-      for (const banned of ["org/", "/submission/", "damage-1", ".jpg", "token=", "/storage/v1/", "signed", "supabase", "http://"]) {
+      for (const banned of ["org/", "/submission/", "damage-1", ".jpg", ".png", "token=", "/storage/v1/", "signed", "supabase", "http://"]) {
         expect(lower).not.toContain(banned);
       }
     }
     expect(email.html).not.toMatch(/<img[^>]+src="(?!cid:)/i);
     expect(webHrefs(email.html)).toEqual([RECORD_URL]);
-    for (const attachment of email.attachments ?? []) expect(attachment.filename).toMatch(/^incident-photo-\d\.jpg$/);
+    for (const attachment of (email.attachments ?? []).filter((a) => a.contentId !== LOGO_CID)) {
+      expect(attachment.filename).toMatch(/^incident-photo-\d\.jpg$/);
+    }
   });
 
   it("shows return previews after the photo count", () => {
     const email = buildIncidentEmail(brief(exceptionReturn()), previewSet(1));
     expect(email.html.indexOf("3 on the record")).toBeGreaterThan(-1);
-    expect(email.html.indexOf("3 on the record")).toBeLessThan(email.html.indexOf("<img"));
+    expect(email.html.indexOf("3 on the record")).toBeLessThan(email.html.indexOf('src="cid:mm-preview-1@mulemark"'));
   });
 
   it("stays within the size budget with three previews and a long description", () => {
@@ -442,12 +477,13 @@ describe("safety of the rendered message", () => {
       ),
       { code: "GEN-003", name: "Gen <img src=x>", category: null }
     );
-    expect(email.html).not.toMatch(/<script|<img|<b>Bold/i);
+    expect(email.html).not.toMatch(/<script|<b>Bold/i);
+    expect(email.html).not.toMatch(NON_LOGO_IMG);
     expect(email.html).toContain("&lt;script&gt;");
     expect(email.text).toContain(`<script>alert("x")</script> & 'q'`);
   });
 
-  it("carries no storage path, bucket, signed URL, tracking, image or style block", () => {
+  it("carries no storage path, bucket, signed URL, tracking, photo or style block", () => {
     const row = exceptionReturn();
     expect((row.media_urls as string[]).length).toBeGreaterThan(0);
     const email = emailFor(row);
@@ -458,7 +494,8 @@ describe("safety of the rendered message", () => {
       }
       expect(lower).not.toMatch(/bit\.ly|tinyurl|t\.co\/|click\?|utm_/);
     }
-    expect(email.html).not.toMatch(/<img|<style|background-image|display:\s*none|<script|<iframe|\bclass=/i);
+    expect(email.html).not.toMatch(NON_LOGO_IMG);
+    expect(email.html).not.toMatch(/<style|background-image|display:\s*none|<script|<iframe|\bclass=/i);
     expect(email.text).not.toContain(mediaPath("damage-1"));
   });
 
@@ -542,23 +579,13 @@ describe("buildTagStatusEmail", () => {
   const input = {
     orgName: "Northridge Rentals",
     statusLabel: "In production",
-    status: "in_production",
     reference: "tr-9",
     manageUrl: `${SITE_URL}/dashboard/tag-requests/tr-9`,
     settingsUrl: `${SITE_URL}/dashboard/settings`,
   };
-  const tag = buildTagStatusEmail({
-    ...input,
-    request: {
-      requestedAt: "2026-09-08T23:30:00.000Z",
-      assetCount: 24,
-      material: "Aluminum",
-      tagSize: "Standard",
-      mountingMethod: "Rivets",
-    },
-  });
+  const tag = buildTagStatusEmail({ ...input, requestedAt: "2026-09-08T23:30:00.000Z" });
 
-  it("is record only, with the actual status, organization and the request card", () => {
+  it("is record only, with the status, organization and requested date", () => {
     expect(tag.subject).toBe("Tag request updated — Northridge Rentals");
     expect(tag.text.split("\n")[0]).toBe("Status: In production. No action required.");
     expectInBoth(tag, [
@@ -566,13 +593,13 @@ describe("buildTagStatusEmail", () => {
       "Organization: Northridge Rentals",
       "Status: In production",
       "Requested: 2026-09-08",
-      "Assets: 24",
-      "Material: Aluminum",
-      "Tag size: Standard",
-      "Mounting: Rivets",
-      "Customer action: None required",
     ]);
     expect(tag.text).toContain(`View tag request: ${SITE_URL}/dashboard/tag-requests/tr-9`);
+  });
+
+  it("stays brief: none of the request's details, which live on its page (D5.1)", () => {
+    expect(`${tag.text}${visibleHtml(tag.html)}`).not.toMatch(/Material|Tag size|Mounting|Assets|Customer action/);
+    expect(bytes(tag.html)).toBeLessThanOrEqual(20_000);
   });
 
   it("keeps the request id to a small support line at the end", () => {
@@ -581,17 +608,16 @@ describe("buildTagStatusEmail", () => {
     expect(tag.text.indexOf("Support ID: tr-9")).toBeGreaterThan(tag.text.indexOf("View tag request"));
   });
 
-  it("renders without the card details it was not given", () => {
+  it("omits the requested date when it is unknown", () => {
     const bare = buildTagStatusEmail(input);
-    expect(bare.text).not.toMatch(/Requested:|Assets:|Material:/);
+    expect(bare.text).not.toContain("Requested:");
     expectInBoth(bare, ["Status: In production", "Support ID: tr-9"]);
-    expect(bytes(bare.html)).toBeLessThanOrEqual(20_000);
-    expect(bytes(tag.html)).toBeLessThanOrEqual(20_000);
   });
 
-  it("explains why the recipient got it, and stays free of images and shorteners", () => {
+  it("explains why the recipient got it, and carries no photo, script or shortener", () => {
     expect(tag.text).toContain("enabled for tag request updates");
-    expect(tag.html).not.toMatch(/<img|<script|<iframe/i);
+    expect(tag.html).not.toMatch(NON_LOGO_IMG);
+    expect(tag.html).not.toMatch(/<script|<iframe/i);
     expect(tag.text).not.toMatch(/bit\.ly|tinyurl/i);
   });
 
