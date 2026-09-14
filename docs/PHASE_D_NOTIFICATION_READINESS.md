@@ -22,8 +22,8 @@ Three things keep this below an unconditional GO:
 
 - a usability gap the operator found: the escalation reason (D5.1);
 - a noisy but design-conformant return classification;
-- delivery checks that cannot be run safely (live replay, live provider failure), and first-contact placement for a
-  never-allowlisted mailbox, which is unmeasured.
+- delivery checks that cannot be run safely (live replay, live provider failure). First-contact placement is handled
+  per customer at onboarding (§14).
 
 | # | Verdict | Result | Condition / reason |
 |---|---|---|---|
@@ -33,8 +33,8 @@ Three things keep this below an unconditional GO:
 | 4 | Return notification and noise | **CONDITIONAL GO** | All three modes behave as locked, and staff returns never send individually. A clean renter return without the optional Additional photos is **Routine review**, not Record only — conforms to design §5.3, needs an operator decision (§12). |
 | 5 | Daily summary reliability | **GO** | First real windows 2026-09-12 (quiet), 2026-09-13 (`sent`, 7 items), 2026-09-14 (quiet); one ledger row per organization per window; cron auth 3/3. DST, catch-up, failure and ordering are proven on staging. The operator checked the delivered summary in Gmail (§6). |
 | 6 | Photo-preview privacy | **GO** | Previews were attached 2 of 2 on three reports, each under 250 KB, and none of the content showed a storage path or signed URL. Stripping is unit-tested on real Sharp output. Stored originals keep their metadata; that is a recorded limitation, not a preview issue. |
-| 7 | Delivery and client rendering | **CONDITIONAL GO** | The operator verified direct Outlook delivery and the Gmail review of the support inbox (SPF, DKIM and DMARC pass; Inbox) on 2026-09-14. Still missing: live replay, live provider failure, and first-contact placement for a never-allowlisted mailbox. A forwarded Gmail copy lost its inline image. |
-| 8 | Limited-pilot readiness (notifications) | **CONDITIONAL GO** | Conditions: D5.1; the clean-return decision; the first-contact placement decision (§14). Standing: `after()` is best-effort, not a queue, and Supabase has no backups (Phase C §13). |
+| 7 | Delivery and client rendering | **CONDITIONAL GO** | The operator verified direct Outlook delivery and the Gmail review of the support inbox (SPF, DKIM and DMARC pass; Inbox) on 2026-09-14. Still missing: live replay and live provider failure. First-contact placement is handled per customer at onboarding (decided 2026-09-14). A forwarded Gmail copy lost its inline image. |
+| 8 | Limited-pilot readiness (notifications) | **CONDITIONAL GO** | Conditions: D5.1; the clean-return decision; the onboarding email check for each pilot customer (§14). Standing: `after()` is best-effort, not a queue, and Supabase has no backups (Phase C §13). |
 
 ---
 
@@ -60,7 +60,9 @@ Three things keep this below an unconditional GO:
   - A second customer organization: `off`, no address.
   - QA organization: `off`, tag updates off. The QA tooling restored its pre-D5 notification values at 16:48 UTC and
     verified them (no address). Shortly afterwards its main address was set back to `support@mulemark.io` outside the
-    tooling (observed 17:23 UTC), so QA damage and support reports now email the support inbox.
+    tooling (observed 17:23 UTC). At the operator's request it was cleared again with
+    `npm run production:qa-recipient -- --clear --confirm` and verified (no address, 2026-09-14), so the QA
+    organization sends nothing.
 - **Daily summary:** considers one organization.
 
 ---
@@ -207,7 +209,10 @@ already dropped the 13:00 run lines by closeout, so the ledger is the evidence.
   - in the raw body, the record link unwrapped on `https://mulemark.io` and no tracking image.
 
   The support inbox sits on the sending organization's own domain, so this is not a first-contact placement result.
-- **Not claimed:** universal inbox placement; cold-mailbox placement (no never-allowlisted mailbox was tested).
+- **Not claimed:** universal inbox placement; cold-mailbox placement (no never-allowlisted mailbox was tested). By
+  decision, each pilot customer allowlists the sender and confirms a test report at onboarding instead (§14).
+- **Tracking:** open and click tracking are off. Resend shows tracking metrics not configured, confirmed by the operator
+  on 2026-09-14.
 
 ---
 
@@ -388,7 +393,8 @@ Resend sandbox.
 - **`after()` is not a durable queue.** A lost invocation loses the email; the committed row and inbox remain the
   record.
 - **Delivery gaps.** Live replay (idempotency) and live provider failure were not run. Cold-mailbox placement is
-  unmeasured. DMARC is `p=none`. Resend open/click tracking status is unrecorded.
+  unmeasured by decision: each customer's mailbox is checked at onboarding instead. DMARC is `p=none`. Open and click
+  tracking are off.
 - **Forwarded copies** may drop inline preview images.
 - **Original photos keep their metadata** (including GPS) unless converted on the device by D4.1; this stays so until a
   later media phase changes it. Previews are stripped.
@@ -420,13 +426,19 @@ in the docs.
 - Gmail review with authentication headers, the 2026-09-13 summary email and the support-inbox copy of
   `SUB-2026-0D7A41` (2026-09-14).
 
-**Pending:**
+**Decided (operator, 2026-09-14):**
 
-- A recorded decision on first-contact placement: measure a never-allowlisted mailbox, make allowlisting and a test
-  report part of onboarding, or both.
-- The Resend open/click tracking setting, read from the dashboard and recorded. A delivered raw message showed neither
-  applied.
-- Whether the QA organization should keep `support@mulemark.io` as its main address (§2).
+- **First-contact placement is handled at onboarding.**
+  - The operator sends each pilot customer `EMAIL_ALLOWLIST_GUIDE.md`.
+  - The customer adds `notify.mulemark.io` to the safe senders of their notification mailbox; the operator explains
+    what to do but does not change the customer's mailbox.
+  - Before go-live, the customer confirms a test damage report reached the Inbox, and the operator records the result
+    (`ONBOARDING_RUNBOOK.md` §3.10).
+- **Tracking.** Open and click tracking are confirmed off in Resend (not configured). Open/click analytics is on the
+  roadmap backlog for later.
+- **QA address.** Cleared; the QA organization sends nothing.
+
+**Pending from D5:** none.
 
 **QA data left in Production** (test data on the QA organization, kept like every QA run):
 
@@ -448,5 +460,8 @@ The QA organization's notification settings and the QA asset are restored.
 2. **Clean-return classification** — decide whether optional photo slots should stop producing routine notes.
 3. **Operational hold / out-of-service workflow** — the next-phase candidate (`ROADMAP_DEFERRED.md` #3). **Not started;
    needs its own plan and approval.**
+4. **Email open/click analytics** — on the roadmap backlog (operator, 2026-09-14). Enabling it needs a Resend tracking
+   subdomain, a deliberate revision of the Phase D rules (no tracking pixel, record link unwrapped on `mulemark.io`),
+   customer disclosure and a deliverability re-check. **Not started.**
 
 Pilot onboarding remains the recommended business workstream (`roadmap.md`).

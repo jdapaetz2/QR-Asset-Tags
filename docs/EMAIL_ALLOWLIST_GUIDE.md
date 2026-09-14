@@ -7,7 +7,12 @@ it anyway — usually a strict Microsoft 365 tenant, or a brand-new sending doma
 history for. Reach for it after the mail is confirmed *delivered*, never as a substitute for fixing a
 genuine authentication problem.
 
-Send this page to a customer whose notifications are landing in junk.
+**Mulemark sends this page to every pilot customer at onboarding** (decided 2026-09-14), as a precaution for the
+first email from a new sender, and again to any customer whose notifications land in junk.
+
+**At onboarding:** add `notify.mulemark.io` to the safe senders of the mailbox that receives Mulemark notifications
+(steps below). Then submit a test damage report on one of your own tags and confirm the email arrives in that
+mailbox's **Inbox**. Tell your Mulemark contact the result before you rely on notifications.
 
 ---
 

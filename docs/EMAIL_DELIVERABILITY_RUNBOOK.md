@@ -12,8 +12,8 @@ any provider, and never will be claimed.
 > `dry_run` observed again. A **direct Outlook/Hotmail delivery was operator-verified on 2026-09-14** (inline CID
 > preview, dark mode, record link, complete text, no storage path or signed URL). The same day the operator
 > checked the support inbox in Gmail: the summary, tag and routing emails were in the Inbox, with `spf=pass`,
-> `dkim=pass` and `dmarc=pass`. Still open: live replay (row 8), live provider failure (row 7) and first-contact
-> placement.
+> `dkim=pass` and `dmarc=pass`. Still open: live replay (row 8) and live provider failure (row 7). First-contact
+> placement is handled per customer at onboarding (decided 2026-09-14); open and click tracking are confirmed off.
 > Evidence: [`PHASE_D_NOTIFICATION_READINESS.md`](PHASE_D_NOTIFICATION_READINESS.md), design §15.7.
 
 ### Verified live on Production
@@ -80,7 +80,7 @@ summary can only ever be sent from Production.
 |---|---|
 | **Replay** never tested in production | "exactly one email per event" is a different measurement. Our duplicate protection depends on **Resend honouring the `Idempotency-Key` header**, which we have taken from their documentation and proven only in unit tests against a mocked provider. Nothing has yet confirmed the live API accepts and dedupes on it. |
 | **Provider-failure path** never exercised live | unit-tested only; D5 could not force a provider rejection without a secret-bearing call |
-| **Cold-mailbox placement** unmeasured | the Outlook mailbox carries an allow/safe-sender rule — see the Outlook section |
+| **Cold-mailbox placement** unmeasured | the Outlook mailbox carries an allow/safe-sender rule. By decision (2026-09-14) it is handled per customer at onboarding — allowlist plus a confirmed test report — rather than measured; see the Outlook section |
 | **Forwarded copies** | a Gmail-forwarded copy lost its inline preview in D5; direct delivery rendered it. Forwarding clients may drop CID images |
 
 The disabled-notification path is no longer on this list: D5 observed `skipped_disabled` live on 2026-09-13 (row 5).
@@ -94,7 +94,8 @@ The disabled-notification path is no longer on this list: D5 observed `skipped_d
 | Sending domain | `notify.mulemark.io` — transactional only |
 | API key | sending-only, restricted to `notify.mulemark.io` — **operator-confirmed**. The value appears nowhere outside Vercel Production and the Resend dashboard. |
 | Provider | Resend REST API (`POST https://api.resend.com/emails`), no SDK |
-| Tracking | open/click tracking should be **off** — a provider-side setting the app cannot assert and this document will not guess at. **Status in the Resend dashboard is unrecorded; check and record the actual value.** (2026-09-14: a delivered raw message carried unwrapped `mulemark.io` links and no tracking image, so neither was applied to that message.) The app itself sends no pixel and no wrapped link. |
+| Tracking | **Off — operator-confirmed 2026-09-14.** Resend → Domains → `notify.mulemark.io` → Configuration shows "Enable tracking metrics" not configured (open and click tracking need a custom tracking subdomain, and none exists). A delivered raw message the same day carried unwrapped `mulemark.io` links and no tracking image. The app itself sends no pixel and no wrapped link. Open/click analytics is a roadmap backlog item, not enabled. |
+| TLS | Resend setting **Opportunistic** (2026-09-14); a delivery to Google the same day used TLS 1.3 |
 
 ## Behaviour by environment
 
@@ -257,6 +258,15 @@ Two defensible ways to close it: test from a clean Outlook mailbox, **or** decid
 customers receive [`EMAIL_ALLOWLIST_GUIDE.md`](EMAIL_ALLOWLIST_GUIDE.md) at onboarding and that
 allowlisting is part of the workflow. Pick one and record it. Pretending the question is closed is not
 an option.
+
+**Decided (operator, 2026-09-14): the onboarding route.** For every pilot customer, the Mulemark operator (today the
+founder, who runs all onboarding) sends the customer admin [`EMAIL_ALLOWLIST_GUIDE.md`](EMAIL_ALLOWLIST_GUIDE.md).
+The customer — or their mail administrator, for a Microsoft 365 tenant — adds `notify.mulemark.io` to the safe
+senders of the notification mailbox; the operator does not touch the customer's mailbox. Before go-live the customer
+submits a test damage report on one of their own tags and confirms the email reached the Inbox of their notification
+address, and the operator records the date and result in the onboarding checklist
+([`ONBOARDING_RUNBOOK.md`](ONBOARDING_RUNBOOK.md) §3.10). This is a per-customer check, not a general placement
+measurement; no cold-mailbox measurement is planned.
 
 Response, in order:
 

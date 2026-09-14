@@ -1330,7 +1330,8 @@ note `PHASE_D_NOTIFICATION_READINESS.md`.
 - Individual staff-return emails; renter-facing confirmation emails.
 - Per-organization summary times, organization timezone settings, localized email.
 - Original attachments, signed media URLs, a public bucket, stored derived images.
-- Open or click tracking, link shorteners, a dedicated IP, Resend's batch endpoint.
+- Open or click tracking, link shorteners, a dedicated IP, Resend's batch endpoint. *(Open/click tracking was later
+  added to the roadmap backlog for future analytics — operator, 2026-09-14. It is off, and not part of Phase D.)*
 - Marketing email, a visual email rebrand, brand artwork in email.
 - Guaranteed-delivery claims of any kind.
 

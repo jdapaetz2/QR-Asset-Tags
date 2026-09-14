@@ -564,7 +564,7 @@ the same slice.
 | 4 | Return notification and noise | **CONDITIONAL GO** — clean returns without Additional photos are Routine (as built) |
 | 5 | Daily summary reliability | **GO** |
 | 6 | Photo-preview privacy | **GO** |
-| 7 | Delivery and client rendering | **CONDITIONAL GO** — live replay, provider failure, first-contact placement |
+| 7 | Delivery and client rendering | **CONDITIONAL GO** — live replay and provider failure; first-contact placement handled at onboarding |
 | 8 | Limited-pilot readiness (notifications) | **CONDITIONAL GO** |
 
 ## Next recommended workstream
@@ -761,6 +761,7 @@ Build only what repeated pilot evidence justifies.
 | Multi-recipient notifications | First pilot needs different operations/service recipients | Partially promoted — a separate urgent route (switch + address) is locked for Engineering Phase D (D0.1, 2026-09-10); general multi-recipient routing stays deferred |
 | SMS | Email proves too slow for urgent damage or support | Deferred |
 | Notification center | Event volume makes email/log review insufficient | Deferred |
+| Email open/click tracking (analytics) | Engagement analytics become a product or sales need | **Deferred — wanted later** (operator, 2026-09-14). Off today: Resend tracking is not configured. Needs a custom tracking subdomain on `notify.mulemark.io`, a deliberate revision of the Phase D email rules (no pixel, record link unwrapped on `mulemark.io`, design §14 non-goal), customer disclosure and a deliverability re-check |
 | Out-of-service/hold state | A pilot needs to block damaged equipment from rental | **Newly triggered candidate** (Phase D0 incident examples: rollover, immobilized, unsafe) — a separate future phase, **not** Engineering Phase D; see `docs/ROADMAP_DEFERRED.md` #3 |
 | Checklist customization | Two or more customers need materially different checks | Deferred |
 | Fine-grained staff permissions | Customer has counter, yard, service, and manager role separation | Deferred |
