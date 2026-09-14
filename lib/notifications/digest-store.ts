@@ -23,7 +23,7 @@ import type { DigestOrganization, DigestStore } from "@/lib/notifications/digest
 const DIGEST_TYPE = "return_exceptions";
 
 const RETURN_COLUMNS =
-  "id, organization_id, created_at, status, submission_origin, asset_id, submission_data_json, media_urls";
+  "id, organization_id, created_at, status, submission_origin, asset_id, rental_session_id, submission_data_json, media_urls";
 
 export function createDigestStore(client: SupabaseClient = createAdminClient()): DigestStore {
   return {

@@ -42,6 +42,7 @@ const { state, sendMock, logMock, timeMock, transformMock } = vi.hoisted(() => (
     assetRow: null as Record<string, unknown> | null,
     tagRow: null as Record<string, unknown> | null,
     tagError: null as unknown,
+    selects: [] as { table: string; columns: string }[],
     queries: [] as { table: string; column: string; value: unknown }[],
     storageMode: "ok" as "ok" | "missing" | "error",
     storageReads: [] as string[],
@@ -73,7 +74,10 @@ vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({
     from: (table: string) => {
       const builder = {
-        select: () => builder,
+        select: (columns: string) => {
+          state.selects.push({ table, columns });
+          return builder;
+        },
         eq: (column: string, value: unknown) => {
           state.queries.push({ table, column, value });
           return builder;
@@ -153,8 +157,18 @@ beforeEach(() => {
   );
   state.submissionError = null;
   state.assetRow = { asset_code: "EXC-001", asset_name: "Mini Excavator", category: "Excavators" };
-  state.tagRow = { id: "tr-9", organization_id: ORG_ID, status: "in_production" };
+  state.tagRow = {
+    id: "tr-9",
+    organization_id: ORG_ID,
+    status: "in_production",
+    material: "anodized aluminum",
+    tag_size: "2in x 1in",
+    mounting_method: "rivet",
+    created_at: "2026-09-08T23:30:00.000Z",
+    tag_request_assets: [{ count: 2 }],
+  };
   state.tagError = null;
+  state.selects = [];
   state.queries = [];
   state.storageMode = "ok";
   state.storageReads = [];
@@ -693,6 +707,31 @@ describe("notifyTagRequestStatus (B4, D3A)", () => {
     const { text } = sentContent();
     expect(text).toContain("View tag request: https://mulemark.io/dashboard/tag-requests/tr-9");
     expect(text).toContain("Status: In production");
+  });
+
+  it("renders the request card from the saved row, never the free-text quantity notes (D5.1)", async () => {
+    await notifyTagRequestStatus(tagInput);
+    const { text } = sentContent();
+    for (const fact of [
+      "Requested: 2026-09-08",
+      "Assets: 2",
+      "Material: anodized aluminum",
+      "Tag size: 2in x 1in",
+      "Mounting: rivet",
+      "Support ID: tr-9",
+    ]) {
+      expect(text).toContain(fact);
+    }
+    const columns = state.selects.find((entry) => entry.table === "tag_requests")?.columns ?? "";
+    expect(columns).toContain("tag_request_assets(count)");
+    expect(columns).not.toContain("quantity_notes");
+  });
+
+  it("still sends without the asset count when the count embed is missing", async () => {
+    state.tagRow = { ...state.tagRow, tag_request_assets: null };
+    await notifyTagRequestStatus(tagInput);
+    expect(sendMock).toHaveBeenCalledTimes(1);
+    expect(sentContent().text).not.toContain("Assets:");
   });
 
   it("loads the saved request scoped to the organization", async () => {

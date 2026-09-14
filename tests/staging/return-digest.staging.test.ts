@@ -17,12 +17,13 @@ import { submissionReference } from "@/lib/submissions/inbox";
  * a fake sender (no email), on a fixed timeline in 2001 so it never meets real data:
  *
  *   - one of the two UTC schedules proceeds on a PDT date (13:00 UTC) and on a PST date (14:00 UTC);
- *   - daily_exceptions lists renter and staff exceptions, damage / does-not-operate first then oldest first, with
- *     status, photo count and authenticated links, no images, and never another organization's return;
+ *   - daily_exceptions lists renter and staff exceptions grouped by asset (D5.1: open returns first — most serious
+ *     issue, then oldest — then resolved or archived), with status, Pacific submitted time, photo count and
+ *     authenticated links, no images, and never another organization's return;
  *   - a duplicate invocation sends nothing; a quiet day records `skipped_quiet`;
  *   - instant_renter lists staff exceptions only; off excludes the organization;
  *   - a missed or failed day is caught up (a failed send never advances the window);
- *   - more than 25 returns: 25 listed, the rest pointed to Submissions.
+ *   - more than 15 returns: 15 listed, the rest pointed to Submissions.
  *
  * Bounded writes: disposable return checklists on the two staging QA organizations (deleted afterwards), their
  * notification settings (restored afterwards), and ledger rows for 2001 windows (deleted before and after; cron never
@@ -258,20 +259,25 @@ describe("daily return-exceptions summary on staging (fake sender, injected cloc
     expect(a.text.split("\n")[0]).toBe(
       `4 returns with exceptions since ${formatPacific(new Date("2001-01-09T14:00:00.000Z"))} Pacific; 3 still open.`
     );
-    // Damage first (oldest first within the group), then missing accessories.
-    const order = ["a2", "a3", "a5", "a1"].map((key) => a.text.indexOf(ref(key)));
+    // One asset card: open returns first (damage oldest first, then the missing accessory), then the resolved return.
+    const order = ["a3", "a5", "a1", "a2"].map((key) => a.text.indexOf(ref(key)));
     expect(order.every((index) => index >= 0)).toBe(true);
     expect([...order].sort((x, y) => x - y)).toEqual(order);
     for (const key of ["a0", "a4", "b1"]) expect(a.text).not.toContain(ref(key));
 
+    expect(a.text).toContain("Returns with exceptions: 4");
+    expect(a.text).toContain("Still open: 3 (3 new, 0 reviewed)");
+    expect(a.text).toContain("DAMAGE OR DOES NOT OPERATE — 1 asset · 4 returns");
+    expect(a.text).toContain(" · 4 returns · 3 open · 4 exceptions");
     expect(a.text).toContain("Staff return · Resolved");
-    expect(a.text).toContain("Renter return · New");
+    expect(a.text).toContain(`Renter return · New · Submitted ${formatPacific(new Date("2001-01-10T05:00:00.000Z"))} Pacific`);
     expect(a.text).toContain(`Reference: ${ref("a3")} · Photos: 2`);
     expect(a.text).toContain("- Missing accessories");
     expect(a.text).toContain(`Open return checklist: ${SITE}/dashboard/submissions/${idOf("a3")}`);
     expect(a.text).toContain(
-      `Open return checklists: ${SITE}/dashboard/submissions?form_type=return_checklist&status=unresolved`
+      `View open return checklists: ${SITE}/dashboard/submissions?form_type=return_checklist&status=unresolved`
     );
+    expect(a.text).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:/);
     for (const path of PLACEHOLDER_MEDIA) expect(`${a.text}${a.html}`).not.toContain(path);
     expect(a.html).not.toMatch(/<img|cid:/);
     expect(a.attachments).toBeUndefined();
@@ -363,7 +369,7 @@ describe("daily return-exceptions summary on staging (fake sender, injected cloc
     });
   });
 
-  it("more than 25 returns: the first 25 are listed and the rest point to Submissions", async () => {
+  it("more than 15 returns: the first 15 are listed and the rest point to Submissions", async () => {
     await seed(
       Array.from({ length: 27 }, (_, i) => ({
         key: `cap${i}`,
@@ -375,8 +381,9 @@ describe("daily return-exceptions summary on staging (fake sender, injected cloc
     expect(captured).toHaveLength(1);
     const { subject, text } = captured[0].content;
     expect(subject).toBe("Return exceptions summary - 27 returns with exceptions");
-    expect((text.match(/^Open return checklist: /gm) ?? []).length).toBe(25);
-    expect(text).toContain("Showing 25 of 27. The other 2 are in Submissions: ");
+    expect((text.match(/^Open return checklist: /gm) ?? []).length).toBe(15);
+    expect(text).toContain("12 more returns for this asset are in Submissions.");
+    expect(text).toContain("Showing 15 of 27 returns from 1 of 1 asset. The rest are in Submissions: ");
     expect(text).toContain(ref("cap0"));
     expect(text).not.toContain(ref("cap26"));
     expect(await ledgerRow("A", utc("2001-01-18T14:00:00.000Z"))).toMatchObject({ status: "sent", item_count: 27 });

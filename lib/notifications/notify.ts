@@ -7,6 +7,7 @@ import { readNotificationSettings, type SubmissionFormType } from "@/lib/notific
 import { buildIncidentEmail, buildTagStatusEmail, type EmailContent } from "@/lib/notifications/email";
 import {
   checkSavedSubmission,
+  cleanText,
   projectSubmissionBrief,
   SAVED_SUBMISSION_COLUMNS,
   type SavedSubmissionRow,
@@ -303,7 +304,20 @@ export type TagStatusNotificationInput = {
   changedAt: string;
 };
 
-type TagRequestRow = { id: string; organization_id: string; status: string };
+type TagRequestRow = {
+  id: string;
+  organization_id: string;
+  status: string;
+  material?: string | null;
+  tag_size?: string | null;
+  mounting_method?: string | null;
+  created_at?: string | null;
+  /** PostgREST embedded count of the request's assets (the dashboard list uses the same embed). */
+  tag_request_assets?: { count: number }[] | null;
+};
+
+/** D5.1: the columns the tag status card shows. Free-text quantity notes are never loaded. */
+const TAG_REQUEST_COLUMNS = "id, organization_id, status, material, tag_size, mounting_method, created_at, tag_request_assets(count)";
 
 /**
  * Engineering Phase D3A: called only for a real status change (lib/tags/owner-actions.ts). Fails closed when the
@@ -335,7 +349,7 @@ export async function notifyTagRequestStatus(input: TagStatusNotificationInput):
 
     const saved = await admin
       .from("tag_requests")
-      .select("id, organization_id, status")
+      .select(TAG_REQUEST_COLUMNS)
       .eq("id", input.tagRequestId)
       .eq("organization_id", input.organizationId)
       .maybeSingle<TagRequestRow>();
@@ -358,12 +372,22 @@ export async function notifyTagRequestStatus(input: TagStatusNotificationInput):
       return;
     }
 
+    const request = saved.data;
+    const countEmbed = Array.isArray(request.tag_request_assets) ? request.tag_request_assets[0] : null;
     const content = buildTagStatusEmail({
       orgName: org.name ?? "Your organization",
-      statusLabel: tagRequestStatusLabel(saved.data.status),
+      statusLabel: tagRequestStatusLabel(request.status),
+      status: request.status,
       reference: input.tagRequestId,
       manageUrl: `${publicEnv.siteUrl}/dashboard/tag-requests/${encodeURIComponent(input.tagRequestId)}`,
       settingsUrl: `${publicEnv.siteUrl}/dashboard/settings`,
+      request: {
+        requestedAt: typeof request.created_at === "string" ? request.created_at : null,
+        assetCount: countEmbed && typeof countEmbed.count === "number" ? countEmbed.count : null,
+        material: cleanText(request.material, 60),
+        tagSize: cleanText(request.tag_size, 60),
+        mountingMethod: cleanText(request.mounting_method, 60),
+      },
     });
 
     // Each real transition is its own key: `ready → delivered` saved at a given moment sends once, a replay of that

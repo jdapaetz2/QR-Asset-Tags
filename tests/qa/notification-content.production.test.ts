@@ -11,7 +11,13 @@ import {
   SUBJECT_MAX_LENGTH,
   type IncidentPreviews,
 } from "@/lib/notifications/email";
-import { PRIORITY_LABELS, SUBJECT_PREFIXES, type NotificationPriority } from "@/lib/notifications/priority";
+import { normalizeFact, visibleHtml } from "@/lib/notifications/__fixtures__/visible-html";
+import {
+  PRIORITY_LABELS,
+  SUBJECT_PREFIXES,
+  shouldShowPriorityReason,
+  type NotificationPriority,
+} from "@/lib/notifications/priority";
 import {
   projectSubmissionBrief,
   SAVED_SUBMISSION_COLUMNS,
@@ -40,14 +46,24 @@ const QA_ORG_ID = "c0000000-0000-4000-8000-00000000c0a1";
 const QA_ASSET_CODE = "PROD-QA-PERF";
 const SITE = "https://mulemark.io";
 const ARTIFACT_DIR = "qa-artifacts";
-const ALIASES: Record<string, string> = { support: "support@mulemark.io", sandbox: "delivered@resend.dev" };
+/** `operator` is the optional D5.1 operator mailbox (QA_OPERATOR_RECIPIENT, gitignored env); never printed. */
+const OPERATOR = process.env.QA_OPERATOR_RECIPIENT?.trim().toLowerCase() ?? "";
+const ALIASES: Record<string, string> = {
+  support: "support@mulemark.io",
+  sandbox: "delivered@resend.dev",
+  ...(OPERATOR ? { operator: OPERATOR } : {}),
+};
 const RENTER_TEL = "tel:+16045550199";
 const RENTER_MAILTO = "mailto:d5-notification-qa@example.test";
-const MAX_HTML_BYTES = 20_000;
+/** D5.1 budgets for an individual incident email (docs/ACTIONABLE_NOTIFICATION_DESIGN.md §7.8). */
+const MAX_HTML_BYTES = 40_000;
+const MAX_TEXT_BYTES = 12_000;
 
 type Expectation = {
   priority?: NotificationPriority;
   headline?: string;
+  /** D5.1: the priority reason the brief must carry (null for none); omitted when not asserted. */
+  reason?: string | null;
   routes?: string[];
   previewsRequested?: number;
   exception?: string;
@@ -169,6 +185,7 @@ describe("Production notification content, rendered from saved QA submissions", 
     const context = `photos ${b.photos.count}; notes: ${b.returnDetail?.notes.join(" | ") || "none"}`;
     expect(b.priority, context).toBe(scenario.expect.priority);
     if (scenario.expect.headline) expect(b.headline, context).toBe(scenario.expect.headline);
+    if (scenario.expect.reason !== undefined) expect(b.priorityReason, context).toBe(scenario.expect.reason);
 
     // Routing and preview request, from the settings in force when it was submitted.
     const settings = readNotificationSettings(dealias(scenario.settings));
@@ -208,6 +225,10 @@ describe("Production notification content, rendered from saved QA submissions", 
     // Header and body.
     expect(content.text).toContain(`${label.toUpperCase()} — ${b.eventLabel}`);
     expect(content.text).toContain(`Asset: ${QA_ASSET_CODE}`);
+    // D5.1: the escalation reason appears exactly when a reported condition (not the response need) decided priority.
+    const showReason = shouldShowPriorityReason({ priority: b.priority, basis: b.priorityBasis, reason: b.priorityReason });
+    expect(content.text.includes("Priority reason: ")).toBe(showReason);
+    if (showReason) expect(content.text).toContain(`Priority reason: ${b.priorityReason}`);
     if (b.event === "renter_return") {
       if (scenario.expect.exception) {
         expect(content.text).toContain("Exceptions");
@@ -235,9 +256,11 @@ describe("Production notification content, rendered from saved QA submissions", 
     expect(content.text).toContain(media.length === 0 ? "Photos: none" : `Photos: ${media.length} on the record`);
     expect(content.text).toContain(`Change this under Settings → Notifications: ${SITE}/dashboard/settings`);
 
-    // text/plain parity for the load-bearing facts.
-    for (const token of [scenario.reference as string, recordUrl, label.toUpperCase(), `Asset: ${QA_ASSET_CODE}`]) {
-      expect(content.html).toContain(token);
+    // text/plain parity for the load-bearing facts (visible HTML, where labels and values sit in separate cells).
+    expect(content.html).toContain(`href="${recordUrl}"`);
+    const visible = visibleHtml(content.html);
+    for (const token of [scenario.reference as string, label.toUpperCase(), `Asset: ${QA_ASSET_CODE}`]) {
+      expect(visible).toContain(normalizeFact(token));
     }
 
     // Text-only unless previews were requested; with previews, one cid: per attachment and the count line.
@@ -276,5 +299,6 @@ describe("Production notification content, rendered from saved QA submissions", 
     expect(everything).not.toMatch(/supabase|\/storage\/v1\/|token=|X-Amz-|signature=/i);
     for (const path of media) expect(everything).not.toContain(path);
     expect(Buffer.byteLength(content.html, "utf8")).toBeLessThanOrEqual(MAX_HTML_BYTES);
+    expect(Buffer.byteLength(content.text, "utf8")).toBeLessThanOrEqual(MAX_TEXT_BYTES);
   });
 });

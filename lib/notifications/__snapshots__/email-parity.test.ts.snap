@@ -1,0 +1,163 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`canonical plain-text parts > 02-immediate-escalated-by-state 1`] = `
+"Reported: Unsafe to operate · Follow up soon · severity Moderate · 2 photos · Jamie Rivera
+
+IMMEDIATE ATTENTION — Damage report
+Priority reason: Reported unsafe to operate
+
+Asset: EXC-001 — Mini Excavator (Excavators)
+
+Notification priority: Immediate attention
+Reported equipment state: Unsafe to operate
+Reported response need: Follow up soon
+Reported damage severity: Moderate
+Photos: 2 on the record
+These are the submitter's selections, not a verified inspection.
+
+What was reported
+“Tipped onto its side on the slope by the fence line. Nobody was hurt.”
+
+Open damage report: https://mulemark.io/dashboard/submissions/7c0a55e1-2222-4222-8222-222222222222
+
+Contact
+Jamie Rivera
+Phone: +1 604 555 0100
+Email: jamie@site.test
+
+Reference: SUB-2026-7C0A55
+
+You are receiving this because Northridge Rentals has email notifications enabled for damage reports. Change this under Settings → Notifications: https://mulemark.io/dashboard/settings"
+`;
+
+exports[`canonical plain-text parts > 05-return-exceptions 1`] = `
+"Exceptions: damage reported, 1 failed check · 3 photos
+
+FOLLOW UP — Renter return checklist
+
+Asset: GEN-003 — Portable Generator (Generators)
+Linked to a rental session.
+
+Notification priority: Follow up
+Photos: 3 on the record — Damage photos (2), Overall photo (1)
+
+Exceptions
+- Damage reported: left side panel (reported damage severity: Severe)
+  “Dented and scraped along the lower edge.”
+- Failed check: Oil level
+These are the submitter's selections, not a verified inspection.
+
+Photo previews included: 1 of 3 photos, reduced in size.
+Open the record in Mulemark for the original photos and full evidence.
+
+Open return checklist: https://mulemark.io/dashboard/submissions/7c0a55e1-2222-4222-8222-222222222222
+
+Contact
+Alex Chen
+Email: alex.chen@site.test
+
+Reference: SUB-2026-7C0A55
+
+You are receiving this because Northridge Rentals has email notifications enabled for return checklists. Change this under Settings → Notifications: https://mulemark.io/dashboard/settings"
+`;
+
+exports[`canonical plain-text parts > 08-digest-mixed 1`] = `
+"7 returns with exceptions since Sun, Sep 13, 6:00 AM Pacific; 6 still open.
+
+DAILY SUMMARY — Return exceptions
+
+Organization: Northridge Rentals
+Covers: Sun, Sep 13, 6:00 AM to Mon, Sep 14, 6:00 AM (Pacific)
+Each return is listed with its current status; some may already be handled.
+
+Returns with exceptions: 7
+Still open: 6 (4 new, 2 reviewed)
+Resolved or archived: 1
+
+Damage or does not operate: 3
+Failed condition checks: 2
+Missing accessories: 2
+Each return is counted once, under its most serious issue.
+
+View open return checklists: https://mulemark.io/dashboard/submissions?form_type=return_checklist&status=unresolved
+
+DAMAGE OR DOES NOT OPERATE — 2 assets · 3 returns
+
+EXC-001 — Mini Excavator · 2 returns · 2 open · 2 exceptions
+
+Renter return · New · Submitted Sun, Sep 13, 8:10 AM Pacific
+- Damage: rear bumper (Minor)
+Reference: SUB-2026-A20000 · Photos: 3
+Open return checklist: https://mulemark.io/dashboard/submissions/a2000000-0000-4000-8000-000000000000
+
+Staff return · Reviewed · Submitted Sun, Sep 13, 12:40 PM Pacific
+- Missing accessory: Cords
+Reference: SUB-2026-A20001 · Photos: none
+Open return checklist: https://mulemark.io/dashboard/submissions/a2000100-0000-4000-8000-000000000000
+
+GEN-003 — Portable Generator · 1 return · 1 open · 1 exception
+
+Renter return · New · Submitted Sun, Sep 13, 10:10 AM Pacific
+- Answered No: Starts / operates?
+Reference: SUB-2026-A20002 · Photos: 1
+Open return checklist: https://mulemark.io/dashboard/submissions/a2000200-0000-4000-8000-000000000000
+
+FAILED CONDITION CHECKS — 2 assets · 2 returns
+
+LFT-012 — Scissor Lift · 1 return · 1 open · 1 exception
+
+Staff return · New · Submitted Sun, Sep 13, 11:10 AM Pacific
+- Failed check: Oil level
+Reference: SUB-2026-A20003 · Photos: none
+Open return checklist: https://mulemark.io/dashboard/submissions/a2000300-0000-4000-8000-000000000000
+
+Unidentified asset · 1 return · 1 open · 1 exception
+
+Renter return · Reviewed · Submitted Sun, Sep 13, 5:40 PM Pacific
+- Failed check: Oil level
+Reference: SUB-2026-A20006 · Photos: none
+Open return checklist: https://mulemark.io/dashboard/submissions/a2000600-0000-4000-8000-000000000000
+
+MISSING ACCESSORIES — 1 asset · 1 return
+
+TRL-007 — Utility Trailer · 1 return · 1 open · 1 exception
+
+Renter return · New · Submitted Sun, Sep 13, 2:40 PM Pacific
+- Missing accessory: Cords
+Reference: SUB-2026-A20004 · Photos: none
+Open return checklist: https://mulemark.io/dashboard/submissions/a2000400-0000-4000-8000-000000000000
+
+RESOLVED OR ARCHIVED — 1 asset · 1 return
+
+GEN-004 — Portable Generator · 1 return · 0 open · 1 exception
+
+Staff return · Resolved · Submitted Sun, Sep 13, 7:00 AM Pacific
+- Damage: rear bumper (Minor)
+Reference: SUB-2026-A20005 · Photos: 2
+Open return checklist: https://mulemark.io/dashboard/submissions/a2000500-0000-4000-8000-000000000000
+
+View open return checklists: https://mulemark.io/dashboard/submissions?form_type=return_checklist&status=unresolved
+
+You are receiving this because Northridge Rentals has email notifications enabled for daily return exception summaries. Change this under Settings → Notifications: https://mulemark.io/dashboard/settings"
+`;
+
+exports[`canonical plain-text parts > 12-tag-in-review 1`] = `
+"Status: In review. No action required.
+
+RECORD ONLY — Tag request
+
+Organization: Northridge Rentals
+Status: In review
+Requested: 2026-09-08
+Assets: 24
+Material: anodized aluminum
+Tag size: 2in x 1in
+Mounting: rivet
+Customer action: None required
+
+View tag request: https://mulemark.io/dashboard/tag-requests/5f1c2a90-3b7e-4c1d-9a2b-6e8f0d4c7a11
+
+Support ID: 5f1c2a90-3b7e-4c1d-9a2b-6e8f0d4c7a11
+
+You are receiving this because Northridge Rentals has email notifications enabled for tag request updates. Change this under Settings → Notifications: https://mulemark.io/dashboard/settings"
+`;

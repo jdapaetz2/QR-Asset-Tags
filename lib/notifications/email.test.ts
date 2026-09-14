@@ -16,6 +16,7 @@ import {
   supportRow,
   templateV2_20260702,
 } from "./__fixtures__/rows";
+import { normalizeFact, visibleHtml } from "./__fixtures__/visible-html";
 
 const GEN: BriefAsset = { code: "GEN-003", name: "Portable Generator", category: "Generators" };
 const EXC: BriefAsset = { code: "EXC-001", name: "Mini Excavator", category: "Excavators" };
@@ -31,29 +32,20 @@ function emailFor(row: SavedSubmissionRow, asset: BriefAsset = GEN) {
   return buildIncidentEmail(brief(row, asset));
 }
 
-/** The visible text of the HTML part, entities decoded — to compare facts with the text part. */
-function visibleHtml(html: string): string {
-  return html
-    .replace(/<br>/g, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/g, "&");
-}
-
+/** A fact is in the text part verbatim and in the visible HTML (where a label and its value sit in separate cells). */
 function expectInBoth(email: { text: string; html: string }, facts: string[]) {
   const html = visibleHtml(email.html);
   for (const fact of facts) {
     expect(email.text).toContain(fact);
-    expect(html).toContain(fact);
+    expect(html).toContain(normalizeFact(fact));
   }
 }
 
 function webHrefs(html: string): string[] {
   return [...html.matchAll(/href="(https?:[^"]+)"/g)].map((match) => match[1]);
 }
+
+const bytes = (value: string) => Buffer.byteLength(value, "utf8");
 
 const exceptionReturn = () =>
   returnRowV2({
@@ -84,6 +76,7 @@ describe("damage report — legacy rows (no triage yet)", () => {
     expectInBoth(email, [
       "ROUTINE REVIEW — Damage report",
       "Asset: GEN-003 — Portable Generator (Generators)",
+      "Notification priority: Routine review",
       "“Small dent on the side panel.”",
       "Reported urgency: Medium",
       "Medium was the form's default, so it may not reflect a deliberate choice.",
@@ -93,10 +86,10 @@ describe("damage report — legacy rows (no triage yet)", () => {
     expect(email.text).toContain(`Open damage report: ${RECORD_URL}`);
   });
 
-  it("legacy high is a follow up", () => {
+  it("legacy high is a follow up, and says why", () => {
     const email = emailFor(damageRow({ urgency: "high", description: "Hose weeping." }));
     expect(email.subject).toBe("Follow up: GEN-003 — reported urgency: high");
-    expect(email.text).toContain("FOLLOW UP — Damage report");
+    expectInBoth(email, ["FOLLOW UP — Damage report", "Priority reason: Reported urgency: high"]);
   });
 
   it("legacy low carries no default note", () => {
@@ -161,6 +154,65 @@ describe("damage report — every D2 answer reaches the email", () => {
     expectInBoth(email, ["Reported equipment state: Not reported", "Reported response need: Not reported"]);
     expect(email.text).not.toContain("were not asked");
   });
+
+  it("keeps up to six line breaks of the description", () => {
+    const email = emailFor(damageRow({ urgency: "low", description: "Line one\r\nLine two\n\n\nLine three" }));
+    expect(email.text).toContain("“Line one\nLine two\n\nLine three”");
+    expect(email.html).toContain("Line one<br>Line two<br><br>Line three");
+  });
+});
+
+describe("priority reason (D5.1)", () => {
+  it("explains an escalation by a reported condition without claiming the submitter asked for immediate help", () => {
+    const email = emailFor(
+      damageRow({
+        triage_version: 1,
+        reported_equipment_state: "unsafe_to_operate",
+        reported_response_need: "prompt",
+        description: "Tipped over.",
+      }),
+      EXC
+    );
+    expectInBoth(email, [
+      "IMMEDIATE ATTENTION — Damage report",
+      "Priority reason: Reported unsafe to operate",
+      "Reported response need: Follow up soon",
+    ]);
+    expect(email.text).not.toContain("Help needed now");
+  });
+
+  it("states no reason when the submitter's own response need decided the priority", () => {
+    const email = emailFor(supportRow({ triage_version: 1, reported_response_need: "immediate", description: "Stuck." }));
+    expect(email.subject).toBe("Immediate attention: GEN-003 — help requested now");
+    expect(email.text).not.toContain("Priority reason");
+    expectInBoth(email, ["Reported response need: Help needed now"]);
+  });
+
+  it("states no reason on return checklists or routine reports", () => {
+    expect(emailFor(exceptionReturn()).text).not.toContain("Priority reason");
+    expect(emailFor(damageRow({ urgency: "low", description: "x" })).text).not.toContain("Priority reason");
+  });
+
+  it("orders priority, asset, reported facts, description, action, contact and reference", () => {
+    const email = emailFor(
+      damageRow({ triage_version: 1, reported_equipment_state: "unsafe_to_operate", reported_response_need: "prompt", description: "Tipped over." }),
+      EXC
+    );
+    const order = [
+      "IMMEDIATE ATTENTION — Damage report",
+      "Priority reason: Reported unsafe to operate",
+      "Asset: EXC-001",
+      "Reported equipment state: Unsafe to operate",
+      "What was reported",
+      `Open damage report: ${RECORD_URL}`,
+      "Contact",
+      "Reference: SUB-",
+      "You are receiving this",
+    ].map((token) => email.text.indexOf(token));
+    expect(order.every((index) => index >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(email.html.indexOf(`href="${RECORD_URL}"`)).toBeLessThan(email.html.indexOf("Call reporter"));
+  });
 });
 
 describe("support request", () => {
@@ -179,12 +231,17 @@ describe("support request", () => {
     ]);
     expect(email.text).toContain(`Open support request: ${RECORD_URL}`);
     expect(email.html).toContain('href="tel:6045550199"');
+    expect(email.html).not.toContain("Email reporter");
   });
 
   it("renders reported issue type when triage exists", () => {
     const email = emailFor(supportRow({ triage_version: 1, reported_issue_type: "stuck_recovery", description: "Sunk in." }));
     expect(email.subject).toBe("Follow up: GEN-003 — reported stuck, recovery needed");
-    expectInBoth(email, ["Reported issue type: Stuck or needs recovery", "Reported response need: Not reported"]);
+    expectInBoth(email, [
+      "Reported issue type: Stuck or needs recovery",
+      "Reported response need: Not reported",
+      "Priority reason: Recovery assistance reported",
+    ]);
   });
 });
 
@@ -233,6 +290,13 @@ describe("renter return checklist", () => {
     expectInBoth(email, ["ROUTINE REVIEW — Renter return checklist", "Also noted", "- No condition photos provided"]);
   });
 
+  it("states a linked rental session under the asset", () => {
+    const row = exceptionReturn();
+    const email = emailFor({ ...row, rental_session_id: "b0000000-0000-4000-8000-0000000000c1" });
+    expectInBoth(email, ["Asset: GEN-003 — Portable Generator (Generators)\nLinked to a rental session."]);
+    expect(`${email.text}${email.html}`).not.toContain("b0000000-0000-4000-8000-0000000000c1");
+  });
+
   it("shows contact only when the renter gave it", () => {
     const email = emailFor(
       returnRowV2({
@@ -247,14 +311,17 @@ describe("renter return checklist", () => {
 });
 
 describe("contact links", () => {
-  it("links a valid phone and email, with the record CTA first", () => {
+  it("offers call and email actions for a valid phone and email, with the record button first", () => {
     const email = emailFor(damageRow({ urgency: "low", description: "x" }));
     expect(email.html).toContain('href="tel:+16045550100"');
     expect(email.html).toContain('href="mailto:jamie@site.test"');
+    expect(email.html).toContain("Call reporter");
+    expect(email.html).toContain("Email reporter");
     expect(email.html.indexOf("<a ")).toBe(email.html.indexOf(`<a href="${RECORD_URL}"`));
+    expectInBoth(email, ["Phone: +1 604 555 0100", "Email: jamie@site.test"]);
   });
 
-  it("shows invalid values as text without a link", () => {
+  it("shows invalid values as text without a link or action", () => {
     const email = emailFor(
       damageRow(
         { urgency: "low", description: "x" },
@@ -263,6 +330,7 @@ describe("contact links", () => {
     );
     expect(email.html).not.toContain("tel:");
     expect(email.html).not.toContain("mailto:");
+    expect(email.html).not.toMatch(/Call reporter|Email reporter/);
     expect(email.text).toContain("Phone: call the office");
   });
 });
@@ -298,8 +366,17 @@ describe("inline photo previews (D4)", () => {
     expect(cids).toEqual(["mm-preview-1@mulemark", "mm-preview-2@mulemark", "mm-preview-3@mulemark"]);
     expect(email.attachments?.map((attachment) => attachment.contentId)).toEqual(cids);
     expect(email.html).toContain('alt="Damage photos — preview 1 of 3"');
-    expect(email.html).toContain('width="320" height="240"');
     expect(email.html.match(/<img /g)).toHaveLength(3);
+    expect(email.html).not.toMatch(/<a [^>]*>\s*<img/);
+  });
+
+  it.each([
+    [1, 'width="300" height="225"'],
+    [2, 'width="263" height="197"'],
+    [3, 'width="171" height="128"'],
+  ])("sizes %i preview(s) as a compact strip", (count, size) => {
+    const email = buildIncidentEmail(brief(photoRow()), previewSet(count));
+    expect(email.html.match(new RegExp(size, "g"))).toHaveLength(count);
   });
 
   it("states the photo total, the previews included and where the originals are, in both parts", () => {
@@ -342,8 +419,17 @@ describe("inline photo previews (D4)", () => {
 
   it("shows return previews after the photo count", () => {
     const email = buildIncidentEmail(brief(exceptionReturn()), previewSet(1));
-    expect(email.html.indexOf("Photos: 3 on the record")).toBeGreaterThan(-1);
-    expect(email.html.indexOf("Photos: 3 on the record")).toBeLessThan(email.html.indexOf("<img"));
+    expect(email.html.indexOf("3 on the record")).toBeGreaterThan(-1);
+    expect(email.html.indexOf("3 on the record")).toBeLessThan(email.html.indexOf("<img"));
+  });
+
+  it("stays within the size budget with three previews and a long description", () => {
+    const email = buildIncidentEmail(
+      brief(damageRow({ urgency: "low", description: "word ".repeat(2000) }, { media_urls: photoRow().media_urls })),
+      previewSet(3)
+    );
+    expect(bytes(email.html)).toBeLessThanOrEqual(40_000);
+    expect(bytes(email.text)).toBeLessThanOrEqual(12_000);
   });
 });
 
@@ -372,7 +458,7 @@ describe("safety of the rendered message", () => {
       }
       expect(lower).not.toMatch(/bit\.ly|tinyurl|t\.co\/|click\?|utm_/);
     }
-    expect(email.html).not.toMatch(/<img|<style|background-image|display:\s*none|<script|<iframe/i);
+    expect(email.html).not.toMatch(/<img|<style|background-image|display:\s*none|<script|<iframe|\bclass=/i);
     expect(email.text).not.toContain(mediaPath("damage-1"));
   });
 
@@ -388,7 +474,7 @@ describe("safety of the rendered message", () => {
     expect(email.text).not.toMatch(/\bUTC\b|T\d{2}:\d{2}/);
   });
 
-  it("stays under 20 KB of HTML with a long description and many failed checks", () => {
+  it("stays within the HTML and text budgets with a long description and many failed checks", () => {
     const template = customTemplate();
     const checks = template.sections.find((section) => section.id === "checks")!;
     const values: Record<string, unknown> = { hitch_pin: "pass", cab_clean: "pass", had_damage: "no" };
@@ -397,11 +483,12 @@ describe("safety of the rendered message", () => {
       values[`extra_${i}`] = "fail";
     }
     const returnEmail = emailFor(returnRowV2({ template, values, flags: CLEAN_FLAGS }));
-    expect(returnEmail.html.length).toBeLessThan(20_000);
+    expect(bytes(returnEmail.html)).toBeLessThanOrEqual(40_000);
+    expect(bytes(returnEmail.text)).toBeLessThanOrEqual(12_000);
     expect(returnEmail.text).toContain("- and 30 more in Mulemark");
 
     const damageEmail = emailFor(damageRow({ urgency: "low", description: "word ".repeat(2000) }));
-    expect(damageEmail.html.length).toBeLessThan(20_000);
+    expect(bytes(damageEmail.html)).toBeLessThanOrEqual(40_000);
     expect(damageEmail.text).toContain("Shortened here. The full text is in Mulemark.");
   });
 });
@@ -452,19 +539,54 @@ describe("reason line", () => {
 });
 
 describe("buildTagStatusEmail", () => {
-  const tag = buildTagStatusEmail({
+  const input = {
     orgName: "Northridge Rentals",
     statusLabel: "In production",
+    status: "in_production",
     reference: "tr-9",
     manageUrl: `${SITE_URL}/dashboard/tag-requests/tr-9`,
     settingsUrl: `${SITE_URL}/dashboard/settings`,
+  };
+  const tag = buildTagStatusEmail({
+    ...input,
+    request: {
+      requestedAt: "2026-09-08T23:30:00.000Z",
+      assetCount: 24,
+      material: "Aluminum",
+      tagSize: "Standard",
+      mountingMethod: "Rivets",
+    },
   });
 
-  it("is record only, with the actual status, organization and reference", () => {
+  it("is record only, with the actual status, organization and the request card", () => {
     expect(tag.subject).toBe("Tag request updated — Northridge Rentals");
     expect(tag.text.split("\n")[0]).toBe("Status: In production. No action required.");
-    expectInBoth(tag, ["RECORD ONLY — Tag request", "Organization: Northridge Rentals", "Status: In production", "Reference: tr-9"]);
+    expectInBoth(tag, [
+      "RECORD ONLY — Tag request",
+      "Organization: Northridge Rentals",
+      "Status: In production",
+      "Requested: 2026-09-08",
+      "Assets: 24",
+      "Material: Aluminum",
+      "Tag size: Standard",
+      "Mounting: Rivets",
+      "Customer action: None required",
+    ]);
     expect(tag.text).toContain(`View tag request: ${SITE_URL}/dashboard/tag-requests/tr-9`);
+  });
+
+  it("keeps the request id to a small support line at the end", () => {
+    expectInBoth(tag, ["Support ID: tr-9"]);
+    expect(tag.text).not.toContain("Reference: tr-9");
+    expect(tag.text.indexOf("Support ID: tr-9")).toBeGreaterThan(tag.text.indexOf("View tag request"));
+  });
+
+  it("renders without the card details it was not given", () => {
+    const bare = buildTagStatusEmail(input);
+    expect(bare.text).not.toMatch(/Requested:|Assets:|Material:/);
+    expectInBoth(bare, ["Status: In production", "Support ID: tr-9"]);
+    expect(bytes(bare.html)).toBeLessThanOrEqual(20_000);
+    expect(bytes(tag.html)).toBeLessThanOrEqual(20_000);
   });
 
   it("explains why the recipient got it, and stays free of images and shorteners", () => {

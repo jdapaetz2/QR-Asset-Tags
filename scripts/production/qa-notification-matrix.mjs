@@ -19,8 +19,10 @@
  * REFUSALS, because this writes to PRODUCTION:
  *   1. `assertTarget("production", …)` — staging is refused by name.
  *   2. The organization, asset, short code and tag are hard-coded QA fixtures; no argument can name anything else.
- *   3. Recipients are an allowlist of two (our support mailbox, Resend's sandbox). A recipient this tool did not set
- *      is never overwritten.
+ *   3. Recipients are an allowlist of two (our support mailbox, Resend's sandbox), plus — D5.1, only with
+ *      `--operator-mailbox` — the operator's own client-check mailbox from QA_OPERATOR_RECIPIENT (alias "operator",
+ *      never printed; refused if it is another organization's notification address). A recipient this tool did not
+ *      set is never overwritten.
  *   4. Without `--confirm` it prints the plan and writes nothing. Unknown or repeated arguments stop it.
  *   5. A snapshot left by an earlier run must be restored (`--restore --confirm`) before a new run.
  *
@@ -40,6 +42,7 @@
  *   npm run production:qa-notifications                                          # dry run
  *   npm run production:qa-notifications -- --confirm --tag-setup --leave-digest
  *   npm run production:qa-notifications -- --confirm --only=damage-cannot-move,support-rollover
+ *   npm run production:qa-notifications -- --confirm --operator-mailbox --only=damage-previews-on   # to QA_OPERATOR_RECIPIENT
  *   npm run production:qa-notifications -- --restore                             # shows what would be restored
  *   npm run production:qa-notifications -- --restore --confirm
  */
@@ -51,6 +54,7 @@ import {
   BASE,
   GPS_EXIF,
   INTERVAL_MS,
+  OPERATOR,
   QA_ASSET_ID,
   QA_ORG_ID,
   QA_SHORT_CODE,
@@ -58,6 +62,7 @@ import {
   SUPPORT_RECIPIENT,
   applySettings,
   assertAllowlisted,
+  assertOperatorRecipientUnused,
   awaitConfirmation,
   captureConfirmation,
   connectProduction,
@@ -86,7 +91,7 @@ const TAG_REQUEST_NOTE = "D5 notification QA — test data, not a real order. Do
 // Arguments
 // ---------------------------------------------------------------------------
 
-const FLAGS = new Set(["--confirm", "--tag-setup", "--leave-digest", "--restore"]);
+const FLAGS = new Set(["--confirm", "--tag-setup", "--leave-digest", "--restore", "--operator-mailbox"]);
 const args = process.argv.slice(2);
 for (const arg of args) {
   if (!FLAGS.has(arg) && !/^--only=[a-z0-9,-]+$/.test(arg)) refuse(TAG, `unknown argument "${arg}".`);
@@ -96,10 +101,15 @@ const CONFIRMED = args.includes("--confirm");
 const TAG_SETUP = args.includes("--tag-setup");
 const LEAVE_DIGEST = args.includes("--leave-digest");
 const RESTORE = args.includes("--restore");
+const OPERATOR_MAILBOX = args.includes("--operator-mailbox");
 const ONLY = (args.find((arg) => arg.startsWith("--only=")) ?? "").slice("--only=".length).split(",").filter(Boolean);
 if (RESTORE && args.some((arg) => arg !== "--restore" && arg !== "--confirm")) {
   refuse(TAG, "--restore takes only --confirm.");
 }
+if (OPERATOR_MAILBOX && !OPERATOR.address) refuse(TAG, OPERATOR.problem);
+/** The QA organization's main notification address for this run. */
+const MAIN_RECIPIENT = OPERATOR_MAILBOX ? OPERATOR.address : SUPPORT_RECIPIENT;
+const MAIN_ALIAS = OPERATOR_MAILBOX ? "operator" : "support";
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -121,6 +131,8 @@ const DAILY = { return_notification_mode: "daily_exceptions" };
  * `expect.routes` are the sends routing must plan; an empty list means the notifier logs `skipped_disabled`.
  * `callNow`: none | button (asset QA phone) | fallback-phone (unusable phone shown as text) | fallback-none.
  * `digest`: whether the next daily summary (QA organization in daily_exceptions) must list the return.
+ * `reason`: the D5.1 priority reason the saved report must project to (null for none); the content check also proves
+ * "Priority reason:" is shown only when a reported condition, not the response need, decided the priority.
  */
 const SCENARIOS = [
   // ---- Damage reports -------------------------------------------------------
@@ -128,31 +140,31 @@ const SCENARIOS = [
     id: "damage-triage-omitted",
     kind: "damage",
     triage: {},
-    expect: { priority: "routine", headline: "damage reported", routes: ["main"], previewsRequested: 0, callNow: "none" },
+    expect: { priority: "routine", headline: "damage reported", reason: null, routes: ["main"], previewsRequested: 0, callNow: "none" },
   },
   {
     id: "damage-routine-answers",
     kind: "damage",
     triage: { state: "Yes, it works normally", need: "No rush", severity: "Minor — scratches or dents" },
-    expect: { priority: "routine", headline: "damage reported", routes: ["main"], previewsRequested: 0, callNow: "none" },
+    expect: { priority: "routine", headline: "damage reported", reason: null, routes: ["main"], previewsRequested: 0, callNow: "none" },
   },
   {
     id: "damage-major-severity-only",
     kind: "damage",
     triage: { severity: "Major — serious damage" },
-    expect: { priority: "routine", headline: "damage reported", routes: ["main"], previewsRequested: 0, callNow: "none" },
+    expect: { priority: "routine", headline: "damage reported", reason: null, routes: ["main"], previewsRequested: 0, callNow: "none" },
   },
   {
     id: "damage-not-operating-prompt",
     kind: "damage",
     triage: { state: "No, it won't run or work", need: "Please follow up soon" },
-    expect: { priority: "follow_up", headline: "reported not operating", routes: ["main"], previewsRequested: 0, callNow: "none" },
+    expect: { priority: "follow_up", headline: "reported not operating", reason: "Reported not operating", routes: ["main"], previewsRequested: 0, callNow: "none" },
   },
   {
     id: "damage-cannot-move",
     kind: "damage",
     triage: { state: "It's stuck or can't be moved", need: "Please follow up soon" },
-    expect: { priority: "immediate", headline: "reported unable to move", routes: ["main"], previewsRequested: 0, callNow: "button" },
+    expect: { priority: "immediate", headline: "reported unable to move", reason: "Reported unable to move", routes: ["main"], previewsRequested: 0, callNow: "button" },
   },
   {
     id: "damage-unsafe-invalid-phone",
@@ -162,6 +174,7 @@ const SCENARIOS = [
     expect: {
       priority: "immediate",
       headline: "reported unsafe to operate",
+      reason: "Reported unsafe to operate",
       routes: ["main"],
       previewsRequested: 0,
       callNow: "fallback-phone",
@@ -175,6 +188,7 @@ const SCENARIOS = [
     expect: {
       priority: "follow_up",
       headline: "reported operating with limitations",
+      reason: "Reported operating with limitations",
       routes: ["main"],
       previewsRequested: 2,
       callNow: "none",
@@ -189,6 +203,7 @@ const SCENARIOS = [
     expect: {
       priority: "follow_up",
       headline: "reported operating with limitations",
+      reason: "Reported operating with limitations",
       routes: ["main"],
       previewsRequested: 0,
       callNow: "none",
@@ -200,7 +215,7 @@ const SCENARIOS = [
     id: "support-operating-question",
     kind: "support",
     triage: { issue: "How to use it", need: "No rush" },
-    expect: { priority: "routine", headline: "support request", routes: ["main"], previewsRequested: 0, callNow: "none" },
+    expect: { priority: "routine", headline: "support request", reason: null, routes: ["main"], previewsRequested: 0, callNow: "none" },
   },
   {
     id: "support-breakdown-prompt",
@@ -209,6 +224,7 @@ const SCENARIOS = [
     expect: {
       priority: "follow_up",
       headline: "reported breakdown or no-start",
+      reason: "Breakdown or no-start reported",
       routes: ["main"],
       previewsRequested: 0,
       callNow: "none",
@@ -221,6 +237,7 @@ const SCENARIOS = [
     expect: {
       priority: "follow_up",
       headline: "reported stuck, recovery needed",
+      reason: "Recovery assistance reported",
       routes: ["main"],
       previewsRequested: 0,
       callNow: "none",
@@ -233,6 +250,7 @@ const SCENARIOS = [
     expect: {
       priority: "immediate",
       headline: "reported rollover or safety incident",
+      reason: "Rollover or safety incident reported",
       routes: ["main"],
       previewsRequested: 0,
       callNow: "button",
@@ -243,7 +261,7 @@ const SCENARIOS = [
     kind: "support",
     triage: { issue: "Something else", need: "I need help now" },
     asset: { phone: "none" },
-    expect: { priority: "immediate", headline: "help requested now", routes: ["main"], previewsRequested: 0, callNow: "fallback-none" },
+    expect: { priority: "immediate", headline: "help requested now", reason: "Help needed now", routes: ["main"], previewsRequested: 0, callNow: "fallback-none" },
   },
 
   // ---- Recipient routing ----------------------------------------------------
@@ -251,21 +269,21 @@ const SCENARIOS = [
     id: "routing-main-only",
     kind: "damage",
     triage: OPERATING,
-    expect: { priority: "routine", headline: "damage reported", routes: ["main"], previewsRequested: 0, callNow: "none" },
+    expect: { priority: "routine", headline: "damage reported", reason: null, routes: ["main"], previewsRequested: 0, callNow: "none" },
   },
   {
     id: "routing-urgent-only",
     kind: "damage",
     triage: UNSAFE,
     settings: { notify_damage_reports: false, notify_urgent_reports: true, urgent_notification_email: SUPPORT_RECIPIENT },
-    expect: { priority: "immediate", headline: "reported unsafe to operate", routes: ["urgent"], previewsRequested: 0, callNow: "button" },
+    expect: { priority: "immediate", headline: "reported unsafe to operate", reason: "Reported unsafe to operate", routes: ["urgent"], previewsRequested: 0, callNow: "button" },
   },
   {
     id: "routing-general-off-routine",
     kind: "damage",
     triage: OPERATING,
     settings: { notify_damage_reports: false, notify_urgent_reports: true, urgent_notification_email: SUPPORT_RECIPIENT },
-    expect: { priority: "routine", headline: "damage reported", routes: [], previewsRequested: 0, callNow: "none" },
+    expect: { priority: "routine", headline: "damage reported", reason: null, routes: [], previewsRequested: 0, callNow: "none" },
   },
   {
     id: "routing-separate-addresses",
@@ -275,6 +293,7 @@ const SCENARIOS = [
     expect: {
       priority: "immediate",
       headline: "reported unsafe to operate",
+      reason: "Reported unsafe to operate",
       routes: ["main", "urgent"],
       previewsRequested: 0,
       callNow: "button",
@@ -288,6 +307,7 @@ const SCENARIOS = [
     expect: {
       priority: "immediate",
       headline: "reported unsafe to operate",
+      reason: "Reported unsafe to operate",
       routes: ["main_and_urgent"],
       previewsRequested: 0,
       callNow: "button",
@@ -580,7 +600,10 @@ const qaLogin =
     : null;
 
 console.log(`[${TAG}] QA login in the environment: ${qaLogin ? "yes (not shown)" : "no — staff scenarios will be recorded as not run"}`);
-console.log(`[${TAG}] --tag-setup ${TAG_SETUP ? "on" : "off"}, --leave-digest ${LEAVE_DIGEST ? "on" : "off"}\n`);
+console.log(
+  `[${TAG}] --tag-setup ${TAG_SETUP ? "on" : "off"}, --leave-digest ${LEAVE_DIGEST ? "on" : "off"}, ` +
+    `main recipient: ${MAIN_ALIAS} mailbox\n`
+);
 for (const scenario of selected) console.log(`  - ${scenario.id}: ${expectationSummary(scenario)}`);
 
 if (!CONFIRMED) {
@@ -590,6 +613,13 @@ if (!CONFIRMED) {
 
 if (existsSync(SNAPSHOT_FILE)) {
   refuse(TAG, `a snapshot from an earlier run is waiting at ${SNAPSHOT_FILE}. Run --restore --confirm first.`);
+}
+if (OPERATOR_MAILBOX) {
+  try {
+    await assertOperatorRecipientUnused(db);
+  } catch (err) {
+    refuse(TAG, err.message);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -626,7 +656,7 @@ writeFileSync(
 console.log(`\n[${TAG}] snapshot saved to ${SNAPSHOT_FILE}`);
 
 const BASE_SETTINGS = {
-  notification_email: SUPPORT_RECIPIENT,
+  notification_email: MAIN_RECIPIENT,
   notify_damage_reports: true,
   notify_support_requests: true,
   notify_tag_request_updates: TAG_SETUP ? true : original.notify_tag_request_updates,
@@ -962,7 +992,7 @@ try {
       restored.settings = false;
     }
     console.log(
-      `\n[${TAG}] QA organization LEFT in daily_exceptions → support mailbox for the next summary: ` +
+      `\n[${TAG}] QA organization LEFT in daily_exceptions → ${MAIN_ALIAS} mailbox for the next summary: ` +
         `${restored.settings ? "yes (verified)" : "NO — check by hand"}`
     );
     console.log(`[${TAG}] snapshot kept at ${SNAPSHOT_FILE}; after the summary is verified run --restore --confirm`);
@@ -993,7 +1023,7 @@ writeFileSync(
       shortCode: QA_SHORT_CODE,
       startedAt: startedAt.toISOString(),
       endedAt: endedAt.toISOString(),
-      flags: { tagSetup: TAG_SETUP, leaveDigest: LEAVE_DIGEST, only: ONLY },
+      flags: { tagSetup: TAG_SETUP, leaveDigest: LEAVE_DIGEST, operatorMailbox: OPERATOR_MAILBOX, only: ONLY },
       organization: { brandColor: organization.primary_color, supportPhoneSet: Boolean(organization.support_phone) },
       qaPhones: QA_PHONES,
       renter: RENTER,

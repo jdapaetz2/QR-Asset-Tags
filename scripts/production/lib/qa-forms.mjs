@@ -24,14 +24,53 @@ const KNOWN_STAGING_REF = "kwserenxwjxozztyigmw";
 
 export const SUPPORT_RECIPIENT = "support@mulemark.io";
 export const SANDBOX_RECIPIENT = "delivered@resend.dev";
-export const ALLOWED_RECIPIENTS = new Set([SUPPORT_RECIPIENT, SANDBOX_RECIPIENT]);
+
+/**
+ * Engineering Phase D5.1 — an optional operator mailbox for direct email-client checks (for example Outlook), read from
+ * QA_OPERATOR_RECIPIENT in the gitignored .env.production-perf.local. It joins the allowlist under the alias
+ * "operator" and is never printed or written to an artifact. A value that is not a plain address, or that is a
+ * mulemark.io address (support@ has its own route), is refused.
+ */
+function readOperatorRecipient() {
+  const raw = (process.env.QA_OPERATOR_RECIPIENT ?? "").trim().toLowerCase();
+  if (!raw) return { address: null, problem: "QA_OPERATOR_RECIPIENT is not set in .env.production-perf.local." };
+  if (raw.length > 254 || !/^[a-z0-9._%+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/.test(raw)) {
+    return { address: null, problem: "QA_OPERATOR_RECIPIENT is not a plain email address (value not shown)." };
+  }
+  if (raw.endsWith("@mulemark.io")) {
+    return { address: null, problem: "QA_OPERATOR_RECIPIENT must be outside mulemark.io; support@ already has its own route." };
+  }
+  return { address: raw, problem: null };
+}
+
+export const OPERATOR = readOperatorRecipient();
+
+export const ALLOWED_RECIPIENTS = new Set([
+  SUPPORT_RECIPIENT,
+  SANDBOX_RECIPIENT,
+  ...(OPERATOR.address ? [OPERATOR.address] : []),
+]);
 
 /** Aliases used in QA artifacts so reports name a route, not an address. */
 export function recipientAlias(address) {
   if (address === null || address === undefined) return null;
   if (address === SUPPORT_RECIPIENT) return "support";
   if (address === SANDBOX_RECIPIENT) return "sandbox";
+  if (OPERATOR.address && address === OPERATOR.address) return "operator";
   return "other";
+}
+
+/** The operator mailbox must not already receive any other organization's notifications (read-only check). */
+export async function assertOperatorRecipientUnused(db) {
+  if (!OPERATOR.address) throw new Error(OPERATOR.problem);
+  const pattern = OPERATOR.address.replace(/[\\%_]/g, "\\$&");
+  for (const column of ["notification_email", "urgent_notification_email"]) {
+    const { data, error } = await db.from("organizations").select("id").neq("id", QA_ORG_ID).ilike(column, pattern).limit(1);
+    if (error) throw new Error(`could not check the operator mailbox against organizations: ${error.message}`);
+    if ((data ?? []).length > 0) {
+      throw new Error("QA_OPERATOR_RECIPIENT is another organization's notification address; refusing to use it.");
+    }
+  }
 }
 
 /** Every notification column of `organizations` (0012, 0034). */

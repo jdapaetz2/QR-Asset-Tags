@@ -46,7 +46,38 @@ export const SUBJECT_PREFIXES: Record<NotificationPriority, string> = {
   record: "",
 };
 
-export type PriorityDecision = { priority: NotificationPriority; headline: string };
+/**
+ * Engineering Phase D5.1 — which kind of reported answer decided the priority. Presentation only: it explains a
+ * decision the rules above already made and never changes one.
+ */
+export type PriorityBasis =
+  | "issue_type"
+  | "equipment_state"
+  | "response_need"
+  | "legacy_urgency"
+  | "return_exceptions"
+  | "return_notes"
+  | "clean_return"
+  | "default";
+
+export type PriorityDecision = {
+  priority: NotificationPriority;
+  headline: string;
+  basis: PriorityBasis;
+  /** A short human-readable reason for the priority, or null when there is nothing to explain. */
+  reason: string | null;
+};
+
+/**
+ * Whether an email should state why it has its priority. Only for Immediate attention and Follow up, and only when a
+ * reported condition (not the submitter's own response need, which the email already shows) decided it — so the email
+ * never implies the submitter asked for a faster response than they did.
+ */
+export function shouldShowPriorityReason(decision: Pick<PriorityDecision, "priority" | "basis" | "reason">): boolean {
+  if (decision.reason === null) return false;
+  if (decision.priority !== "immediate" && decision.priority !== "follow_up") return false;
+  return decision.basis !== "response_need" && decision.basis !== "return_exceptions";
+}
 
 export type ReportFormType = "damage_report" | "support_request";
 
@@ -65,33 +96,79 @@ export function reportPriority(input: {
 
   if (triage) {
     if (support && triage.issueType === "rollover_safety") {
-      return { priority: "immediate", headline: "reported rollover or safety incident" };
+      return {
+        priority: "immediate",
+        headline: "reported rollover or safety incident",
+        basis: "issue_type",
+        reason: "Rollover or safety incident reported",
+      };
     }
     if (triage.equipmentState === "unsafe_to_operate") {
-      return { priority: "immediate", headline: "reported unsafe to operate" };
+      return {
+        priority: "immediate",
+        headline: "reported unsafe to operate",
+        basis: "equipment_state",
+        reason: "Reported unsafe to operate",
+      };
     }
     if (triage.equipmentState === "cannot_be_moved") {
-      return { priority: "immediate", headline: "reported unable to move" };
+      return {
+        priority: "immediate",
+        headline: "reported unable to move",
+        basis: "equipment_state",
+        reason: "Reported unable to move",
+      };
     }
-    if (triage.responseNeed === "immediate") return { priority: "immediate", headline: "help requested now" };
+    if (triage.responseNeed === "immediate") {
+      return { priority: "immediate", headline: "help requested now", basis: "response_need", reason: "Help needed now" };
+    }
 
-    if (triage.equipmentState === "not_operating") return { priority: "follow_up", headline: "reported not operating" };
+    if (triage.equipmentState === "not_operating") {
+      return {
+        priority: "follow_up",
+        headline: "reported not operating",
+        basis: "equipment_state",
+        reason: "Reported not operating",
+      };
+    }
     if (support && triage.issueType === "breakdown_no_start") {
-      return { priority: "follow_up", headline: "reported breakdown or no-start" };
+      return {
+        priority: "follow_up",
+        headline: "reported breakdown or no-start",
+        basis: "issue_type",
+        reason: "Breakdown or no-start reported",
+      };
     }
     if (support && triage.issueType === "stuck_recovery") {
-      return { priority: "follow_up", headline: "reported stuck, recovery needed" };
+      return {
+        priority: "follow_up",
+        headline: "reported stuck, recovery needed",
+        basis: "issue_type",
+        reason: "Recovery assistance reported",
+      };
     }
     if (triage.equipmentState === "operating_with_limitations") {
-      return { priority: "follow_up", headline: "reported operating with limitations" };
+      return {
+        priority: "follow_up",
+        headline: "reported operating with limitations",
+        basis: "equipment_state",
+        reason: "Reported operating with limitations",
+      };
     }
-    if (triage.responseNeed === "prompt") return { priority: "follow_up", headline: "follow-up requested" };
+    if (triage.responseNeed === "prompt") {
+      return { priority: "follow_up", headline: "follow-up requested", basis: "response_need", reason: "Follow up soon" };
+    }
   } else if (!support && input.legacyUrgency === "high") {
     // The pre-D2 form pre-selected "medium", so medium and low are not evidence of a deliberate choice.
-    return { priority: "follow_up", headline: "reported urgency: high" };
+    return {
+      priority: "follow_up",
+      headline: "reported urgency: high",
+      basis: "legacy_urgency",
+      reason: "Reported urgency: high",
+    };
   }
 
-  return { priority: "routine", headline: support ? "support request" : "damage reported" };
+  return { priority: "routine", headline: support ? "support request" : "damage reported", basis: "default", reason: null };
 }
 
 /** The reported answers a saved report carries, limited to the questions its own form asks. */
@@ -174,10 +251,14 @@ export function returnPriority(summary: ReturnChecklistSummary, eventLabel: stri
     return {
       priority: "follow_up",
       headline: `${label}, ${exceptions} ${exceptions === 1 ? "exception" : "exceptions"}`,
+      basis: "return_exceptions",
+      reason: null,
     };
   }
-  if (hasRoutineReturnNotes(summary)) return { priority: "routine", headline: `${label}, review when convenient` };
-  return { priority: "record", headline: `${label}, no exceptions` };
+  if (hasRoutineReturnNotes(summary)) {
+    return { priority: "routine", headline: `${label}, review when convenient`, basis: "return_notes", reason: null };
+  }
+  return { priority: "record", headline: `${label}, no exceptions`, basis: "clean_return", reason: null };
 }
 
 /**

@@ -26,6 +26,7 @@ import {
   returnExceptionCount,
   returnPriority,
   type NotificationPriority,
+  type PriorityBasis,
   type ReportedValues,
 } from "@/lib/notifications/priority";
 import type { SubmissionFormType } from "@/lib/notifications/settings";
@@ -113,6 +114,9 @@ export type NotificationBrief = {
   asset: BriefAsset;
   priority: NotificationPriority;
   headline: string;
+  /** D5.1: which reported answer decided the priority, and a short reason for the email to show when useful. */
+  priorityBasis: PriorityBasis;
+  priorityReason: string | null;
   reported: ReportedValues;
   description: Excerpt | null;
   returnDetail: ReturnDetail | null;
@@ -189,6 +193,35 @@ export function excerpt(value: unknown, limit: number): Excerpt | null {
   const cut = cleaned.slice(0, limit);
   const lastSpace = cut.lastIndexOf(" ");
   const base = lastSpace > limit * 0.6 ? cut.slice(0, lastSpace) : cut;
+  return { text: `${base.trimEnd()}…`, truncated: true };
+}
+
+/** At most this many lines of a submitter's description keep their line breaks (D5.1). */
+export const DESCRIPTION_MAX_LINES = 6;
+
+/**
+ * Like `excerpt`, but keeps up to `maxLines` line breaks (runs of blank lines collapse to one; further lines join the
+ * last kept line). Every line is cleaned of control characters exactly as `excerpt` does. The renderer escapes the text.
+ */
+export function multilineExcerpt(value: unknown, limit: number, maxLines = DESCRIPTION_MAX_LINES): Excerpt | null {
+  if (typeof value !== "string") return null;
+  const lines: string[] = [];
+  for (const raw of value.replace(/\r\n?/g, "\n").split("\n")) {
+    const line = oneLine(raw);
+    if (line === "" && (lines.length === 0 || lines[lines.length - 1] === "")) continue;
+    lines.push(line);
+  }
+  while (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
+  if (lines.length === 0) return null;
+  const kept =
+    lines.length > maxLines
+      ? [...lines.slice(0, maxLines - 1), lines.slice(maxLines - 1).filter((line) => line !== "").join(" ")]
+      : lines;
+  const joined = kept.join("\n");
+  if (joined.length <= limit) return { text: joined, truncated: false };
+  const cut = joined.slice(0, limit);
+  const lastBreak = Math.max(cut.lastIndexOf(" "), cut.lastIndexOf("\n"));
+  const base = lastBreak > limit * 0.6 ? cut.slice(0, lastBreak) : cut;
   return { text: `${base.trimEnd()}…`, truncated: true };
 }
 
@@ -361,6 +394,8 @@ export function projectSubmissionBrief(input: {
       event: "renter_return",
       priority: decision.priority,
       headline: decision.headline,
+      priorityBasis: decision.basis,
+      priorityReason: decision.reason,
       reported: NO_TRIAGE,
       description: null,
       returnDetail: {
@@ -393,8 +428,10 @@ export function projectSubmissionBrief(input: {
     event: isDamage ? "damage_report" : "support_request",
     priority: decision.priority,
     headline: decision.headline,
+    priorityBasis: decision.basis,
+    priorityReason: decision.reason,
     reported: reportedValuesFor(formType, data),
-    description: excerpt(data.description, DESCRIPTION_LIMIT),
+    description: multilineExcerpt(data.description, DESCRIPTION_LIMIT),
     returnDetail: null,
     photos: {
       count: mediaCount(row.media_urls),
