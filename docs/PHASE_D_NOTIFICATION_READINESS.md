@@ -1,8 +1,9 @@
 # Phase D — Actionable Notification Readiness (Engineering Phase D closeout)
 
-**Branch `pilot-credibility`.** Application code as deployed: `3fb3364`, Production deployment `6417386658` →
-`mulemark.io` (`git diff --stat 3fb3364 HEAD -- lib app components public supabase` is empty). D5 added QA tooling
-only — `c5b3f24`, `71e20e3` — and this closeout. Live QA 2026-09-13 (UTC); operator checks and closeout 2026-09-14.
+**Branch `pilot-credibility`.** At the D5 closeout the deployed application was `3fb3364` (Production deployment
+`6417386658`); D5 added QA tooling only — `c5b3f24`, `71e20e3` — and that closeout. Live QA 2026-09-13 (UTC); operator
+checks and closeout 2026-09-14. **D5.1** (operational email hierarchy, §16) is deployed as `93fe39b`, Production
+deployment `4cu3ewBh` → `mulemark.io`, with live QA on 2026-09-14/15.
 
 > **This is Engineering Phase D (actionable notifications).** It is *not* the business roadmap's
 > "Phase D - Controlled pilots" in `roadmap.md`, which is untouched by this work.
@@ -18,23 +19,22 @@ Design, locked decisions and the row-by-row live record: [`ACTIONABLE_NOTIFICATI
 produced the expected priority, route and outcome. The daily summary ran on its first real schedule and sent the
 returns it should. Photo previews stayed private. A direct Outlook delivery rendered correctly.
 
-Three things keep this below an unconditional GO:
+Two things keep this below an unconditional GO (the escalation-reason gap the operator found was fixed in D5.1, §16):
 
-- a usability gap the operator found: the escalation reason (D5.1);
 - a noisy but design-conformant return classification;
 - delivery checks that cannot be run safely (live replay, live provider failure). First-contact placement is handled
   per customer at onboarding (§14).
 
 | # | Verdict | Result | Condition / reason |
 |---|---|---|---|
-| 1 | Notification content usefulness | **CONDITIONAL GO** | Every saved QA row renders the approved brief (automated content check), and the operator confirmed a complete, readable direct Outlook email. **D5.1:** an Immediate-attention email can show a lower reported response need without saying why it was escalated. |
+| 1 | Notification content usefulness | **GO** (re-evaluated after D5.1, 2026-09-15) | Every saved QA row renders the approved brief (automated content check). D5.1 added the priority reason, a clear hierarchy and a scannable summary, and the operator checked the incident, tag-status and summary emails in Outlook and Gmail (§16). Images-blocked rendering was checked in the gallery only. |
 | 2 | Deterministic triage | **GO** | All 28 live submissions (18 reports and 10 renter returns) matched their expected priority and headline from the saved rows, including severity-never-raises and omitted answers. The two clean returns match the as-built rule in §12. |
 | 3 | Urgent routing | **GO** | Five live route decisions were correct: main only, urgent only, general-off routine skip, one send for the same address, and two routes for different addresses (the support-inbox copy of `SUB-2026-0D7A41` arrived; the sandbox copy is in the provider log). The database and the settings form both refused an urgent switch without an address. Partial-failure isolation is unit-tested only (verdict 7). |
 | 4 | Return notification and noise | **CONDITIONAL GO** | All three modes behave as locked, and staff returns never send individually. A clean renter return without the optional Additional photos is **Routine review**, not Record only — conforms to design §5.3, needs an operator decision (§12). |
 | 5 | Daily summary reliability | **GO** | First real windows 2026-09-12 (quiet), 2026-09-13 (`sent`, 7 items), 2026-09-14 (quiet); one ledger row per organization per window; cron auth 3/3. DST, catch-up, failure and ordering are proven on staging. The operator checked the delivered summary in Gmail (§6). |
 | 6 | Photo-preview privacy | **GO** | Previews were attached 2 of 2 on three reports, each under 250 KB, and none of the content showed a storage path or signed URL. Stripping is unit-tested on real Sharp output. Stored originals keep their metadata; that is a recorded limitation, not a preview issue. |
 | 7 | Delivery and client rendering | **CONDITIONAL GO** | The operator verified direct Outlook delivery and the Gmail review of the support inbox (SPF, DKIM and DMARC pass; Inbox) on 2026-09-14. Still missing: live replay and live provider failure. First-contact placement is handled per customer at onboarding (decided 2026-09-14). A forwarded Gmail copy lost its inline image. |
-| 8 | Limited-pilot readiness (notifications) | **CONDITIONAL GO** | Conditions: D5.1; the clean-return decision; the onboarding email check for each pilot customer (§14). Standing: `after()` is best-effort, not a queue, and Supabase has no backups (Phase C §13). |
+| 8 | Limited-pilot readiness (notifications) | **CONDITIONAL GO** | Conditions: the clean-return decision; the onboarding email check for each pilot customer (§14). D5.1 is done (§16). Standing: `after()` is best-effort, not a queue, and Supabase has no backups (Phase C §13). |
 
 ---
 
@@ -45,7 +45,7 @@ Three things keep this below an unconditional GO:
 | HEAD at D5 start | `f31f5d3` | `git rev-parse` |
 | D5 commits | `c5b3f24` (QA matrix, config report, content check, staging summary suite), `71e20e3` (hydration-safe drivers) | `git log` |
 | D1–D4.1 commits | D1 `bed70f0`; D2 `0df70fa`, `2207b01`; D3A `4c01411`; D3B `089f707`, `b771f0c`; D4 `4cd69d2`, `241d90a`; D4.1 `cc35dbe`…`3fb3364` | `git log` |
-| Production deployment | `6417386658` — `3fb3364` "test(media): cover on-device refusal and staging photo formats", current | Vercel Deployments (Production filter), read-only |
+| Production deployment | `6417386658` — `3fb3364` "test(media): cover on-device refusal and staging photo formats" at D5; **since 2026-09-14 `4cu3ewBh` — `93fe39b` (D5.1)** | Vercel Deployments, read-only |
 | Node | Vercel **22.x**; `.nvmrc` 22, `engines` 22.x; local shell v24.16.0 (outside the baseline, recorded) | dashboard, repository |
 | Migrations | staging `migration list` 0001–0039 local = remote (2026-09-13); Production 0001–0039 matched at the 0039 apply (2026-09-13). **D5 added none.** | CLI (linked to staging only; no relink) |
 | Email variables | `RESEND_API_KEY`, `NOTIFICATION_FROM_EMAIL`, `NOTIFICATION_REPLY_TO_EMAIL`, `CRON_SECRET`: **Production only**, none on Preview | Vercel Environment Variables, names and scopes only |
@@ -144,6 +144,7 @@ Captured automatically on every public damage, support and return confirmation:
 | 2026-09-12 13:00 | — (mode `off`) | `skipped_quiet` | first scheduled run |
 | **2026-09-13 13:00** | **`sent`, 7 items, provider id recorded, completed 13:07:04 UTC (6:07 AM PDT)** | `skipped_quiet` | QA organization left in `daily_exceptions` by the matrix |
 | 2026-09-14 13:00 | `skipped_quiet` (completed 13:07:04 UTC) | `skipped_quiet` | quiet morning, no email |
+| 2026-09-15 13:00 | **`sent`, 2 items, provider id recorded, completed 13:07:02 UTC** | `skipped_quiet` | D5.1 layout, checked by the operator in Outlook (§16) |
 
 **What the seven items were.** The matrix expected the same seven, in this order:
 
@@ -157,14 +158,14 @@ already dropped the 13:00 run lines by closeout, so the ledger is the evidence.
 
 - exactly one of the two UTC slots proceeds on a PDT date and on a PST date;
 - renter + staff items in `daily_exceptions`, damage / does-not-operate first, then oldest first;
-- current status, open count, photo counts, authenticated links, no `<img>` / `cid:` / attachments, stored paths never rendered;
+- current status, open count, photo counts, authenticated links, no photo images (since D5.1 the only image and attachment is the brand lockup), stored paths never rendered;
 - boundaries: the window start is exclusive, the cutoff inclusive;
 - duplicate invocation sends nothing;
 - quiet day → `skipped_quiet`;
 - `instant_renter` → staff only;
 - `off` → excluded, then caught up;
 - a failed send is recorded `failed` without advancing the window, and the missed and failed days are caught up;
-- 27 returns → 25 listed plus "Showing 25 of 27";
+- 27 returns → 25 listed plus "Showing 25 of 27" (D5; since D5.1 all 27 are listed in full — no count cap);
 - another organization's return never appears.
 
 **Operator check (Gmail, 2026-09-14).** The delivered summary matched:
@@ -191,7 +192,7 @@ already dropped the 13:00 run lines by closeout, so the ledger is the evidence.
   - the preview structure (one `cid:` per requested preview);
   - text/plain parity and the reason / settings line;
   - no storage path, bucket or signed marker;
-  - HTML ≤ 20 KB.
+  - HTML ≤ 20 KB (D5; since D5.1 HTML ≤ 40 KB and text ≤ 12 KB).
   It passed for every saved row. The only failures were the two clean returns in §12.
 - **Direct Outlook/Hotmail delivery (operator, 2026-09-14)**:
   - delivered;
@@ -352,8 +353,9 @@ support switches default on, tag updates off, urgent off, previews on.
 - The window is claimed in the ledger before building; a unique window end turns a duplicate into `skipped_duplicate`.
 - A failed or dry-run send records `failed` and leaves the cursor, so it is caught up the next morning.
 
-**Summary limits.** 25 items, 6 exception lines per item, 240 s budget, route `maxDuration` 300 s, bare 401 on any
-auth failure.
+**Summary limits.** No count cap since D5.1 (25 items at D5): the email fits HTML ≤ 75 KB and text ≤ 30 KB — full
+rows, then one-line rows, then a count of the rest; at most 2,000 returns scanned per summary; 6 exception lines per
+item, 240 s budget, route `maxDuration` 300 s, bare 401 on any auth failure.
 
 **`CRON_SECRET` handling:**
 
@@ -371,7 +373,8 @@ Full procedure: `OPERATIONS_RUNBOOK.md`.
 - Outputs: ≤ 640 px JPEG (quality 72, retry 55), ≤ 400 KB each, ≤ 1.2 MB total, metadata stripped, never stored.
 - Build: 6 s media budget, concurrency 2.
 - Candidates are the submission's own `media_urls` under its own prefix, ranked damage first.
-- The organization switch turns previews off; clean returns and the summary never carry images.
+- The organization switch turns previews off; clean returns and the summary never carry photo previews. Since D5.1
+  every email carries one inline PNG of the brand lockup (about 2 KB, `cid:mm-logo@mulemark`).
 
 **Send:** 8 s per attempt, 3 attempts, 15 s total budget, after the response (`after()`).
 
@@ -383,10 +386,8 @@ Resend sandbox.
 
 ## 12. Known limitations
 
-- **Escalation reason (D5.1).** An Immediate email can show "Reported response need: Please follow up soon" beside
-  "Immediate attention" (escalated by the reported equipment state) without saying which answer escalated it.
-- **Summary wording for operating questions.** The line reads "Does not start or operate: Starts / operates?"
-  because it repeats the template's question label.
+- **Resolved in D5.1:** the escalation reason (the banner now states "Priority reason: …") and the summary's
+  operating-question wording (now "Answered No: Starts / operates?").
 - **Clean renter returns without Additional photos are Routine review.** The submit stores every empty visible photo
   slot — including the optional Additional photos — in `missing_recommended_photo_slots`, which §5.3 maps to Routine.
   Record only is reachable only when every slot has a photo (`SUB-2026-CFBA6D`).
@@ -404,6 +405,13 @@ Resend sandbox.
   brand colour, and a 10 MB preview input.
 - **QA harness note.** Clicks that land before a form hydrates are silently lost for automation. The drivers now
   retry; a real renter is unaffected, because the forms render server-side and the no-JavaScript copies exist.
+- **D5.1 evidence gaps.** Images-blocked rendering was checked in the gallery, not in a live client. A busy-day summary
+  (one-line rows, then a count) is proven by unit tests and gallery fixtures, not by a live send; the 75 KB budget is a
+  margin under Gmail's ~102 KB clip, not a measured clip. Preview `dry_run` was not re-observed for `93fe39b` (§16).
+- **Promotion re-points the branch alias.** After "Promote to Production", Vercel serves the Production deployment at
+  `qr-asset-tags-git-pilot-credibility-…vercel.app` until the next push. `smoke:staging` targets that alias, so it must
+  run before promoting; run afterwards, it reaches Production, where its checks fail without writing anything (seen
+  2026-09-14).
 
 ---
 
@@ -440,12 +448,19 @@ in the docs.
 
 **Pending from D5:** none.
 
+**Completed in D5.1 (2026-09-14/15):** the gallery review and its single correction pass; promotion of `93fe39b`; the
+sample sends to the support inbox and the operator's Outlook; the two tag-request status saves; the inbox and summary
+checks. The QA organization's settings and asset were restored on 2026-09-15 (mode `off`, no address, tag updates
+off). The operator's own mailbox is kept only in the gitignored `.env.production-perf.local` (`QA_OPERATOR_RECIPIENT`);
+the QA tool uses it only with `--operator-mailbox`, and removing the line disables that route.
+
 **QA data left in Production** (test data on the QA organization, kept like every QA run):
 
 - **Records:** 28 D5 matrix submissions (18 reports, 10 renter returns) plus 14 performance-probe damage reports.
 - **Rental activity:** one staff outbound inspection and one staff return, which opened and closed a QA rental session.
-- **Tag request:** QA tag request `1943f10f…` (delivered).
-- **Summary ledger:** rows for 2026-09-13/14.
+- **Tag request:** QA tag request `1943f10f…` (delivered); D5.1 added `5460f16a…` (ready).
+- **Summary ledger:** rows for 2026-09-13/14; D5.1 added the 2026-09-15 row (`sent`, 2 items).
+- **D5.1 records:** ten sample submissions (§16).
 
 The QA organization's notification settings and the QA asset are restored.
 
@@ -453,15 +468,77 @@ The QA organization's notification settings and the QA asset are restored.
 
 ## 15. Follow-ups and next workstream
 
-1. **D5.1 — escalation reason (operator requirement).** Show why a report was escalated — the winning condition —
-   clearly, and never state or imply that the submitter requested immediate help. No rule change implied.
-   A wording candidate for the same slice: the summary's "Does not start or operate: Starts / operates?" line.
-   **Not started.**
+1. **D5.1 — escalation reason (operator requirement).** **Done** — built and verified live in D5.1, together with the
+   wider email hierarchy work (§16).
 2. **Clean-return classification** — decide whether optional photo slots should stop producing routine notes.
 3. **Operational hold / out-of-service workflow** — the next-phase candidate (`ROADMAP_DEFERRED.md` #3). **Not started;
    needs its own plan and approval.**
 4. **Email open/click analytics** — on the roadmap backlog (operator, 2026-09-14). Enabling it needs a Resend tracking
    subdomain, a deliberate revision of the Phase D rules (no tracking pixel, record link unwrapped on `mulemark.io`),
    customer disclosure and a deliverability re-check. **Not started.**
+5. **"Tag request received" email** — send the customer the full request details (material, size, mounting, assets)
+   when a tag request is submitted; status emails stay brief (operator, 2026-09-14). A new notification type with its
+   own setting and QA. **Not started.**
 
 Pilot onboarding remains the recommended business workstream (`roadmap.md`).
+
+---
+
+## 16. D5.1 — operational email hierarchy (2026-09-14/15)
+
+**What changed (presentation only).** One email-safe renderer (`email-html.ts`, `email-components.ts`) builds every
+notification, and each component writes the HTML and the plain text from the same input.
+
+- **Incident emails:** a priority banner with "Priority reason:" when a reported condition — not the submitter's
+  response need — set the priority; a fact grid; a "What was reported" block; a compact photo strip; a primary button;
+  call and email actions.
+- **Every email:** the Mulemark lockup in the header, embedded inline (`cid:mm-logo@mulemark`).
+- **Daily summary:** returns grouped by asset under the most serious open issue, with counters and **no count cap** —
+  it fits itself to Gmail's clipping size, shortening the least urgent returns to one line on a busy day and counting
+  any that still do not fit.
+- **Tag status emails:** only the status, organization, requested date and a Support ID.
+- **Unchanged:** priority rules and headlines, routing, recipients, summary selection and schedule, idempotency,
+  `after()`, preview selection and limits, subjects and first lines.
+
+Design detail: design doc §7.8, §9.5, §12 (D5.1) and the live record §15.9.
+
+**Commits and deployment.** `d3a5325` (build) and `93fe39b` (correction pass after the operator's gallery review),
+promoted on 2026-09-14 as Production deployment `4cu3ewBh`.
+
+**Gates on `93fe39b`.**
+
+| Gate | Result |
+|---|---|
+| `lint` · `typecheck` · `build` | pass |
+| `test` | **2203 passed / 192 files** |
+| `test:security` | **125 passed / 10 files** |
+| `test:e2e:smoke` | **12 passed** |
+| `email:gallery` | **15 fixtures passed** (budgets, `cid:` ↔ attachment, allowed links, no overflow at 375 px) |
+| `digest:staging-check` | **8/8** (27 returns now listed in full) |
+| `smoke:staging` (Preview `AGyNoy1F`, before promotion) | 27 pass, 0 fail, 1 documented skip |
+| `smoke:production` | 13 pass, 0 fail, 1 documented skip |
+| `production:qa-notification-content` | **6/6** for each sample run |
+
+**Live results.**
+
+- **Sample sends** — ten emails; every log line `sent`, attempts 1, provider 200, 2 of 2 previews where requested:
+  support inbox `SUB-2026-FD5BBF`, `459A96`, `BC66D7`, `E2770D`, `E8BE32` (22:47–22:49 UTC); operator Outlook
+  `SUB-2026-3F3CA4`, `CE3029`, `44EE31`, `C8C09A`, `A95078` (22:53–22:55 UTC).
+- **Operator — Outlook (dark mode) and Gmail web, direct delivery:** every incident email passed and landed in the
+  Inbox. The priority reason shows on the unsafe and limited-operation reports, and not on the help-now request or the
+  returns.
+- **Headers** (`SUB-2026-E8BE32`, Gmail): SPF, DKIM (`notify.mulemark.io` and `amazonses.com`) and DMARC pass; TLS
+  1.3; the logo and both previews arrive as inline `Content-ID` parts.
+- **Tag status:** the saves to In review (23:26:07 UTC) and Ready (23:28:36 UTC) each sent one brief email; the operator
+  confirmed status-only content.
+- **Daily summary, 2026-09-15:** `sent`, 2 items, completed 13:07:02 UTC. The operator confirmed the lockup, the
+  counters, the single PROD-QA-PERF card with both returns, and the buttons.
+
+**Not confirmed or not tested.**
+
+- Preview `dry_run` for `93fe39b`: the Preview smoke's log lines left Vercel's one-hour log window before they were
+  searched, and the post-promotion re-run reached Production through the branch alias (§12). The send gate is
+  unchanged and unit-tested.
+- Images-blocked rendering in a live client, and a live busy-day summary.
+
+**Verdict 1 re-evaluated:** **GO** (§1).

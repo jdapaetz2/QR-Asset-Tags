@@ -14,10 +14,12 @@ inline photo previews (direct `sharp` 0.34.5, no migration): ranked damage first
 QA in §15 · D4.1 built — broad consumer photo inputs (migration 0039; `3fb3364`, Production deployment
 `6417386658`) · **D5 closed (2026-09-14)** — live QA matrix on the Production QA organization, the first scheduled
 summaries, a direct Outlook check and the phase closeout: §15.7 and
-[`PHASE_D_NOTIFICATION_READINESS.md`](PHASE_D_NOTIFICATION_READINESS.md). D5.1 (escalation-reason display, §15.8)
-is recorded and not started.** Branch
-`pilot-credibility` (Vercel's Production branch is `main`: a push builds a Preview; Production = promote).
-Production deployment `6417386658` (`3fb3364`) → `mulemark.io`; D3B was first promoted as `9FmryFHdh`.
+[`PHASE_D_NOTIFICATION_READINESS.md`](PHASE_D_NOTIFICATION_READINESS.md) · **D5.1 built and closed (2026-09-15)** —
+operational email hierarchy: one email-safe renderer, the priority reason, the brand lockup in every header, a daily
+summary grouped by asset that fits itself to Gmail's clipping size instead of a count cap, and brief tag-request
+status emails; `d3a5325` and the correction pass `93fe39b`, Production deployment `4cu3ewBh`; §7.8, §9.5, §15.9.**
+Branch `pilot-credibility` (Vercel's Production branch is `main`: a push builds a Preview; Production = promote).
+Production deployment `4cu3ewBh` (`93fe39b`) → `mulemark.io`; D3B was first promoted as `9FmryFHdh`.
 
 > **This is Engineering Phase D (actionable notifications).** It is *not* the business roadmap's
 > "Phase D - Controlled pilots" in `roadmap.md`, which is untouched by this work.
@@ -862,10 +864,39 @@ Renter return checklists are emailed individually for this organization.
 </div>
 ```
 
-Rendering rules: the record link is the first and primary link; contact links are secondary; no `<style>` block,
-no background colours, no colour-only meaning (the priority is a word), no hidden preheader text, no web fonts,
+Rendering rules (D1–D5): the record link is the first and primary link; contact links are secondary; no `<style>`
+block, no background colours, no colour-only meaning (the priority is a word), no hidden preheader text, no web fonts,
 no layout tables, inline styles limited to font and spacing. HTML stays under 20 KB so Gmail never clips it
 (inline image attachments are separate MIME parts and do not count).
+
+**Amended by D5.1 (built 2026-09-14, operator-approved gallery, live 2026-09-14/15).** The block above is the D1
+layout. Emails are now built by `lib/notifications/email-html.ts` (primitives) and `email-components.ts` (components);
+every component returns its HTML and its plain-text rendering from the same input, so the two parts cannot drift. What
+changed:
+
+- **Structure.** Presentation tables (`role="presentation"`) with inline styles. Two-column blocks are inline-block
+  cells inside an Outlook-only ghost table, so they sit side by side on desktop and stack on a phone without media
+  queries. Still no `<style>` block, class, flex/grid, script, web font or hidden preheader.
+- **Colour.** Priority banners carry a background and left border (Immediate red, Follow up amber, Routine and Record
+  only neutral, Resolved green). Colour always sits beside the priority word, never alone.
+- **Order (incident emails).** First line (unchanged) · brand lockup · priority banner with "Priority reason:" · asset ·
+  fact grid (priority, reported answers, photos, selections note) · "What was reported" (up to six line breaks kept) or
+  the return exceptions · photo evidence strip · primary button · contact · reference and reason line.
+- **Priority reason.** Shown only for Immediate attention and Follow up when a reported condition decided the priority
+  (issue type, equipment state, legacy urgency) — never when the submitter's own response need decided it, and never on
+  return checklists (`shouldShowPriorityReason`, `priority.ts`). Priorities and headlines are unchanged.
+- **Buttons.** The record link is a bulletproof primary button (iron fill, white text) and still the first link.
+  "Call reporter" / "Email reporter" are secondary buttons shown only for normalized `tel:` / `mailto:` values.
+- **Images.** Every email carries the Mulemark lockup (BRAND.md's email header source) as an inline PNG:
+  `mulemark-logo.png`, `cid:mm-logo@mulemark`, 600×64 px shown at 200×21, on an opaque white ground so dark-mode
+  clients cannot hide the wordmark, alt text "Mulemark". It is generated from `docs/brand/mulemark-lockup.svg` by
+  `npm run brand:email-logo` into `lib/notifications/email-logo.ts`. D4 previews follow as a compact strip (one 300 px,
+  two 263 px, three 171 px; captions "Label (n of N)"), never wrapped in links. No remote image.
+- **Size budgets** (UTF-8 HTML / text): incident ≤ 40 KB / 12 KB, daily summary ≤ 75 KB / 30 KB, tag status ≤ 20 KB.
+  Gmail clips a message whose HTML passes about 102 KB; inline attachments are separate MIME parts.
+- **Evidence.** `lib/notifications/email-parity.test.ts` checks text/HTML parity, structure, links and budgets for 15
+  fixtures; `npm run email:gallery` renders them at 640 and 375 px, images on and blocked, into the gitignored
+  `qa-artifacts/email-gallery/`.
 
 ### 7.9 Public confirmation page
 
@@ -1054,7 +1085,7 @@ Staff returns never send an individual email in Phase D.
 | Recipient | the general `notification_email` only; no summary when it is unset or the mode is `off` |
 | Content | every return checklist in scope created in the window that has **at least one return exception** (§5.3), listed **with its current status** (New, Reviewed, Resolved, Archived) when the summary is built |
 | Excluded | clean returns, photo-gap-only returns, failed optional checks, outbound inspections, non-return submissions |
-| Photos | counts only — never previews |
+| Photos | counts only — never previews. **D5.1:** the only image is the brand lockup every email carries |
 | Quiet day | no email, no provider call; a `skipped_quiet` ledger row and log line per organization, which advances the cursor |
 | Window | from the organization's **covered-through watermark** (exclusive) to the run's cutoff (inclusive), selected by server-set `created_at`. First run for an organization covers the previous 24 hours. **Built:** never more than 14 days back (a summary switched back on after months off); the email then says the period was shortened. |
 | Catch-up | the watermark advances to the cutoff **only after `sent` or `skipped_quiet`**. **Built:** with no success yet, a run resumes from the first recorded attempt's own window start, so a failed first-ever summary is retried rather than dropped. A failed send leaves it, so the next run includes everything since the last success — late, never dropped. If a send succeeds but the watermark update fails, the next summary lists those returns again: at-least-once listing. |
@@ -1063,6 +1094,8 @@ Staff returns never send an individual email in Phase D.
 | Endpoint | **Built:** `GET /api/cron/return-digest` — Production only (Preview and local development refuse), `Authorization: Bearer ${CRON_SECRET}` compared in constant time (≥ 32 characters, fail closed), `maxDuration = 300`; organizations 2 at a time with a 240 s start budget, reporting `incomplete` (HTTP 500) rather than a silent success |
 | Logging | **Built:** one line per organization — `event: "return_digest"`, `outcome` (`sent`, `skipped_quiet`, `skipped_duplicate`, `skipped_no_recipient`, failures), `organizationId`, `reference` = Pacific date, redacted recipient, `providerId`, `recipientRoute: "digest"`, `digestItemCount` — plus one `return_digest_run` line per invocation with counts; never item content |
 | Links | per-item record links and one return-checklist inbox link, all on `publicEnv.siteUrl` |
+| Display (D5.1) | counters (returns with exceptions; still open, with new and reviewed; resolved or archived; one count per class, each return counted once under its most serious issue) and a "View open return checklists" button at the top and bottom; sections by the most serious **open** issue (damage or does not operate · failed condition checks · missing accessories · resolved or archived); one card per asset listing every return with its source, status, Pacific submitted time, issue badges, exception lines, "Same rental session as SUB-…" where it applies, reference, photo count and its own link. `groupDigestItems`, `digestCounters`, `planDigestDisplay` (`digest.ts`) — presentation only |
+| Length (D5.1) | **no count cap** (operator decision, 2026-09-14). Every return renders in full while the email fits HTML ≤ 75 KB and text ≤ 30 KB; on a busier day the least urgent returns (listed last) render as one-line rows (linked reference, status, source, issues, time); only beyond that are the rest counted: "Showing X of Y returns. The rest are in Submissions: …". Counters and section totals always cover every return. The worker still scans at most 2,000 returns per summary. Gallery fixtures: 120 returns across 30 assets all listed on one line (74.8 KB); 400 across 80 assets lists 130 |
 
 ### 9.6 Schedule caveat
 
@@ -1241,6 +1274,25 @@ snapshot/restore), `scripts/production/notification-config-report.mjs` (read-onl
 (content from saved rows), the extended `tests/staging/return-digest.staging.test.ts`; results in §15.7; readiness
 note `PHASE_D_NOTIFICATION_READINESS.md`.
 
+### D5.1 — Operational email hierarchy (built 2026-09-14/15)
+
+Presentation only: priorities, headlines, routing, recipients, summary selection/window/catch-up/cron, idempotency
+keys, `after()` scheduling, preview selection and limits, subjects and first lines are unchanged.
+
+| File | Change |
+|---|---|
+| `lib/notifications/email-html.ts`, `email-components.ts` (new) | Email-safe primitives and components; each returns HTML and text from one input; the logo is attached first on every email |
+| `lib/notifications/email-logo.ts` (generated), `scripts/brand/export-email-logo.mjs` (new) | The lockup PNG as base64; `npm run brand:email-logo` |
+| `lib/notifications/email.ts` | Builders rebuilt on the components; fit-to-size summary; brief tag email |
+| `lib/notifications/priority.ts`, `projection.ts` | `basis` and `reason` on every decision, `shouldShowPriorityReason`; descriptions keep up to six line breaks |
+| `lib/notifications/digest.ts`, `digest-store.ts` | Counters, asset grouping, `planDigestDisplay`; `rental_session_id` loaded only for the same-session note; the not-operating line reads "Answered No: {question}" |
+| `lib/notifications/notify.ts` | Tag read `id, organization_id, status, created_at` (requested date) |
+| Tests | `email-components`, `email-parity` (15 fixtures, 4 text snapshots) new; `priority`, `email`, `digest`, `notify` extended; gallery `npm run email:gallery`; staging summary check and Production content check updated |
+| QA tooling | Matrix `reason` expectations; optional operator mailbox (`QA_OPERATOR_RECIPIENT`, `--operator-mailbox`, alias `operator`) |
+
+Commits `d3a5325` (build) and `93fe39b` (correction pass after the operator's gallery review: no count cap, brand
+lockup, brief tag emails). Live record §15.9.
+
 ---
 
 ## 13. Acceptance criteria
@@ -1260,7 +1312,8 @@ note `PHASE_D_NOTIFICATION_READINESS.md`.
 - No output contains a storage path, bucket name, signed-URL marker or raw JSON (fixture rows carry realistic
   paths).
 - HTML ≤ 20 KB, escaped, no `<img>`, no `<style>`, no hidden text. (Amended by D4: the only `<img>` allowed is a
-  `cid:` reference to an attached preview; no remote image.)
+  `cid:` reference to an attached preview; no remote image. Amended by D5.1: HTML ≤ 40 KB, presentation tables, and
+  the brand lockup is a second inline `cid:` image — §7.8.)
 - A missing row sends nothing and logs `record_missing`; nothing throws; idempotency key format unchanged.
 
 ### D2
@@ -1541,7 +1594,7 @@ email builders: 25/27, 3/3 and 2/2 — the two failures are the as-built clean-r
 
 ### 15.8 Follow-ups recorded at D5 (not built in D5)
 
-1. **D5.1 — escalation reason (operator requirement, 2026-09-14).** An Immediate-attention email whose priority
+1. **D5.1 — escalation reason (operator requirement, 2026-09-14). Built in D5.1 (§7.8, §15.9).** An Immediate-attention email whose priority
    comes from the reported equipment state (for example unsafe to operate) while the submitter chose a lower
    response need (for example "Please follow up soon") reads as contradictory, although the rule is correct. D5.1
    must display why the report was escalated — the winning condition — clearly, and must never state or imply that
@@ -1554,6 +1607,60 @@ email builders: 25/27, 3/3 and 2/2 — the two failures are the as-built clean-r
    its email says "Recommended photos not provided: Additional photos". Candidate: exclude optional (`required:
    false`, `min: 0`) slots from routine photo notes. Needs an operator decision.
 3. **Operational hold / out-of-service workflow** — the next-phase candidate (`ROADMAP_DEFERRED.md` #3). Not started.
+
+### 15.9 D5.1 live QA record — Production, 2026-09-14/15
+
+**Build and gates.** `d3a5325` (build) and `93fe39b` (correction pass). Gates on `93fe39b`: `lint`, `typecheck` and
+`build` pass; `test` 2203 passed / 192 files; `test:security` 125 passed / 10 files; `test:e2e:smoke` 12 passed;
+`email:gallery` 15 fixtures passed (budgets, `cid:` ↔ attachment, allowed links, no horizontal overflow at 375 px);
+`digest:staging-check` 8/8; `smoke:staging` on Preview `AGyNoy1F` 27 pass / 0 fail / 1 skip.
+
+**Gallery review (operator, 2026-09-14).** Kept: the priority reason and the "View open return checklists" label.
+Changed in the single correction pass: no count cap (fit to size, then one-line rows, then a count); the brand lockup
+in the header, embedded inline; brief tag status emails (status, organization, requested date, Support ID). A "Tag
+request received" email carrying the full request details went to the roadmap (a new notification type).
+
+**Promotion.** `93fe39b` promoted in the Vercel dashboard on 2026-09-14 (rebuilt with Production variables as
+`4cu3ewBh`, aliased to `mulemark.io`). `smoke:production` 13 pass / 0 fail / 1 skip (test-only scan code unset).
+
+**Preview `dry_run` evidence: not confirmed for this build.** The Preview smoke's log lines had left Vercel's one-hour
+Hobby log window before they were searched, and a re-run could not replace them: promotion re-points the branch alias
+`qr-asset-tags-git-pilot-credibility-…vercel.app` at the Production deployment, so `smoke:staging` (which targets that
+alias) reached Production and failed 10 of 13 checks without writing anything (the staging tags and logins do not exist
+there) and without sending email. `send.ts` and the Preview rule are unchanged in D5.1, and the unit test "Preview
+deployments stay dry-run" passes; the last live observation is E13 (2026-09-13).
+
+**Sample sends** (`production:qa-notifications -- --confirm --only=…`; every log line `sent`, attempts 1, provider
+200; `production:qa-notification-content` 6/6 for each run):
+
+| Scenario | Support inbox (Gmail), 22:47–22:49 UTC | Operator Outlook, 22:53–22:55 UTC | Previews |
+|---|---|---|---|
+| unsafe to operate, "No rush" | `SUB-2026-FD5BBF` | `SUB-2026-3F3CA4` | 0 |
+| operating with limitations, previews on | `SUB-2026-459A96` | `SUB-2026-CE3029` | 2 of 2 |
+| support, help needed now, no phone | `SUB-2026-BC66D7` | `SUB-2026-44EE31` | 0 |
+| clean return, every photo slot | `SUB-2026-E2770D` | `SUB-2026-C8C09A` | 0 |
+| return with damage | `SUB-2026-E8BE32` | `SUB-2026-A95078` | 2 of 2 |
+
+The operator run added `--operator-mailbox --tag-setup --leave-digest` (QA tag request
+`5460f16a-d912-43e4-85ec-ad05d0057e9f`; the QA organization was left in `daily_exceptions` to the operator mailbox).
+
+| ID | Result | Evidence |
+|---|---|---|
+| V1 | PASS (operator) | Outlook (dark mode) and Gmail web, direct delivery: lockup header, banners, fact grid, "What was reported", exceptions, previews inline, primary button, contact buttons, reference and reason line; every email in the Inbox |
+| V2 | PASS (operator) | Priority reason shown on `3F3CA4` ("Reported unsafe to operate", beside "No immediate response needed") and `CE3029` ("Reported operating with limitations"); absent on `44EE31` (help needed now) and on the returns |
+| V3 | PASS | Gmail headers (`SUB-2026-E8BE32`): `spf=pass`, `dkim=pass` (`notify.mulemark.io` and `amazonses.com`), `dmarc=pass` (`p=NONE`), TLS 1.3. MIME: `multipart/alternative` → text/plain + `multipart/related` (HTML, `mulemark-logo.png` with `Content-ID: <mm-logo@mulemark>` inline, `incident-photo-1.jpg` and `incident-photo-2.jpg` inline) |
+| V4 | PASS (operator) | Tag status: the saves to In review (23:26:07 UTC) and Ready (23:28:36 UTC) each sent one brief email (status, organization, requested date, button, Support ID); two `tag_status` log lines, `sent` |
+| V5 | PASS (operator) | Daily summary window 2026-09-14 13:00 → 2026-09-15 13:00 UTC: `sent`, 2 items, provider id recorded, completed 13:07:02 UTC. In Outlook: the lockup; counters 2 returns · 2 open (2 new) · 0 resolved · 2 damage or does not operate; one PROD-QA-PERF card with `SUB-2026-E8BE32` and `SUB-2026-A95078`, each New with its Pacific submitted time, badge, exception line, photo count and link; the button at the top and bottom |
+| V6 | not tested live | images blocked (gallery renders only); a busy-day summary with one-line rows and a count (unit tests and gallery fixtures only) |
+| V7 | observation | Outlook dark mode shows the lockup's white ground as a plate — by design, so the wordmark stays readable |
+
+**Closeout.** `--restore --confirm` on 2026-09-15 at 16:54 UTC restored and verified the QA organization (mode `off`,
+no address, tag updates off) and the QA asset; the configuration report shows no snapshot waiting. QA data kept: the ten
+submissions above and tag request `5460f16a` (`ready`).
+
+**Follow-ups.** (1) A "Tag request received" email with the full request details — roadmap backlog, a new notification
+type. (2) Run `smoke:staging` before promoting, and read the Preview `dry_run` line within the hour
+(`OPERATIONS_RUNBOOK.md`). (3) The clean-return classification (§15.8 #2) is still open.
 
 ---
 

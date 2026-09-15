@@ -143,15 +143,21 @@ environment and redeploy.
 ### Notification QA tools (Engineering Phase D5)
 
 Production QA organization and the `prod-qa-perf-probe` tag only; recipients allowlisted to `support@mulemark.io`
-and `delivered@resend.dev`; no command takes an organization, tag or address argument.
+and `delivered@resend.dev`, plus — only with `--operator-mailbox` (D5.1) — the operator's own client-check mailbox
+from `QA_OPERATOR_RECIPIENT` in the gitignored `.env.production-perf.local` (alias `operator`, never printed; refused if
+it is a `mulemark.io` address or another organization's notification address). No command takes an organization, tag
+or address argument.
 
 ```bash
 npm run production:notification-config            # read-only: configuration, ledger, QA asset and tag requests
 npm run production:qa-notifications                # dry run: prints the scenario plan
 npm run production:qa-notifications -- --confirm --tag-setup --leave-digest
+npm run production:qa-notifications -- --confirm --operator-mailbox --only=damage-previews-on
 npm run production:qa-notifications -- --restore --confirm
 npm run production:qa-notification-content         # read-only content check of the latest matrix artifact
 npm run digest:staging-check                       # staging summary worker, injected clocks, fake sender
+npm run email:gallery                              # local: render every email fixture to qa-artifacts/, never sends
+npm run brand:email-logo                           # regenerate the email header logo after the lockup artwork changes
 ```
 
 - The matrix saves every setting it changes to `qa-artifacts/notification-qa-snapshot.json` (gitignored) and
@@ -199,6 +205,13 @@ Failure artifacts (screenshot + HTML) go to the gitignored `smoke-artifacts/`. T
 retry could duplicate a form write, so a smoke check either passes first time or it is a finding.
 
 When to run: `docs/PRODUCTION_DEPLOYMENT_RUNBOOK.md` §5.
+
+**Run `smoke:staging` before promoting, not after.** Promoting a Preview in the Vercel dashboard re-points the branch
+alias (`qr-asset-tags-git-pilot-credibility-…vercel.app`, the staging smoke's target) at the new Production deployment
+until the next push to the branch. A staging smoke run after a promotion therefore reaches Production: on 2026-09-14 it
+failed 10 of 13 checks without writing or sending anything, because the staging tags and logins do not exist there.
+Read the Preview `dry_run` line in the runtime log within the hour of the Preview smoke — Vercel Hobby keeps runtime
+logs for one hour.
 
 ## Performance baselines and diagnostics (Phase C)
 

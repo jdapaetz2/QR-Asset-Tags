@@ -39,7 +39,7 @@ The short backlog bullets in [`COMMERCIAL_MODEL.md`](COMMERCIAL_MODEL.md) and
 
 | Item | Status | Notes |
 |---|---|---|
-| **Actionable incident notifications** | **Shipped — Engineering Phase D closed (D5, 2026-09-14)**; D5.1 (escalation-reason display) recorded, not started | [`ACTIONABLE_NOTIFICATION_DESIGN.md`](ACTIONABLE_NOTIFICATION_DESIGN.md), [`PHASE_D_NOTIFICATION_READINESS.md`](PHASE_D_NOTIFICATION_READINESS.md). Promotes one narrow slice of the roadmap's "multi-recipient notifications" backlog item: a separate urgent route (switch + address). Adds a daily return-exceptions summary. Neither is a general notification queue; full multi-recipient routing remains deferred. |
+| **Actionable incident notifications** | **Shipped — Engineering Phase D closed (D5, 2026-09-14)**; D5.1 (operational email hierarchy, including the escalation reason) closed 2026-09-15 | [`ACTIONABLE_NOTIFICATION_DESIGN.md`](ACTIONABLE_NOTIFICATION_DESIGN.md), [`PHASE_D_NOTIFICATION_READINESS.md`](PHASE_D_NOTIFICATION_READINESS.md). Promotes one narrow slice of the roadmap's "multi-recipient notifications" backlog item: a separate urgent route (switch + address). Adds a daily return-exceptions summary. Neither is a general notification queue; full multi-recipient routing remains deferred. |
 | **Operational hold / out-of-service workflow** | **Next-phase candidate (confirmed at D5 closeout, 2026-09-14) — not started** | Extends #3. See R3. Explicitly **not** part of Engineering Phase D: Phase D never changes an asset's rental or service state from a report. Needs its own plan and operator decision before any work begins. |
 
 ---

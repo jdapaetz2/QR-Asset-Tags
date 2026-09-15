@@ -514,7 +514,7 @@ that is the business roadmap and is untouched by this work.
 database backups** — recommended to fix (Supabase Pro) before a pilot holds real customer data; operator
 decision, not taken.
 
-## Engineering Phase D (actionable notifications) — **CLOSED (D5, 2026-09-14)**
+## Engineering Phase D (actionable notifications) — **CLOSED (D5, 2026-09-14; D5.1 closed 2026-09-15)**
 
 Audit, design and phased implementation plan:
 [`docs/ACTIONABLE_NOTIFICATION_DESIGN.md`](docs/ACTIONABLE_NOTIFICATION_DESIGN.md).
@@ -542,7 +542,7 @@ reported equipment state or response need.
 | **D4** — up to three bounded inline photo previews, metadata-stripped, text-only fallback | direct `sharp` 0.34.5 dependency (no migration) | ✅ built |
 | **D4.1** — broad consumer photo inputs (HEIC/HEIF/AVIF/GIF/large photos converted on the device, identified by bytes), private HEIC document originals, correct no-JS return fallback, document/asset delete integrity, hardened abandoned-upload report | migration 0039, `libheif-js` 1.23.2 (vendored, LGPL) | ✅ built — see `docs/STORAGE_MEDIA_LIFECYCLE.md` |
 | **D5** — live QA and Engineering Phase D closeout | QA tooling only — no migration, no application change | ✅ closed 2026-09-14 — [`docs/PHASE_D_NOTIFICATION_READINESS.md`](docs/PHASE_D_NOTIFICATION_READINESS.md) |
-| **D5.1** — show why a report was escalated (the winning condition) without implying the submitter asked for immediate help | operator requirement recorded 2026-09-14 (design §15.8) | not started |
+| **D5.1** — operational email hierarchy: the priority reason (why a report was escalated, never implying the submitter asked for immediate help), one email-safe renderer, the brand lockup header, a daily summary grouped by asset and fitted to size (no count cap), brief tag status emails | presentation only — no migration; `d3a5325`, `93fe39b` | ✅ closed 2026-09-15 — Production deployment `4cu3ewBh`; [`docs/PHASE_D_NOTIFICATION_READINESS.md`](docs/PHASE_D_NOTIFICATION_READINESS.md) §16, design §15.9 |
 
 **All operator decisions are locked** (design doc §16): priority subject prefixes, tap-to-call and tap-to-email
 contact links, optional unselected triage questions (renter damage severity displayed but never raising
@@ -558,7 +558,7 @@ the same slice.
 
 | # | Verdict | Result |
 |---|---|---|
-| 1 | Notification content usefulness | **CONDITIONAL GO** — D5.1 escalation reason |
+| 1 | Notification content usefulness | **GO** — re-evaluated after D5.1 (2026-09-15) |
 | 2 | Deterministic triage | **GO** |
 | 3 | Urgent routing | **GO** |
 | 4 | Return notification and noise | **CONDITIONAL GO** — clean returns without Additional photos are Routine (as built) |
@@ -568,6 +568,10 @@ the same slice.
 | 8 | Limited-pilot readiness (notifications) | **CONDITIONAL GO** |
 
 ## Next recommended workstream
+
+**Updated 2026-09-15:** D5.1 (operational email hierarchy) is built, verified live and closed. Next: operator decisions
+on the **operational hold** phase candidate (`docs/ROADMAP_DEFERRED.md` #3) and on the clean-return classification;
+neither is started automatically. The pilot-onboarding recommendation below stands.
 
 **Updated 2026-09-14:** Engineering Phase D is closed. The next engineering step is the small **D5.1** slice
 (escalation-reason display), then an operator decision on the **operational hold** phase candidate
@@ -762,6 +766,7 @@ Build only what repeated pilot evidence justifies.
 | SMS | Email proves too slow for urgent damage or support | Deferred |
 | Notification center | Event volume makes email/log review insufficient | Deferred |
 | Email open/click tracking (analytics) | Engagement analytics become a product or sales need | **Deferred — wanted later** (operator, 2026-09-14). Off today: Resend tracking is not configured. Needs a custom tracking subdomain on `notify.mulemark.io`, a deliberate revision of the Phase D email rules (no pixel, record link unwrapped on `mulemark.io`, design §14 non-goal), customer disclosure and a deliverability re-check |
+| "Tag request received" email | A customer wants the request details confirmed by email when a tag request is submitted | **Deferred — wanted later** (operator, 2026-09-14). Status-update emails stay brief (status, organization, requested date, Support ID); the full request details (material, size, mounting, assets) belong in a new notification type with its own setting and QA |
 | Out-of-service/hold state | A pilot needs to block damaged equipment from rental | **Newly triggered candidate** (Phase D0 incident examples: rollover, immobilized, unsafe) — a separate future phase, **not** Engineering Phase D; see `docs/ROADMAP_DEFERRED.md` #3 |
 | Checklist customization | Two or more customers need materially different checks | Deferred |
 | Fine-grained staff permissions | Customer has counter, yard, service, and manager role separation | Deferred |

@@ -115,7 +115,7 @@ email, `?unsafe=1` tag safety, private media, suspended-org redirect.
 | After a **production deploy** | `npm run smoke:production` |
 | After a **migration** (applied manually, per §3) | both — staging first |
 | After a **domain change** | `npm run smoke:production` — it checks the apex, `www`, and canonical-host leakage |
-| After a **notification change** | `npm run smoke:staging`, then confirm `dry_run` / `preview_environment` in the Vercel log; live email needs `docs/EMAIL_DELIVERABILITY_RUNBOOK.md` and approval |
+| After a **notification change** | `npm run smoke:staging`, then confirm `dry_run` / `preview_environment` in the Vercel log — within the hour (Hobby keeps runtime logs one hour) and **before promoting**, because a promotion re-points the branch alias the staging smoke uses at Production (`OPERATIONS_RUNBOOK.md`, Deployment smoke); live email needs `docs/EMAIL_DELIVERABILITY_RUNBOOK.md` and approval |
 
 **The smoke runners never apply migrations and never relink the Supabase CLI.** Schema remains an
 explicit, approval-gated operator step (§3).

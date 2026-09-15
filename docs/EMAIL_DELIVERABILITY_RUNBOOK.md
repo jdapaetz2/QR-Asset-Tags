@@ -16,6 +16,18 @@ any provider, and never will be claimed.
 > placement is handled per customer at onboarding (decided 2026-09-14); open and click tracking are confirmed off.
 > Evidence: [`PHASE_D_NOTIFICATION_READINESS.md`](PHASE_D_NOTIFICATION_READINESS.md), design §15.7.
 
+> **Engineering Phase D5.1 (2026-09-14/15, `93fe39b`).** Every notification is now a table-based HTML email with a
+> complete plain-text part, and each carries one inline image: the Mulemark lockup (`mulemark-logo.png`,
+> `cid:mm-logo@mulemark`, about 2 KB), followed on incident emails by up to three D4 previews. No remote image, no
+> tracking. Size budgets: incident HTML ≤ 40 KB; daily summary ≤ 75 KB (it shortens rows rather than exceed it; Gmail
+> clips near 102 KB); tag status ≤ 20 KB. **Verified live, direct delivery:** ten sample emails `sent` (five to the
+> support inbox in Gmail, five to an Outlook/Hotmail mailbox in dark mode), both tag status emails and the 2026-09-15
+> summary, all in the Inbox; Gmail headers `spf=pass`, `dkim=pass`, `dmarc=pass`, TLS 1.3, with the logo and previews
+> as inline `Content-ID` parts. Outlook dark mode shows the logo's white ground as a plate, by design. **Not tested
+> live:** images blocked. **Preview `dry_run` was not re-observed for this build** — Vercel Hobby keeps runtime logs
+> for one hour, and after a promotion the branch alias serves Production, so a later `smoke:staging` reached Production
+> (it wrote and sent nothing). Evidence: readiness §16, design §15.9.
+
 ### Verified live on Production
 
 | Check | Result |
@@ -81,7 +93,7 @@ summary can only ever be sent from Production.
 | **Replay** never tested in production | "exactly one email per event" is a different measurement. Our duplicate protection depends on **Resend honouring the `Idempotency-Key` header**, which we have taken from their documentation and proven only in unit tests against a mocked provider. Nothing has yet confirmed the live API accepts and dedupes on it. |
 | **Provider-failure path** never exercised live | unit-tested only; D5 could not force a provider rejection without a secret-bearing call |
 | **Cold-mailbox placement** unmeasured | the Outlook mailbox carries an allow/safe-sender rule. By decision (2026-09-14) it is handled per customer at onboarding — allowlist plus a confirmed test report — rather than measured; see the Outlook section |
-| **Forwarded copies** | a Gmail-forwarded copy lost its inline preview in D5; direct delivery rendered it. Forwarding clients may drop CID images |
+| **Forwarded copies** | a Gmail-forwarded copy lost its inline preview in D5; direct delivery rendered it. Forwarding clients may drop CID images — since D5.1 that includes the header logo, whose alt text then reads "Mulemark" |
 
 The disabled-notification path is no longer on this list: D5 observed `skipped_disabled` live on 2026-09-13 (row 5).
 
