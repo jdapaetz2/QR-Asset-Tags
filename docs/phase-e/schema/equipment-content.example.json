@@ -1,0 +1,203 @@
+{
+  "schema_version": "1.0.0",
+  "manifest_id": "showcase-trailers-example",
+  "kind": "showcase",
+  "batch": {
+    "batch_id": "showcase-e2-trailers",
+    "launch_scope": "partial",
+    "included_asset_codes": ["TRAILER-014", "TRAILER-2041"],
+    "excluded_asset_codes": ["EXCAVATOR-017", "EXCAVATOR-3015"],
+    "research_minutes_per_model_cap": 45
+  },
+  "organization": {
+    "organization_id": "11111111-1111-4111-8111-111111111111",
+    "name": "Northridge Rentals",
+    "fictional": true,
+    "support": { "email": "support@mulemark.io" },
+    "notifications": { "return_mode": "instant_renter", "address_role": "Mulemark support inbox" },
+    "policies": [
+      {
+        "policy_id": "pol-trailer-accessories",
+        "text": "Ratchet straps, safety-chain pins and the spare tire are issued with each trailer and checked at return. (Fictional demo policy.)",
+        "owner": "customer"
+      }
+    ],
+    "approver": { "role": "Northridge demo owner (operator)" }
+  },
+  "sources": [
+    {
+      "source_id": "src-bigtex-35sa-web",
+      "kind": "oem-web",
+      "title": "35SA Single Axle Utility Trailer",
+      "publisher": "Big Tex Trailer Manufacturing, LLC",
+      "url": "https://www.bigtextrailers.com/trailer/35sa/",
+      "retrieved_at": "2026-10-14",
+      "rights": { "status": "unknown", "redistribution": "link-only", "shareable_across_orgs": false },
+      "verification": "read"
+    },
+    {
+      "source_id": "src-bigtex-14lp-web",
+      "kind": "oem-web",
+      "title": "14LP Ultra Low Profile Dump Trailer",
+      "publisher": "Big Tex Trailer Manufacturing, LLC",
+      "url": "https://www.bigtextrailers.com/trailer/14lp/",
+      "retrieved_at": "2026-10-14",
+      "rights": { "status": "unknown", "redistribution": "link-only", "shareable_across_orgs": false },
+      "verification": "read"
+    },
+    {
+      "source_id": "src-bigtex-owners-2020",
+      "kind": "oem-manual",
+      "title": "Big Tex Trailers Owners Manual",
+      "publisher": "Big Tex Trailer Manufacturing, LLC",
+      "edition": "2020",
+      "url": "https://www.bigtextrailers.com/wp-content/uploads/2023/11/Big-Tex-Trailers_Owners-Manual_2020.pdf",
+      "bytes": 4298192,
+      "last_modified": "2025-03-20T18:12:31Z",
+      "retrieved_at": "2026-10-14",
+      "applicability": "General Big Tex owner's manual; applicability to the 35SA confirmed only when read (E2A).",
+      "rights": { "status": "unknown", "redistribution": "link-only", "shareable_across_orgs": false },
+      "verification": "headers-only"
+    },
+    {
+      "source_id": "src-bigtex-owners-2020-dump",
+      "kind": "oem-manual",
+      "title": "Big Tex Trailers Owners Manual (Dump Trailers)",
+      "publisher": "Big Tex Trailer Manufacturing, LLC",
+      "edition": "2020",
+      "url": "https://www.bigtextrailers.com/wp-content/uploads/2023/11/Big-Tex-Trailers_Owners-Manual_2020-Dump-Trailers-2.pdf",
+      "bytes": 5721256,
+      "last_modified": "2025-03-20T18:12:29Z",
+      "retrieved_at": "2026-10-14",
+      "rights": { "status": "unknown", "redistribution": "link-only", "shareable_across_orgs": false },
+      "verification": "headers-only"
+    },
+    {
+      "source_id": "src-bigtex-hoist",
+      "kind": "oem-manual",
+      "title": "Hoist Manual",
+      "publisher": "Big Tex Trailer Manufacturing, LLC",
+      "url": "https://www.bigtextrailers.com/wp-content/uploads/2023/07/hoist-manual.pdf",
+      "bytes": 27312771,
+      "last_modified": "2025-03-20T18:13:31Z",
+      "retrieved_at": "2026-10-14",
+      "rights": { "status": "unknown", "redistribution": "link-only", "shareable_across_orgs": false },
+      "verification": "headers-only"
+    },
+    {
+      "source_id": "src-bigtex-wiring",
+      "kind": "oem-manual",
+      "title": "Wiring Diagram",
+      "publisher": "Big Tex Trailer Manufacturing, LLC",
+      "url": "https://www.bigtextrailers.com/wp-content/uploads/2023/07/wiring-diagram.pdf",
+      "bytes": 1506020,
+      "last_modified": "2025-03-20T18:13:34Z",
+      "retrieved_at": "2026-10-14",
+      "rights": { "status": "unknown", "redistribution": "link-only", "shareable_across_orgs": false },
+      "verification": "headers-only"
+    },
+    {
+      "source_id": "src-bigtex-plug-contacts",
+      "kind": "oem-manual",
+      "title": "Plug Contacts",
+      "publisher": "Big Tex Trailer Manufacturing, LLC",
+      "url": "https://www.bigtextrailers.com/wp-content/uploads/2023/07/plug-contacts.pdf",
+      "bytes": 1009430,
+      "last_modified": "2025-03-20T18:13:33Z",
+      "retrieved_at": "2026-10-14",
+      "rights": { "status": "unknown", "redistribution": "link-only", "shareable_across_orgs": false },
+      "verification": "headers-only"
+    }
+  ],
+  "models": [
+    {
+      "model_key": "bigtex.35sa.12",
+      "manufacturer": "Big Tex Trailers",
+      "model": "35SA-12",
+      "category": "Utility Trailer",
+      "configuration": {
+        "bed_length_ft": 12,
+        "bed_width_in": 77,
+        "gvwr_lb": 2995,
+        "axle_rating_lb": 3500,
+        "rear_gate": "4 ft 3-way ramp gate (standard)",
+        "brakes": null
+      },
+      "applicability": { "notes": "Electric brakes with breakaway are optional; the fitted configuration must be confirmed." },
+      "manual": { "source_id": "src-bigtex-owners-2020", "delivery": "link", "supplements": ["src-bigtex-wiring", "src-bigtex-plug-contacts"] },
+      "quick_guide": [],
+      "warnings": [],
+      "templates": { "return": "utility_trailer", "outbound": "utility_trailer", "equipment_page_seed": null },
+      "common_accessories": [],
+      "review": {
+        "status": "MULEMARK_REVIEW",
+        "missing_facts": [
+          "Quick guide not authored: owner's manual content not yet read (E2A).",
+          "Brakes fitted or not (customer configuration).",
+          "Exact-model photo: owned photo or written Big Tex permission (operator)."
+        ]
+      }
+    },
+    {
+      "model_key": "bigtex.14lp.14",
+      "manufacturer": "Big Tex Trailers",
+      "model": "14LP-14",
+      "category": "Dump Trailer",
+      "configuration": {
+        "bed_length_ft": 14,
+        "bed_width_in": 83,
+        "gvwr_lb": 14000,
+        "axles": "2 x 7,000 lb",
+        "brakes": "electric, both axles",
+        "battery": "12 V deep cycle",
+        "charger": "5 A 110 V onboard",
+        "remote": null
+      },
+      "applicability": { "notes": "The OEM page does not make clear whether the wireless/solar remote is standard; confirm." },
+      "manual": {
+        "source_id": "src-bigtex-owners-2020-dump",
+        "delivery": "link",
+        "supplements": ["src-bigtex-hoist", "src-bigtex-wiring", "src-bigtex-plug-contacts"]
+      },
+      "quick_guide": [],
+      "warnings": [],
+      "templates": { "return": "utility_trailer", "outbound": "utility_trailer", "equipment_page_seed": null },
+      "common_accessories": [],
+      "review": {
+        "status": "MULEMARK_REVIEW",
+        "missing_facts": [
+          "Quick guide not authored: dump-trailer and hoist manuals not yet read (E2A).",
+          "Remote fitted or not; ramp package; drop axles (customer configuration).",
+          "Exact-model photo: owned photo or written Big Tex permission (operator)."
+        ]
+      }
+    }
+  ],
+  "assets": [
+    {
+      "asset_code": "TRAILER-014",
+      "asset_name": "Trailer 014",
+      "model_key": "bigtex.35sa.12",
+      "category": "Utility Trailer",
+      "year": null,
+      "serial_number": "DEMO-35SA-0014",
+      "qr": { "create": false, "existing_short_code": "demo-tr014", "protected": true },
+      "existing_ids": { "asset_id": "21111111-1111-4111-8111-111111111102", "qr_link_id": "41111111-1111-4111-8111-111111111102" },
+      "publish_intent": false,
+      "review": { "status": "MULEMARK_REVIEW", "missing_facts": ["Model content pending (see model bigtex.35sa.12)."] }
+    },
+    {
+      "asset_code": "TRAILER-2041",
+      "asset_name": "Dump Trailer 2041",
+      "model_key": "bigtex.14lp.14",
+      "category": "Dump Trailer",
+      "year": null,
+      "serial_number": "DEMO-14LP-2041",
+      "qr": { "create": false, "existing_short_code": "67uqc3q7", "protected": true },
+      "existing_ids": { "asset_id": "3313ed1c-f738-4817-b4fa-6f2163dc2e14", "qr_link_id": "97c20650-4c09-4828-ac02-3cd6b4d083cb" },
+      "publish_intent": false,
+      "review": { "status": "MULEMARK_REVIEW", "missing_facts": ["Model content pending (see model bigtex.14lp.14)."] }
+    }
+  ],
+  "approval": { "status": "not_requested" }
+}

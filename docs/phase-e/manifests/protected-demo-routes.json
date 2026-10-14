@@ -1,0 +1,359 @@
+{
+  "schema": "mulemark.phase-e.protected-demo-routes/v1",
+  "locked": "2026-10-14",
+  "locked_by": "Engineering Phase E0 (read-only)",
+  "human_readable": "docs/phase-e/PROTECTED_DEMO_ROUTES.md",
+  "sources": {
+    "app_repo": "jdapaetz2/QR-Asset-Tags",
+    "app_branch": "phase-e/showcase-onboarding",
+    "app_base_commit": "096e7bb",
+    "production_serving_commit": "93fe39b",
+    "marketing_repo": "jdapaetz2/Getmulemark.com",
+    "marketing_commit": "57747c3",
+    "decoder": "scripts/lib/qr-decode.mjs (npm.cmd run phase-e:decode-qr), Reed-Solomon verified, vector grids only",
+    "inventory_artifact": {
+      "name": "qa-artifacts/phase-e/showcase-audit-production-northridge-20261014T203533Z.json",
+      "sha256": "62e19f56068a1c4f0d07823d1cbe876f8e834104e1f2aed5fa89155739960f7d",
+      "tracked": false
+    },
+    "registry_matrix_hash_method": "SHA-256 of the 33x33 module matrix as raw bytes, dark=1 light=0, row-major, no quiet zone (reproduced for all four records)",
+    "canonical_matrix_hash_method": "SHA-256 of rows of '1' (dark) / '0' joined by '\\n', no quiet zone (scripts/lib/qr-decode.mjs#matrixSha256)",
+    "scan_requests_made": 0
+  },
+  "rules": [
+    "Never rotate, rename, deactivate, delete or recreate a protected qr_links row or its asset row.",
+    "No replacement QR artwork and no new domain.",
+    "Content (asset name, make, model, page, documents, photos) may change in an approved E2C cutover; routes may not.",
+    "E2C cutover is blocked while any business_cards entry is UNVERIFIED or any conditional entry is unanswered."
+  ],
+  "organization_id": "11111111-1111-4111-8111-111111111111",
+  "hosts": [
+    { "host": "mulemark.io", "status": "protected", "observed": "app landing page; links /t/demo-ex017" },
+    {
+      "host": "qr-asset-tags.vercel.app",
+      "status": "conditional",
+      "condition": "protected if the 2026-07-20 QR sheet or any tag made from it was printed",
+      "observed": "HTTP 200 at / with no redirect on 2026-10-14 (headers only)",
+      "keep": "never rename or delete the Vercel project; keep the default alias"
+    },
+    { "host": "getmulemark.com", "status": "marketing", "observed": "/demo links all four protected routes; www redirects to the apex (308)" }
+  ],
+  "routes": [
+    {
+      "url": "https://mulemark.io/t/demo-ex017",
+      "short_code": "demo-ex017",
+      "class": "protected",
+      "asset_code_label": "EXCAVATOR-017",
+      "asset_id": "21111111-1111-4111-8111-111111111101",
+      "asset_name_now": "Excavator 017",
+      "qr_link_id": "41111111-1111-4111-8111-111111111101",
+      "qr_status": "active",
+      "is_production_primary": true,
+      "supersedes_qr_link_id": null,
+      "superseded_by": [],
+      "qr_created_at": "2026-06-15T23:56:43.962Z",
+      "stored_public_url_host": "app.example.com",
+      "scans": { "exact": 938, "first": "2026-06-16T23:11:18.269Z", "last": "2026-10-12T22:45:32.095Z", "last_30_days": 44, "as_of": "2026-10-14T20:35:33Z" },
+      "history": ["0004_align_demo_seed.sql:60-63 set this short code on the same row id (pre-print)."],
+      "artifacts": [
+        {
+          "kind": "website-qr",
+          "path": "site/assets/qr-excavator-017.svg",
+          "live_url": "https://getmulemark.com/assets/qr-excavator-017.svg",
+          "bytes": 7732,
+          "file_sha256": "468811679f38a263520f0ccdb50250e50097d7a4d7bf4e479b62bd446abe8623",
+          "git_blob": "a25c18420a25a5ac9d5a20c06a47923a111843cd",
+          "live_equals_commit": true,
+          "declared": { "title": "https://mulemark.io/t/demo-ex017", "aria_label": "QR code for EXCAVATOR-017" },
+          "decoded_url": "https://mulemark.io/t/demo-ex017",
+          "version": 4,
+          "ecc": "H",
+          "mask": 1,
+          "segments": ["byte", "numeric"],
+          "matrix_sha256": "30de7e0cba306ab74130e2c3d17ea775f15e38763d832093fc5c2f5878cbc343",
+          "registry_matrix_sha256": "fff7e6b3fda8cabeb6446a82f5d8004cf4511aa945def7a6ab0ef2f51c85b98d",
+          "registry_matrix_reproduced": true
+        },
+        {
+          "kind": "website-tag",
+          "variant": "bone",
+          "path": "site/assets/tag-excavator-017-bone.svg",
+          "live_bytes": 761389,
+          "live_sha256": "3a56d7dce57d481833c7ea2191471ce3091154e74f0a11f811d0832797ef26f2",
+          "committed_bytes": 12954,
+          "committed_sha256": "f2a50339982cd241e7e21eda429c34ade82dfffb0bbf2fc3335e148c6cd2b52d",
+          "live_equals_commit_plus_build_style": true,
+          "visible_text": ["NORTHRIDGE", "RENTALS", "EXCAVATOR-017", "START HERE.", "COME BACK", "ANYTIME.", "Quick Start", "Help", "Report an Issue"],
+          "decoded_url": "https://mulemark.io/t/demo-ex017",
+          "matrix_sha256": "30de7e0cba306ab74130e2c3d17ea775f15e38763d832093fc5c2f5878cbc343"
+        },
+        {
+          "kind": "website-tag",
+          "variant": "iron",
+          "path": "site/assets/tag-excavator-017-iron.svg",
+          "live_bytes": 761389,
+          "live_sha256": "354a0dc9caf0ce65a6125880e69a5e9f4627afaa34d1ce1b1dc1e993fbf65c66",
+          "committed_bytes": 12954,
+          "committed_sha256": "88a707b719bcafb1be90c09c2193080aa5bdca91c44e196ee5ebb89847f48067",
+          "live_equals_commit_plus_build_style": true,
+          "decoded_url": "https://mulemark.io/t/demo-ex017",
+          "matrix_sha256": "30de7e0cba306ab74130e2c3d17ea775f15e38763d832093fc5c2f5878cbc343"
+        }
+      ],
+      "card_evidence": "UNVERIFIED"
+    },
+    {
+      "url": "https://mulemark.io/t/ezzs9ueg",
+      "short_code": "ezzs9ueg",
+      "class": "protected",
+      "asset_code_label": "EXCAVATOR-3015",
+      "asset_id": "7f7753d2-37f9-4e74-bbb2-90f048523f21",
+      "asset_name_now": "Mini Excavator 301.5",
+      "qr_link_id": "07c8ca60-0102-48c6-ac96-a8cb4b27ca90",
+      "qr_status": "active",
+      "is_production_primary": true,
+      "supersedes_qr_link_id": null,
+      "superseded_by": [],
+      "qr_created_at": "2026-06-27T18:09:09.114Z",
+      "stored_public_url_host": "localhost",
+      "scans": { "exact": 790, "first": "2026-06-27T18:10:01.613Z", "last": "2026-10-12T18:15:35.469Z", "last_30_days": 23, "as_of": "2026-10-14T20:35:33Z" },
+      "history": ["Generated code; the asset row was created 2026-06-23, this QR row 2026-06-27; it is the asset's only QR row today."],
+      "artifacts": [
+        {
+          "kind": "website-qr",
+          "path": "site/assets/qr-excavator-3015.svg",
+          "live_url": "https://getmulemark.com/assets/qr-excavator-3015.svg",
+          "bytes": 7925,
+          "file_sha256": "838417f97b387543a391a1d3934b8bd7a8e988355f09f347f87a2bc4e3749217",
+          "git_blob": "c7a4d004c5f9932bf8be29171b9f58cff842a6d1",
+          "live_equals_commit": true,
+          "declared": { "title": "https://mulemark.io/t/ezzs9ueg", "aria_label": "QR code for EXCAVATOR-3015" },
+          "decoded_url": "https://mulemark.io/t/ezzs9ueg",
+          "version": 4,
+          "ecc": "H",
+          "mask": 6,
+          "segments": ["byte"],
+          "matrix_sha256": "946b900d697c1be230f4ccb0b25a88298ac9cddd999fdb580478b0fe3061b069",
+          "registry_matrix_sha256": "ba3a2de158ed7de6bd6c1fe182157480c33d3bfeb197309cf2bfbfadd4720c65",
+          "registry_matrix_reproduced": true
+        },
+        {
+          "kind": "website-tag",
+          "variant": "bone",
+          "path": "site/assets/tag-excavator-3015-bone.svg",
+          "live_bytes": 761586,
+          "live_sha256": "c43e71982dffa8486ae3dc1597d5b0f013f0c4539896b25a5bdea455ed1eadbe",
+          "committed_bytes": 13151,
+          "committed_sha256": "25e99296bd4e80f12189137e848929892ec723068a944d556dc518669b6aba62",
+          "live_equals_commit_plus_build_style": true,
+          "decoded_url": "https://mulemark.io/t/ezzs9ueg",
+          "matrix_sha256": "946b900d697c1be230f4ccb0b25a88298ac9cddd999fdb580478b0fe3061b069"
+        },
+        {
+          "kind": "website-tag",
+          "variant": "iron",
+          "path": "site/assets/tag-excavator-3015-iron.svg",
+          "live_bytes": 761586,
+          "live_sha256": "bac0167dda7223e36f9bef57bd8db956f3b4d0e58cd70b81e1da567f3c0d68ad",
+          "committed_bytes": 13151,
+          "committed_sha256": "7eddfb8eabb435f3e0d613e2ca60ab95a7bc32f9d2c7656d4f91735a8b9f2931",
+          "live_equals_commit_plus_build_style": true,
+          "decoded_url": "https://mulemark.io/t/ezzs9ueg",
+          "matrix_sha256": "946b900d697c1be230f4ccb0b25a88298ac9cddd999fdb580478b0fe3061b069"
+        }
+      ],
+      "card_evidence": "UNVERIFIED"
+    },
+    {
+      "url": "https://mulemark.io/t/demo-tr014",
+      "short_code": "demo-tr014",
+      "class": "protected",
+      "asset_code_label": "TRAILER-014",
+      "asset_id": "21111111-1111-4111-8111-111111111102",
+      "asset_name_now": "Trailer 014",
+      "qr_link_id": "41111111-1111-4111-8111-111111111102",
+      "qr_status": "active",
+      "is_production_primary": true,
+      "supersedes_qr_link_id": null,
+      "superseded_by": [],
+      "qr_created_at": "2026-06-15T23:56:43.962Z",
+      "stored_public_url_host": "app.example.com",
+      "scans": { "exact": 57, "first": "2026-06-17T16:23:11.363Z", "last": "2026-10-14T10:44:36.785Z", "last_30_days": 30, "as_of": "2026-10-14T20:35:33Z" },
+      "history": [
+        "The asset row began as the seed scissor lift; 0004_align_demo_seed.sql:25-33 repurposed it as a Big Tex 35SA trailer.",
+        "0004_align_demo_seed.sql:65-68 set this short code on the same row id (pre-print)."
+      ],
+      "artifacts": [
+        {
+          "kind": "website-qr",
+          "path": "site/assets/qr-trailer-014.svg",
+          "live_url": "https://getmulemark.com/assets/qr-trailer-014.svg",
+          "bytes": 7875,
+          "file_sha256": "b807de77037dd2320f77aef071dc8e5a56e006f5ffe0f18be81a941f9ca36eb5",
+          "git_blob": "a816ed1712cce808a958c0a49c43b894a3179161",
+          "live_equals_commit": true,
+          "declared": { "title": "https://mulemark.io/t/demo-tr014", "aria_label": "QR code for TRAILER-014" },
+          "decoded_url": "https://mulemark.io/t/demo-tr014",
+          "version": 4,
+          "ecc": "H",
+          "mask": 6,
+          "segments": ["byte", "numeric"],
+          "matrix_sha256": "4e6053438382b735f3bd3d15f03576aa7ce95439f7455e92c89d605be5a29feb",
+          "registry_matrix_sha256": "1c85e68a57ce10873e3b54f2b404682f310eb2f904ef2f2221963894810a7e20",
+          "registry_matrix_reproduced": true
+        },
+        {
+          "kind": "website-tag",
+          "variant": "bone",
+          "path": "site/assets/tag-trailer-014-bone.svg",
+          "live_bytes": 761528,
+          "live_sha256": "2236320702c20dae34e95a6dcf154969780589fd89934ad3a9060adfc7a9b0d5",
+          "committed_bytes": 13093,
+          "committed_sha256": "1466a904dc76e8f4052be8579e5df96c9739fc0206943f14148ab8e938f141de",
+          "live_equals_commit_plus_build_style": true,
+          "decoded_url": "https://mulemark.io/t/demo-tr014",
+          "matrix_sha256": "4e6053438382b735f3bd3d15f03576aa7ce95439f7455e92c89d605be5a29feb"
+        },
+        {
+          "kind": "website-tag",
+          "variant": "iron",
+          "path": "site/assets/tag-trailer-014-iron.svg",
+          "live_bytes": 761528,
+          "live_sha256": "7156931758f9a78b6d80ec9f3d99efc7eaa7fed73d7e16339daa0b19a1569164",
+          "committed_bytes": 13093,
+          "committed_sha256": "f79ab59e48e53d7aaac1326aec52cdcf1d3614cd49ed8b6a5e692d1d6a41736d",
+          "live_equals_commit_plus_build_style": true,
+          "decoded_url": "https://mulemark.io/t/demo-tr014",
+          "matrix_sha256": "4e6053438382b735f3bd3d15f03576aa7ce95439f7455e92c89d605be5a29feb"
+        }
+      ],
+      "card_evidence": "UNVERIFIED"
+    },
+    {
+      "url": "https://mulemark.io/t/67uqc3q7",
+      "short_code": "67uqc3q7",
+      "class": "protected",
+      "asset_code_label": "TRAILER-2041",
+      "asset_id": "3313ed1c-f738-4817-b4fa-6f2163dc2e14",
+      "asset_name_now": "Utility Trailer 204",
+      "qr_link_id": "97c20650-4c09-4828-ac02-3cd6b4d083cb",
+      "qr_status": "active",
+      "is_production_primary": true,
+      "supersedes_qr_link_id": null,
+      "superseded_by": [],
+      "qr_created_at": "2026-06-23T18:46:31.354Z",
+      "stored_public_url_host": "localhost",
+      "scans": { "exact": 823, "first": "2026-06-23T18:53:44.279Z", "last": "2026-10-12T18:25:47.226Z", "last_30_days": 27, "as_of": "2026-10-14T20:35:33Z" },
+      "history": [
+        "Generated code created with the asset (2026-06-23); the asset's only QR row.",
+        "lib/qr/svg.test.ts:72 calls this code a 'generated replacement alias'; that is a unit-test label, not a Production fact."
+      ],
+      "artifacts": [
+        {
+          "kind": "website-qr",
+          "path": "site/assets/qr-trailer-2041.svg",
+          "live_url": "https://getmulemark.com/assets/qr-trailer-2041.svg",
+          "bytes": 7763,
+          "file_sha256": "01a5080cdfed4c135626c173c62b25cd3ce787b9e947ba464e0a3987e4a0e0e4",
+          "git_blob": "7aca3c1b7de5f757024095f5bd8c4dfbb38c4ac8",
+          "live_equals_commit": true,
+          "declared": { "title": "https://mulemark.io/t/67uqc3q7", "aria_label": "QR code for TRAILER-2041" },
+          "decoded_url": "https://mulemark.io/t/67uqc3q7",
+          "version": 4,
+          "ecc": "H",
+          "mask": 6,
+          "segments": ["byte"],
+          "matrix_sha256": "144a2e65010d0d48a7a4285c696b06e9e53bf712575d4d2ac5f80ac7c039a03a",
+          "registry_matrix_sha256": "a518da50b970d1544406565711f9699382ab767e21bb001588b55d34d2b4af6d",
+          "registry_matrix_reproduced": true
+        },
+        {
+          "kind": "website-tag",
+          "variant": "bone",
+          "path": "site/assets/tag-trailer-2041-bone.svg",
+          "live_bytes": 761420,
+          "live_sha256": "2fb262ab13718fa0c17e129a35a5364b8d3c1168ba1b0ba91b0643faab852643",
+          "committed_bytes": 12985,
+          "committed_sha256": "5489ae258023bffba63d8ab5f5a9876f401373d8e244b7447d043f30581c533c",
+          "live_equals_commit_plus_build_style": true,
+          "decoded_url": "https://mulemark.io/t/67uqc3q7",
+          "matrix_sha256": "144a2e65010d0d48a7a4285c696b06e9e53bf712575d4d2ac5f80ac7c039a03a"
+        },
+        {
+          "kind": "website-tag",
+          "variant": "iron",
+          "path": "site/assets/tag-trailer-2041-iron.svg",
+          "live_bytes": 761420,
+          "live_sha256": "61c1eb8277b45fd1df14e94282cdeaaa38ce3127f7449aa559e1b1ce6dcdcec5",
+          "committed_bytes": 12985,
+          "committed_sha256": "84e6d770f109fab4fd8f7bdaa5e3ff38695fbbe4b530359641e49ffe8910f6e5",
+          "live_equals_commit_plus_build_style": true,
+          "decoded_url": "https://mulemark.io/t/67uqc3q7",
+          "matrix_sha256": "144a2e65010d0d48a7a4285c696b06e9e53bf712575d4d2ac5f80ac7c039a03a"
+        }
+      ],
+      "card_evidence": "UNVERIFIED"
+    }
+  ],
+  "business_cards": {
+    "status": "UNVERIFIED",
+    "location": "ChatGPT Mulemark project only (not on this machine, not in the marketing repo)",
+    "files_reported": ["Mulemark_Metal_Card_Deliverables_v1.zip", "01_black_MMBC_submission_CMYK.pdf", "02_bone_MMBC_submission_CMYK.pdf", "03_stainless_MMBC_submission_CMYK.pdf"],
+    "submission_date": "2026-09-11",
+    "variants": [
+      { "variant": "01_black", "evidence": null, "decoded_url": null, "status": "UNVERIFIED" },
+      { "variant": "02_bone", "evidence": null, "decoded_url": null, "status": "UNVERIFIED" },
+      { "variant": "03_stainless", "evidence": null, "decoded_url": null, "status": "UNVERIFIED" }
+    ],
+    "evidence_needed": "printer's final proof (vector preferred) or a phone scan of each ordered card, URL read without opening it",
+    "blocks": ["E2C cutover"]
+  },
+  "conditional_routes": [
+    {
+      "source": "Downloads/qr-sheet (7).svg",
+      "source_date": "2026-07-20",
+      "file_sha256": "939964821850636443ebf050325fb5cfc514ea440d3906239d735125aab0bb88",
+      "bytes": 23086,
+      "condition": "protected if printed (operator to confirm)",
+      "symbols": [
+        { "label": "COMPACTOR-003", "decoded_url": "https://qr-asset-tags.vercel.app/t/demo-comp004", "version": 6, "ecc": "H", "mask": 6, "matrix_sha256": "45e376ab4178f524e4f86124c82802900ba49d6a64a50721a7c4adb55ab6298d", "qr_link_id": "1b6d6a44-f2c6-4f9e-8a8f-1b4a35074b10", "asset_id": "21111111-1111-4111-8111-111111111104" },
+        { "label": "EXCAVATOR-017", "decoded_url": "https://qr-asset-tags.vercel.app/t/demo-ex017", "version": 6, "ecc": "H", "mask": 3, "matrix_sha256": "18dd0cb001f97dd0778424eb8d1396d8c1b19bb7588ce140bfbd12ebff9f89ef", "qr_link_id": "41111111-1111-4111-8111-111111111101", "asset_id": "21111111-1111-4111-8111-111111111101" },
+        { "label": "EXCAVATOR-3015", "decoded_url": "https://qr-asset-tags.vercel.app/t/ezzs9ueg", "version": 5, "ecc": "H", "mask": 2, "matrix_sha256": "3b81c22e12a7999b130dc50a8a172584573b8f5f696272a6fe5a256f7de4c7ed", "qr_link_id": "07c8ca60-0102-48c6-ac96-a8cb4b27ca90", "asset_id": "7f7753d2-37f9-4e74-bbb2-90f048523f21" },
+        { "label": "GEN-008", "decoded_url": "https://qr-asset-tags.vercel.app/t/demo-gen008", "version": 6, "ecc": "H", "mask": 6, "matrix_sha256": "692dc55f7fb7db80e9b3b6b1d51528c98128db25dd594a147ec1145146ea57dd", "qr_link_id": "41111111-1111-4111-8111-111111111103", "asset_id": "21111111-1111-4111-8111-111111111103" },
+        { "label": "TEST-001", "decoded_url": "https://qr-asset-tags.vercel.app/t/eb43bf3r", "version": 5, "ecc": "H", "mask": 2, "matrix_sha256": "844d58b9abbb6b6c1812befb5d0e0f9f7a28447afa5542fe764a79f376acf4cf", "qr_link_id": "80263f7b-2162-4bdf-8c26-9e3193d85b38", "asset_id": "9e8bdf99-69c1-4cf8-97f6-e4c58dcee84e" },
+        { "label": "TRAILER-014", "decoded_url": "https://qr-asset-tags.vercel.app/t/demo-tr014", "version": 6, "ecc": "H", "mask": 3, "matrix_sha256": "595cee32d7719ce1388f85eb7a64537f70585f9b8ab2b76b0cd15cb931849844", "qr_link_id": "41111111-1111-4111-8111-111111111102", "asset_id": "21111111-1111-4111-8111-111111111102" },
+        { "label": "TRAILER-2041", "decoded_url": "https://qr-asset-tags.vercel.app/t/67uqc3q7", "version": 5, "ecc": "H", "mask": 2, "matrix_sha256": "9ad71674cd3d4cd8f5fefe515013a678abdf050735821033ac0bf0f6d3f37a58", "qr_link_id": "97c20650-4c09-4828-ac02-3cd6b4d083cb", "asset_id": "3313ed1c-f738-4817-b4fa-6f2163dc2e14" },
+        { "label": "WSHR-001", "decoded_url": "https://qr-asset-tags.vercel.app/t/7gzt4aqc", "version": 5, "ecc": "H", "mask": 2, "matrix_sha256": "9e6da5bbcce9b82c7aecebc944796f51d899a3c82938eeb98df2b4f1daa05ce7", "qr_link_id": "93db9db4-37e0-4a09-b3dd-787b543ee9cb", "asset_id": "a1d87d1c-dff2-49dd-85ec-e19ff89c7301" }
+      ]
+    },
+    {
+      "source": "Northridge tag requests da5fc3db (in_production: METER-204, TRAILER-2041) and 104b4d37 (ready: EXCAVATOR-017, EXCAVATOR-3015)",
+      "condition": "protected if any physical tag was produced from them (believed to be QA records; operator to confirm)",
+      "codes": ["4c4dy59n", "67uqc3q7", "demo-ex017", "ezzs9ueg"]
+    }
+  ],
+  "not_routes": [
+    {
+      "source": "Downloads/qr-sheet.svg, (1)..(6) (2026-06-19)",
+      "file_sha256": [
+        "2e0ab28c435953eabcde5ffcd95ea7530a9006f5abe853f316f8c9bdd2ff6227",
+        "4c956be821843ac199b1b12c96c8622a955189a1d87ac8418b6b720472eb6cc6",
+        "a35e27b2547471f0cf94eca81abe6583aa90c9eff9b4d9effc0ecde952721a8d"
+      ],
+      "decoded_host": "localhost:3000 (http)",
+      "codes": ["demo-comp003", "demo-ex017", "demo-gen008", "eb43bf3r", "demo-tr014"],
+      "reason": "local development host; not a valid printed destination"
+    }
+  ],
+  "other_northridge_qr_rows": [
+    { "short_code": "demo-comp003", "qr_link_id": "41111111-1111-4111-8111-111111111104", "status": "disabled", "is_production_primary": false, "superseded_by": "1b6d6a44-f2c6-4f9e-8a8f-1b4a35074b10", "asset_code": "COMPACTOR-003" },
+    { "short_code": "demo-comp004", "qr_link_id": "1b6d6a44-f2c6-4f9e-8a8f-1b4a35074b10", "status": "active", "is_production_primary": true, "supersedes_qr_link_id": "41111111-1111-4111-8111-111111111104", "asset_code": "COMPACTOR-003" },
+    { "short_code": "demo-gen008", "qr_link_id": "41111111-1111-4111-8111-111111111103", "status": "active", "is_production_primary": true, "asset_code": "GEN-008" },
+    { "short_code": "eb43bf3r", "qr_link_id": "80263f7b-2162-4bdf-8c26-9e3193d85b38", "status": "active", "is_production_primary": true, "asset_code": "TEST-001" },
+    { "short_code": "4c4dy59n", "qr_link_id": "019aec65-3e83-40c1-9aab-869081fc3d3a", "status": "active", "is_production_primary": true, "asset_code": "METER-204" },
+    { "short_code": "7gzt4aqc", "qr_link_id": "93db9db4-37e0-4a09-b3dd-787b543ee9cb", "status": "active", "is_production_primary": true, "asset_code": "WSHR-001" },
+    { "short_code": "z5h67pe6", "qr_link_id": "8702a01b-2a48-448f-a740-b3a880220331", "status": "active", "is_production_primary": true, "asset_code": "GENERATOR 12", "asset_archived": true },
+    { "short_code": "me8xy6av", "qr_link_id": "d913fb73-3d3a-4694-8985-eb80b935df4c", "status": "active", "is_production_primary": true, "asset_code": "GENERATOR 13", "asset_archived": true }
+  ],
+  "absent_codes_checked": ["excavator-17"]
+}

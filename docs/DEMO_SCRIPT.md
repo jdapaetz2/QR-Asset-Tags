@@ -16,6 +16,14 @@ talking points see [`PILOT_CUSTOMER_DEMO.md`](PILOT_CUSTOMER_DEMO.md), and for a
 
 ## Before the demo
 
+> **⚠ Hazard (Engineering Phase E0, 2026-10-14): do not run `supabase/seed.sql` on any hosted database.** The reset
+> instruction below predates the showcase. On Production it would add:
+> - six more *published* assets with six new public routes;
+> - synthetic submissions, tag requests and documents, mixed indistinguishably into real history.
+>
+> Production Northridge is the curated showcase; it is refreshed only through the guarded, recoverable process in
+> `docs/phase-e/` (E1, E2C). The local `supabase db reset` path is unaffected.
+
 **Reset (start clean):**
 - Reset the demo org so the seeded data is fresh. On a **local** environment: `supabase db reset`
   (re-applies migrations + `supabase/seed.sql`). On the **remote/hosted** demo DB: run

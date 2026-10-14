@@ -1,0 +1,280 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mulemark.io/schemas/phase-e/equipment-content-1.0.0.json",
+  "title": "Mulemark equipment-content manifest",
+  "description": "Versioned content contract shared by the showcase packs (E2) and customer onboarding batches (E4). Four layers: MODEL (exact configuration, sourced guidance), ASSET (customer facts), ORGANIZATION (customer settings and policies) and SOURCE/REVIEW (provenance, rights, applicability, review state). Guidance only exists on an identified model or as a sourced asset exception; a category never supplies model-specific instructions. Cross-reference rules JSON Schema cannot express are listed in docs/phase-e/ONBOARDING_DATA_CONTRACT.md and enforced by the E4B preflight. Draft-07 so any mainstream validator can check it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "manifest_id", "kind", "organization", "sources", "models", "assets"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "manifest_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$" },
+    "kind": { "enum": ["showcase", "customer-onboarding"] },
+    "batch": { "$ref": "#/definitions/batch" },
+    "organization": { "$ref": "#/definitions/organization" },
+    "sources": { "type": "array", "items": { "$ref": "#/definitions/source" } },
+    "models": { "type": "array", "items": { "$ref": "#/definitions/model" } },
+    "assets": { "type": "array", "items": { "$ref": "#/definitions/asset" } },
+    "approval": { "$ref": "#/definitions/approval" }
+  },
+  "definitions": {
+    "reviewStatus": {
+      "description": "Content review state. Separate from asset lifecycle (draft/public/archived) and rental state.",
+      "enum": ["READY", "READY_WITH_WARNINGS", "CUSTOMER_INPUT_REQUIRED", "MULEMARK_REVIEW"]
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": { "$ref": "#/definitions/reviewStatus" },
+        "blockers": { "type": "array", "items": { "type": "string" } },
+        "warnings": { "type": "array", "items": { "type": "string" } },
+        "missing_facts": { "type": "array", "items": { "type": "string" } },
+        "reviewer_role": { "type": "string" },
+        "reviewed_at": { "type": "string" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "READY" } }, "required": ["status"] },
+          "then": { "properties": { "blockers": { "maxItems": 0 }, "warnings": { "maxItems": 0 }, "missing_facts": { "maxItems": 0 } } }
+        },
+        {
+          "if": { "properties": { "status": { "const": "READY_WITH_WARNINGS" } }, "required": ["status"] },
+          "then": { "properties": { "blockers": { "maxItems": 0 } } }
+        }
+      ]
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "redistribution"],
+      "properties": {
+        "status": { "enum": ["owned", "cc0", "cc-by", "cc-by-sa", "oem-permission", "customer-supplied", "purchased-private", "unknown"] },
+        "redistribution": {
+          "description": "public-host = may be stored and served by Mulemark; link-only = link to the official copy; private-only = may inform private preparation, never shown; blocked = do not use.",
+          "enum": ["public-host", "link-only", "private-only", "blocked"]
+        },
+        "shareable_across_orgs": { "type": "boolean" },
+        "license_url": { "type": "string" },
+        "attribution": { "type": "string" },
+        "permission_ref": { "type": "string" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "kind", "title", "rights", "verification"],
+      "properties": {
+        "source_id": { "type": "string", "pattern": "^src-[a-z0-9-]+$" },
+        "kind": { "enum": ["oem-manual", "oem-web", "oem-brochure", "photo", "illustration", "customer-file", "customer-statement"] },
+        "title": { "type": "string", "minLength": 1 },
+        "publisher": { "type": "string" },
+        "url": { "type": "string" },
+        "part_number": { "type": "string" },
+        "edition": { "type": "string" },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "last_modified": { "type": "string" },
+        "retrieved_at": { "type": "string" },
+        "applicability": { "type": "string" },
+        "rights": { "$ref": "#/definitions/rights" },
+        "verification": {
+          "description": "headers-only = existence/size/date checked, content not read; read = content reviewed; customer-confirmed = customer attested; unverified = not checked.",
+          "enum": ["headers-only", "read", "customer-confirmed", "unverified"]
+        }
+      }
+    },
+    "sourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id"],
+      "properties": { "source_id": { "type": "string" }, "locator": { "type": "string" } }
+    },
+    "guidanceStep": {
+      "description": "One instruction or warning. Never generic: it must cite at least one source (OEM document or customer policy) for this exact model or asset.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step_id", "text", "source_refs", "safety_critical"],
+      "properties": {
+        "step_id": { "type": "string" },
+        "text": { "type": "string", "minLength": 1 },
+        "pictogram": { "type": "string" },
+        "source_refs": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/sourceRef" } },
+        "safety_critical": { "type": "boolean" },
+        "reviewer_role": { "type": "string" }
+      }
+    },
+    "media": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id"],
+      "properties": { "source_id": { "type": "string" }, "alt": { "type": "string" }, "crop": { "type": "string" } }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_key", "manufacturer", "model", "category", "configuration", "manual", "review"],
+      "properties": {
+        "model_key": { "description": "manufacturer.model.configuration, lowercase, e.g. bigtex.35sa.12", "type": "string", "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)+$" },
+        "manufacturer": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 },
+        "category": { "description": "Label only. Never a source of guidance.", "type": "string" },
+        "configuration": { "type": "object", "additionalProperties": { "type": ["string", "number", "boolean", "null"] } },
+        "applicability": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "serial_from": { "type": "string" },
+            "serial_to": { "type": "string" },
+            "model_years": { "type": "string" },
+            "notes": { "type": "string" }
+          }
+        },
+        "manual": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source_id", "delivery"],
+          "properties": {
+            "source_id": { "type": "string" },
+            "delivery": { "enum": ["hosted", "link"] },
+            "supplements": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "quick_guide": { "type": "array", "items": { "$ref": "#/definitions/guidanceStep" } },
+        "warnings": { "type": "array", "items": { "$ref": "#/definitions/guidanceStep" } },
+        "templates": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "return": { "type": "string" },
+            "outbound": { "type": "string" },
+            "equipment_page_seed": { "description": "Optional category seed for DRAFT text only; never published as-is.", "type": ["string", "null"] }
+          }
+        },
+        "common_accessories": { "type": "array", "items": { "type": "string" } },
+        "photo": { "$ref": "#/definitions/media" },
+        "review": { "$ref": "#/definitions/review" }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["asset_code", "asset_name", "model_key", "review"],
+      "properties": {
+        "asset_code": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "asset_name": { "type": "string", "minLength": 1 },
+        "model_key": { "description": "null = model/configuration not established; no model-specific guidance may be published.", "type": ["string", "null"] },
+        "category": { "type": "string" },
+        "year": { "type": ["integer", "null"] },
+        "serial_number": { "type": ["string", "null"] },
+        "fitted_options": { "type": "array", "items": { "type": "string" } },
+        "photo": { "$ref": "#/definitions/media" },
+        "exceptions": { "type": "array", "items": { "$ref": "#/definitions/guidanceStep" } },
+        "support_overrides": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "phone": { "type": "string" }, "email": { "type": "string" } }
+        },
+        "qr": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "create": { "type": "boolean" },
+            "existing_short_code": { "type": "string" },
+            "protected": { "type": "boolean" }
+          }
+        },
+        "existing_ids": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "asset_id": { "type": "string" }, "qr_link_id": { "type": "string" } }
+        },
+        "publish_intent": { "type": "boolean" },
+        "review": { "$ref": "#/definitions/review" }
+      },
+      "if": { "properties": { "model_key": { "type": "null" } }, "required": ["model_key"] },
+      "then": { "properties": { "review": { "properties": { "status": { "enum": ["CUSTOMER_INPUT_REQUIRED", "MULEMARK_REVIEW"] } } } } }
+    },
+    "organization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "support"],
+      "properties": {
+        "organization_id": { "type": "string" },
+        "name": { "type": "string", "minLength": 1 },
+        "fictional": { "type": "boolean" },
+        "logo": { "$ref": "#/definitions/media" },
+        "primary_color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+        "support": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "phone": { "type": "string" }, "email": { "type": "string" }, "hours": { "type": "string" } }
+        },
+        "notifications": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "return_mode": { "enum": ["instant_renter", "daily_exceptions", "off"] },
+            "address_role": { "type": "string" }
+          }
+        },
+        "policies": {
+          "description": "Customer operating policies (deposits, accessories issued, fuel). Customer-owned statements, never OEM facts.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["policy_id", "text", "owner"],
+            "properties": { "policy_id": { "type": "string" }, "text": { "type": "string" }, "owner": { "const": "customer" } }
+          }
+        },
+        "approver": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "role": { "type": "string" }, "name_ref": { "description": "Reference to an access-controlled record; real names never live in Git.", "type": "string" } }
+        }
+      }
+    },
+    "batch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["batch_id", "launch_scope"],
+      "properties": {
+        "batch_id": { "type": "string" },
+        "launch_scope": { "enum": ["all", "partial"] },
+        "included_asset_codes": { "type": "array", "items": { "type": "string" } },
+        "excluded_asset_codes": { "type": "array", "items": { "type": "string" } },
+        "research_minutes_per_model_cap": { "type": "integer", "minimum": 0 },
+        "measurements": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "batch_complete_at": { "type": "string" },
+            "review_ready_at": { "type": "string" },
+            "customer_wait_hours": { "type": "number", "minimum": 0 },
+            "hands_on_minutes": { "type": "number", "minimum": 0 }
+          }
+        }
+      },
+      "if": { "properties": { "launch_scope": { "const": "partial" } }, "required": ["launch_scope"] },
+      "then": { "required": ["included_asset_codes", "excluded_asset_codes"] }
+    },
+    "approval": {
+      "description": "Affirmative operational content approval. Silence is never approval; approval is not a waiver.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": { "enum": ["not_requested", "requested", "approved", "declined", "superseded"] },
+        "content_version": { "type": "string" },
+        "scope_asset_codes": { "type": "array", "items": { "type": "string" } },
+        "approver_role": { "type": "string" },
+        "approved_at": { "type": "string" },
+        "record_ref": { "type": "string" }
+      },
+      "if": { "properties": { "status": { "const": "approved" } }, "required": ["status"] },
+      "then": { "required": ["content_version", "scope_asset_codes", "approver_role", "approved_at", "record_ref"] }
+    }
+  }
+}

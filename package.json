@@ -62,7 +62,10 @@
     "qa:staging:vitals": "node --env-file=.env.staging.local scripts/qa/staging-vitals.mjs",
     "check:scan-bundle": "node scripts/qa/check-scan-bundle.mjs",
     "cleanup:orphans:staging": "node --env-file=.env.staging.local scripts/cleanup-orphan-media.mjs --target=staging",
-    "cleanup:orphans:production": "node --env-file=.env.local --env-file=.env.production-ops.local scripts/cleanup-orphan-media.mjs --target=production"
+    "cleanup:orphans:production": "node --env-file=.env.local --env-file=.env.production-ops.local scripts/cleanup-orphan-media.mjs --target=production",
+    "phase-e:decode-qr": "node scripts/phase-e/decode-qr-svg.mjs",
+    "phase-e:audit:production": "node --env-file=.env.local scripts/phase-e/showcase-audit.mjs --target=production",
+    "phase-e:audit:staging": "node --env-file=.env.staging.local scripts/phase-e/showcase-audit.mjs --target=staging"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

@@ -1,0 +1,96 @@
+{
+  "schema": "mulemark.phase-e.archive-boundary/v1",
+  "status": "proposed (E0); applies only after the grouped approval, an E1 rehearsed archive/restore, and a separate exact-id Production approval",
+  "human_readable": "docs/phase-e/CANONICAL_SHOWCASE_FLEET.md#8-archive-and-reset-boundary",
+  "target": { "environment": "production", "supabase_ref": "apeiswnkheiwrpvumder", "organization_id": "11111111-1111-4111-8111-111111111111" },
+  "evidence": {
+    "artifact": "qa-artifacts/phase-e/showcase-audit-production-northridge-20261014T203533Z.json",
+    "sha256": "62e19f56068a1c4f0d07823d1cbe876f8e834104e1f2aed5fa89155739960f7d",
+    "tracked": false,
+    "as_of": "2026-10-14T20:35:33Z"
+  },
+  "drift_rule": "E1 re-runs npm.cmd run phase-e:audit:production and must reconcile every count below before archiving; any unexplained difference stops the run.",
+  "actions": {
+    "KEEP": "row and id stay exactly as they are",
+    "KEEP_REBUILD_CONTENT": "row and id stay; approved content fields are replaced in the E2C cutover",
+    "ARCHIVE": "exported with hashes to an access-controlled archive outside Git before any change; live removal needs a separate exact-id approval",
+    "ARCHIVE_RESTRICTED": "as ARCHIVE, but the export holds personal data and is access-restricted; never deleted casually",
+    "NEVER_DELETE": "must remain in place (integrity of another mechanism depends on it)"
+  },
+  "organization": {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "action": "KEEP_REBUILD_CONTENT",
+    "rebuild": ["logo (owned fictional artwork; current is a real dealer's hotlinked logo)", "support phone (fictional 555-01XX or a real demo line)", "powered_by_label (still 'Powered by AssetTag QR')"],
+    "keep_settings": ["support/notification email support@mulemark.io", "return_notification_mode instant_renter (unless changed by decision)"]
+  },
+  "assets": [
+    { "id": "21111111-1111-4111-8111-111111111101", "asset_code": "EXCAVATOR-017", "action": "KEEP_REBUILD_CONTENT", "showcase": true, "proposed_identity": "Bobcat E20" },
+    { "id": "7f7753d2-37f9-4e74-bbb2-90f048523f21", "asset_code": "EXCAVATOR-3015", "action": "KEEP_REBUILD_CONTENT", "showcase": true, "proposed_identity": "Caterpillar 301.5" },
+    { "id": "21111111-1111-4111-8111-111111111102", "asset_code": "TRAILER-014", "action": "KEEP_REBUILD_CONTENT", "showcase": true, "proposed_identity": "Big Tex 35SA" },
+    { "id": "3313ed1c-f738-4817-b4fa-6f2163dc2e14", "asset_code": "TRAILER-2041", "action": "KEEP_REBUILD_CONTENT", "showcase": true, "proposed_identity": "Big Tex 14LP" },
+    { "id": "21111111-1111-4111-8111-111111111104", "asset_code": "COMPACTOR-003", "action": "KEEP", "showcase": false, "app_archive_if": "operator confirms demo-comp003/demo-comp004 were never printed" },
+    { "id": "21111111-1111-4111-8111-111111111103", "asset_code": "GEN-008", "action": "KEEP", "showcase": false, "app_archive_if": "operator confirms demo-gen008 was never printed" },
+    { "id": "9e8bdf99-69c1-4cf8-97f6-e4c58dcee84e", "asset_code": "TEST-001", "action": "KEEP", "showcase": false, "app_archive_if": "operator confirms eb43bf3r was never printed" },
+    { "id": "c80e9665-eb76-4c89-9ef7-bdcb2b4b44c7", "asset_code": "METER-204", "action": "KEEP", "showcase": false, "app_archive_if": "operator confirms no tag was produced from requests da5fc3db/cfe1f973" },
+    { "id": "a1d87d1c-dff2-49dd-85ec-e19ff89c7301", "asset_code": "WSHR-001", "action": "KEEP", "showcase": false, "app_archive_if": "operator confirms 7gzt4aqc was never printed" },
+    { "id": "1cba051c-b507-4d30-ac3f-83f4c726496d", "asset_code": "GENERATOR 12", "action": "KEEP", "showcase": false, "already_archived": "2026-06-23" },
+    { "id": "8117f4ce-558f-477b-880e-e39eb6b389a1", "asset_code": "GENERATOR 13", "action": "KEEP", "showcase": false, "already_archived": "2026-06-23" }
+  ],
+  "qr_links": {
+    "action": "KEEP",
+    "rule": "all twelve rows unchanged: no rotation, no status change, no deletion",
+    "ids": [
+      "41111111-1111-4111-8111-111111111101",
+      "07c8ca60-0102-48c6-ac96-a8cb4b27ca90",
+      "41111111-1111-4111-8111-111111111102",
+      "97c20650-4c09-4828-ac02-3cd6b4d083cb",
+      "41111111-1111-4111-8111-111111111104",
+      "1b6d6a44-f2c6-4f9e-8a8f-1b4a35074b10",
+      "41111111-1111-4111-8111-111111111103",
+      "80263f7b-2162-4bdf-8c26-9e3193d85b38",
+      "019aec65-3e83-40c1-9aab-869081fc3d3a",
+      "93db9db4-37e0-4a09-b3dd-787b543ee9cb",
+      "8702a01b-2a48-448f-a740-b3a880220331",
+      "d913fb73-3d3a-4694-8985-eb80b935df4c"
+    ]
+  },
+  "tables": [
+    { "table": "equipment_pages", "rows": 11, "action": "ARCHIVE", "then": "REBUILD the 4 showcase pages (E2A content); others follow their asset" },
+    { "table": "documents", "rows": 6, "action": "ARCHIVE", "then": "set the 5 unknown-rights hosted files non-public at cutover; showcase manuals become official links", "ids": ["335f682a-7052-4ba1-aa88-951791308f3e", "41a95d40-6fd9-412d-a4e4-777dddbae1c4", "20f8bbb0-8c63-415c-bcf8-674a885f042f", "51a8da3e-6f96-4296-871c-1f2a15c6f79d", "3dea13db-695a-4482-a05c-e204258cbcb4", "83d61447-df60-43d2-933d-2efe5448a95a"] },
+    { "table": "equipment_page_templates", "rows": 1, "action": "KEEP", "note": "custom key excavator_large" },
+    { "table": "inspection_templates", "rows": 0, "action": "KEEP" },
+    { "table": "inspection_category_defaults", "rows": 0, "action": "KEEP" },
+    { "table": "asset_rental_sessions", "rows": 18, "open": 5, "action": "ARCHIVE", "then": "close or remove the 5 open sessions in the cutover; REBUILD synthetic" },
+    { "table": "form_submissions", "rows": 49, "action": "ARCHIVE_RESTRICTED", "flag_for_review": "public rows created after 2026-09-15 (1 found: EXCAVATOR-017, 2026-10-08)", "then": "REBUILD synthetic" },
+    { "table": "asset_acknowledgements", "rows": 10, "action": "ARCHIVE_RESTRICTED" },
+    { "table": "scan_events", "rows": 3182, "action": "ARCHIVE", "then": "live removal only with an exact-id deletion approval; otherwise kept" },
+    { "table": "tag_requests", "rows": 4, "action": "ARCHIVE", "ids": ["da5fc3db-fd86-4d84-9cdc-9d9c31b2d34e", "104b4d37-39a9-4510-9b3b-876b292c4451", "f416ac09-e1d7-479c-aeef-be6133e6378b", "cfe1f973-54bb-4f72-ba53-0d0edafe1d64"] },
+    { "table": "tag_request_assets", "rows": 6, "action": "ARCHIVE" },
+    { "table": "notification_digest_runs", "rows": 33, "action": "NEVER_DELETE", "reason": "the latest sent/skipped_quiet window_end is the digest watermark; deleting rows would let old exceptions be summarised and emailed" },
+    { "table": "profiles", "rows": 1, "action": "KEEP", "note": "one active customer_admin: the operator's demo login (an address belongs to one org)" },
+    { "table": "activity_log", "rows": 0, "action": "KEEP" }
+  ],
+  "storage": {
+    "prefix": "org/<organization id>/",
+    "action": "ARCHIVE",
+    "rule": "every object archived with SHA-256 before any change; deleting any Production object needs a separate approval",
+    "buckets": [
+      { "bucket": "submissions", "objects": 47, "bytes": 7136027 },
+      { "bucket": "documents", "objects": 5, "bytes": 15903962 },
+      { "bucket": "public-assets", "objects": 1, "bytes": 67577 }
+    ],
+    "reference_findings": { "submission_media_references": 54, "found": 47, "missing": 7, "hosted_documents": { "references": 5, "found": 5 }, "hosted_covers": { "references": 1, "found": 1 } }
+  },
+  "qa_targets": {
+    "destructive": ["staging 5ac00000-0000-4000-8000-00000057a610 (QA org A)", "staging 5ac00000-0000-4000-8000-00000057a620 (QA org B)"],
+    "production_allowlisted_checks_only": ["c0000000-0000-4000-8000-00000000c0a1 (Production QA org)"],
+    "northridge_after_cutover": "not a QA target"
+  },
+  "preconditions": [
+    "grouped E0 approval",
+    "business-card evidence verified (PROTECTED_DEMO_ROUTES.md)",
+    "printed-sheet / tag answers received",
+    "E1 archive exported with hashes and restore rehearsed in isolation",
+    "separate Production approval naming exact ids"
+  ]
+}

@@ -74,6 +74,11 @@ swallowed — observability is A5.
 production-primary link; deactivated links retain history and keep resolving. Owner production emits SVG/CSV/print
 sheet, gated by `isProductionBaseUrl` (blocks localhost / preview hosts).
 
+> **Correction (Engineering Phase E0, 2026-10-14):** a deactivated (`disabled`) link does **not** keep resolving. Anon
+> RLS exposes only `status='active'` rows (`lib/public/resolve.ts:46-51`), so the scan page becomes unavailable; the
+> row and its scan history are retained. Any org user can deactivate a link (`lib/qr/actions.ts:96-120`), including a
+> printed production-primary code. See `docs/phase-e/PROTECTED_DEMO_ROUTES.md` (Hazards).
+
 ## Exports
 Two distinct paths: **owner export** (`/owner/organizations/[id]/export`) always works; **conditional customer
 export** (`/dashboard/export`) is OFF by default, owner-enabled, customer-admin-only via `canCustomerUseExport`

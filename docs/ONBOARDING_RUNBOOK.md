@@ -1,5 +1,16 @@
 # Onboarding Runbook — Mulemark
 
+> **Superseded in part (Engineering Phase E0, 2026-10-14).** Many statements below predate the current product:
+> - the owner "create organization" UI;
+> - link-based invites (no invite email is sent);
+> - CSV import;
+> - the admin/staff role split;
+> - migrations `0007`–`0039`.
+>
+> Examples: SQL-only organization and admin creation (§3.1–3.2); "apply `0001`–`0006`"; "apply `supabase/seed.sql`"; "staff mirrors admin". The current-behaviour reconciliation, with file references, is in
+> [`docs/phase-e/PHASE_E_PLAN.md` §5](phase-e/PHASE_E_PLAN.md#5-runbook-reconciliation-docsonboarding_runbookmd-vs-current-behaviour).
+> **Never run `supabase/seed.sql` against a hosted database.** The original text is kept below as history.
+
 How the **Mulemark platform admin** manually onboards a new pilot rental
 company and takes it from an empty organization to a live, scannable fleet.
 Onboarding is manual by design for the MVP — there is no self-signup and no
