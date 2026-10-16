@@ -2,6 +2,8 @@
 
 **Status:** 2026-10-14. Section 1 is binding (operator decisions in the Phase E brief) and is **not re-asked**. Section 2 records the scope reconciliation E0 is required to make. Section 4 is the one grouped approval E0 requests.
 
+**Approved by the operator on 2026-10-16: items 1–5, as written.** The OMM purchase inside item 1 is a spending decision. It still needs an explicit cost confirmation before anything is bought.
+
 ## 1. Already decided (binding, not re-asked)
 
 - **Protected destinations:** keep the four published demo destinations and any destination on approved business-card artwork. No replacement QR artwork, no new domain, no rotation to tidy names.

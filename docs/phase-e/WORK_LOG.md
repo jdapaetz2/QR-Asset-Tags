@@ -17,7 +17,7 @@ Per the brief, **do not repeat a successful audit just because a session resumed
 | When | What | How |
 |---|---|---|
 | 2026-10-14 | E0 plan approved, including two deviations: (1) commit two read-only tools with tests and `package.json` scripts; (2) zero `/t/` requests, using `/nojs/t/` for page reads | Plan mode, ExitPlanMode |
-| — | Grouped approval items 1–5 ([DECISIONS.md §4](DECISIONS.md#4-the-grouped-approval-e0-requests)) | **Pending** |
+| 2026-10-16 | Grouped approval items 1–5 ([DECISIONS.md §4](DECISIONS.md#4-the-grouped-approval-e0-requests)) **approved as written**. The OMM purchase listed inside item 1 is treated as still needing an explicit cost confirmation, because the chat summary asked for it separately | Operator chat reply "Approve 1-5" |
 
 ### Starting state
 
@@ -81,7 +81,7 @@ SHA-256 of the committed (LF) bytes. A Windows checkout with `core.autocrlf=true
 | File | SHA-256 |
 |---|---|
 | `docs/phase-e/manifests/protected-demo-routes.json` | `2a407389b1bcbd733d576d4c36d6e5a579ee8c4b28108de6b638dcd9e9d22e02` |
-| `docs/phase-e/manifests/northridge-archive-boundary.json` | `0eeb0b4c9bec09a1641bca7c16a96d094c936cdce91775032814f7a2cd217ad9` |
+| `docs/phase-e/manifests/northridge-archive-boundary.json` | `907eb94e0c8be1d50ee05c93b3ce1c0db068f4e0d93acecb0695792e1f5ca782` (approval status recorded 2026-10-16; E0 commit `c71eeb0` carried `0eeb0b4c…7ad9`) |
 | `docs/phase-e/schema/equipment-content.schema.json` | `35af37e4281474330146b3e40cc78ed9d394990e51034bfe91d7315f30ec05e2` |
 | `docs/phase-e/schema/equipment-content.example.json` | `a68be0d7bf865ea6d0e8f7ad21db764857b341d6d0f2ec64d8786a85cffbd719` |
 
@@ -107,13 +107,12 @@ The example validates against the schema with ajv 6.15.0, and the 8 negative cas
 1. Business-card proofs or scans: 01_black, 02_bone, 03_stainless.
 2. Was the 2026-07-20 sheet (`qr-asset-tags.vercel.app`) or any tag from requests `da5fc3db` / `104b4d37` printed?
 3. Big Tex 35SA and 14LP photos (owned, or Big Tex permission).
-4. Cost decision on the two OMMs (Bobcat 7255004; Cat 301.5).
+4. Explicit cost confirmation for the two OMMs (Bobcat 7255004; Cat 301.5). The operator makes the purchase.
 5. Northridge logo replacement and support-number choice.
-6. Grouped approval items 1–5.
 
 ### Next command
 
-None until the grouped approval. Then run **Prompt E1** (recoverable archive, QA isolation and reset rehearsal) in plan mode.
+**Prompt E1** (recoverable archive, QA isolation and reset rehearsal), started in plan mode **only when the operator runs it**. The grouped approval is in place (2026-10-16); E1 is never started automatically.
 
 Drift check first:
 

@@ -26,12 +26,12 @@ It is not a CMMS, not a rental booking platform, not an inventory system, not a 
 - **AI-generated safety instructions** — the platform never generates or guarantees safety content.
 - **Automated link checking** — link status is manual in MVP (data model is ready for automation later).
 
-> **Phase E pointer (2026-10-14):** the self-signup, AI-generated-safety-instruction and link-checking bans above stay in force. Phase E proposes three narrow, supervised extensions next to them:
+> **Phase E pointer (2026-10-14; approved 2026-10-16):** the self-signup, AI-generated-safety-instruction and link-checking bans above stay in force. Phase E adds three narrow, supervised extensions next to them:
 > - owner-led batch onboarding;
 > - source-cited demo quick guides reviewed by a qualified person;
 > - bounded onboarding source validation.
 >
-> These are defined in `docs/phase-e/DECISIONS.md` §2 and `docs/OPEN_QUESTIONS.md` #19, pending the E0 grouped approval.
+> These are defined in `docs/phase-e/DECISIONS.md` §2 and `docs/OPEN_QUESTIONS.md` #19, approved on 2026-10-16.
 
 ## Branding non-goal
 
@@ -41,7 +41,7 @@ Do not hard-code final company branding, logos, colors, or "Powered by" copy. Th
 
 The platform hosts and displays customer-provided content. It does not author, generate, or guarantee equipment-specific safety or operating instructions. Customers approve all such content. Public pages carry a configurable disclaimer.
 
-> **Phase E pointer (2026-10-14):** this stays in force. The proposed demo quick guides and pictograms are prepared under supervision, cite the OEM manual or a customer policy for every step, and are checked by a qualified reviewer. The platform still generates nothing on its own. Customer content approval is an operational record of who checked what, not a waiver of liability, an e-signature or a contract (`docs/phase-e/DECISIONS.md` §2–3).
+> **Phase E pointer (2026-10-14; approved 2026-10-16):** this stays in force. The Phase E demo quick guides and pictograms are prepared under supervision, cite the OEM manual or a customer policy for every step, and are checked by a qualified reviewer. The platform still generates nothing on its own. Customer content approval is an operational record of who checked what, not a waiver of liability, an e-signature or a contract (`docs/phase-e/DECISIONS.md` §2–3).
 
 ## Now implemented (was future scope) — Phase A1 note
 

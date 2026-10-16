@@ -61,7 +61,7 @@ Decisions that aren't fully settled by `docs/PROJECT_CONTEXT.md` / `CLAUDE.md`. 
     - an authenticated operational content-approval record (never an e-signature or contract);
     - bounded onboarding source validation (never a crawler or scheduled monitor).
 
-    *Proposed, pending the E0 grouped approval:* adopt all four as specified in `docs/phase-e/DECISIONS.md` §2, with every ban in `docs/NON_GOALS.md` preserved.
+    *Resolved (E0 grouped approval, 2026-10-16):* all four adopted as specified in `docs/phase-e/DECISIONS.md` §2, with every ban in `docs/NON_GOALS.md` preserved.
 
 ---
 

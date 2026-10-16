@@ -1,6 +1,6 @@
 # Engineering Phase E — showcase fleet and repeatable pilot implementation (plan of record)
 
-**Status:** E0 complete on branch `phase-e/showcase-onboarding` (2026-10-14). E1 waits for the grouped approval in [DECISIONS.md](DECISIONS.md) and is **not** started automatically.
+**Status:** E0 complete on branch `phase-e/showcase-onboarding` (2026-10-14). Grouped approval received 2026-10-16 ([DECISIONS.md](DECISIONS.md)). E1 is next and starts only when the operator runs it, **never** automatically.
 
 This phase is not the older roadmap's "Phase E", and it is not an operational-hold phase.
 

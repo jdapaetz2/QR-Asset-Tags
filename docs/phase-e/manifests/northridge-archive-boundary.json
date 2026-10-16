@@ -1,6 +1,6 @@
 {
   "schema": "mulemark.phase-e.archive-boundary/v1",
-  "status": "proposed (E0); applies only after the grouped approval, an E1 rehearsed archive/restore, and a separate exact-id Production approval",
+  "status": "approved 2026-10-16 (E0 grouped approval item 2); applies only after an E1 rehearsed archive/restore and a separate exact-id Production approval",
   "human_readable": "docs/phase-e/CANONICAL_SHOWCASE_FLEET.md#8-archive-and-reset-boundary",
   "target": { "environment": "production", "supabase_ref": "apeiswnkheiwrpvumder", "organization_id": "11111111-1111-4111-8111-111111111111" },
   "evidence": {
@@ -87,7 +87,7 @@
     "northridge_after_cutover": "not a QA target"
   },
   "preconditions": [
-    "grouped E0 approval",
+    "grouped E0 approval (received 2026-10-16)",
     "business-card evidence verified (PROTECTED_DEMO_ROUTES.md)",
     "printed-sheet / tag answers received",
     "E1 archive exported with hashes and restore rehearsed in isolation",

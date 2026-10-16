@@ -1,6 +1,6 @@
 # Onboarding data contract (Engineering Phase E0)
 
-**Status:** proposed 2026-10-14, part of the grouped approval in [DECISIONS.md](DECISIONS.md).
+**Status:** written 2026-10-14; **approved 2026-10-16** (grouped approval item 5 in [DECISIONS.md](DECISIONS.md)).
 
 This contract is shared by the showcase content packs (E2A) and the 25–250-asset concierge onboarding (E4B/E5A).
 

@@ -1,6 +1,6 @@
 # Canonical showcase fleet (Engineering Phase E0)
 
-**Status:** proposed 2026-10-14, awaiting the grouped approval in [DECISIONS.md](DECISIONS.md).
+**Status:** written 2026-10-14; **approved 2026-10-16** (grouped approval items 1–3 in [DECISIONS.md](DECISIONS.md)). The OMM purchase still needs an explicit cost confirmation.
 
 Inputs:
 - [PROTECTED_DEMO_ROUTES.md](PROTECTED_DEMO_ROUTES.md) — routes are immutable;
