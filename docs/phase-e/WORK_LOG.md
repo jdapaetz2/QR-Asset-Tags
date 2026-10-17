@@ -125,6 +125,8 @@ Prompt E1 — done; see below.
 | 2026-10-16 | Docker loopback: operator set the Engine `"ip": "127.0.0.1"` and default bridge `host_binding_ipv4`; then approved starting the stack and pre-creating the network with loopback binding | AskUserQuestion: "I'll fix it", "Go ahead" ×2 |
 | 2026-10-16 | **Split by data:** the all-interfaces local stack gets synthetic and staging-QA data only; a real archive restores only into a temporary container bound explicitly to `127.0.0.1:55432` with data on tmpfs | AskUserQuestion: "Split by data" |
 | 2026-10-17 | `7gzt4aqc` (WSHR-001, conditional sheet) may stay unavailable even if the 2026-07-20 sheet was printed; it is not protected. The other sheet codes are unaffected | Operator chat: "The code, if there was one, can die" |
+| 2026-10-17 | **E2A input, the Bobcat E20 manual:** the operator will buy OMM P/N 7255004. This confirms the cost for that manual. Cheapest official option: Bobcat's Canadian store, digital PDF `7255004ENUSPDF`, CA$85.99 (paper `7255004ENUS` is CA$91.49 plus shipping). The Cat 301.5 manual still needs its part number, price and a separate yes | Operator chat: "Sure, I'll buy the bobcat manual" |
+| 2026-10-17 | **E2A input, photos:** the showcase pages may not go without photos. Wikimedia Commons, Openverse and Flickr (commercial-use licences only) have no usable photo of the Big Tex 35SA or 14LP, so the operator will ask Big Tex for permission to use its official product photos | Operator chat |
 
 ### Environment findings
 
