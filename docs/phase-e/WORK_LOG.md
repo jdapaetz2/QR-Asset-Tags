@@ -176,7 +176,11 @@ Both are expected; scans and the ledger are append-only and never written by a r
 | `northridge-staging-20261017T003019Z` | `892af4bc21a489c7cdddecd88a695a4fbb32ffdaa396d4d3854b1f14aed007df` | 4 assets, 4 QR rows, 1 submission, 2 scans; no objects |
 | `staging-qa-a-staging-20261017T002858Z` | `45dcb1d440abc6fde22ad58fa4845bead65473a311eb8bd9bd7ae27793b3acba` | 89 submissions, 213 scans; 35 objects, 91,474,044 bytes; 2 missing references |
 
-**Second verified copy:** not yet made. It is required before any E2C approval ([runbook §1](DEMO_RECOVERY_RUNBOOK.md#1-custody)).
+**Copies of the Production package:**
+- The original, in the archive folder.
+- A local copy at `C:\Mulemark-Archive-Copy\`, made 2026-10-17 at the operator's request: 37 files re-verified OK with the same manifest `b1c78168…`. It sits outside OneDrive; the Desktop holds only a shortcut to it, because the Desktop syncs to the employer's OneDrive.
+
+The local copy is on the same disk, so it does not count as separate media. A verified copy on a USB drive or external disk is still required before any E2C approval ([runbook §1.1](DEMO_RECOVERY_RUNBOOK.md#11-making-and-checking-the-second-copy)).
 
 ### Rehearsal results
 
