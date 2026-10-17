@@ -29,7 +29,9 @@
  */
 import { chromium } from "playwright";
 
+import { assertQaRunnerTarget } from "../lib/qa-targets.mjs";
 import { assertSmokeTarget } from "../lib/smoke-target.mjs";
+import { assertStagingBackend } from "../lib/staging-probe.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name, fallback = "") =>
@@ -91,8 +93,18 @@ if (!SHORT_CODE) refuse("No short code supplied.");
 let site;
 try {
   site = assertSmokeTarget(MODE, BASE);
+  // Phase E1: the code must be a QA fixture of this target — never a Northridge showcase or customer code.
+  assertQaRunnerTarget({ target: MODE, shortCode: SHORT_CODE });
 } catch (err) {
   refuse(err.message);
+}
+if (!IS_PROD) {
+  // A branch alias can serve Production after a promotion; prove this URL reads the staging database first.
+  try {
+    await assertStagingBackend({ baseUrl: BASE, headers: BYPASS });
+  } catch (err) {
+    refuse(err.message);
+  }
 }
 
 // Production submits write a real row and may trigger a real provider send. That needs an explicit,

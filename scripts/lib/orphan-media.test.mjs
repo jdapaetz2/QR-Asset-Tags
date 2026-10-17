@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { COVER_OBJECT_RE } from "../../lib/assets/cover.ts";
@@ -15,6 +17,7 @@ import {
   parseCleanupArgs,
   planCleanup,
   publicObjectPath,
+  retentionHoldsFromManifest,
   runDeletion,
   selectForDeletion,
 } from "./orphan-media.mjs";
@@ -258,6 +261,55 @@ describe("planCleanup", () => {
       olderThanHours: 48,
     });
     expect(report.documentRowsMissingObject).toBe(1);
+  });
+});
+
+// Engineering Phase E1: Northridge's original objects are rollback material. After a cutover they become
+// unreferenced, so without the hold they would look exactly like abandoned uploads.
+describe("retention hold", () => {
+  const BOUNDARY = JSON.parse(
+    readFileSync(new URL("../../docs/phase-e/manifests/northridge-archive-boundary.json", import.meta.url), "utf8")
+  );
+
+  it("never makes a held organization's objects candidates, whatever their state", () => {
+    const { candidates, report } = planCleanup({
+      objects: [
+        object("documents", DOCUMENT),
+        object("public-assets", COVER, hoursAgo(1000)),
+        object("submissions", SUBMISSION, hoursAgo(1000)),
+        object("public-assets", `org/${ORG}/legacy/file.bin`),
+      ],
+      refs: refs(),
+      now: NOW,
+      olderThanHours: 48,
+      retentionHolds: new Set([ORG]),
+    });
+    expect(candidates).toEqual([]);
+    expect(report.retentionHold).toBe(4);
+  });
+
+  it("still plans other organizations' orphans normally", () => {
+    const otherCover = `org/${OTHER}/asset/${ASSET}/cover/${ID}.jpg`;
+    const { candidates, report } = planCleanup({
+      objects: [object("public-assets", COVER), object("public-assets", otherCover)],
+      refs: refs(),
+      now: NOW,
+      olderThanHours: 48,
+      retentionHolds: new Set([ORG]),
+    });
+    expect(candidates.map((c) => c.path)).toEqual([otherCover]);
+    expect(report.retentionHold).toBe(1);
+  });
+
+  it("reads the hold from the tracked boundary manifest and keeps it unless a release is fully recorded", () => {
+    expect([...retentionHoldsFromManifest(BOUNDARY)]).toEqual([ORG]);
+    const noApproval = { ...BOUNDARY, retention: { ...BOUNDARY.retention, hold_active: false, released_at: "2027-01-01" } };
+    expect(retentionHoldsFromManifest(noApproval).size).toBe(1);
+    const released = {
+      ...BOUNDARY,
+      retention: { hold_active: false, released_at: "2027-01-01", approval_ref: "E5C closeout, operator approval" },
+    };
+    expect(retentionHoldsFromManifest(released).size).toBe(0);
   });
 });
 

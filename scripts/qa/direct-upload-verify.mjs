@@ -41,6 +41,7 @@ import { chromium } from "playwright";
 import sharp from "sharp";
 
 import { assertTarget } from "../lib/env-target.mjs";
+import { assertQaRunnerTarget } from "../lib/qa-targets.mjs";
 import { CANONICAL_PRODUCTION_ORIGIN, assertSmokeTarget } from "../lib/smoke-target.mjs";
 import { bypassHeaders, createRun, visible } from "../smoke/lib/runner.mjs";
 
@@ -99,6 +100,12 @@ try {
 }
 const BASE = site.origin;
 const SHORT_CODE = QA_TAGS[TARGET];
+// Phase E1: the pinned tag must be this target's QA fixture — never a Northridge showcase code.
+try {
+  assertQaRunnerTarget({ target: TARGET, shortCode: SHORT_CODE });
+} catch (err) {
+  refuse(err.message);
+}
 
 console.log(`\n[direct-upload] target verified: ${TARGET.toUpperCase()} (project host ${project.host}, site host ${site.host}), QA tag ${SHORT_CODE}`);
 console.log("  - submissions bucket settings (read-only)");

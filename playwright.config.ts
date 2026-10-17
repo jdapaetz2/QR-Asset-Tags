@@ -52,7 +52,8 @@ export default defineConfig({
     // Remove any dev-only generated types (left by a prior `next dev`) so the production type-check is
     // deterministic, copy the on-demand HEIC decoder into public/ (scripts/vendor-libheif.mjs — `next build` alone
     // skips the npm prebuild hook), then build + start.
-    command: `node -e "require('fs').rmSync('.next/dev',{recursive:true,force:true})" && node scripts/vendor-libheif.mjs && next build && next start -p ${E2E_PORT}`,
+    // Phase E1: scripts/e2e/assert-safe-env.mjs runs first and refuses unless the env below survived the shell.
+    command: `node scripts/e2e/assert-safe-env.mjs && node -e "require('fs').rmSync('.next/dev',{recursive:true,force:true})" && node scripts/vendor-libheif.mjs && next build && next start -p ${E2E_PORT}`,
     url: E2E_BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 420_000,
@@ -66,7 +67,12 @@ export default defineConfig({
       // Local-only, non-secret salt so scan logging works; fail-soft outside prod/preview anyway.
       // Shared with seed helpers so they can compute the exact rate-limit bucket key.
       SCAN_IP_HASH_SALT: E2E_SCAN_SALT,
-      // RESEND_* intentionally unset → notifications dry-run (no email in E2E).
+      // Phase E1: DEFINED AND EMPTY, not merely omitted. Next also loads .env.local — the PRODUCTION env file here —
+      // and never overwrites a defined variable, so these empties are what keep the Production Resend key and cron
+      // secret out of the E2E server. send.ts then dry-runs ("unconfigured"). assert-safe-env.mjs proves they held.
+      RESEND_API_KEY: "",
+      NOTIFICATION_FROM_EMAIL: "",
+      CRON_SECRET: "",
     },
   },
 

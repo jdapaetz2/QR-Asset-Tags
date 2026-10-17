@@ -10,6 +10,14 @@
     "as_of": "2026-10-14T20:35:33Z"
   },
   "drift_rule": "E1 re-runs npm.cmd run phase-e:audit:production and must reconcile every count below before archiving; any unexplained difference stops the run.",
+  "retention": {
+    "hold_active": true,
+    "scope": "every Storage object under org/11111111-1111-4111-8111-111111111111/ in every bucket",
+    "enforced_by": "scripts/lib/orphan-media.mjs#retentionHoldsFromManifest (cleanup-orphan-media never selects held objects)",
+    "release_rule": "only the operator releases the hold, after E5C closeout and an explicit retention decision, by setting hold_active=false with released_at and approval_ref",
+    "released_at": null,
+    "approval_ref": null
+  },
   "actions": {
     "KEEP": "row and id stay exactly as they are",
     "KEEP_REBUILD_CONTENT": "row and id stay; approved content fields are replaced in the E2C cutover",

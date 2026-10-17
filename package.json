@@ -65,7 +65,18 @@
     "cleanup:orphans:production": "node --env-file=.env.local --env-file=.env.production-ops.local scripts/cleanup-orphan-media.mjs --target=production",
     "phase-e:decode-qr": "node scripts/phase-e/decode-qr-svg.mjs",
     "phase-e:audit:production": "node --env-file=.env.local scripts/phase-e/showcase-audit.mjs --target=production",
-    "phase-e:audit:staging": "node --env-file=.env.staging.local scripts/phase-e/showcase-audit.mjs --target=staging"
+    "phase-e:audit:staging": "node --env-file=.env.staging.local scripts/phase-e/showcase-audit.mjs --target=staging",
+    "phase-e:graph:local": "node scripts/phase-e/schema-graph.mjs",
+    "phase-e:archive:production": "node --env-file=.env.local scripts/phase-e/showcase-archive.mjs --target=production",
+    "phase-e:archive:staging": "node --env-file=.env.staging.local scripts/phase-e/showcase-archive.mjs --target=staging",
+    "phase-e:archive:verify": "node scripts/phase-e/showcase-archive.mjs verify",
+    "phase-e:restore": "node scripts/phase-e/showcase-restore.mjs",
+    "phase-e:reset:local": "node scripts/phase-e/showcase-reset.mjs --target=local",
+    "phase-e:reset:staging": "node --env-file=.env.staging.local scripts/phase-e/showcase-reset.mjs --target=staging",
+    "phase-e:reset:production": "node --env-file=.env.local scripts/phase-e/showcase-reset.mjs --target=production",
+    "phase-e:reset:standalone": "node scripts/phase-e/showcase-reset.mjs --target=standalone",
+    "phase-e:health:production": "node scripts/phase-e/showcase-health.mjs",
+    "test:phase-e-local": "npm run db:reset && vitest run --config vitest.phase-e-local.config.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

@@ -1,6 +1,14 @@
 # Engineering Phase E — showcase fleet and repeatable pilot implementation (plan of record)
 
-**Status:** E0 complete on branch `phase-e/showcase-onboarding` (2026-10-14). Grouped approval received 2026-10-16 ([DECISIONS.md](DECISIONS.md)). E1 is next and starts only when the operator runs it, **never** automatically.
+**Status:**
+- E0 complete on branch `phase-e/showcase-onboarding` (2026-10-14).
+- Grouped approval received 2026-10-16 ([DECISIONS.md](DECISIONS.md)).
+- **E1 complete (2026-10-17):**
+  - a verified Production archive, restored and reset-rehearsed in isolation;
+  - QA isolation guards;
+  - the guarded reset interface, which only dry-runs against Production.
+  See [DEMO_RECOVERY_RUNBOOK.md](DEMO_RECOVERY_RUNBOOK.md).
+- E2A is next. It starts only when the operator runs it, **never** automatically.
 
 This phase is not the older roadmap's "Phase E", and it is not an operational-hold phase.
 
@@ -12,6 +20,7 @@ This phase is not the older roadmap's "Phase E", and it is not an operational-ho
 | [CANONICAL_SHOWCASE_FLEET.md](CANONICAL_SHOWCASE_FLEET.md) | Identities, stories, history, archive boundary |
 | [ONBOARDING_DATA_CONTRACT.md](ONBOARDING_DATA_CONTRACT.md) | Content contract and schema |
 | [DECISIONS.md](DECISIONS.md) | Binding decisions, non-goal reconciliation, approval request |
+| [DEMO_RECOVERY_RUNBOOK.md](DEMO_RECOVERY_RUNBOOK.md) | Archive custody, restore, reset planner, seed-notification suppression, QA isolation, E2C cutover and rollback checklists |
 | [WORK_LOG.md](WORK_LOG.md) | Approvals, hashes, next command |
 
 ## 1. Dependency map
@@ -75,7 +84,7 @@ flowchart LR
 | Addition | Slice |
 |---|---|
 | Owner-only guard for disabling a protected or production-primary QR row (migration) | Before E2C |
-| Archive exporter and restore rehearsal tooling (extends the E0 inventory; dry-run, manifest, confirmation) | E1 |
+| Archive exporter and restore rehearsal tooling (extends the E0 inventory; dry-run, manifest, confirmation) | E1 — **built**: `phase-e:archive:*`, `phase-e:restore`, `phase-e:reset:*`, `phase-e:health:production` |
 | Chronological demo loader; synthetic manifest; watermark refusal | E2B |
 | Photo attribution line; pictogram rendering in guidance | E2A/E4A |
 | Source register and shared document revisions; rights fields | E4A |

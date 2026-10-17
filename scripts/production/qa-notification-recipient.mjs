@@ -26,9 +26,12 @@
 import { createClient } from "@supabase/supabase-js";
 
 import { assertTarget } from "../lib/env-target.mjs";
+import { assertQaRunnerTarget } from "../lib/qa-targets.mjs";
 
 /** The QA organization from docs/PHASE_C_BASELINE.md §15. Hard-coded on purpose — see refusal 2. */
 const QA_ORG_ID = "c0000000-0000-4000-8000-00000000c0a1";
+// Phase E1: the hard-coded organization must remain the Production QA fixture — never the Northridge showcase.
+assertQaRunnerTarget({ target: "production", organizationId: QA_ORG_ID });
 
 /**
  * Resend's sandbox address: accepted and simulated by the provider, delivered to no human inbox.

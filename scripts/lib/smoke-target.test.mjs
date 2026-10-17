@@ -45,6 +45,16 @@ describe("classifySmokeTarget", () => {
   it("is not fooled by a preview host that merely contains the production name", () => {
     expect(classifySmokeTarget("https://mulemark.io.vercel.app").target).toBe("staging");
   });
+
+  /** Phase E1: the project's own production alias serves Production and resolves the printed Northridge codes. */
+  it("classifies the project's Vercel production alias as production", () => {
+    expect(classifySmokeTarget("https://qr-asset-tags.vercel.app/t/demo-ex017")).toMatchObject({
+      target: "production",
+      reason: "the project's Vercel production alias",
+    });
+    expect(() => assertSmokeTarget("staging", "https://qr-asset-tags.vercel.app")).toThrow(/refusing to run STAGING/i);
+    expect(classifySmokeTarget(STAGING).target).toBe("staging");
+  });
 });
 
 describe("normalizeOrigin", () => {

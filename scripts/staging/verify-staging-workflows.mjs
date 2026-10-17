@@ -17,6 +17,10 @@
  */
 import { chromium } from "playwright";
 
+import { assertQaRunnerTarget } from "../lib/qa-targets.mjs";
+import { assertSmokeTarget } from "../lib/smoke-target.mjs";
+import { assertStagingBackend } from "../lib/staging-probe.mjs";
+
 // All inputs come from the environment (`--env-file=.env.staging.local`), never from argv, so no
 // secret can reach a command line, a log, or an approval prompt. Legacy names kept as fallbacks.
 const BASE = (process.env.QA_BASE_URL || process.env.STAGING_BASE_URL || "").replace(/\/$/, "");
@@ -27,6 +31,19 @@ if (!BASE || !PW) {
   process.exit(1);
 }
 const H = BYPASS ? { "x-vercel-protection-bypass": BYPASS } : {};
+
+// ---- Phase E1 target gate: a staging host, staging QA fixture codes only, and a staging DATABASE behind it ----
+try {
+  assertSmokeTarget("staging", BASE);
+  for (const shortCode of ["stg-qa-public", "stg-qa-rented", "stg-qa-disabled", "stg-qa-orgb"]) {
+    assertQaRunnerTarget({ target: "staging", shortCode });
+  }
+  await assertStagingBackend({ baseUrl: BASE, headers: H });
+} catch (err) {
+  console.error(`\n[verify-staging-workflows] REFUSING TO RUN\n\n  ${err.message}\n`);
+  process.exit(1);
+}
+
 const ACCT = {
   owner: "qa.owner@mulemark-staging.invalid",
   admin: "qa.admin@mulemark-staging.invalid",

@@ -1,0 +1,2925 @@
+{
+  "schema": "mulemark.phase-e.tenant-dependency-graph/v1",
+  "generated_from": "local database catalog after supabase/migrations were applied (scripts/phase-e/schema-graph.mjs)",
+  "migrations": [
+    "0001_init",
+    "0002_storage",
+    "0003_seed",
+    "0004_align_demo_seed",
+    "0005_documents_storage",
+    "0006_documents_public_read",
+    "0007_demo_cover_images",
+    "0008_equipment_page_templates",
+    "0009_assets_archive",
+    "0010_tag_requests",
+    "0011_tag_request_viewed",
+    "0012_notification_settings",
+    "0013_asset_acknowledgements",
+    "0014_asset_rental_sessions",
+    "0015_export_settings",
+    "0016_plan_fields",
+    "0017_profile_status",
+    "0018_disabled_access",
+    "0019_org_suspension",
+    "0020_analytics_aggregation",
+    "0021_analytics_rpc_fixes",
+    "0022_mark_return_and_resolve",
+    "0023_qr_short_code_rotation",
+    "0024_return_inspection_v2",
+    "0025_inspection_category_defaults",
+    "0026_inspection_templates",
+    "0027_outbound_scan",
+    "0028_staff_return",
+    "0029_reconcile_staff_return",
+    "0030_outbound_attach_session",
+    "0031_history_indexes",
+    "0032_role_write_enforcement",
+    "0033_public_rate_limit",
+    "0034_notification_routing",
+    "0035_tag_request_internal_columns",
+    "0036_notification_digest_runs",
+    "0037_submissions_direct_upload",
+    "0038_public_assets_limits",
+    "0039_documents_heic_images"
+  ],
+  "classes": {
+    "activity_log": {
+      "class": "tenant",
+      "scope": {
+        "via": "organization_id"
+      },
+      "nullableOrganization": false
+    },
+    "asset_acknowledgements": {
+      "class": "tenant",
+      "scope": {
+        "via": "organization_id"
+      },
+      "nullableOrganization": false
+    },
+    "asset_rental_sessions": {
+      "class": "tenant",
+      "scope": {
+        "via": "organization_id"
+      },
+      "nullableOrganization": false
+    },
+    "assets": {
+      "class": "tenant",
+      "scope": {
+        "via": "organization_id"
+      },
+      "nullableOrganization": false
+    },
+    "documents": {
+      "class": "tenant",
+      "scope": {
+        "via": "organization_id"
+      },
+      "nullableOrganization": false
+    },
+    "equipment_page_templates": {
+      "class": "tenant",
+      "scope": {
+        "via": "organization_id"
+      },
+      "nullableOrganization": true
+    },
+    "equipment_pages": {
+      "class": "tenant",
+      "scope": {
+        "via": "organization_id"
+      },
+      "nullableOrganization": false
+    },
+    "form_submissions": {
+      "class": "tenant",
+      "scope": {
+        "via": "organization_id"
+      },
+      "nullableOrganization": false
+    },
+    "inspection_category_defaults": {
+      "class": "tenant",
+      "scope": {
+        "via": "organization_id"
+      },
+      "nullableOrganization": false
+    },
+    "inspection_templates": {
+      "class": "tenant",
+      "scope": {
+        "via": "organization_id"
+      },
+      "nullableOrganization": false
+    },
+    "notification_digest_runs": {
+      "class": "tenant",
+      "scope": {
+        "via": "organization_id"
+      },
+      "nullableOrganization": false
+    },
+    "organizations": {
+      "class": "organization",
+      "scope": {
+        "via": "id"
+      }
+    },
+    "profiles": {
+      "class": "tenant",
+      "scope": {
+        "via": "organization_id"
+      },
+      "nullableOrganization": true
+    },
+    "qr_links": {
+      "class": "tenant",
+      "scope": {
+        "via": "organization_id"
+      },
+      "nullableOrganization": false
+    },
+    "rate_limit_counters": {
+      "class": "shared",
+      "reason": "salted hash keys with no organization column and no id; short-lived (60 s / 3600 s windows); never archived or restored"
+    },
+    "scan_events": {
+      "class": "tenant",
+      "scope": {
+        "via": "organization_id"
+      },
+      "nullableOrganization": false
+    },
+    "tag_request_assets": {
+      "class": "tenant-child",
+      "scope": {
+        "via": "parent",
+        "parent": "assets",
+        "column": "asset_id"
+      }
+    },
+    "tag_requests": {
+      "class": "tenant",
+      "scope": {
+        "via": "organization_id"
+      },
+      "nullableOrganization": false
+    }
+  },
+  "insert_order": [
+    "organizations",
+    "equipment_page_templates",
+    "inspection_templates",
+    "notification_digest_runs",
+    "profiles",
+    "activity_log",
+    "assets",
+    "inspection_category_defaults",
+    "tag_requests",
+    "asset_rental_sessions",
+    "documents",
+    "equipment_pages",
+    "qr_links",
+    "tag_request_assets",
+    "asset_acknowledgements",
+    "form_submissions",
+    "scan_events"
+  ],
+  "delete_order": [
+    "scan_events",
+    "form_submissions",
+    "asset_acknowledgements",
+    "tag_request_assets",
+    "qr_links",
+    "equipment_pages",
+    "documents",
+    "asset_rental_sessions",
+    "tag_requests",
+    "inspection_category_defaults",
+    "assets",
+    "activity_log",
+    "profiles",
+    "notification_digest_runs",
+    "inspection_templates",
+    "equipment_page_templates",
+    "organizations"
+  ],
+  "deferred_columns": {
+    "assets": [
+      "active_rental_session_id"
+    ]
+  },
+  "shared_tables": {
+    "rate_limit_counters": "salted hash keys with no organization column and no id; short-lived (60 s / 3600 s windows); never archived or restored"
+  },
+  "shared_records": {
+    "auth.users": "referenced by profiles.auth_user_id; never copied — a restore recreates local users with the archived ids",
+    "platform-owner profiles": "organization_id null; referenced by tag_requests.platform_viewed_by_profile_id and possibly sessions; archived as identity references only",
+    "equipment_page_templates with organization_id null": "system rows; outside every tenant scope",
+    "storage.buckets": "bucket configuration; never copied",
+    "supabase_migrations.schema_migrations": "migration history; never copied"
+  },
+  "storage_reference_columns": {
+    "documents": [
+      "storage_path"
+    ],
+    "form_submissions": [
+      "media_urls",
+      "submission_data_json"
+    ],
+    "assets": [
+      "cover_image_url"
+    ],
+    "organizations": [
+      "logo_url"
+    ]
+  },
+  "always_triggers": [],
+  "tables": {
+    "activity_log": {
+      "rls": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "actor_user_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "action",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "entity_type",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "entity_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "metadata_json",
+          "type": "jsonb",
+          "nullable": false,
+          "default": "'{}'::jsonb"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "name": "activity_log_actor_user_id_fkey",
+          "columns": [
+            "actor_user_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "profiles",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "set null",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "activity_log_organization_id_fkey",
+          "columns": [
+            "organization_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "organizations",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        }
+      ],
+      "unique": [],
+      "checks": [],
+      "triggers": []
+    },
+    "asset_acknowledgements": {
+      "rls": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "asset_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "phone",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "statement",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "acknowledged_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "rental_session_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "name": "asset_acknowledgements_asset_id_fkey",
+          "columns": [
+            "asset_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "assets",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "asset_acknowledgements_organization_id_fkey",
+          "columns": [
+            "organization_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "organizations",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "asset_acknowledgements_rental_session_id_fkey",
+          "columns": [
+            "rental_session_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "asset_rental_sessions",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "set null",
+          "on_update": "no action",
+          "deferrable": false
+        }
+      ],
+      "unique": [],
+      "checks": [],
+      "triggers": []
+    },
+    "asset_rental_sessions": {
+      "rls": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "asset_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'active'::text"
+        },
+        {
+          "name": "rental_reference",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "renter_label",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "returned_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_by_profile_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "returned_by_profile_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "name": "asset_rental_sessions_asset_id_fkey",
+          "columns": [
+            "asset_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "assets",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "asset_rental_sessions_created_by_profile_id_fkey",
+          "columns": [
+            "created_by_profile_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "profiles",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "set null",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "asset_rental_sessions_organization_id_fkey",
+          "columns": [
+            "organization_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "organizations",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "asset_rental_sessions_returned_by_profile_id_fkey",
+          "columns": [
+            "returned_by_profile_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "profiles",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "set null",
+          "on_update": "no action",
+          "deferrable": false
+        }
+      ],
+      "unique": [
+        {
+          "name": "asset_rental_sessions_one_active_idx",
+          "columns": [
+            "asset_id"
+          ],
+          "predicate": "(status = 'active'::text)"
+        }
+      ],
+      "checks": [
+        {
+          "name": "asset_rental_sessions_status_check",
+          "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'returned'::text, 'cancelled'::text])))"
+        }
+      ],
+      "triggers": [
+        {
+          "name": "asset_rental_sessions_set_updated_at",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "UPDATE"
+          ],
+          "function": "public.set_updated_at",
+          "enabled": "O"
+        }
+      ]
+    },
+    "assets": {
+      "rls": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "asset_code",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "asset_name",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "make",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "model",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "serial_number",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "year",
+          "type": "integer",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "public_status",
+          "type": "text",
+          "nullable": false,
+          "default": "'private'::text"
+        },
+        {
+          "name": "cover_image_url",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "support_phone_override",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "support_email_override",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "internal_notes",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "active_rental_session_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "return_inspection_template_key",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "return_inspection_template_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "name": "assets_active_rental_session_id_fkey",
+          "columns": [
+            "active_rental_session_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "asset_rental_sessions",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "set null",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "assets_organization_id_fkey",
+          "columns": [
+            "organization_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "organizations",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "assets_return_inspection_template_id_fkey",
+          "columns": [
+            "return_inspection_template_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "inspection_templates",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "set null",
+          "on_update": "no action",
+          "deferrable": false
+        }
+      ],
+      "unique": [
+        {
+          "name": "assets_organization_id_asset_code_key",
+          "columns": [
+            "organization_id",
+            "asset_code"
+          ],
+          "predicate": null
+        }
+      ],
+      "checks": [
+        {
+          "name": "assets_public_status_check",
+          "definition": "CHECK ((public_status = ANY (ARRAY['public'::text, 'private'::text])))"
+        }
+      ],
+      "triggers": [
+        {
+          "name": "assets_enforce_template_org",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "INSERT",
+            "UPDATE"
+          ],
+          "function": "public.enforce_asset_template_org",
+          "enabled": "O"
+        },
+        {
+          "name": "assets_set_updated_at",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "UPDATE"
+          ],
+          "function": "public.set_updated_at",
+          "enabled": "O"
+        }
+      ]
+    },
+    "documents": {
+      "rls": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "asset_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "document_type",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "url",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "storage_path",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "visibility",
+          "type": "text",
+          "nullable": false,
+          "default": "'private'::text"
+        },
+        {
+          "name": "link_status",
+          "type": "text",
+          "nullable": false,
+          "default": "'unknown'::text"
+        },
+        {
+          "name": "last_checked_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "name": "documents_asset_id_fkey",
+          "columns": [
+            "asset_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "assets",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "documents_organization_id_fkey",
+          "columns": [
+            "organization_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "organizations",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        }
+      ],
+      "unique": [],
+      "checks": [
+        {
+          "name": "documents_document_type_check",
+          "definition": "CHECK ((document_type = ANY (ARRAY['manual'::text, 'startup_guide'::text, 'safety_sheet'::text, 'video'::text, 'return_checklist'::text, 'other'::text])))"
+        },
+        {
+          "name": "documents_link_status_check",
+          "definition": "CHECK ((link_status = ANY (ARRAY['unknown'::text, 'ok'::text, 'broken'::text, 'needs_review'::text])))"
+        },
+        {
+          "name": "documents_visibility_check",
+          "definition": "CHECK ((visibility = ANY (ARRAY['public'::text, 'private'::text])))"
+        }
+      ],
+      "triggers": [
+        {
+          "name": "documents_set_updated_at",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "UPDATE"
+          ],
+          "function": "public.set_updated_at",
+          "enabled": "O"
+        }
+      ]
+    },
+    "equipment_page_templates": {
+      "rls": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "key",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "headline",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "quick_start_text",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "safety_notes",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "fuel_power_notes",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "return_notes",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "troubleshooting_notes",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "emergency_notes",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "is_system",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "nullable": false,
+          "default": "true"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "name": "equipment_page_templates_organization_id_fkey",
+          "columns": [
+            "organization_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "organizations",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        }
+      ],
+      "unique": [
+        {
+          "name": "equipment_page_templates_organization_id_key_key",
+          "columns": [
+            "organization_id",
+            "key"
+          ],
+          "predicate": null
+        }
+      ],
+      "checks": [],
+      "triggers": [
+        {
+          "name": "equipment_page_templates_set_updated_at",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "UPDATE"
+          ],
+          "function": "public.set_updated_at",
+          "enabled": "O"
+        }
+      ]
+    },
+    "equipment_pages": {
+      "rls": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "asset_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "headline",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "quick_start_text",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "safety_notes",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "fuel_power_notes",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "return_notes",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "troubleshooting_notes",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "emergency_notes",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "is_published",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "name": "equipment_pages_asset_id_fkey",
+          "columns": [
+            "asset_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "assets",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "equipment_pages_organization_id_fkey",
+          "columns": [
+            "organization_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "organizations",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        }
+      ],
+      "unique": [
+        {
+          "name": "equipment_pages_asset_id_key",
+          "columns": [
+            "asset_id"
+          ],
+          "predicate": null
+        }
+      ],
+      "checks": [],
+      "triggers": [
+        {
+          "name": "equipment_pages_set_updated_at",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "UPDATE"
+          ],
+          "function": "public.set_updated_at",
+          "enabled": "O"
+        }
+      ]
+    },
+    "form_submissions": {
+      "rls": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "asset_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "form_type",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "submitted_by_name",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "submitted_by_email",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "submitted_by_phone",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "submission_data_json",
+          "type": "jsonb",
+          "nullable": false,
+          "default": "'{}'::jsonb"
+        },
+        {
+          "name": "media_urls",
+          "type": "jsonb",
+          "nullable": false,
+          "default": "'[]'::jsonb"
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'new'::text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "rental_session_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "inspection_template_key",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "inspection_template_version",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "submission_origin",
+          "type": "text",
+          "nullable": false,
+          "default": "'public'::text"
+        },
+        {
+          "name": "submitted_by_profile_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "name": "form_submissions_asset_id_fkey",
+          "columns": [
+            "asset_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "assets",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "form_submissions_organization_id_fkey",
+          "columns": [
+            "organization_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "organizations",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "form_submissions_rental_session_id_fkey",
+          "columns": [
+            "rental_session_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "asset_rental_sessions",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "set null",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "form_submissions_submitted_by_profile_id_fkey",
+          "columns": [
+            "submitted_by_profile_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "profiles",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "set null",
+          "on_update": "no action",
+          "deferrable": false
+        }
+      ],
+      "unique": [
+        {
+          "name": "form_submissions_one_outbound_per_session_idx",
+          "columns": [
+            "rental_session_id"
+          ],
+          "predicate": "((form_type = 'pre_use_inspection'::text) AND (rental_session_id IS NOT NULL))"
+        },
+        {
+          "name": "form_submissions_one_staff_return_per_session_idx",
+          "columns": [
+            "rental_session_id"
+          ],
+          "predicate": "((form_type = 'return_checklist'::text) AND (submission_origin = 'staff'::text) AND (rental_session_id IS NOT NULL))"
+        }
+      ],
+      "checks": [
+        {
+          "name": "form_submissions_form_type_check",
+          "definition": "CHECK ((form_type = ANY (ARRAY['damage_report'::text, 'support_request'::text, 'return_checklist'::text, 'pre_use_inspection'::text])))"
+        },
+        {
+          "name": "form_submissions_status_check",
+          "definition": "CHECK ((status = ANY (ARRAY['new'::text, 'reviewed'::text, 'resolved'::text, 'archived'::text])))"
+        },
+        {
+          "name": "form_submissions_submission_origin_check",
+          "definition": "CHECK ((submission_origin = ANY (ARRAY['public'::text, 'staff'::text])))"
+        }
+      ],
+      "triggers": [
+        {
+          "name": "form_submissions_set_return_session",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "INSERT"
+          ],
+          "function": "public.set_return_submission_session",
+          "enabled": "O"
+        }
+      ]
+    },
+    "inspection_category_defaults": {
+      "rls": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "category_value",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "normalized_category_value",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "return_template_key",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "return_template_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "name": "inspection_category_defaults_organization_id_fkey",
+          "columns": [
+            "organization_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "organizations",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "inspection_category_defaults_return_template_id_fkey",
+          "columns": [
+            "return_template_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "inspection_templates",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "set null",
+          "on_update": "no action",
+          "deferrable": false
+        }
+      ],
+      "unique": [
+        {
+          "name": "inspection_category_defaults_organization_id_normalized_cat_key",
+          "columns": [
+            "organization_id",
+            "normalized_category_value"
+          ],
+          "predicate": null
+        }
+      ],
+      "checks": [],
+      "triggers": [
+        {
+          "name": "inspection_category_defaults_enforce_template_org",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "INSERT",
+            "UPDATE"
+          ],
+          "function": "public.enforce_category_default_template_org",
+          "enabled": "O"
+        },
+        {
+          "name": "inspection_category_defaults_set_updated_at",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "UPDATE"
+          ],
+          "function": "public.set_updated_at",
+          "enabled": "O"
+        }
+      ]
+    },
+    "inspection_templates": {
+      "rls": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "inspection_type",
+          "type": "text",
+          "nullable": false,
+          "default": "'return'::text"
+        },
+        {
+          "name": "family_key",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "version",
+          "type": "integer",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'draft'::text"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "source_system_template_key",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "definition_json",
+          "type": "jsonb",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "published_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "name": "inspection_templates_organization_id_fkey",
+          "columns": [
+            "organization_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "organizations",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        }
+      ],
+      "unique": [
+        {
+          "name": "inspection_templates_one_draft",
+          "columns": [
+            "organization_id",
+            "family_key"
+          ],
+          "predicate": "(status = 'draft'::text)"
+        },
+        {
+          "name": "inspection_templates_organization_id_family_key_version_key",
+          "columns": [
+            "organization_id",
+            "family_key",
+            "version"
+          ],
+          "predicate": null
+        }
+      ],
+      "checks": [
+        {
+          "name": "inspection_templates_status_check",
+          "definition": "CHECK ((status = ANY (ARRAY['draft'::text, 'published'::text, 'retired'::text])))"
+        }
+      ],
+      "triggers": [
+        {
+          "name": "inspection_templates_enforce_lifecycle",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "UPDATE"
+          ],
+          "function": "public.enforce_inspection_template_lifecycle",
+          "enabled": "O"
+        },
+        {
+          "name": "inspection_templates_set_updated_at",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "UPDATE"
+          ],
+          "function": "public.set_updated_at",
+          "enabled": "O"
+        }
+      ]
+    },
+    "notification_digest_runs": {
+      "rls": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "digest_type",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "window_start",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "window_end",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "item_count",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "provider_id",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "failure_class",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "name": "notification_digest_runs_organization_id_fkey",
+          "columns": [
+            "organization_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "organizations",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        }
+      ],
+      "unique": [
+        {
+          "name": "notification_digest_runs_window_unique",
+          "columns": [
+            "organization_id",
+            "digest_type",
+            "window_end"
+          ],
+          "predicate": null
+        }
+      ],
+      "checks": [
+        {
+          "name": "notification_digest_runs_digest_type_check",
+          "definition": "CHECK ((digest_type = 'return_exceptions'::text))"
+        },
+        {
+          "name": "notification_digest_runs_failure_class_check",
+          "definition": "CHECK (((failure_class IS NULL) OR (failure_class ~ '^[a-z0-9_]{1,40}$'::text)))"
+        },
+        {
+          "name": "notification_digest_runs_item_count_check",
+          "definition": "CHECK ((item_count >= 0))"
+        },
+        {
+          "name": "notification_digest_runs_provider_id_check",
+          "definition": "CHECK (((provider_id IS NULL) OR (char_length(provider_id) <= 200)))"
+        },
+        {
+          "name": "notification_digest_runs_status_check",
+          "definition": "CHECK ((status = ANY (ARRAY['processing'::text, 'sent'::text, 'skipped_quiet'::text, 'failed'::text])))"
+        },
+        {
+          "name": "notification_digest_runs_window_order",
+          "definition": "CHECK ((window_end > window_start))"
+        }
+      ],
+      "triggers": []
+    },
+    "organizations": {
+      "rls": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "slug",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "logo_url",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "primary_color",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "support_phone",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "support_email",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "website_url",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "powered_by_label",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'active'::text"
+        },
+        {
+          "name": "plan_name",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "monthly_fee",
+          "type": "numeric",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "asset_limit",
+          "type": "integer",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "notification_email",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "notify_damage_reports",
+          "type": "boolean",
+          "nullable": false,
+          "default": "true"
+        },
+        {
+          "name": "notify_support_requests",
+          "type": "boolean",
+          "nullable": false,
+          "default": "true"
+        },
+        {
+          "name": "notify_return_checklists",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "notify_tag_request_updates",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "customer_exports_enabled",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "export_assets_enabled",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "export_qr_mapping_enabled",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "export_documents_enabled",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "export_submissions_enabled",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "plan_key",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "billing_interval",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "intro_price_cents",
+          "type": "integer",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "renewal_price_cents",
+          "type": "integer",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "tag_credit_cents",
+          "type": "integer",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "storage_limit_mb",
+          "type": "integer",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "video_uploads_enabled",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "plan_notes",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "notify_urgent_reports",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "urgent_notification_email",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "return_notification_mode",
+          "type": "text",
+          "nullable": false,
+          "default": "'off'::text"
+        },
+        {
+          "name": "notify_include_photo_previews",
+          "type": "boolean",
+          "nullable": false,
+          "default": "true"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [],
+      "unique": [
+        {
+          "name": "organizations_slug_key",
+          "columns": [
+            "slug"
+          ],
+          "predicate": null
+        }
+      ],
+      "checks": [
+        {
+          "name": "organizations_return_notification_mode_check",
+          "definition": "CHECK ((return_notification_mode = ANY (ARRAY['instant_renter'::text, 'daily_exceptions'::text, 'off'::text])))"
+        },
+        {
+          "name": "organizations_status_check",
+          "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'suspended'::text])))"
+        },
+        {
+          "name": "organizations_urgent_route_has_address",
+          "definition": "CHECK (((NOT notify_urgent_reports) OR (NULLIF(btrim(urgent_notification_email), ''::text) IS NOT NULL)))"
+        }
+      ],
+      "triggers": [
+        {
+          "name": "organizations_protect_commercial_fields",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "UPDATE"
+          ],
+          "function": "public.protect_commercial_fields",
+          "enabled": "O"
+        },
+        {
+          "name": "organizations_set_updated_at",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "UPDATE"
+          ],
+          "function": "public.set_updated_at",
+          "enabled": "O"
+        }
+      ]
+    },
+    "profiles": {
+      "rls": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "auth_user_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "role",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'active'::text"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "name": "profiles_auth_user_id_fkey",
+          "columns": [
+            "auth_user_id"
+          ],
+          "references": {
+            "schema": "auth",
+            "table": "users",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "profiles_organization_id_fkey",
+          "columns": [
+            "organization_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "organizations",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        }
+      ],
+      "unique": [
+        {
+          "name": "profiles_auth_user_id_key",
+          "columns": [
+            "auth_user_id"
+          ],
+          "predicate": null
+        }
+      ],
+      "checks": [
+        {
+          "name": "profiles_role_check",
+          "definition": "CHECK ((role = ANY (ARRAY['platform_owner'::text, 'customer_admin'::text, 'customer_staff'::text])))"
+        },
+        {
+          "name": "profiles_status_check",
+          "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'invited'::text, 'disabled'::text])))"
+        }
+      ],
+      "triggers": [
+        {
+          "name": "profiles_protect_privileged_fields",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "UPDATE"
+          ],
+          "function": "public.protect_profile_privileged_fields",
+          "enabled": "O"
+        },
+        {
+          "name": "profiles_set_updated_at",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "UPDATE"
+          ],
+          "function": "public.set_updated_at",
+          "enabled": "O"
+        }
+      ]
+    },
+    "qr_links": {
+      "rls": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "asset_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "short_code",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "public_url",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'active'::text"
+        },
+        {
+          "name": "last_scanned_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "is_production_primary",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "supersedes_qr_link_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "name": "qr_links_asset_id_fkey",
+          "columns": [
+            "asset_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "assets",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "qr_links_organization_id_fkey",
+          "columns": [
+            "organization_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "organizations",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "qr_links_supersedes_qr_link_id_fkey",
+          "columns": [
+            "supersedes_qr_link_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "qr_links",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "set null",
+          "on_update": "no action",
+          "deferrable": false
+        }
+      ],
+      "unique": [
+        {
+          "name": "qr_links_one_production_primary_per_asset",
+          "columns": [
+            "asset_id"
+          ],
+          "predicate": "is_production_primary"
+        },
+        {
+          "name": "qr_links_short_code_key",
+          "columns": [
+            "short_code"
+          ],
+          "predicate": null
+        }
+      ],
+      "checks": [
+        {
+          "name": "qr_links_status_check",
+          "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'disabled'::text])))"
+        }
+      ],
+      "triggers": [
+        {
+          "name": "qr_links_enforce_coverage",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "INSERT"
+          ],
+          "function": "public.enforce_qr_coverage_limit",
+          "enabled": "O"
+        },
+        {
+          "name": "qr_links_protect_governance",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "INSERT",
+            "UPDATE"
+          ],
+          "function": "public.protect_qr_governance",
+          "enabled": "O"
+        },
+        {
+          "name": "qr_links_set_default_production_primary",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "INSERT"
+          ],
+          "function": "public.set_default_production_primary",
+          "enabled": "O"
+        },
+        {
+          "name": "qr_links_set_updated_at",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "UPDATE"
+          ],
+          "function": "public.set_updated_at",
+          "enabled": "O"
+        }
+      ]
+    },
+    "rate_limit_counters": {
+      "rls": true,
+      "columns": [
+        {
+          "name": "bucket_key",
+          "type": "text",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "window_seconds",
+          "type": "integer",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "window_start",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "count",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "bucket_key",
+        "window_seconds",
+        "window_start"
+      ],
+      "foreign_keys": [],
+      "unique": [],
+      "checks": [],
+      "triggers": []
+    },
+    "scan_events": {
+      "rls": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "asset_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "qr_link_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "scanned_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "user_agent",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "ip_hash",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "referrer",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "device_type",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "name": "scan_events_asset_id_fkey",
+          "columns": [
+            "asset_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "assets",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "scan_events_organization_id_fkey",
+          "columns": [
+            "organization_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "organizations",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "scan_events_qr_link_id_fkey",
+          "columns": [
+            "qr_link_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "qr_links",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        }
+      ],
+      "unique": [],
+      "checks": [],
+      "triggers": []
+    },
+    "tag_request_assets": {
+      "rls": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "tag_request_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "asset_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "nullable": false,
+          "default": "1"
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "name": "tag_request_assets_asset_id_fkey",
+          "columns": [
+            "asset_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "assets",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "tag_request_assets_tag_request_id_fkey",
+          "columns": [
+            "tag_request_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "tag_requests",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        }
+      ],
+      "unique": [
+        {
+          "name": "tag_request_assets_tag_request_id_asset_id_key",
+          "columns": [
+            "tag_request_id",
+            "asset_id"
+          ],
+          "predicate": null
+        }
+      ],
+      "checks": [],
+      "triggers": []
+    },
+    "tag_requests": {
+      "rls": true,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": null
+        },
+        {
+          "name": "requested_by_profile_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'requested'::text"
+        },
+        {
+          "name": "material",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "mounting_method",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "tag_size",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "quantity_notes",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "production_notes",
+          "type": "text",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "delivered_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "platform_viewed_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "default": null
+        },
+        {
+          "name": "platform_viewed_by_profile_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "name": "tag_requests_organization_id_fkey",
+          "columns": [
+            "organization_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "organizations",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "cascade",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "tag_requests_platform_viewed_by_profile_id_fkey",
+          "columns": [
+            "platform_viewed_by_profile_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "profiles",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "set null",
+          "on_update": "no action",
+          "deferrable": false
+        },
+        {
+          "name": "tag_requests_requested_by_profile_id_fkey",
+          "columns": [
+            "requested_by_profile_id"
+          ],
+          "references": {
+            "schema": "public",
+            "table": "profiles",
+            "columns": [
+              "id"
+            ]
+          },
+          "on_delete": "set null",
+          "on_update": "no action",
+          "deferrable": false
+        }
+      ],
+      "unique": [],
+      "checks": [
+        {
+          "name": "tag_requests_status_check",
+          "definition": "CHECK ((status = ANY (ARRAY['requested'::text, 'in_review'::text, 'in_production'::text, 'ready'::text, 'delivered'::text, 'cancelled'::text])))"
+        }
+      ],
+      "triggers": [
+        {
+          "name": "tag_requests_protect_insert",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "INSERT"
+          ],
+          "function": "public.protect_tag_request_insert",
+          "enabled": "O"
+        },
+        {
+          "name": "tag_requests_set_updated_at",
+          "level": "row",
+          "timing": "BEFORE",
+          "events": [
+            "UPDATE"
+          ],
+          "function": "public.set_updated_at",
+          "enabled": "O"
+        }
+      ]
+    }
+  },
+  "graph_sha256": "f90f1d97894199a1dbc3535a231c6a35f25ba87736a3d2cf0f6763c98500e065"
+}

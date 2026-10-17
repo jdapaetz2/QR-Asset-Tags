@@ -31,10 +31,12 @@ import { chromium } from "playwright";
 import sharp from "sharp";
 
 import { assertTarget } from "../lib/env-target.mjs";
+import { assertQaRunnerTarget } from "../lib/qa-targets.mjs";
 import { assertSmokeTarget } from "../lib/smoke-target.mjs";
 import { bypassHeaders, createRun, visible } from "../smoke/lib/runner.mjs";
 
 const QA_SHORT_CODE = "stg-qa-public";
+assertQaRunnerTarget({ target: "staging", shortCode: QA_SHORT_CODE }); // Phase E1: a staging QA fixture only
 const QA_ADMIN = "qa.admin@mulemark-staging.invalid";
 const DOCUMENT_BYTES = 12_000_000;
 const COVER_BYTES = 4_800_000;

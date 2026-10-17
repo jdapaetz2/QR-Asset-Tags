@@ -1,0 +1,123 @@
+{
+  "schema": "mulemark.phase-e.reset-plan-summary/v1",
+  "name": "draft-e2c-staging-20261017T003135Z",
+  "kind": "draft-e2c",
+  "organization_id": "11111111-1111-4111-8111-111111111111",
+  "planned_at": "2026-10-17T00:31:39.324Z",
+  "ok": true,
+  "counts": {
+    "organizations": {
+      "KEEP": 1,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "equipment_page_templates": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "inspection_templates": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "notification_digest_runs": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "profiles": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "activity_log": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "assets": {
+      "KEEP": 4,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "inspection_category_defaults": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "tag_requests": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "asset_rental_sessions": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "documents": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "equipment_pages": {
+      "KEEP": 4,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "qr_links": {
+      "KEEP": 4,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "tag_request_assets": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "asset_acknowledgements": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "form_submissions": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 1
+    },
+    "scan_events": {
+      "KEEP": 2,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    }
+  },
+  "refusal_codes": [],
+  "refusals": 0,
+  "watermark": {
+    "last_success_window_end": null,
+    "first_window_start": null,
+    "next_cutoff": "2026-10-17T13:00:00.000Z",
+    "effective_start": "2026-10-16T13:00:00.000Z"
+  },
+  "target": "staging",
+  "supabase_ref": "kwserenxwjxozztyigmw",
+  "manifest_sha256": "c465444374067ccbd237e121fe658815f1cee1979cbadadb3b469e7a6fb67683"
+}

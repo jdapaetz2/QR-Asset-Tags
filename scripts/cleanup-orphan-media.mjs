@@ -27,6 +27,8 @@
  * Env: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (never printed), MULEMARK_TARGET, and
  * STAGING_SUPABASE_REF on staging.
  */
+import { readFileSync } from "node:fs";
+
 import { createClient } from "@supabase/supabase-js";
 
 import { assertTarget } from "./lib/env-target.mjs";
@@ -43,11 +45,26 @@ import {
   parseCleanupArgs,
   planCleanup,
   publicObjectPath,
+  retentionHoldsFromManifest,
   runDeletion,
   selectForDeletion,
 } from "./lib/orphan-media.mjs";
 
 const LOG = "[orphan-media]";
+
+/**
+ * Engineering Phase E1 retention hold: the Northridge archive boundary keeps every original object as rollback
+ * material until the operator releases it in the tracked manifest. Read on every run; a missing or unreadable
+ * manifest stops the run rather than silently dropping the hold.
+ */
+function loadRetentionHolds() {
+  const file = new URL("../docs/phase-e/manifests/northridge-archive-boundary.json", import.meta.url);
+  try {
+    return retentionHoldsFromManifest(JSON.parse(readFileSync(file, "utf8")));
+  } catch {
+    exitWith(1, "could not read the Northridge archive boundary manifest; refusing to plan without its retention hold");
+  }
+}
 const PAGE = 1000;
 const ID_CHUNK = 100;
 const MAX_OBJECTS_PER_BUCKET = 200_000;
@@ -173,7 +190,8 @@ function printPlan({ summary, report, candidates }, args) {
   }
   console.log(
     `${LOG} kept: ${report.referenced} referenced, ${report.tooNew} newer than ${args.olderThanHours}h, ` +
-      `${report.unmanaged} outside the managed paths`
+      `${report.unmanaged} outside the managed paths, ${report.retentionHold} under a retention hold ` +
+      `(Northridge rollback material; docs/phase-e/manifests/northridge-archive-boundary.json)`
   );
   console.log(
     `${LOG} for review (never deleted): ${report.extraUnderRecordedSubmission} objects under recorded submissions ` +
@@ -215,7 +233,13 @@ async function main() {
     objects.push(...(await listBucket(supabase, bucket)));
   }
   const refs = await loadReferences(supabase, objects);
-  const plan = planCleanup({ objects, refs, now: Date.now(), olderThanHours: args.olderThanHours });
+  const plan = planCleanup({
+    objects,
+    refs,
+    now: Date.now(),
+    olderThanHours: args.olderThanHours,
+    retentionHolds: loadRetentionHolds(),
+  });
   printPlan(plan, args);
 
   const count = plan.candidates.length;

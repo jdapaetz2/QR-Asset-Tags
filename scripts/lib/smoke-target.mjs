@@ -34,6 +34,13 @@ export const ISOLATION_PROBE_SHORT_CODE = "stg-only-isolation-probe";
 
 export const SMOKE_TARGETS = /** @type {const} */ (["local", "staging", "production"]);
 
+/**
+ * Vercel hosts that serve PRODUCTION even though they end in `.vercel.app` (Engineering Phase E1). The project's own
+ * production alias resolves every printed Northridge code (docs/phase-e/manifests/protected-demo-routes.json, hosts),
+ * so it must never be mistaken for a disposable preview.
+ */
+export const PRODUCTION_ALIAS_HOSTS = new Set(["qr-asset-tags.vercel.app"]);
+
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "0.0.0.0", "::1"]);
 
 /** Host of a URL, or a stable placeholder — for messages. Never throws. */
@@ -73,6 +80,9 @@ export function classifySmokeTarget(url) {
 
   if (LOOPBACK_HOSTS.has(host) || host.endsWith(".localhost")) {
     return { target: "local", host, origin, reason: "loopback host — local dev server" };
+  }
+  if (PRODUCTION_ALIAS_HOSTS.has(host)) {
+    return { target: "production", host, origin, reason: "the project's Vercel production alias" };
   }
   if (host === "vercel.app" || host.endsWith(".vercel.app")) {
     return { target: "staging", host, origin, reason: "Vercel preview/deploy host" };

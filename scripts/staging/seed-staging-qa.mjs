@@ -29,6 +29,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 import { assertTarget } from "../lib/env-target.mjs";
+import { assertQaRunnerTarget } from "../lib/qa-targets.mjs";
 
 // ---- The blast radius: exactly two organization ids -------------------------
 // Org A is the main QA tenant. Org B exists solely so cross-tenant denial can be exercised for real
@@ -49,6 +50,8 @@ const QA_ORG_B_NAME = "Mulemark Staging QA — Org B (cross-tenant test)";
 const QA_ORG_B_SLUG = "staging-qa-b";
 
 const ORG_IDS = [QA_ORG_ID, QA_ORG_B_ID];
+// Phase E1: the blast radius must stay inside the staging QA fixtures — never the Northridge showcase.
+for (const organizationId of ORG_IDS) assertQaRunnerTarget({ target: "staging", organizationId });
 
 /**
  * Short codes. `public` and `rented` are ACTIVE; `disabled` is an inactive link (its scan page must

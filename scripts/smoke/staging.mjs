@@ -24,8 +24,13 @@
  */
 import { chromium } from "playwright";
 
+import { assertQaRunnerTarget } from "../lib/qa-targets.mjs";
 import { ISOLATION_PROBE_SHORT_CODE, assertSmokeTarget } from "../lib/smoke-target.mjs";
+import { assertStagingBackend } from "../lib/staging-probe.mjs";
 import { bypassHeaders, createRun, hasBypass, visible } from "./lib/runner.mjs";
+
+/** Every short code this smoke scans or writes against. Phase E1: each must be a staging QA fixture. */
+const SMOKE_SHORT_CODES = ["stg-qa-public", "stg-qa-rented", "stg-qa-disabled", "stg-qa-orgb", ISOLATION_PROBE_SHORT_CODE];
 
 const BASE = (process.env.QA_BASE_URL || process.env.STAGING_BASE_URL || "").replace(/\/+$/, "");
 const PW = process.env.STAGING_QA_PASSWORD || process.env.QA_PASSWORD || "";
@@ -55,7 +60,18 @@ if (!PW) {
   process.exit(1);
 }
 
+// ---- Phase E1: fixture codes only, and a staging DATABASE behind the URL — before any write ----------
+try {
+  for (const shortCode of SMOKE_SHORT_CODES) assertQaRunnerTarget({ target: "staging", shortCode });
+  await assertStagingBackend({ baseUrl: BASE, headers: bypassHeaders() });
+} catch (err) {
+  console.error(`\n[smoke:staging] REFUSING TO RUN\n\n  ${err.message}\n`);
+  console.error("  On 2026-09-14 a branch alias served Production after a promotion; this gate stops that.\n");
+  process.exit(1);
+}
+
 console.log(`\n[smoke:staging] target verified: STAGING (${resolved.host})`);
+console.log("[smoke:staging] backend verified: the staging-only probe resolves (scan-free /nojs check)");
 console.log(`[smoke:staging] deployment-protection bypass: ${hasBypass() ? "configured" : "not configured"}`);
 console.log(`[smoke:staging] bounded writes: submissions + acknowledgement on the seeded QA orgs only.\n`);
 
@@ -334,6 +350,14 @@ run.skip(
   "submission logs dry_run / preview_environment",
   "not browser-observable — confirm in the Vercel runtime log for this deployment (see EMAIL_DELIVERABILITY_RUNBOOK)"
 );
+
+// Phase E1: re-prove the backend at the end, so an alias that flipped mid-run cannot pass silently.
+try {
+  await assertStagingBackend({ baseUrl: BASE, headers: bypassHeaders() });
+  run.check("isolation", "staging backend still verified at the end of the run", true);
+} catch (err) {
+  run.fail("isolation", "staging backend still verified at the end of the run", err.message);
+}
 
 await browser.close();
 process.exit(run.report() ? 0 : 1);

@@ -29,6 +29,7 @@ import { randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 
 import { assertTarget, classifyTarget } from "../lib/env-target.mjs";
+import { assertQaRunnerTarget } from "../lib/qa-targets.mjs";
 
 // ---- The single blast radius -------------------------------------------------
 export const QA_ORG_ID = "a6300000-0000-4000-8000-0000000a63a0";
@@ -59,8 +60,8 @@ function requireEnv(name) {
  *
  * Phase A7 found this script could write to any project the shell happened to point at — including
  * production — with no check at all. The target is now never inferred: `MULEMARK_TARGET` must be set
- * explicitly and must match the project the URL actually resolves to. Aiming this at production is
- * still possible (that is where the A6.3 QA org lived) but now requires saying so out loud.
+ * explicitly and must match the project the URL actually resolves to. Since Engineering Phase E1 a
+ * production target is refused outright: the A6.3 org is a staging QA fixture, not a production one.
  */
 function client() {
   const url = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
@@ -92,12 +93,18 @@ function client() {
     process.exit(1);
   }
 
+  // Phase E1: this script deletes and recreates a whole organization, so it runs only where that org is a QA
+  // fixture. The A6.3 org is a staging fixture; Production's only QA org is c0000000-…c0a1 (PHASE_C_BASELINE §15),
+  // so a Production target is refused here rather than merely warned about.
+  try {
+    assertQaRunnerTarget({ target: declared, organizationId: QA_ORG_ID, shortCode: QA_SHORT_CODE });
+  } catch (err) {
+    console.error(`[qa-data] REFUSING TO RUN: ${err.message}`);
+    process.exit(1);
+  }
+
   // Host + classification only — never the key.
   console.log(`[qa-data] target: ${resolved.host} (${declared.toUpperCase()}, confirmed)`);
-  if (declared === "production") {
-    console.log("[qa-data] WARNING: writing QA fixtures into the PRODUCTION project.");
-    console.log("[qa-data] Run `npm run qa:staging:data cleanup` when finished.");
-  }
   return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
 }
 

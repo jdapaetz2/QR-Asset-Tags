@@ -1,0 +1,92 @@
+{
+  "schema": "mulemark.phase-e.archive-summary/v1",
+  "archive_id": "northridge-staging-20261017T003019Z",
+  "created_at": "2026-10-17T00:30:21.193Z",
+  "source": {
+    "target": "staging",
+    "supabase_ref": "kwserenxwjxozztyigmw",
+    "organization_id": "11111111-1111-4111-8111-111111111111",
+    "fixture": "northridge"
+  },
+  "manifest_sha256": "892af4bc21a489c7cdddecd88a695a4fbb32ffdaa396d4d3854b1f14aed007df",
+  "graph_sha256": "f90f1d97894199a1dbc3535a231c6a35f25ba87736a3d2cf0f6763c98500e065",
+  "tables": {
+    "organizations": 1,
+    "equipment_page_templates": 0,
+    "inspection_templates": 0,
+    "notification_digest_runs": 0,
+    "profiles": 0,
+    "activity_log": 0,
+    "assets": 4,
+    "inspection_category_defaults": 0,
+    "tag_requests": 0,
+    "asset_rental_sessions": 0,
+    "documents": 0,
+    "equipment_pages": 4,
+    "qr_links": 4,
+    "asset_acknowledgements": 0,
+    "form_submissions": 1,
+    "scan_events": 2,
+    "tag_request_assets": 0
+  },
+  "objects": {
+    "count": 0,
+    "bytes": 0,
+    "by_bucket": {}
+  },
+  "references": {
+    "total": 0,
+    "present": 0,
+    "missing": 0
+  },
+  "identity": {
+    "profiles_in_tenant": 0,
+    "external_profiles": 0
+  },
+  "protected": {
+    "routes": 4,
+    "qr_links": 4,
+    "assets": 2
+  },
+  "checks": {
+    "schema_matches_graph": true,
+    "coherent": true,
+    "references_in_tenant": true,
+    "storage_paths_known": true,
+    "etags_match": true
+  },
+  "window": {
+    "t0": "2026-10-17T00:30:17.216Z",
+    "t1": "2026-10-17T00:30:21.193Z",
+    "scans_after_t0_excluded": true
+  },
+  "custody": {
+    "owner": "operator",
+    "location": "local Windows profile folder outside the repository and outside OneDrive (path not recorded in Git)",
+    "retention": "until Phase E closeout (E5C) plus the operator's explicit retention decision; never auto-deleted",
+    "second_copy": "a verified copy on separate media is required before any E2C approval",
+    "restore_rule": "loopback-only targets; a real archive only into the standalone 127.0.0.1-bound container"
+  },
+  "restore_rehearsals": [
+    {
+      "at": "2026-10-17T00:30:44.762Z",
+      "target": "stack",
+      "ok": true,
+      "replaced_local_copy": true,
+      "integrity_checks": 80,
+      "tables_hash_verified": 17,
+      "routes_checked": 4,
+      "protected_routes_checked": 4,
+      "route_mismatches": 0,
+      "storage": {
+        "mode": "uploaded-and-verified",
+        "uploaded": 0,
+        "verified": 0,
+        "widenedBuckets": [],
+        "rulesReverted": true,
+        "missingReferences": 0,
+        "stillMissing": 0
+      }
+    }
+  ]
+}

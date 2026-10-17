@@ -20,7 +20,9 @@
  */
 import { chromium, devices } from "playwright";
 
+import { assertQaRunnerTarget } from "../lib/qa-targets.mjs";
 import { CANONICAL_PRODUCTION_ORIGIN, assertSmokeTarget } from "../lib/smoke-target.mjs";
+import { assertStagingBackend } from "../lib/staging-probe.mjs";
 import {
   COLLECT,
   WARMUP_NAVIGATIONS,
@@ -86,6 +88,14 @@ if (IS_PROD && !SHORT_CODE) {
       `  PRODUCTION_QA_SHORT_CODE is not set. Viewing /t/ records a scan_events row, so the scan route\n` +
       `  is only ever measured against the approved QA asset — never a guessed or customer short code.\n`
   );
+  process.exit(1);
+}
+// Phase E1: the scanned code must be a QA fixture of this target, and a staging URL must read staging.
+try {
+  assertQaRunnerTarget({ target: MODE, shortCode: SHORT_CODE });
+  if (!IS_PROD) await assertStagingBackend({ baseUrl: BASE, headers: BYPASS });
+} catch (err) {
+  console.error(`\n[perf:${MODE}] REFUSING TO RUN\n\n  ${err.message}\n`);
   process.exit(1);
 }
 

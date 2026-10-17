@@ -180,6 +180,13 @@ documents, an active rental session, four representative submissions, and four Q
 
 Run it without `--confirm` first for a dry run.
 
+**QA targets (Engineering Phase E1).** These two organizations, and the A6.3 org, are the only staging targets a
+destructive QA runner accepts. `scripts/lib/qa-targets.mjs` refuses every Northridge code, organization and asset on
+every target, including staging Northridge (reserved for the E2B dataset rehearsal) and any `demo-` code. Staging
+writers also prove the URL is backed by the staging database before writing, and again at the end: they resolve the
+staging-only probe through the scan-free `/nojs/t/stg-only-isolation-probe` (`scripts/lib/staging-probe.mjs`). See
+[phase-e/DEMO_RECOVERY_RUNBOOK.md §7](phase-e/DEMO_RECOVERY_RUNBOOK.md#7-qa-isolation).
+
 ### 10. Verify the deployment
 
 Against the staging URL:

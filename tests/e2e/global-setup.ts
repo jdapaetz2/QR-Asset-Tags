@@ -2,6 +2,7 @@ import { assertLocal, getStackConfig } from "../security/setup/stack";
 import { applyLocalGrantParity } from "../security/setup/grants";
 import { seedFixtures, serviceClient, ORG_A, ASSET } from "../security/setup/fixtures";
 import { seedE2eExtras } from "./support/seed";
+import { E2E_BASE_URL } from "./support/roles";
 
 /**
  * Phase A6.1 — Playwright global setup. Reuses the A3.2 fixtures rather than duplicating them:
@@ -35,4 +36,31 @@ export default async function globalSetup(): Promise<void> {
   // Phase A6.2 — read-only enrichment for the golden-path suite (equipment-page content, a resolvable
   // return template, and one rich rental-session evidence graph). Kept out of the A3.2 security fixtures.
   await seedE2eExtras();
+
+  await assertServerUsesFixtureStack();
+}
+
+/**
+ * Phase E1 — a REUSED server (reuseExistingServer locally) skips the webServer command, and with it the
+ * assert-safe-env check. Prove the server on the E2E port reads THIS fixture stack before any test runs: the
+ * fixture-only code must resolve. A server started some other way (for example against .env.local, which is the
+ * Production env file) would not know it. The probe uses the scan-free /nojs render, so it records no scan.
+ */
+async function assertServerUsesFixtureStack(): Promise<void> {
+  let status = 0;
+  let body = "";
+  try {
+    const res = await fetch(`${E2E_BASE_URL}/nojs/t/a3-a-pub`, { redirect: "manual" });
+    status = res.status;
+    body = await res.text();
+  } catch (err) {
+    throw new Error(`e2e global-setup: the server on ${E2E_BASE_URL} could not be reached (${String(err).split("\n")[0]})`);
+  }
+  const unavailable = /This page isn(?:&#x27;|&#39;|&apos;|’|')t available/i.test(body);
+  if (status !== 200 || unavailable || !/A Public|A-PUB/.test(body)) {
+    throw new Error(
+      `e2e global-setup: the server on ${E2E_BASE_URL} does not resolve the local fixture code (HTTP ${status}). ` +
+        "It is not running against this local stack — stop it and let Playwright start its own server."
+    );
+  }
 }

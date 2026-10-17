@@ -24,6 +24,7 @@ import { chromium } from "playwright";
 import { createClient } from "@supabase/supabase-js";
 
 import { assertTarget } from "../lib/env-target.mjs";
+import { assertQaRunnerTarget } from "../lib/qa-targets.mjs";
 import { assertSmokeTarget } from "../lib/smoke-target.mjs";
 
 const args = process.argv.slice(2);
@@ -74,6 +75,8 @@ if (!confirmed) {
 
 /** The staging QA organization the admin account belongs to (scripts/staging/seed-staging-qa.mjs). */
 const QA_ORG_ID = "5ac00000-0000-4000-8000-00000057a610";
+// Phase E1: the throwaway asset lands in staging QA org A — a fixture, never the Northridge showcase.
+assertQaRunnerTarget({ target: "staging", organizationId: QA_ORG_ID });
 
 const db = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
 const created = { assetId: randomUUID(), shortCode: `c61-rev-${randomUUID().slice(0, 8)}` };

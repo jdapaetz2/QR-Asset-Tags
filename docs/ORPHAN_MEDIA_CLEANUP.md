@@ -39,6 +39,12 @@ a form abandoned after uploading, a process killed between upload and save, or a
 - **Quiet output.** Counts and bytes by kind and organization. Object paths appear only with `--verbose`. Keys and
   signed URLs are never printed.
 - **Never scheduled.** It is a manual operator tool; there is no cron or automatic deletion.
+- **Retention hold (Engineering Phase E1).** Objects under an organization prefix that is held in
+  `docs/phase-e/manifests/northridge-archive-boundary.json#retention` are never candidates. That covers every
+  Northridge object, including those an E2C cutover leaves unreferenced. They are counted as "retention hold". The
+  tool stops if it cannot read that manifest. Only the operator releases the hold, after Phase E closes, by setting
+  `hold_active: false` with `released_at` and `approval_ref`. On 2026-09-13 a run removed 11 unreferenced Northridge
+  objects. After a cutover, archived objects would look unreferenced in the same way, and the hold keeps them.
 
 ## Who runs it
 

@@ -39,7 +39,7 @@ Supabase vars by hand for local runs:
 | `NEXT_PUBLIC_SUPABASE_URL` / `_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` | `supabase status` | local stack only |
 | `NEXT_PUBLIC_SITE_URL` | `http://127.0.0.1:3100` | the E2E origin |
 | `SCAN_IP_HASH_SALT` | fixed local non-secret | scan logging works |
-| `RESEND_API_KEY` / `NOTIFICATION_FROM_EMAIL` | **unset** | notifications dry-run → **no email dependency** |
+| `RESEND_API_KEY` / `NOTIFICATION_FROM_EMAIL` / `CRON_SECRET` | **forced empty** | notifications dry-run → **no email dependency**. Since Engineering Phase E1, `scripts/e2e/assert-safe-env.mjs` runs before the build and refuses unless all three are empty, both Supabase and site URLs are loopback, and `VERCEL_ENV` is unset. A server reused from an earlier run must resolve the fixture-only code `a3-a-pub` (`tests/e2e/global-setup.ts`), so the suite can never drive a server pointed at another database. |
 | `E2E_PASSWORD` | optional | fixture-user password. Defaults to a local, non-secret throwaway. **Supply this via env for any non-local target** — never commit a real one. |
 
 ## QA data & reset

@@ -1,0 +1,101 @@
+{
+  "schema": "mulemark.phase-e.archive-summary/v1",
+  "archive_id": "northridge-production-20261017T003411Z",
+  "created_at": "2026-10-17T00:34:46.023Z",
+  "source": {
+    "target": "production",
+    "supabase_ref": "apeiswnkheiwrpvumder",
+    "organization_id": "11111111-1111-4111-8111-111111111111",
+    "fixture": "northridge"
+  },
+  "manifest_sha256": "b1c781684c7364656b460cfa2eb1f54416067327737a31b913f05d3a5a30cff5",
+  "graph_sha256": "f90f1d97894199a1dbc3535a231c6a35f25ba87736a3d2cf0f6763c98500e065",
+  "tables": {
+    "organizations": 1,
+    "equipment_page_templates": 1,
+    "inspection_templates": 0,
+    "notification_digest_runs": 35,
+    "profiles": 1,
+    "activity_log": 0,
+    "assets": 11,
+    "inspection_category_defaults": 0,
+    "tag_requests": 4,
+    "asset_rental_sessions": 18,
+    "documents": 6,
+    "equipment_pages": 11,
+    "qr_links": 12,
+    "asset_acknowledgements": 10,
+    "form_submissions": 49,
+    "scan_events": 3190,
+    "tag_request_assets": 6
+  },
+  "objects": {
+    "count": 53,
+    "bytes": 23107566,
+    "by_bucket": {
+      "submissions": {
+        "objects": 47,
+        "bytes": 7136027
+      },
+      "documents": {
+        "objects": 5,
+        "bytes": 15903962
+      },
+      "public-assets": {
+        "objects": 1,
+        "bytes": 67577
+      }
+    }
+  },
+  "references": {
+    "total": 104,
+    "present": 97,
+    "missing": 7
+  },
+  "identity": {
+    "profiles_in_tenant": 1,
+    "external_profiles": 1
+  },
+  "protected": {
+    "routes": 12,
+    "qr_links": 12,
+    "assets": 4
+  },
+  "checks": {
+    "schema_matches_graph": true,
+    "coherent": true,
+    "references_in_tenant": true,
+    "storage_paths_known": true,
+    "etags_match": true
+  },
+  "window": {
+    "t0": "2026-10-17T00:34:06.183Z",
+    "t1": "2026-10-17T00:34:46.023Z",
+    "scans_after_t0_excluded": true
+  },
+  "custody": {
+    "owner": "operator",
+    "location": "local Windows profile folder outside the repository and outside OneDrive (path not recorded in Git)",
+    "retention": "until Phase E closeout (E5C) plus the operator's explicit retention decision; never auto-deleted",
+    "second_copy": "a verified copy on separate media is required before any E2C approval",
+    "restore_rule": "loopback-only targets; a real archive only into the standalone 127.0.0.1-bound container"
+  },
+  "restore_rehearsals": [
+    {
+      "at": "2026-10-17T00:35:16.093Z",
+      "target": "standalone",
+      "ok": true,
+      "replaced_local_copy": false,
+      "integrity_checks": 80,
+      "tables_hash_verified": 17,
+      "routes_checked": 12,
+      "protected_routes_checked": 12,
+      "route_mismatches": 0,
+      "storage": {
+        "mode": "hash-verified-from-package",
+        "objects": 53,
+        "verified": 53
+      }
+    }
+  ]
+}

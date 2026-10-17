@@ -18,6 +18,10 @@
  */
 import { chromium, webkit, devices } from "playwright";
 
+import { assertQaRunnerTarget } from "../lib/qa-targets.mjs";
+import { assertSmokeTarget } from "../lib/smoke-target.mjs";
+import { assertStagingBackend } from "../lib/staging-probe.mjs";
+
 const args = Object.fromEntries(
   process.argv.slice(2).map((a) => {
     const [k, ...v] = a.replace(/^--/, "").split("=");
@@ -52,6 +56,18 @@ const RENTED_SHORT = process.env.QA_RENTED_SHORT_CODE || "stg-qa-rented";
 // Bypass header ONLY. Adding `x-vercel-set-bypass-cookie` makes the edge redirect to set the cookie on
 // every request, which Playwright follows into ERR_TOO_MANY_REDIRECTS.
 const HEADERS = BYPASS ? { "x-vercel-protection-bypass": BYPASS } : {};
+
+// ---- Phase E1 target gate — this audit submits forms and records scans, so: a staging host, staging QA
+// fixture codes only (never a Northridge showcase code), and a staging DATABASE behind the URL. ----------
+try {
+  assertSmokeTarget("staging", BASE);
+  assertQaRunnerTarget({ target: "staging", shortCode: SHORT });
+  assertQaRunnerTarget({ target: "staging", shortCode: RENTED_SHORT });
+  await assertStagingBackend({ baseUrl: BASE, headers: HEADERS });
+} catch (err) {
+  console.error(`\n[staging-audit] REFUSING TO RUN\n\n  ${err.message}\n`);
+  process.exit(1);
+}
 
 const rows = [];
 const record = (profile, workflow, result, note = "") => {

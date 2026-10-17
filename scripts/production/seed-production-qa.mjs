@@ -42,6 +42,7 @@ import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
 import { assertTarget } from "../lib/env-target.mjs";
+import { assertQaRunnerTarget } from "../lib/qa-targets.mjs";
 
 /** Ignored env file (matched by the `.env*` gitignore rule) that carries the Production QA inputs. */
 const PERF_ENV_FILE = ".env.production-perf.local";
@@ -59,6 +60,8 @@ const QA_ORG_SLUG = "production-qa-do-not-use";
 /** Deliberately self-describing: anyone who sees this code in a log knows it is not a customer tag. */
 const QA_SHORT_CODE = "prod-qa-perf-probe";
 const QA_EMAIL = "qa.perf@mulemark-production.invalid";
+// Phase E1: the pinned fixtures must remain the Production QA ones — never the Northridge showcase.
+assertQaRunnerTarget({ target: "production", organizationId: QA_ORG_ID, shortCode: QA_SHORT_CODE });
 
 const args = process.argv.slice(2);
 const confirmed = args.includes("--confirm");

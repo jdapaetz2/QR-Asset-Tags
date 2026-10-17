@@ -213,6 +213,16 @@ failed 10 of 13 checks without writing or sending anything, because the staging 
 Read the Preview `dry_run` line in the runtime log within the hour of the Preview smoke — Vercel Hobby keeps runtime
 logs for one hour.
 
+**Engineering Phase E1 guards.**
+- `smoke:staging` now proves the database before it writes. It resolves the staging-only probe through the scan-free
+  `/nojs/t/` render first, refuses with no write if that fails (the 2026-09-14 failure mode), and re-checks at the end.
+- Every code a QA runner scans or writes must be a QA fixture of its target (`scripts/lib/qa-targets.mjs`).
+  `PRODUCTION_SMOKE_SHORT_CODE`, when set, must be `prod-qa-perf-probe`.
+- `qr-asset-tags.vercel.app` is classified as Production, because it serves Production.
+- The curated demo has its own read-only check, `npm run phase-e:health:production`, which makes scan-free
+  `/nojs/t/` checks of the four protected routes. Archives, restores and resets of Northridge are described in
+  [phase-e/DEMO_RECOVERY_RUNBOOK.md](phase-e/DEMO_RECOVERY_RUNBOOK.md).
+
 ## Performance baselines and diagnostics (Phase C)
 
 **Rerun the baseline** — same method every time, so runs stay comparable:

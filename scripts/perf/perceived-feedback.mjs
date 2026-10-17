@@ -28,6 +28,7 @@ import { chromium } from "playwright";
 import { createClient } from "@supabase/supabase-js";
 
 import { assertTarget } from "../lib/env-target.mjs";
+import { assertQaRunnerTarget } from "../lib/qa-targets.mjs";
 import { assertSmokeTarget } from "../lib/smoke-target.mjs";
 
 const BASE = (process.env.QA_BASE_URL || process.env.STAGING_BASE_URL || "").replace(/\/$/, "");
@@ -38,6 +39,8 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 const stagingRef = process.env.STAGING_SUPABASE_REF ?? "";
 const QA_ORG_ID = "5ac00000-0000-4000-8000-00000057a610";
+// Phase E1: the throwaway rows land in staging QA org A — a fixture, never the Northridge showcase.
+assertQaRunnerTarget({ target: "staging", organizationId: QA_ORG_ID });
 
 function refuse(message) {
   console.error(`\n[perceived] REFUSING TO RUN\n\n  ${message}\n`);

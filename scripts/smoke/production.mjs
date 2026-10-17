@@ -34,6 +34,7 @@ import {
   ISOLATION_PROBE_SHORT_CODE,
   assertSmokeTarget,
 } from "../lib/smoke-target.mjs";
+import { assertQaRunnerTarget } from "../lib/qa-targets.mjs";
 import { createRun, visible } from "./lib/runner.mjs";
 
 const BASE = (process.env.PRODUCTION_SMOKE_BASE_URL || CANONICAL_PRODUCTION_ORIGIN).replace(/\/+$/, "");
@@ -43,8 +44,11 @@ const SHORT_CODE = (process.env.PRODUCTION_SMOKE_SHORT_CODE || "").trim();
 let resolved;
 try {
   resolved = assertSmokeTarget("production", BASE);
+  // Phase E1: the one scan write may only land on the Production QA fixture — never a Northridge showcase code.
+  if (SHORT_CODE) assertQaRunnerTarget({ target: "production", shortCode: SHORT_CODE });
 } catch (err) {
   console.error(`\n[smoke:production] REFUSING TO RUN\n\n  ${err.message}\n`);
+  console.error("  Showcase routes are checked read-only (no scan row) with: npm.cmd run phase-e:health:production\n");
   process.exit(1);
 }
 

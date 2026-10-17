@@ -179,19 +179,43 @@ function isAtLeastHoursOld(createdAt, now, hours) {
  * }} References
  */
 
+const ORG_PREFIX_RE = new RegExp(`^org/(${UUID_ANY_CASE})/`);
+
+/**
+ * Organizations whose objects are under a retention hold (Engineering Phase E1). The Northridge archive boundary
+ * (docs/phase-e/manifests/northridge-archive-boundary.json) keeps every original object as rollback material until the
+ * operator explicitly releases the hold; after a showcase cutover those objects become unreferenced and would
+ * otherwise look exactly like orphans. A hold stays on unless the manifest records a release with an approval.
+ */
+export function retentionHoldsFromManifest(manifest) {
+  const holds = new Set();
+  const orgId = manifest?.target?.organization_id;
+  const retention = manifest?.retention ?? {};
+  const released = retention.hold_active === false && Boolean(retention.released_at) && Boolean(retention.approval_ref);
+  if (typeof orgId === "string" && !released) holds.add(orgId.toLowerCase());
+  return holds;
+}
+
+/** The organization a stored path belongs to, by its `org/<id>/` prefix, or null. */
+function pathOrg(path) {
+  const m = typeof path === "string" ? ORG_PREFIX_RE.exec(path) : null;
+  return m ? m[1].toLowerCase() : null;
+}
+
 /**
  * Decide the candidates. A submission's objects are judged together: its whole prefix is a candidate only when no
  * row exists for the id and every object in it is old enough. A cover or logo is protected by any stored URL, not
- * just its own asset's or organization's.
- * @param {{ objects: StoredObject[], refs: References, now: number, olderThanHours: number }} input
+ * just its own asset's or organization's. Objects of an organization under a retention hold are never candidates.
+ * @param {{ objects: StoredObject[], refs: References, now: number, olderThanHours: number, retentionHolds?: Set<string> }} input
  */
-export function planCleanup({ objects, refs, now, olderThanHours }) {
+export function planCleanup({ objects, refs, now, olderThanHours, retentionHolds = new Set() }) {
   const candidates = [];
   const report = {
     scanned: objects.length,
     referenced: 0,
     tooNew: 0,
     unmanaged: 0,
+    retentionHold: 0,
     extraUnderRecordedSubmission: 0,
     documentRowsMissingObject: 0,
   };
@@ -201,6 +225,10 @@ export function planCleanup({ objects, refs, now, olderThanHours }) {
   for (const object of objects) {
     const info = classifyObject(object.bucket, object.path);
     if (object.bucket === DOCUMENTS_BUCKET) listedDocuments.add(object.path);
+    if (retentionHolds.has(pathOrg(object.path))) {
+      report.retentionHold++;
+      continue;
+    }
     if (info.kind === "unmanaged") {
       report.unmanaged++;
       continue;

@@ -13,10 +13,13 @@ import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 
 import { assertTarget } from "../../lib/env-target.mjs";
+import { assertQaRunnerTarget } from "../../lib/qa-targets.mjs";
 
 export const QA_ORG_ID = "c0000000-0000-4000-8000-00000000c0a1";
 export const QA_ASSET_ID = "c0000000-0000-4000-8000-00000000c0a2";
 export const QA_SHORT_CODE = "prod-qa-perf-probe";
+// Phase E1: every Production QA tool built on this module writes only to the Production QA fixture.
+assertQaRunnerTarget({ target: "production", organizationId: QA_ORG_ID, shortCode: QA_SHORT_CODE });
 export const BASE = "https://mulemark.io";
 
 /** Passed to assertTarget so the staging project is recognised and refused by name. Public, not a secret. */

@@ -22,6 +22,10 @@ import { writeFileSync } from "node:fs";
 
 import { chromium, devices } from "playwright";
 
+import { assertQaRunnerTarget } from "../lib/qa-targets.mjs";
+import { assertSmokeTarget } from "../lib/smoke-target.mjs";
+import { assertStagingBackend } from "../lib/staging-probe.mjs";
+
 const args = Object.fromEntries(
   process.argv.slice(2).map((a) => {
     const [k, ...v] = a.replace(/^--/, "").split("=");
@@ -42,6 +46,17 @@ const SAMPLES = Number(args.samples ?? 5);
 const ONLY = args.only ? String(args.only).toLowerCase() : null;
 const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || "";
 const SHORT_CODE = process.env.QA_SHORT_CODE || "qa-a63-test";
+
+// ---- Phase E1 target gate — visiting /t/ records a scan, so: a staging host, a staging QA fixture code (never
+// a Northridge showcase code), and a staging DATABASE behind the URL, all before the first page load. ---------
+try {
+  assertSmokeTarget("staging", BASE);
+  assertQaRunnerTarget({ target: "staging", shortCode: SHORT_CODE });
+  await assertStagingBackend({ baseUrl: BASE, headers: BYPASS ? { "x-vercel-protection-bypass": BYPASS } : {} });
+} catch (err) {
+  console.error(`\n[staging-vitals] REFUSING TO RUN\n\n  ${err.message}\n`);
+  process.exit(1);
+}
 
 /** Device classes. "mobile" adds CPU throttling to approximate a mid-range handset. */
 const CLASSES = [

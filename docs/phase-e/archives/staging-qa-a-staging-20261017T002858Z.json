@@ -1,0 +1,97 @@
+{
+  "schema": "mulemark.phase-e.archive-summary/v1",
+  "archive_id": "staging-qa-a-staging-20261017T002858Z",
+  "created_at": "2026-10-17T00:30:09.695Z",
+  "source": {
+    "target": "staging",
+    "supabase_ref": "kwserenxwjxozztyigmw",
+    "organization_id": "5ac00000-0000-4000-8000-00000057a610",
+    "fixture": "staging-qa-a"
+  },
+  "manifest_sha256": "45dcb1d440abc6fde22ad58fa4845bead65473a311eb8bd9bd7ae27793b3acba",
+  "graph_sha256": "f90f1d97894199a1dbc3535a231c6a35f25ba87736a3d2cf0f6763c98500e065",
+  "tables": {
+    "organizations": 1,
+    "equipment_page_templates": 0,
+    "inspection_templates": 0,
+    "notification_digest_runs": 0,
+    "profiles": 2,
+    "activity_log": 0,
+    "assets": 3,
+    "inspection_category_defaults": 0,
+    "tag_requests": 0,
+    "asset_rental_sessions": 1,
+    "documents": 2,
+    "equipment_pages": 3,
+    "qr_links": 4,
+    "asset_acknowledgements": 0,
+    "form_submissions": 89,
+    "scan_events": 213,
+    "tag_request_assets": 0
+  },
+  "objects": {
+    "count": 35,
+    "bytes": 91474044,
+    "by_bucket": {
+      "submissions": {
+        "objects": 35,
+        "bytes": 91474044
+      }
+    }
+  },
+  "references": {
+    "total": 45,
+    "present": 43,
+    "missing": 2
+  },
+  "identity": {
+    "profiles_in_tenant": 2,
+    "external_profiles": 0
+  },
+  "protected": {
+    "routes": 0,
+    "qr_links": 0,
+    "assets": 0
+  },
+  "checks": {
+    "schema_matches_graph": true,
+    "coherent": true,
+    "references_in_tenant": true,
+    "storage_paths_known": true,
+    "etags_match": true
+  },
+  "window": {
+    "t0": "2026-10-17T00:28:52.870Z",
+    "t1": "2026-10-17T00:30:09.695Z",
+    "scans_after_t0_excluded": true
+  },
+  "custody": {
+    "owner": "operator",
+    "location": "local Windows profile folder outside the repository and outside OneDrive (path not recorded in Git)",
+    "retention": "until Phase E closeout (E5C) plus the operator's explicit retention decision; never auto-deleted",
+    "second_copy": "a verified copy on separate media is required before any E2C approval",
+    "restore_rule": "loopback-only targets; a real archive only into the standalone 127.0.0.1-bound container"
+  },
+  "restore_rehearsals": [
+    {
+      "at": "2026-10-17T00:30:41.053Z",
+      "target": "stack",
+      "ok": true,
+      "replaced_local_copy": false,
+      "integrity_checks": 80,
+      "tables_hash_verified": 17,
+      "routes_checked": 4,
+      "protected_routes_checked": 0,
+      "route_mismatches": 0,
+      "storage": {
+        "mode": "uploaded-and-verified",
+        "uploaded": 35,
+        "verified": 35,
+        "widenedBuckets": [],
+        "rulesReverted": true,
+        "missingReferences": 2,
+        "stillMissing": 2
+      }
+    }
+  ]
+}
