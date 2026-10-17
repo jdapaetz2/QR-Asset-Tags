@@ -29,10 +29,22 @@ E1 **did not** reset, delete or rewrite anything in Production. It ran no migrat
 | **Access** | The operator's Windows account only. Never in a web-accessible bucket, never in Git, never on a synced drive. |
 | **Contents** | Full rows, including personal data such as renter names, phone numbers and visitor submissions. There is no data minimization: an exact restore needs the exact rows. |
 | **Retention** | Until Phase E closes (E5C) **and** the operator makes an explicit retention decision. Never auto-deleted. The Storage objects under `org/11111111-…/` carry a **retention hold** (`docs/phase-e/manifests/northridge-archive-boundary.json#retention`): `cleanup-orphan-media` never selects them while the hold is on, and only the operator releases it. |
-| **Second copy** | A verified copy on separate media is a **precondition of any E2C approval**: copy the package folder, then run `npm.cmd run phase-e:archive:verify -- --path=<copy>` on the copy. Not required for E1. |
+| **Second copy** | A verified copy on separate media is a **precondition of any E2C approval**; it is not required for E1. Steps (§1.1 below). |
 | **What Git holds** | Only redacted summaries in `docs/phase-e/archives/`: counts, check results and the manifest SHA-256. No paths, names, addresses or per-file hashes. Restore rehearsals are appended to the same summary. |
 
 **Purging a package** (after the retention decision): delete its folder from every copy. Nothing else references it except the summary in Git, which stays as the record.
+
+### 1.1 Making and checking the second copy
+
+1. Plug in a USB drive or external disk. Use separate media: not OneDrive or any other synced folder, because the package holds personal data.
+2. Copy the package folder (for example `northridge-production-<stamp>`) from the archive folder to the drive, with File Explorer or `Copy-Item -Recurse`.
+3. Check the copy. This command works from any folder, because it names the script by its full path; `npm run …` works only inside the project folder:
+   ```
+   node "<project folder>\scripts\phase-e\showcase-archive.mjs" verify "--path=E:\northridge-production-<stamp>"
+   ```
+   Replace `<project folder>` with the repository checkout's folder, `E:` with the drive's letter and `<stamp>` with the package's. It must end with `— OK (manifest …)`, and the manifest hash must match the one recorded in [WORK_LOG.md](WORK_LOG.md).
+
+The agent can do steps 2 and 3 when asked, once the drive is plugged in and its letter is given.
 
 ## 2. Tools
 
@@ -222,13 +234,38 @@ What the reset does **not** do:
 - a public control return was **excluded** under `instant_renter`;
 - the ledger window started exactly at W.
 
-**Operator live checks before E2B and E2C** (not visible from the repository):
-1. In the SQL editor, read-only:
-   - `select extname from pg_extension`: look for `pg_net`/`http`;
-   - `select tgrelid::regclass, tgname from pg_trigger where not tgisinternal`: look for anything beyond the migrations;
-   - check for `supabase_functions` or `net` schemas.
-2. In the dashboard: Database Webhooks, Auth Hooks, Edge Functions.
-3. In Vercel: confirm the two digest crons are the only scheduled jobs.
+**Operator live check before E2B.** The repository cannot show something added in the Supabase dashboard that reacts to new rows, such as a Database Webhook (a trigger on a table) or a scheduled database job. One read-only query shows both:
+1. Open the Production SQL editor: `https://supabase.com/dashboard/project/apeiswnkheiwrpvumder/sql/new`.
+2. Paste the query below and click **Run**. It only reads the database catalog.
+3. Send back the single row it returns. The expected row is `21 | none | pg_cron not installed`; `0 job(s)` in the last column is also fine. Anything named under `unexpected_triggers`, or any scheduled job, gets looked at before E2B.
+
+```sql
+select
+  count(*) as public_triggers,
+  coalesce(string_agg(c.relname || '.' || t.tgname, ', ') filter (where t.tgname not in (
+    'asset_rental_sessions_set_updated_at', 'assets_enforce_template_org', 'assets_set_updated_at',
+    'documents_set_updated_at', 'equipment_page_templates_set_updated_at', 'equipment_pages_set_updated_at',
+    'form_submissions_set_return_session', 'inspection_category_defaults_enforce_template_org',
+    'inspection_category_defaults_set_updated_at', 'inspection_templates_enforce_lifecycle',
+    'inspection_templates_set_updated_at', 'organizations_protect_commercial_fields', 'organizations_set_updated_at',
+    'profiles_protect_privileged_fields', 'profiles_set_updated_at', 'qr_links_enforce_coverage',
+    'qr_links_protect_governance', 'qr_links_set_default_production_primary', 'qr_links_set_updated_at',
+    'tag_requests_protect_insert', 'tag_requests_set_updated_at')), 'none') as unexpected_triggers,
+  case when to_regclass('cron.job') is null then 'pg_cron not installed'
+       else (xpath('/row/n/text()', query_to_xml('select count(*) as n from cron.job', false, true, '')))[1]::text || ' job(s)'
+  end as scheduled_jobs
+from pg_trigger t
+join pg_class c on c.oid = t.tgrelid
+join pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'public' and not t.tgisinternal;
+```
+
+The 21 names are the triggers the migrations create; on the local stack the query returns the expected row.
+
+**Covered without the operator:**
+- **Vercel crons** can be defined only in `vercel.json`. The deployed commit (`93fe39b`) has just the two digest jobs, at 13:00 and 14:00 UTC.
+- **Edge Functions** run only when something calls them. The repository has none and never calls one, and a webhook or job that did would show up in the query.
+- **Auth hooks** fire on sign-in and sign-up events, which a seed or reset never causes.
 
 **Live demo submissions after the cutover** are told apart by being absent from the cutover manifest and dated after the cutover. They notify the organization's own address (`support@mulemark.io`, owner-controlled). No invented renter address is ever emailed, because the app has no renter email path.
 

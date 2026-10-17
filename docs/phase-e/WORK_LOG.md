@@ -124,6 +124,7 @@ Prompt E1 — done; see below.
 | 2026-10-16 | Archive location: a local folder outside the repository and OneDrive (`%USERPROFILE%\Mulemark-Ops-Archive\`) | AskUserQuestion: "Local folder" |
 | 2026-10-16 | Docker loopback: operator set the Engine `"ip": "127.0.0.1"` and default bridge `host_binding_ipv4`; then approved starting the stack and pre-creating the network with loopback binding | AskUserQuestion: "I'll fix it", "Go ahead" ×2 |
 | 2026-10-16 | **Split by data:** the all-interfaces local stack gets synthetic and staging-QA data only; a real archive restores only into a temporary container bound explicitly to `127.0.0.1:55432` with data on tmpfs | AskUserQuestion: "Split by data" |
+| 2026-10-17 | `7gzt4aqc` (WSHR-001, conditional sheet) may stay unavailable even if the 2026-07-20 sheet was printed; it is not protected. The other sheet codes are unaffected | Operator chat: "The code, if there was one, can die" |
 
 ### Environment findings
 
@@ -234,15 +235,15 @@ SHA-256 of the committed (LF) bytes.
 
 | Finding | Owner |
 |---|---|
-| `7gzt4aqc` (WSHR-001, on the conditional 2026-07-20 sheet) shows "This page isn't available": its equipment page has been unpublished since 2026-07-13. [PROTECTED_DEMO_ROUTES.md](PROTECTED_DEMO_ROUTES.md) said all eight sheet codes resolve; corrected. Nothing changed | Operator (printed-sheet answer) |
-| E1 `apply` refuses hosted targets by design. E2C must add the approved hosted execution path (SQL editor or database URL); `plan` already emits the reviewable transaction | E2C |
+| `7gzt4aqc` (WSHR-001, on the conditional 2026-07-20 sheet) shows "This page isn't available": its equipment page has been unpublished since 2026-07-13. [PROTECTED_DEMO_ROUTES.md](PROTECTED_DEMO_ROUTES.md) said all eight sheet codes resolve; corrected. Nothing changed | **Closed** 2026-10-17: the operator lets the code stay unavailable |
+| E1 `apply` refuses hosted targets by design. E2C must add the approved hosted execution path (SQL editor or database URL); `plan` already emits the reviewable transaction. Informational: nothing to decide until E2C, which brings the options | E2C |
 | A rollback re-inserting a return checklist created after the last digest watermark is refused (conservative). Wait for the next daily run or decide explicitly | E2C runbook |
 
 ### Open, operator-pending
 
-The E0 list still applies, plus:
-1. Make the second verified archive copy before any E2C approval.
-2. Do the live checks before E2B and E2C ([runbook §6](DEMO_RECOVERY_RUNBOOK.md#6-seed-notification-suppression)).
+The E0 list still applies, plus two items. Neither is needed now:
+1. **Before any E2C approval:** a second verified archive copy on a USB drive or external disk ([runbook §1.1](DEMO_RECOVERY_RUNBOOK.md#11-making-and-checking-the-second-copy)). The agent can copy and check it once the drive is plugged in and its letter given.
+2. **Before E2B:** paste one read-only query into the Production SQL editor and send back the single row it returns ([runbook §6](DEMO_RECOVERY_RUNBOOK.md#6-seed-notification-suppression)). Expected: `21 | none | pg_cron not installed`. The Vercel crons, Edge Functions and Auth hooks were covered from the repository.
 
 ### Next command
 
