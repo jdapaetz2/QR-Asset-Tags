@@ -16,7 +16,7 @@
       "review_status": "MULEMARK_REVIEW",
       "items": {
         "READY": 1,
-        "REVIEW_REQUIRED": 18,
+        "REVIEW_REQUIRED": 24,
         "BLOCKED": 9
       },
       "page_fields": {
@@ -28,6 +28,10 @@
         "total": 8,
         "drawn": 4,
         "blocked": 4
+      },
+      "signs": {
+        "total": 6,
+        "drawn": 6
       },
       "guide": "docs/phase-e/packs/bobcat.e20.b3bl-canopy/guide/bobcat.e20.b3bl-canopy-start-up-guide.pdf",
       "photo": "READY",
@@ -42,7 +46,8 @@
       "reuse": {
         "shareable_across_orgs": false,
         "reusable_parts_without_blocks": [
-          "warnings"
+          "warnings",
+          "signs"
         ],
         "applies_to_configuration": {
           "generation": "E20 with serial prefix B3BL (the model Bobcat sold until the new E20 of November 2025)",
@@ -69,7 +74,7 @@
       "review_status": "MULEMARK_REVIEW",
       "items": {
         "READY": 11,
-        "REVIEW_REQUIRED": 0,
+        "REVIEW_REQUIRED": 3,
         "BLOCKED": 16
       },
       "page_fields": {
@@ -81,6 +86,10 @@
         "total": 8,
         "drawn": 0,
         "blocked": 8
+      },
+      "signs": {
+        "total": 3,
+        "drawn": 3
       },
       "guide": null,
       "photo": "READY",
@@ -95,7 +104,8 @@
       "reuse": {
         "shareable_across_orgs": false,
         "reusable_parts_without_blocks": [
-          "specs"
+          "specs",
+          "signs"
         ],
         "applies_to_configuration": {
           "generation": "current 301.5 with the Cat C1.1 engine",
@@ -120,7 +130,7 @@
       "review_status": "MULEMARK_REVIEW",
       "items": {
         "READY": 13,
-        "REVIEW_REQUIRED": 23,
+        "REVIEW_REQUIRED": 28,
         "BLOCKED": 2
       },
       "page_fields": {
@@ -132,6 +142,10 @@
         "total": 8,
         "drawn": 8,
         "blocked": 0
+      },
+      "signs": {
+        "total": 5,
+        "drawn": 5
       },
       "guide": "docs/phase-e/packs/bigtex.35sa.12/guide/bigtex.35sa.12-start-up-guide.pdf",
       "photo": "BLOCKED",
@@ -148,7 +162,8 @@
         "reusable_parts_without_blocks": [
           "quick_guide",
           "warnings",
-          "pictograms"
+          "pictograms",
+          "signs"
         ],
         "applies_to_configuration": {
           "bed_length_ft": 12,
@@ -177,7 +192,7 @@
       "review_status": "MULEMARK_REVIEW",
       "items": {
         "READY": 12,
-        "REVIEW_REQUIRED": 31,
+        "REVIEW_REQUIRED": 41,
         "BLOCKED": 5
       },
       "page_fields": {
@@ -189,6 +204,10 @@
         "total": 8,
         "drawn": 8,
         "blocked": 0
+      },
+      "signs": {
+        "total": 10,
+        "drawn": 10
       },
       "guide": "docs/phase-e/packs/bigtex.14lp.14/guide/bigtex.14lp.14-start-up-guide.pdf",
       "photo": "BLOCKED",
@@ -205,7 +224,8 @@
         "reusable_parts_without_blocks": [
           "quick_guide",
           "warnings",
-          "pictograms"
+          "pictograms",
+          "signs"
         ],
         "applies_to_configuration": {
           "bed_length_ft": 14,

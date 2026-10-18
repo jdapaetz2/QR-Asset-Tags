@@ -11,20 +11,47 @@ export const ITEM_STATUSES = ["READY", "REVIEW_REQUIRED", "BLOCKED"];
 /** Payload budgets for pack files (bytes): page hero photos, each panel file, each guide PDF. */
 export const BUDGETS = { heroBytes: 300_000, panelBytes: 120_000, guideBytes: 1_500_000 };
 
-/** Item lists on a model that carry a status, in display order. */
-const ITEM_LISTS = ["specs", "quick_guide", "warnings", "support_notes", "pictograms"];
+/** Item lists on a model that carry a status and sources, in display order. */
+export const ITEM_LISTS = ["specs", "quick_guide", "warnings", "support_notes", "pictograms", "signs"];
+
+/** The id of any status-bearing item. */
+export const itemId = (item) => item.step_id ?? item.spec_id ?? item.panel_id ?? item.sign_id;
 
 /** Customer policies are cited as source_refs with a "pol-" id; they live in organization.policies, not the register. */
 export const isPolicyRef = (id) => typeof id === "string" && id.startsWith("pol-");
+
+const FRAME_WORDS = { do: "Do", dont: "Don't", check: "Check", detail: "Close-up" };
+
+/** A panel's alt text, built from its frames so it always describes what is drawn. */
+export function composeAlt(frames) {
+  const sentence = (f) => `${FRAME_WORDS[f.kind]}: ${f.shows.replace(/[.\s]+$/, "")}.`;
+  if (frames.length === 1) return sentence(frames[0]);
+  return `${frames.length} frames. ${frames.map((f, i) => `${i + 1}. ${sentence(f)}`).join(" ")}`;
+}
+
+const SIGN_WORDS = { prohibition: "Prohibition sign", warning: "Warning sign", mandatory: "Mandatory action sign", limit: "Limit sign", info: "Information sign", checklist: "Checklist sign" };
+
+/** A sign tile's alt text, built from its kind and what it shows. */
+export function signAlt(sign) {
+  return `${SIGN_WORDS[sign.kind]}: ${sign.shows.replace(/[.\s]+$/, "")}.`;
+}
 
 /** Every policy a pack cites that its organization does not define. */
 export function missingPolicies(pack) {
   const defined = new Set((pack.organization?.policies ?? []).map((p) => p.policy_id));
   const cited = new Set();
+  const cite = (ids) => {
+    for (const id of ids ?? []) if (isPolicyRef(id)) cited.add(id);
+  };
   for (const model of pack.models ?? []) {
     for (const list of ITEM_LISTS) {
-      for (const item of model[list] ?? []) for (const ref of item.source_refs ?? []) if (isPolicyRef(ref.source_id)) cited.add(ref.source_id);
+      for (const item of model[list] ?? []) {
+        cite((item.source_refs ?? []).map((ref) => ref.source_id));
+        cite(item.derived_from);
+        for (const f of item.frames ?? []) cite(f.derived_from);
+      }
     }
+    for (const icon of model.accessory_icons ?? []) cite(icon.derived_from);
   }
   for (const asset of pack.assets ?? []) {
     for (const f of Object.values(asset.page ?? {})) for (const id of f.derived_from ?? []) if (isPolicyRef(id)) cited.add(id);
@@ -81,7 +108,7 @@ export function readinessProblems(model) {
   for (const list of ITEM_LISTS) {
     for (const item of model[list] ?? []) {
       if (item.status === "BLOCKED" && !item.status_reason) {
-        problems.push(`${model.model_key} ${item.step_id ?? item.spec_id ?? item.panel_id}: BLOCKED needs a status_reason.`);
+        problems.push(`${model.model_key} ${itemId(item)}: BLOCKED needs a status_reason.`);
       }
     }
   }
@@ -241,6 +268,18 @@ export function renderReviewMarkdown(pack, { packDir, generator }) {
   stepSection("Quick guide (renter)", model.quick_guide);
   stepSection("Warnings (renter)", model.warnings);
   stepSection("Support notes (staff only, never public)", model.support_notes);
+  lines.push("");
+  lines.push("## Safety signs");
+  lines.push("");
+  if ((model.signs ?? []).length === 0) {
+    lines.push("None.");
+  } else {
+    lines.push("| Sign | Kind | Shows | From | Status |");
+    lines.push("|---|---|---|---|---|");
+    for (const s of model.signs) {
+      lines.push(`| ${cell(s.label)} \`${s.sign_id}\` | ${s.kind} | ${cell(s.shows)} | ${s.derived_from.map((id) => `\`${id}\``).join(", ")} | ${s.status}${s.status_reason ? `: ${cell(s.status_reason)}` : ""} |`);
+    }
+  }
   if (asset.page) {
     const pc = pageStatusCounts(asset);
     lines.push("");
@@ -280,6 +319,10 @@ export function renderReviewMarkdown(pack, { packDir, generator }) {
   lines.push("## Checklists");
   lines.push("");
   lines.push(`Return and outbound template: \`${model.templates?.return ?? "none"}\`. Accessories: ${(model.common_accessories ?? []).join(", ") || "none"}.`);
+  if ((model.accessory_icons ?? []).length > 0) {
+    lines.push("");
+    lines.push(`Accessory icons: ${model.accessory_icons.map((a) => `${a.name} (\`${a.icon}\`, from ${a.derived_from.map((id) => `\`${id}\``).join(", ")}, ${a.status})`).join("; ")}.`);
+  }
   const policies = pack.organization?.policies ?? [];
   if (policies.length > 0) {
     lines.push("");
@@ -303,9 +346,9 @@ export function renderStoryboardMarkdown(pack, { generator }) {
   lines.push(`Generated from [pack.json](pack.json) by \`${generator}\`. Do not edit by hand.`);
   lines.push("");
   lines.push(
-    `${panels.length} panels: ${counts.READY} READY, ${counts.REVIEW_REQUIRED} REVIEW_REQUIRED, ${counts.BLOCKED} BLOCKED. ` +
-      "This is the storyboard and source mapping for grouped approval. **No final artwork is drawn until it is approved.** " +
-      "Panels follow ISO 9244, ISO 3864, ISO 7010 and ANSI Z535 conventions without copying their symbols; controls are never mirrored or stylized, and anything the cited source does not show is left out."
+    `${panels.length} panels: ${counts.READY} READY, ${counts.REVIEW_REQUIRED} REVIEW_REQUIRED, ${counts.BLOCKED} BLOCKED; ${(model.signs ?? []).length} safety signs. ` +
+      "Each drawn panel is a short picture sequence built from the frames listed below (do, don't, check, close-up); drawings carry numbers, units and symbols only, and the alt text is composed from the frames. " +
+      "Panels and signs follow ISO 9244, ISO 3864, ISO 7010 and ANSI Z535 conventions without copying their symbols; controls are never mirrored or stylized, and anything the cited source does not show is left out."
   );
   panels.forEach((panel, i) => {
     lines.push("");
@@ -313,7 +356,11 @@ export function renderStoryboardMarkdown(pack, { generator }) {
     lines.push("");
     lines.push(`- **Task:** ${panel.task}`);
     lines.push(`- **Caption:** ${panel.caption}`);
-    if (panel.alt) lines.push(`- **Alt text (draft):** ${panel.alt}`);
+    if ((panel.frames ?? []).length > 0) {
+      lines.push("- **Frames:**");
+      panel.frames.forEach((f, n) => lines.push(`  ${n + 1}. *${FRAME_WORDS[f.kind]}*: ${f.shows} (from ${f.derived_from.map((id) => `\`${id}\``).join(", ")})`));
+    }
+    if (panel.alt) lines.push(`- **Alt text:** ${panel.alt}`);
     if (panel.control_orientation) lines.push(`- **Control orientation:** ${panel.control_orientation}`);
     if ((panel.warnings ?? []).length > 0) lines.push(`- **Warnings:** ${panel.warnings.join(" ")}`);
     if ((panel.interlocks ?? []).length > 0) lines.push(`- **Interlocks:** ${panel.interlocks.join(" ")}`);
@@ -324,6 +371,23 @@ export function renderStoryboardMarkdown(pack, { generator }) {
       for (const item of panel.reviewer_checklist) lines.push(`  - [ ] ${item}`);
     }
   });
+  if ((model.signs ?? []).length > 0) {
+    lines.push("");
+    lines.push("## Safety signs");
+    for (const sign of model.signs) {
+      lines.push("");
+      lines.push(`### ${sign.label} \`${sign.sign_id}\` · ${sign.kind} · ${sign.status}`);
+      lines.push("");
+      lines.push(`- **Shows:** ${sign.shows}`);
+      lines.push(`- **From:** ${sign.derived_from.map((id) => `\`${id}\``).join(", ")}`);
+      lines.push(`- **Source:** ${refsText(sign.source_refs, sourcesById)}`);
+      if (sign.status_reason) lines.push(`- **Status:** ${sign.status}: ${sign.status_reason}`);
+      if ((sign.reviewer_checklist ?? []).length > 0) {
+        lines.push("- **Reviewer checklist:**");
+        for (const item of sign.reviewer_checklist) lines.push(`  - [ ] ${item}`);
+      }
+    }
+  }
   lines.push("");
   return lines.join("\n");
 }
@@ -344,7 +408,8 @@ export function buildModelPackIndex(entries, { generator }) {
     const guide = (asset.documents ?? []).find((d) => d.document_type === "startup_guide");
     const sources = new Map(pack.sources.map((s) => [s.source_id, s]));
     const manual = sources.get(model.manual.source_id);
-    const readyLists = ["specs", "quick_guide", "warnings", "pictograms"].filter((list) => (model[list] ?? []).length > 0 && (model[list] ?? []).every((i) => i.status !== "BLOCKED"));
+    const readyLists = ["specs", "quick_guide", "warnings", "pictograms", "signs"].filter((list) => (model[list] ?? []).length > 0 && (model[list] ?? []).every((i) => i.status !== "BLOCKED"));
+    const signs = model.signs ?? [];
     return {
       model_key: model.model_key,
       manufacturer: model.manufacturer,
@@ -357,6 +422,7 @@ export function buildModelPackIndex(entries, { generator }) {
       items: statusCounts(model),
       page_fields: pageStatusCounts(asset),
       panels: { total: panels.length, drawn: panels.filter((p) => (p.files ?? []).length > 0).length, blocked: panels.filter((p) => p.status === "BLOCKED").length },
+      signs: { total: signs.length, drawn: signs.filter((s) => (s.files ?? []).length > 0).length },
       guide: guide ? `docs/phase-e/packs/${dirName}/${guide.file.file}` : null,
       photo: model.photo?.status ?? "BLOCKED",
       manual: { source_id: model.manual.source_id, delivery: model.manual.delivery, availability: manual?.availability ?? null },
@@ -384,11 +450,11 @@ export function renderModelPackIndexMarkdown(index) {
   lines.push("");
   lines.push("## Packs");
   lines.push("");
-  lines.push("| Model | Tier | Review | Items (ready / review / blocked) | Page fields | Panels drawn | Guide | Photo | Manual | Assets |");
-  lines.push("|---|---|---|---|---|---|---|---|---|---|");
+  lines.push("| Model | Tier | Review | Items (ready / review / blocked) | Page fields | Panels drawn | Signs | Guide | Photo | Manual | Assets |");
+  lines.push("|---|---|---|---|---|---|---|---|---|---|---|");
   for (const p of index.packs) {
     lines.push(
-      `| [\`${p.model_key}\`](${p.pack.replace("docs/phase-e/packs/", "")}) ${cell(p.manufacturer)} ${cell(p.model)} | ${p.tier} | ${p.review_status} | ${p.items.READY} / ${p.items.REVIEW_REQUIRED} / ${p.items.BLOCKED} | ${p.page_fields.READY} / ${p.page_fields.REVIEW_REQUIRED} / ${p.page_fields.BLOCKED} | ${p.panels.drawn} of ${p.panels.total} | ${p.guide ? "PDF" : "none"} | ${p.photo} | ${p.manual.delivery}, ${p.manual.availability ?? "?"} | ${p.assets.join(", ")} |`
+      `| [\`${p.model_key}\`](${p.pack.replace("docs/phase-e/packs/", "")}) ${cell(p.manufacturer)} ${cell(p.model)} | ${p.tier} | ${p.review_status} | ${p.items.READY} / ${p.items.REVIEW_REQUIRED} / ${p.items.BLOCKED} | ${p.page_fields.READY} / ${p.page_fields.REVIEW_REQUIRED} / ${p.page_fields.BLOCKED} | ${p.panels.drawn} of ${p.panels.total} | ${p.signs.drawn} | ${p.guide ? "PDF" : "none"} | ${p.photo} | ${p.manual.delivery}, ${p.manual.availability ?? "?"} | ${p.assets.join(", ")} |`
     );
   }
   lines.push("");

@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "manifest_id": "showcase-bigtex-14lp-14",
   "kind": "showcase",
   "organization": {
@@ -703,8 +703,8 @@
           "panel_id": "14lp-p1",
           "title": "Couple and lock",
           "task": "Check the ball, seat the coupler, latch and pin it, lift-test 1 inch, raise the jack.",
-          "caption": "2-5/16 in ball rated 14,000 lb. Seat, latch, pin. Lift-test 1 inch, then raise the jack.",
-          "alt": "Side view of the coupler seated on a 2-5/16 inch ball with a pin through the latch, and the drop-leg jack raised.",
+          "caption": "2-5/16 in ball rated 14,000 lb or more. Seat, latch, pin. Lift-test 1 inch at most, then raise the jack.",
+          "alt": "3 frames. 1. Do: Lower the coupler onto a 2-5/16 in ball rated 14,000 lb or more, latch it and pin it. 2. Check: Test: the jack lifts the hitch no more than 1 in, then lowers it. 3. Do: Raise the jack fully.",
           "control_orientation": "Side view. Big Tex's Figure 3-1 (p. 43) shows a generic ball-coupler mechanism latched and unlatched; the fitted Demco EZ Latch's own instructions are not in hand. The panel shows the seated, latched and pinned state, with no lever travel. Jack drawn as a side-wind drop-leg jack.",
           "warnings": [
             "Do not raise the tow vehicle more than 1 inch with the jack (p. 44).",
@@ -725,43 +725,71 @@
           ],
           "safety_critical": true,
           "reviewer_checklist": [
-            "Ball size and rating match the coupler and GVWR.",
-            "No latch direction is implied.",
-            "The jack is drawn as a drop-leg side-wind type."
+            "The ball size and rating match pp. 41-43 and the product page.",
+            "The 1-inch test matches p. 44.",
+            "The jack is the side-wind drop-leg jack, fully raised in the last frame."
           ],
-          "status": "REVIEW_REQUIRED",
-          "status_reason": "Artwork drawn from the storyboard approved on 2026-10-17; awaiting the named reviewer (the operator).",
-          "text_alternative": "Couple and lock. 2-5/16 in ball rated 14,000 lb. Seat, latch, pin. Lift-test 1 inch, then raise the jack.",
+          "text_alternative": "Couple and lock. 2-5/16 in ball rated 14,000 lb or more. Seat, latch, pin. Lift-test 1 inch at most, then raise the jack.",
           "files": [
             {
               "file": "guide/14lp-p1.svg",
               "width": 480,
               "height": 360,
-              "bytes": 8023,
-              "sha256": "3b3bc0e90326b4665517b32015161a4b51047b0877de231e66925ead41553cc3"
+              "bytes": 9060,
+              "sha256": "32e878eee1c9a29af929b0587c9afc927c24896297260f801588be4d92f44605"
             },
             {
               "file": "guide/web/14lp-p1.png",
               "width": 960,
               "height": 720,
-              "bytes": 14321,
-              "sha256": "4da562124bdde49e036b40788a861159f3a3acdf4e8552b452619901e7ef9975"
+              "bytes": 16854,
+              "sha256": "9186fd211a378fe3aa706a3063035aee7b0a9ecb92a04a230001e453f7acb279"
             },
             {
               "file": "guide/web/14lp-p1.webp",
               "width": 960,
               "height": 720,
-              "bytes": 13362,
-              "sha256": "598d224330c79d3abe1b0db926fe3cec8cd96447c9b272f133d77a2d9fae27b7"
+              "bytes": 17038,
+              "sha256": "7402c853ab326996e8dcc7905d9b42facb366fe572b17a083e307daec0fab04c"
             }
-          ]
+          ],
+          "frames": [
+            {
+              "frame_id": "14lp-p1-f1",
+              "kind": "do",
+              "shows": "Lower the coupler onto a 2-5/16 in ball rated 14,000 lb or more, latch it and pin it",
+              "derived_from": [
+                "14lp-s1",
+                "14lp-s2"
+              ]
+            },
+            {
+              "frame_id": "14lp-p1-f2",
+              "kind": "check",
+              "shows": "Test: the jack lifts the hitch no more than 1 in, then lowers it",
+              "derived_from": [
+                "14lp-s2"
+              ]
+            },
+            {
+              "frame_id": "14lp-p1-f3",
+              "kind": "do",
+              "shows": "Raise the jack fully",
+              "derived_from": [
+                "14lp-s2",
+                "14lp-w5"
+              ]
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Redrawn picture-first on 2026-10-17 after the operator's gallery review; awaiting the named reviewer (the operator)."
         },
         {
           "panel_id": "14lp-p2",
           "title": "Chains and breakaway",
           "task": "Cross the chains; clip the breakaway cable to the tow vehicle and test it.",
-          "caption": "Chains crossed under the coupler. Breakaway cable to the truck, not the chains. Pull-test, pin straight back in.",
-          "alt": "Hitch area from behind: crossed chains under the coupler and a separate breakaway cable running to the tow vehicle; an inset shows the pin pulled, then replaced.",
+          "caption": "Chains crossed under the coupler. Breakaway cable to the truck, not a chain. Pull-test, pin straight back.",
+          "alt": "4 frames. 1. Do: Chains crossed in an X under the coupler; the breakaway cable runs to the truck (top view). 2. Close-up: The cable is shorter than the chain slack, so it pulls first. 3. Check: Test: pin out, the trailer brakes hold, pin straight back in. 4. Don't: The breakaway cable clipped to a safety chain.",
           "control_orientation": "Rear-above view. The breakaway switch is drawn generically at the tongue; its exact housing is not in the sources.",
           "warnings": [
             "Never attach the breakaway cable to a safety chain or the hitch (pp. 45-46).",
@@ -778,43 +806,79 @@
           ],
           "safety_critical": true,
           "reviewer_checklist": [
-            "The cable is shorter than the chains' slack (it pulls first).",
-            "The pin goes back in the final frame."
+            "The cable goes to the truck, never a chain or the hitch (pp. 45-46).",
+            "The cable is drawn shorter than the chain slack.",
+            "The test sequence matches p. 46."
           ],
-          "status": "REVIEW_REQUIRED",
-          "status_reason": "Artwork drawn from the storyboard approved on 2026-10-17; awaiting the named reviewer (the operator).",
-          "text_alternative": "Chains and breakaway. Chains crossed under the coupler. Breakaway cable to the truck, not the chains. Pull-test, pin straight back in.",
+          "text_alternative": "Chains and breakaway. Chains crossed under the coupler. Breakaway cable to the truck, not a chain. Pull-test, pin straight back.",
           "files": [
             {
               "file": "guide/14lp-p2.svg",
               "width": 480,
               "height": 360,
-              "bytes": 3965,
-              "sha256": "a94eb1cce0d99ce77ea789966511ceef78365bf93e4ea6fb37ce84590500d7b2"
+              "bytes": 5488,
+              "sha256": "bc26ea92900b27783114311b41d03c5fb6996863af0c1b0a219c3b1e1f6c5c91"
             },
             {
               "file": "guide/web/14lp-p2.png",
               "width": 960,
               "height": 720,
-              "bytes": 17185,
-              "sha256": "a6592eaf06aa57db3cd4ae15fd9b618687298310c2d66c0206c3f806a7d57975"
+              "bytes": 19399,
+              "sha256": "50f5ede5595a15023ef0a84b717f6dd061ce767df342ea05c98cd86400d7ed15"
             },
             {
               "file": "guide/web/14lp-p2.webp",
               "width": 960,
               "height": 720,
-              "bytes": 16914,
-              "sha256": "c9875c74292143b908a17f3915a796f33f95b38b3cf4c99df8418e2ecaca1c02"
+              "bytes": 21338,
+              "sha256": "2c4d2d8c977603f52c345a797890e49a3298d46fec3a25dbfc1617ec4e5ae721"
             }
-          ]
+          ],
+          "frames": [
+            {
+              "frame_id": "14lp-p2-f1",
+              "kind": "do",
+              "shows": "Chains crossed in an X under the coupler; the breakaway cable runs to the truck (top view)",
+              "derived_from": [
+                "14lp-s3",
+                "14lp-s4"
+              ]
+            },
+            {
+              "frame_id": "14lp-p2-f2",
+              "kind": "detail",
+              "shows": "The cable is shorter than the chain slack, so it pulls first",
+              "derived_from": [
+                "14lp-s4"
+              ]
+            },
+            {
+              "frame_id": "14lp-p2-f3",
+              "kind": "check",
+              "shows": "Test: pin out, the trailer brakes hold, pin straight back in",
+              "derived_from": [
+                "14lp-s4"
+              ]
+            },
+            {
+              "frame_id": "14lp-p2-f4",
+              "kind": "dont",
+              "shows": "The breakaway cable clipped to a safety chain",
+              "derived_from": [
+                "14lp-s4"
+              ]
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Redrawn picture-first on 2026-10-17 after the operator's gallery review; awaiting the named reviewer (the operator)."
         },
         {
           "panel_id": "14lp-p3",
           "title": "Lights and brakes",
           "task": "Connect the 7-way plug; check the lights; test the electric brakes at walking speed.",
-          "caption": "Plug in the 7-way. Check tail, brake and turn lights. Under 5 mph, apply the brake controller and feel the brakes.",
-          "alt": "Rear view of the trailer with lights lit in three frames, then the rig rolling slowly with a brake symbol at the trailer axles.",
-          "control_orientation": "Rear view; the plug drawn as a 7-way RV connector. The in-cab brake controller is named in the caption, not drawn, because it is the tow vehicle's own equipment.",
+          "caption": "Plug in the 7-way and check the tail, brake and turn lights. Under 5 mph, apply the brake controller and feel the brakes.",
+          "alt": "4 frames. 1. Do: Connect the 7-way plug. 2. Check: Rolling under 5 mph: the trailer brakes work when the controller is applied by hand. 3. Check: Tail lights and brake lights. 4. Check: Left and right turn signals.",
+          "control_orientation": "The 7-way RV plug joined; the rig rolling forward slowly with brake arcs at the trailer wheels (the brake controller itself is not drawn); four cells for the tail, brake, left and right lamps.",
           "warnings": [
             "An improper connection leaves the lights and electric brakes inoperable (pp. 12, 47)."
           ],
@@ -831,43 +895,80 @@
           ],
           "safety_critical": true,
           "reviewer_checklist": [
-            "The connector is a 7-way RV.",
-            "The speed is under 5 mph."
+            "The connector is a 7-way RV round plug.",
+            "The speed matches p. 47 (under 5 mph).",
+            "No brake-controller design is drawn."
           ],
-          "status": "REVIEW_REQUIRED",
-          "status_reason": "Artwork drawn from the storyboard approved on 2026-10-17; awaiting the named reviewer (the operator).",
-          "text_alternative": "Lights and brakes. Plug in the 7-way. Check tail, brake and turn lights. Under 5 mph, apply the brake controller and feel the brakes.",
+          "text_alternative": "Lights and brakes. Plug in the 7-way and check the tail, brake and turn lights. Under 5 mph, apply the brake controller and feel the brakes.",
           "files": [
             {
               "file": "guide/14lp-p3.svg",
               "width": 480,
               "height": 360,
-              "bytes": 6922,
-              "sha256": "7f285e46da8f599ca908d78904841b9903ae1a5e5c8cf813e0a399b6c12ca398"
+              "bytes": 14068,
+              "sha256": "4a57bdbccc157c04d599d78716af9fd831f39139bc4a8886cfea948651f46148"
             },
             {
               "file": "guide/web/14lp-p3.png",
               "width": 960,
               "height": 720,
-              "bytes": 16190,
-              "sha256": "4f73118b106d85e4ead774bbb7cf0b523ace2c5c15b257870e02447012e4d1d9"
+              "bytes": 22263,
+              "sha256": "73256ef844697b96e654c969593ce5613d77f713fc86567b85df0ef78d13304b"
             },
             {
               "file": "guide/web/14lp-p3.webp",
               "width": 960,
               "height": 720,
-              "bytes": 16700,
-              "sha256": "9f9cdae8a7f76d8caf91daba3c4451e117fd2c085f90eef49ee8128b11b76684"
+              "bytes": 25774,
+              "sha256": "67869bbba05e90ff13a8b4730eb823630e8906c02f211446e8a24c73f84a199f"
             }
-          ]
+          ],
+          "frames": [
+            {
+              "frame_id": "14lp-p3-f1",
+              "kind": "do",
+              "shows": "Connect the 7-way plug",
+              "derived_from": [
+                "14lp-s5",
+                "plug"
+              ]
+            },
+            {
+              "frame_id": "14lp-p3-f2",
+              "kind": "check",
+              "shows": "Rolling under 5 mph: the trailer brakes work when the controller is applied by hand",
+              "derived_from": [
+                "14lp-s5",
+                "brakes"
+              ]
+            },
+            {
+              "frame_id": "14lp-p3-f3",
+              "kind": "check",
+              "shows": "Tail lights and brake lights",
+              "derived_from": [
+                "14lp-s5"
+              ]
+            },
+            {
+              "frame_id": "14lp-p3-f4",
+              "kind": "check",
+              "shows": "Left and right turn signals",
+              "derived_from": [
+                "14lp-s5"
+              ]
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Redrawn picture-first on 2026-10-17 after the operator's gallery review; awaiting the named reviewer (the operator)."
         },
         {
           "panel_id": "14lp-p4",
           "title": "Before you dump",
           "task": "Level, firm ground; people clear; no power lines overhead.",
-          "caption": "Level, firm ground. Everyone clear. Look up: no power lines.",
-          "alt": "Side view of the rig on level ground with a clear zone around the trailer and a crossed-out power line above it.",
-          "control_orientation": "Side view, body down. No controls drawn.",
+          "caption": "Hitched, level, firm ground. Everyone clear. Look up: no power lines.",
+          "alt": "4 frames. 1. Check: Hitched, with everyone outside the dump area. 2. Check: Level side to side and front to back. 3. Don't: Soft ground. 4. Don't: Power lines above a raised body.",
+          "control_orientation": "Side view, hitched, with the dump area dashed: a person inside it is crossed out and a person outside is ticked. Below: two levels on the trailer (both ways), a wheel sinking in soft ground, a raised body under wires.",
           "warnings": [
             "A raised body near power lines can electrocute without contact (p. 67).",
             "Uneven ground can overturn the trailer (p. 64)."
@@ -881,42 +982,78 @@
           ],
           "safety_critical": true,
           "reviewer_checklist": [
-            "Level both side to side and front to back.",
-            "The power-line symbol follows ISO 7010 conventions without copying a sign."
+            "Level both ways and firm ground match p. 64.",
+            "The power-line hazard matches p. 67.",
+            "The dump area is drawn behind and beside the trailer, not as a measured distance."
           ],
-          "status": "REVIEW_REQUIRED",
-          "status_reason": "Artwork drawn from the storyboard approved on 2026-10-17; awaiting the named reviewer (the operator).",
-          "text_alternative": "Before you dump. Level, firm ground. Everyone clear. Look up: no power lines.",
+          "text_alternative": "Before you dump. Hitched, level, firm ground. Everyone clear. Look up: no power lines.",
           "files": [
             {
               "file": "guide/14lp-p4.svg",
               "width": 480,
               "height": 360,
-              "bytes": 7875,
-              "sha256": "e68b6ede520326ee7de8321c1bf01d985d82db7df68815dfd0a88a2c9d853fe4"
+              "bytes": 15163,
+              "sha256": "7c9288dca4b0f47c7d3064d692a470781987427122b350fb620351819275a95a"
             },
             {
               "file": "guide/web/14lp-p4.png",
               "width": 960,
               "height": 720,
-              "bytes": 16923,
-              "sha256": "d2207fc33ca2eec2d5023936d59498e0506061f10c3cd55a6f9efd651dbc4f97"
+              "bytes": 23693,
+              "sha256": "166066a7ed849b795119d09e69df9d3a9e4a7102d96d24e9682d626554e101a7"
             },
             {
               "file": "guide/web/14lp-p4.webp",
               "width": 960,
               "height": 720,
-              "bytes": 18680,
-              "sha256": "233449d1ec65113217ccbf7822f9572b0717c2b5bbf6a13c38ca21816a9babbb"
+              "bytes": 26762,
+              "sha256": "cc205dc0b7d4dd1b4362db467ff9763127e800a78b01f08a935490c60a7cba1e"
             }
-          ]
+          ],
+          "frames": [
+            {
+              "frame_id": "14lp-p4-f1",
+              "kind": "check",
+              "shows": "Hitched, with everyone outside the dump area",
+              "derived_from": [
+                "14lp-s8"
+              ]
+            },
+            {
+              "frame_id": "14lp-p4-f2",
+              "kind": "check",
+              "shows": "Level side to side and front to back",
+              "derived_from": [
+                "14lp-s8"
+              ]
+            },
+            {
+              "frame_id": "14lp-p4-f3",
+              "kind": "dont",
+              "shows": "Soft ground",
+              "derived_from": [
+                "14lp-s8"
+              ]
+            },
+            {
+              "frame_id": "14lp-p4-f4",
+              "kind": "dont",
+              "shows": "Power lines above a raised body",
+              "derived_from": [
+                "14lp-s8",
+                "14lp-w4"
+              ]
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Redrawn picture-first on 2026-10-17 after the operator's gallery review; awaiting the named reviewer (the operator)."
         },
         {
           "panel_id": "14lp-p5",
           "title": "Doors open and chained",
           "task": "Open the rear doors and chain them to the sides; open the control box.",
-          "caption": "Swing the rear doors open and chain them to the sides. Open the control box.",
-          "alt": "Rear view: barn doors swung open against the sides with hold-back chains, and the control box cover open.",
+          "caption": "Swing the rear doors open and chain them to the sides. Unlock and open the control box.",
+          "alt": "3 frames. 1. Do: Swing the rear doors open and chain them to the sides (top view). 2. Close-up: The door chain hooked to the side. 3. Do: Control box: locked, unlocked, open.",
           "control_orientation": "Rear view of the combo gate used as barn doors. The control box is drawn closed, then open, with no switch layout inside (not in the sources).",
           "warnings": [
             "Lock the control box when the trailer is not in use (p. 64)."
@@ -934,43 +1071,70 @@
           ],
           "safety_critical": false,
           "reviewer_checklist": [
-            "Doors are chained, not just swung open.",
-            "Confirm where the 14LP houses its control switch (the product page lists a lockable pump and battery box at the front of the bed) before drawing the box in place."
+            "Doors open against the sides with hold-back chains (p. 64).",
+            "The control box and its lock are drawn generically; their fittings are not in the sources."
           ],
-          "status": "REVIEW_REQUIRED",
-          "status_reason": "Artwork drawn from the storyboard approved on 2026-10-17; awaiting the named reviewer (the operator).",
-          "text_alternative": "Doors open and chained. Swing the rear doors open and chain them to the sides. Open the control box.",
+          "text_alternative": "Doors open and chained. Swing the rear doors open and chain them to the sides. Unlock and open the control box.",
           "files": [
             {
               "file": "guide/14lp-p5.svg",
               "width": 480,
               "height": 360,
-              "bytes": 3225,
-              "sha256": "a1ffc94f47a76d6180762a3cf9c5f7b33d013b4513791e01f81ae9c13de44d74"
+              "bytes": 4883,
+              "sha256": "f8b712658ee271909f17abe9d2ebf3032e37a267f454523192f58fe2e75584c9"
             },
             {
               "file": "guide/web/14lp-p5.png",
               "width": 960,
               "height": 720,
-              "bytes": 12165,
-              "sha256": "49c5e2196fe7b65dc02707c7e95db3daf746379bb6c8aa99a8e488216402694f"
+              "bytes": 11569,
+              "sha256": "166445e55c36914e96997ebde4b4cf185dddf0c71b364f4de9fc657c0c90df24"
             },
             {
               "file": "guide/web/14lp-p5.webp",
               "width": 960,
               "height": 720,
-              "bytes": 9926,
-              "sha256": "b26c48bb7de139daa9bc0d5b6f0d3a0b4b03d56f2a2131790183f1e2f0423b0d"
+              "bytes": 9940,
+              "sha256": "3cac931f2041dae1b3b28a75ed1cd9a63f11ba19439865f56d3e643c1342d976"
             }
-          ]
+          ],
+          "frames": [
+            {
+              "frame_id": "14lp-p5-f1",
+              "kind": "do",
+              "shows": "Swing the rear doors open and chain them to the sides (top view)",
+              "derived_from": [
+                "14lp-s8"
+              ]
+            },
+            {
+              "frame_id": "14lp-p5-f2",
+              "kind": "detail",
+              "shows": "The door chain hooked to the side",
+              "derived_from": [
+                "14lp-s8"
+              ]
+            },
+            {
+              "frame_id": "14lp-p5-f3",
+              "kind": "do",
+              "shows": "Control box: locked, unlocked, open",
+              "derived_from": [
+                "14lp-s8",
+                "14lp-s11"
+              ]
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Redrawn picture-first on 2026-10-17 after the operator's gallery review; awaiting the named reviewer (the operator)."
         },
         {
           "panel_id": "14lp-p6",
           "title": "Raise in stages",
           "task": "Raise to about half, check behind, then about three-quarters, check again.",
-          "caption": "Stand clear. UP to about half, check behind. Then about three-quarters, check again. Stay at the controls.",
-          "alt": "Two side views: the body at about half its dump angle, then at about three-quarters, each with an eye symbol checking behind the trailer.",
-          "control_orientation": "Side view. The control is shown as a generic device with UP and DOWN labels, the words the manual uses; the fitted wireless remote's real layout is not in the sources and is not drawn.",
+          "caption": "Stand well clear. Up to about half, look behind. Then about three-quarters, look again. Stay at the controls.",
+          "alt": "4 frames. 1. Do: Raise the body to about ½ (dashed outline), then look behind. 2. Do: Raise it to about ¾, then look behind again. 3. Check: The operator stands well clear of the body and the dump area, remote in hand. 4. Don't: Walking away while the body is up.",
+          "control_orientation": "Side view, hitched. The remote is drawn as a plain hand-held unit with no buttons, because the fitted remote's controls are not in the sources. The operator is drawn well clear of the body and the dump area; the manual names no exact spot.",
           "warnings": [
             "Never leave the controls while the body is raised (pp. 63-64).",
             "Do not fully raise a loaded body (p. 67)."
@@ -984,42 +1148,77 @@
           ],
           "safety_critical": true,
           "reviewer_checklist": [
-            "Angles read as about half and about three-quarters, not exact degrees.",
-            "The operator stands well clear of the body."
+            "About half and about three-quarters match p. 64.",
+            "No remote buttons are drawn.",
+            "The operator is clear of the body and the dump area."
           ],
-          "status": "REVIEW_REQUIRED",
-          "status_reason": "Artwork drawn from the storyboard approved on 2026-10-17; awaiting the named reviewer (the operator).",
-          "text_alternative": "Raise in stages. Stand clear. UP to about half, check behind. Then about three-quarters, check again. Stay at the controls.",
+          "text_alternative": "Raise in stages. Stand well clear. Up to about half, look behind. Then about three-quarters, look again. Stay at the controls.",
           "files": [
             {
               "file": "guide/14lp-p6.svg",
               "width": 480,
               "height": 360,
-              "bytes": 8132,
-              "sha256": "3bb330356bc046324bea39fdb6435b608ee62f9f08b6992589ff6664c33ed28b"
+              "bytes": 18429,
+              "sha256": "cb90a063223ff3d05e497670d71f527670682bca2d33e07b8f30955ae9c3ec75"
             },
             {
               "file": "guide/web/14lp-p6.png",
               "width": 960,
               "height": 720,
-              "bytes": 24476,
-              "sha256": "b45b84b6a373199bd5b47c8678d940a351634ac0e9eca8ca5f85aa6726e4493e"
+              "bytes": 33911,
+              "sha256": "d3630890e6a5f033edd4fcfbd50a346b0d08c6b0b1e4690319d3c8436058ee19"
             },
             {
               "file": "guide/web/14lp-p6.webp",
               "width": 960,
               "height": 720,
-              "bytes": 28540,
-              "sha256": "9c6b6d6f5f54998bc5218f6ba148e018967eed306dc705caa23c1cecd78c0862"
+              "bytes": 42364,
+              "sha256": "34dc38ba89a30d0b1fe65f926eee47ffb0a8a76aaf5c7ee490c009e0b1493c5e"
             }
-          ]
+          ],
+          "frames": [
+            {
+              "frame_id": "14lp-p6-f1",
+              "kind": "do",
+              "shows": "Raise the body to about ½ (dashed outline), then look behind",
+              "derived_from": [
+                "14lp-s9"
+              ]
+            },
+            {
+              "frame_id": "14lp-p6-f2",
+              "kind": "do",
+              "shows": "Raise it to about ¾, then look behind again",
+              "derived_from": [
+                "14lp-s9"
+              ]
+            },
+            {
+              "frame_id": "14lp-p6-f3",
+              "kind": "check",
+              "shows": "The operator stands well clear of the body and the dump area, remote in hand",
+              "derived_from": [
+                "14lp-s9"
+              ]
+            },
+            {
+              "frame_id": "14lp-p6-f4",
+              "kind": "dont",
+              "shows": "Walking away while the body is up",
+              "derived_from": [
+                "14lp-s9"
+              ]
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Redrawn picture-first on 2026-10-17 after the operator's gallery review; awaiting the named reviewer (the operator)."
         },
         {
           "panel_id": "14lp-p7",
           "title": "Stuck load: lower first",
           "task": "Never shock a stuck load out; lower the body and free it by hand. Never go under a raised body.",
-          "caption": "Load stuck? Don't jerk it or brake hard. Lower the body, then free it by hand. Never go under a raised body.",
-          "alt": "A crossed-out frame of the body raised with someone underneath, next to a frame of the body lowered and a person clearing the load from beside the trailer.",
+          "caption": "Load stuck? Don't jerk the control or brake hard. Lower the body, then free the load by hand. Never go under a raised body.",
+          "alt": "4 frames. 1. Don't: Someone under the raised body. 2. Don't: Jerking the hoist control to shake the load loose. 3. Don't: Braking hard to shake the load loose. 4. Check: Body lowered; the load freed by hand.",
           "control_orientation": "Side views; no controls drawn.",
           "warnings": [
             "Risk of death by crushing (pp. 64-65).",
@@ -1034,42 +1233,77 @@
           ],
           "safety_critical": true,
           "reviewer_checklist": [
-            "The prohibition frame is unmistakable (ISO 3864 / ANSI Z535 conventions).",
-            "Nobody is drawn under a raised body except in the crossed-out frame."
+            "Each rejected action matches p. 63 and p. 67.",
+            "The last frame shows the body down before anyone frees the load."
           ],
-          "status": "REVIEW_REQUIRED",
-          "status_reason": "Artwork drawn from the storyboard approved on 2026-10-17; awaiting the named reviewer (the operator).",
-          "text_alternative": "Stuck load: lower first. Load stuck? Don't jerk it or brake hard. Lower the body, then free it by hand. Never go under a raised body.",
+          "text_alternative": "Stuck load: lower first. Load stuck? Don't jerk the control or brake hard. Lower the body, then free the load by hand. Never go under a raised body.",
           "files": [
             {
               "file": "guide/14lp-p7.svg",
               "width": 480,
               "height": 360,
-              "bytes": 9991,
-              "sha256": "718b4ea408bf6e372a46eaf4fb7ecb31c4d2162d3aec4eda9ef44a4c9eec4d4a"
+              "bytes": 17121,
+              "sha256": "eef408c4abc928351523602b86f5656e0212f1004d530d327e635b2c03a0f37b"
             },
             {
               "file": "guide/web/14lp-p7.png",
               "width": 960,
               "height": 720,
-              "bytes": 22725,
-              "sha256": "8062b03282d51f39181337aa50cf47a609eb5227a7d766d2e6b8a509f9f47628"
+              "bytes": 27565,
+              "sha256": "d2b8f4655004417d1c4992b48cf0dab04f8e23e7a7ed42a5017debb374369656"
             },
             {
               "file": "guide/web/14lp-p7.webp",
               "width": 960,
               "height": 720,
-              "bytes": 25470,
-              "sha256": "3f2dc091164fb9987c023ec9b32f9b58874fa4229ddee1810ee64fa8dbe9c3f3"
+              "bytes": 27212,
+              "sha256": "d60ab9fcf78422e06cbc5572c7cc13f2f8d0ce60d4c460089929bf4780e85891"
             }
-          ]
+          ],
+          "frames": [
+            {
+              "frame_id": "14lp-p7-f1",
+              "kind": "dont",
+              "shows": "Someone under the raised body",
+              "derived_from": [
+                "14lp-w1",
+                "14lp-s10"
+              ]
+            },
+            {
+              "frame_id": "14lp-p7-f2",
+              "kind": "dont",
+              "shows": "Jerking the hoist control to shake the load loose",
+              "derived_from": [
+                "14lp-s10"
+              ]
+            },
+            {
+              "frame_id": "14lp-p7-f3",
+              "kind": "dont",
+              "shows": "Braking hard to shake the load loose",
+              "derived_from": [
+                "14lp-s10"
+              ]
+            },
+            {
+              "frame_id": "14lp-p7-f4",
+              "kind": "check",
+              "shows": "Body lowered; the load freed by hand",
+              "derived_from": [
+                "14lp-s10"
+              ]
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Redrawn picture-first on 2026-10-17 after the operator's gallery review; awaiting the named reviewer (the operator)."
         },
         {
           "panel_id": "14lp-p8",
           "title": "Down, latched, locked",
           "task": "Lower fully, latch the doors, lock the controls before moving.",
           "caption": "Body fully down. Doors latched. Controls locked. Then drive.",
-          "alt": "Side view of the body fully lowered, with check marks for latched doors and a locked control box.",
+          "alt": "4 frames. 1. Check: Body fully down. 2. Check: Rear doors latched. 3. Check: Hoist controls locked. 4. Do: Then drive.",
           "control_orientation": "Side view; the control box drawn closed with a lock symbol.",
           "warnings": [
             "Have the body down before moving the trailer (p. 63)."
@@ -1085,35 +1319,69 @@
           ],
           "safety_critical": true,
           "reviewer_checklist": [
-            "All three conditions shown.",
-            "Order matches the manual (body down before moving)."
+            "The three checks match pp. 63-64.",
+            "The padlock and the latch are drawn generically; their fittings are not in the sources."
           ],
-          "status": "REVIEW_REQUIRED",
-          "status_reason": "Artwork drawn from the storyboard approved on 2026-10-17; awaiting the named reviewer (the operator).",
           "text_alternative": "Down, latched, locked. Body fully down. Doors latched. Controls locked. Then drive.",
           "files": [
             {
               "file": "guide/14lp-p8.svg",
               "width": 480,
               "height": 360,
-              "bytes": 8744,
-              "sha256": "71c4922e8e8827484e8ad69f673c4f3db1b349697013ad5d9cbea0c232511d9e"
+              "bytes": 8618,
+              "sha256": "f18db9751a6f5a76190bde2435a1bd201d35e427b006831f4c7acccb7b6462ce"
             },
             {
               "file": "guide/web/14lp-p8.png",
               "width": 960,
               "height": 720,
-              "bytes": 16930,
-              "sha256": "dd15d151cc81720f5c4ccec86e344fb241796a9ecaa52ce6640509bdf7270ad8"
+              "bytes": 13928,
+              "sha256": "3bced81fd32c5dd6f8ba2b9af89b03dc714c584c3fdf64f207bd58abc3b05920"
             },
             {
               "file": "guide/web/14lp-p8.webp",
               "width": 960,
               "height": 720,
-              "bytes": 15760,
-              "sha256": "e5fda70e3ba9822f83cea25b4204e68ad14c8546072b964e015046c3217b3dae"
+              "bytes": 12532,
+              "sha256": "d4a8d57978520423634cf8add989323452355953a098124dc6ea66ae8c7d883b"
             }
-          ]
+          ],
+          "frames": [
+            {
+              "frame_id": "14lp-p8-f1",
+              "kind": "check",
+              "shows": "Body fully down",
+              "derived_from": [
+                "14lp-s11"
+              ]
+            },
+            {
+              "frame_id": "14lp-p8-f2",
+              "kind": "check",
+              "shows": "Rear doors latched",
+              "derived_from": [
+                "14lp-s11"
+              ]
+            },
+            {
+              "frame_id": "14lp-p8-f3",
+              "kind": "check",
+              "shows": "Hoist controls locked",
+              "derived_from": [
+                "14lp-s11"
+              ]
+            },
+            {
+              "frame_id": "14lp-p8-f4",
+              "kind": "do",
+              "shows": "Then drive",
+              "derived_from": [
+                "14lp-s11"
+              ]
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Redrawn picture-first on 2026-10-17 after the operator's gallery review; awaiting the named reviewer (the operator)."
         }
       ],
       "storyboard": "docs/phase-e/packs/bigtex.14lp.14/storyboard.md",
@@ -1126,8 +1394,501 @@
         "Ratchet straps",
         "Safety-chain pins",
         "Spare tire",
-        "Wireless hoist remote",
-        "Tarp"
+        "Wireless hoist remote"
+      ],
+      "signs": [
+        {
+          "sign_id": "14lp-sign-under-body",
+          "kind": "prohibition",
+          "label": "Never go under",
+          "shows": "A person under a raised dump body, crossed out",
+          "derived_from": [
+            "14lp-w1"
+          ],
+          "source_refs": [
+            {
+              "source_id": "src-bigtex-owners-2020-dump",
+              "locator": "pp. 64-65, 4.4.8 \"Body Prop\"; p. 67"
+            }
+          ],
+          "alt": "Prohibition sign: A person under a raised dump body, crossed out.",
+          "text_alternative": "Never go under. Never go under a raised dump body. The body prop is for maintenance and holds an empty body only.",
+          "reviewer_checklist": [
+            "Matches pp. 64-65 and p. 67."
+          ],
+          "files": [
+            {
+              "file": "guide/14lp-sign-under-body.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 3722,
+              "sha256": "e2798e77d0ffa4be42dbfcbbf8cf3295b6ec78a886a3732abdf161260e652caf"
+            },
+            {
+              "file": "guide/web/14lp-sign-under-body.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 12602,
+              "sha256": "8daefc1a746b5ecb8e1afbb5a1de3eb14cb7328e7a4c738e6519b54a2a614d2e"
+            },
+            {
+              "file": "guide/web/14lp-sign-under-body.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 15358,
+              "sha256": "d5787a834b8d28245d9142cde1415a0290b33b289f83ca211447d2b730a194ad"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator)."
+        },
+        {
+          "sign_id": "14lp-sign-no-assist",
+          "kind": "checklist",
+          "label": "Never assist hoist",
+          "shows": "A jack pushing up the body, crossed out; unloading by hand with a shovel, ticked",
+          "derived_from": [
+            "14lp-w2"
+          ],
+          "source_refs": [
+            {
+              "source_id": "src-bigtex-owners-2020-dump",
+              "locator": "p. 63, danger box"
+            }
+          ],
+          "alt": "Checklist sign: A jack pushing up the body, crossed out; unloading by hand with a shovel, ticked.",
+          "text_alternative": "Never assist hoist. If the hoist will not lift the load, unload some by hand. Never help the hoist with a jack, crane or other machine.",
+          "reviewer_checklist": [
+            "Matches the p. 63 danger box (unload by hand; never assist with a jack, crane or machine)."
+          ],
+          "files": [
+            {
+              "file": "guide/14lp-sign-no-assist.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 4355,
+              "sha256": "23b3833749fbeafe4df0d39c300fedff2d932ad32051673f659b7f5bf29b69ac"
+            },
+            {
+              "file": "guide/web/14lp-sign-no-assist.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 10351,
+              "sha256": "fc79297f3158d811488a4ee86a8c443338e23fdc6942a0238764693eab2d0da2"
+            },
+            {
+              "file": "guide/web/14lp-sign-no-assist.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 13102,
+              "sha256": "9045e058068b2d83f30dc0d9c92ef619dfa4bd94acdd990b423ef76362544e3b"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator)."
+        },
+        {
+          "sign_id": "14lp-sign-no-full-raise",
+          "kind": "prohibition",
+          "label": "No full raise",
+          "shows": "A loaded body raised all the way, crossed out",
+          "derived_from": [
+            "14lp-w3"
+          ],
+          "source_refs": [
+            {
+              "source_id": "src-bigtex-owners-2020-dump",
+              "locator": "p. 67, warning"
+            }
+          ],
+          "alt": "Prohibition sign: A loaded body raised all the way, crossed out.",
+          "text_alternative": "No full raise. Do not fully raise a loaded body: the tow vehicle's rear wheels can lose traction.",
+          "reviewer_checklist": [
+            "Matches the p. 67 warning (loaded body, tow vehicle traction)."
+          ],
+          "files": [
+            {
+              "file": "guide/14lp-sign-no-full-raise.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 4689,
+              "sha256": "64e27e286f1591658dde8e579a477395348c952efc46502e9fd23b96fb45aed0"
+            },
+            {
+              "file": "guide/web/14lp-sign-no-full-raise.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 12430,
+              "sha256": "718f32438c670cffc667aa2933b0352562d6e4a6c864d97d147a9737060c2bda"
+            },
+            {
+              "file": "guide/web/14lp-sign-no-full-raise.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 15150,
+              "sha256": "f77d8d0f1f4b2691b965b732da6ad5ef0a3ff2c3549f53459fb9bfe7ad6e5947"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator)."
+        },
+        {
+          "sign_id": "14lp-sign-power-lines",
+          "kind": "warning",
+          "label": "Power lines",
+          "shows": "A raised body near overhead wires, with a lightning bolt",
+          "derived_from": [
+            "14lp-w4"
+          ],
+          "source_refs": [
+            {
+              "source_id": "src-bigtex-owners-2020-dump",
+              "locator": "p. 67, warning"
+            }
+          ],
+          "alt": "Warning sign: A raised body near overhead wires, with a lightning bolt.",
+          "text_alternative": "Power lines. A raised body near power lines can electrocute without touching them. Check overhead before raising.",
+          "reviewer_checklist": [
+            "Matches the p. 67 power-line warning."
+          ],
+          "files": [
+            {
+              "file": "guide/14lp-sign-power-lines.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 3545,
+              "sha256": "b75270d7ccb97243871855fbec9e6756ddde0993833174635ba7307a9e0843e4"
+            },
+            {
+              "file": "guide/web/14lp-sign-power-lines.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 11614,
+              "sha256": "0464a8c1b9869dab0cc5a15ed049254a99d83eaead3ac92a1a9389f511461229"
+            },
+            {
+              "file": "guide/web/14lp-sign-power-lines.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 14130,
+              "sha256": "d539259247100b64402c248e302246f3c5b2f7e48ddbde0f867cccca86153bfd"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator)."
+        },
+        {
+          "sign_id": "14lp-sign-before-moving",
+          "kind": "checklist",
+          "label": "Before you move",
+          "shows": "Coupler pinned, chains crossed, breakaway cable on and jack up, each ticked; then the rig moves off",
+          "derived_from": [
+            "14lp-w5"
+          ],
+          "source_refs": [
+            {
+              "source_id": "src-bigtex-owners-2020-dump",
+              "locator": "p. 7, warning under 1.2.4"
+            }
+          ],
+          "alt": "Checklist sign: Coupler pinned, chains crossed, breakaway cable on and jack up, each ticked; then the rig moves off.",
+          "text_alternative": "Before you move. Do not move the trailer until the coupler is locked, the chains and breakaway cable are attached and the jack is fully raised.",
+          "reviewer_checklist": [
+            "Matches p. 7 (coupler locked, chains and breakaway cable attached, jack fully raised)."
+          ],
+          "files": [
+            {
+              "file": "guide/14lp-sign-before-moving.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 7287,
+              "sha256": "3f7e132ac91b4f0d6cc985d17cb39c66ccb3bb42e9baf23ddea10eef0ed0274c"
+            },
+            {
+              "file": "guide/web/14lp-sign-before-moving.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 9756,
+              "sha256": "9e833f5be1d6ee99f2216f3313d94b187add514d2c0d51324fb92c9e295c4c7f"
+            },
+            {
+              "file": "guide/web/14lp-sign-before-moving.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 11756,
+              "sha256": "39bf4b7319244cbb911c6b2f2be182539e60c8031539d7aa78a2ed6115b4db98"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator)."
+        },
+        {
+          "sign_id": "14lp-sign-no-riders",
+          "kind": "prohibition",
+          "label": "No riders",
+          "shows": "A person riding in the dump body, crossed out",
+          "derived_from": [
+            "14lp-w6"
+          ],
+          "source_refs": [
+            {
+              "source_id": "src-bigtex-owners-2020-dump",
+              "locator": "p. 12, 1.2.12; p. 63"
+            }
+          ],
+          "alt": "Prohibition sign: A person riding in the dump body, crossed out.",
+          "text_alternative": "No riders. Never carry people, or flammable, explosive or poisonous materials.",
+          "reviewer_checklist": [
+            "Matches p. 12 and p. 63."
+          ],
+          "files": [
+            {
+              "file": "guide/14lp-sign-no-riders.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 3459,
+              "sha256": "88e817d80cbf5ca5e59e04d9d79c5c51b4cdbe90c9856d4cdc749f08863ff04c"
+            },
+            {
+              "file": "guide/web/14lp-sign-no-riders.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 10836,
+              "sha256": "2bf8a06dbf17b90b491006387a69e531788fd1b1e710697de06399b1977417b9"
+            },
+            {
+              "file": "guide/web/14lp-sign-no-riders.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 12030,
+              "sha256": "95ffac46577f617f3d8860e4dbc227b01788720f3d83f1fc1ef9850b8480da2b"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator)."
+        },
+        {
+          "sign_id": "14lp-sign-no-hazmat",
+          "kind": "prohibition",
+          "label": "No hazardous loads",
+          "shows": "Flammable, explosive and poisonous loads on the trailer, crossed out",
+          "derived_from": [
+            "14lp-w6"
+          ],
+          "source_refs": [
+            {
+              "source_id": "src-bigtex-owners-2020-dump",
+              "locator": "p. 12, 1.2.12; p. 63"
+            }
+          ],
+          "alt": "Prohibition sign: Flammable, explosive and poisonous loads on the trailer, crossed out.",
+          "text_alternative": "No hazardous loads. Never carry people, or flammable, explosive or poisonous materials.",
+          "reviewer_checklist": [
+            "Matches p. 12 and p. 63."
+          ],
+          "files": [
+            {
+              "file": "guide/14lp-sign-no-hazmat.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 2077,
+              "sha256": "0976c757c124278366bc8decc291dff9b20fa7bd68bde57340cf49d347a329fb"
+            },
+            {
+              "file": "guide/web/14lp-sign-no-hazmat.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 12020,
+              "sha256": "eccbecdf7ca9d593d68182b23f7c9440921d70fddf0ee1e29ee9e9aff1589afc"
+            },
+            {
+              "file": "guide/web/14lp-sign-no-hazmat.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 13860,
+              "sha256": "d5b7c43a97ebb4fa0d64f1e255480ebf4018c27a27450b93011d2559e9b4e8c6"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator)."
+        },
+        {
+          "sign_id": "14lp-sign-max-speed",
+          "kind": "limit",
+          "label": "Max towing speed",
+          "shows": "A speedometer and ≤ 60 mph",
+          "derived_from": [
+            "14lp-w7"
+          ],
+          "source_refs": [
+            {
+              "source_id": "src-bigtex-owners-2020-dump",
+              "locator": "p. 5, 1.2.2"
+            }
+          ],
+          "alt": "Limit sign: A speedometer and ≤ 60 mph.",
+          "text_alternative": "Max towing speed. 60 mph is the maximum recommended towing speed, and only in ideal conditions.",
+          "reviewer_checklist": [
+            "60 mph matches p. 5; the record keeps the manual's 'ideal conditions only'."
+          ],
+          "files": [
+            {
+              "file": "guide/14lp-sign-max-speed.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 1874,
+              "sha256": "a457a7b2dd0f1a7c7ac049e366069ff60d71c4f0e9c407d61241b54eee272adf"
+            },
+            {
+              "file": "guide/web/14lp-sign-max-speed.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 8293,
+              "sha256": "77188172abfe2a5dae1e578774d2ea1af38b6f9bdaa34d82e7208ea9929e0cdc"
+            },
+            {
+              "file": "guide/web/14lp-sign-max-speed.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 7300,
+              "sha256": "4fe4d8662cc6c0a241474c8dbf2eafab65a0ce6c7eec015b81c3b3a3f21a0159"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator)."
+        },
+        {
+          "sign_id": "14lp-sign-stay-at-controls",
+          "kind": "mandatory",
+          "label": "Stay at controls",
+          "shows": "The operator holds the remote beside the raised body",
+          "derived_from": [
+            "14lp-s9"
+          ],
+          "source_refs": [
+            {
+              "source_id": "src-bigtex-owners-2020-dump",
+              "locator": "p. 64, 4.4.6"
+            }
+          ],
+          "alt": "Mandatory action sign: The operator holds the remote beside the raised body.",
+          "text_alternative": "Stay at controls. Standing well clear, hold UP until the body is about halfway up, then stop and check behind the trailer for room. Raise to about three-quarters and check again. Never leave the controls while the body is up.",
+          "reviewer_checklist": [
+            "Matches p. 64 (never leave the controls while the body is up)."
+          ],
+          "files": [
+            {
+              "file": "guide/14lp-sign-stay-at-controls.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 1620,
+              "sha256": "9f4adced3f660bdc03dd9a7157fa1ee8ada0b0f5187280d8568f5bb14d38b9c8"
+            },
+            {
+              "file": "guide/web/14lp-sign-stay-at-controls.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 8242,
+              "sha256": "fda4f0c2165423d96ac910aa70fecc0a091049294038a45b50fa84fba81591a8"
+            },
+            {
+              "file": "guide/web/14lp-sign-stay-at-controls.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 8342,
+              "sha256": "77522f5a5b689a3e606609097831444177e266f0099f3d416d741f25439be83c"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator)."
+        },
+        {
+          "sign_id": "14lp-sign-payload",
+          "kind": "limit",
+          "label": "Within payload decal",
+          "shows": "The load's weight at or under the trailer's payload decal",
+          "derived_from": [
+            "14lp-s7"
+          ],
+          "source_refs": [
+            {
+              "source_id": "src-bigtex-owners-2020-dump",
+              "locator": "p. 62, 4.4.1-4.4.2; p. 63, 4.4.3-4.4.5"
+            },
+            {
+              "source_id": "src-bigtex-14lp-web",
+              "locator": "Models & Dimensions, 14LP-14"
+            }
+          ],
+          "alt": "Limit sign: The load's weight at or under the trailer's payload decal.",
+          "text_alternative": "Within payload decal. Load with the trailer hitched and on level ground. Stay within the payload on the trailer's decal (listed cargo capacity 9,820 lb). Spread loose material evenly front to back and side to side; secure anything that is not loose material.",
+          "reviewer_checklist": [
+            "Matches p. 62 (payload on the trailer's decal); no number is drawn because the decal governs."
+          ],
+          "files": [
+            {
+              "file": "guide/14lp-sign-payload.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 1673,
+              "sha256": "f7482568dcbd2d85d83f5010ef13bc892b1b6749436c3f0acf77131437b9e4ad"
+            },
+            {
+              "file": "guide/web/14lp-sign-payload.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 5554,
+              "sha256": "1546e59d6f74b4a613eb5b4c22b97643d2d358e40d9d8ffd4708be9909fca9fe"
+            },
+            {
+              "file": "guide/web/14lp-sign-payload.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 4708,
+              "sha256": "b181d88f97c2c2bd6611abddb341a4eb1b1bb1088da40b30ef3b292f9e5d537d"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator)."
+        }
+      ],
+      "accessory_icons": [
+        {
+          "name": "Ratchet straps",
+          "icon": "strap",
+          "derived_from": [
+            "pol-trailer-accessories"
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17; awaiting the named reviewer (the operator)."
+        },
+        {
+          "name": "Safety-chain pins",
+          "icon": "chain-pin",
+          "derived_from": [
+            "pol-trailer-accessories"
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17; awaiting the named reviewer (the operator)."
+        },
+        {
+          "name": "Spare tire",
+          "icon": "spare-tire",
+          "derived_from": [
+            "pol-trailer-accessories"
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17; awaiting the named reviewer (the operator)."
+        },
+        {
+          "name": "Wireless hoist remote",
+          "icon": "remote",
+          "derived_from": [
+            "pol-dump-remote"
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17; awaiting the named reviewer (the operator)."
+        }
       ],
       "review": {
         "status": "MULEMARK_REVIEW",
@@ -1191,48 +1952,53 @@
           "status_reason": "Facts from the OEM product page and the dump-trailer manual."
         },
         "quick_start_text": {
-          "text": "1. Ball: 2-5/16 inch, rated 14,000 lb or more. Seat the coupler, latch it and pin it.\n2. Lift-test: raise the truck 1 inch with the jack (no more), then raise the jack fully.\n3. Cross the safety chains under the coupler and hook them to the truck's frame.\n4. Clip the breakaway cable to the truck, not to a chain. Test: pull the pin, feel the brakes hold, put the pin straight back.\n5. Plug in the 7-way and check the lights. Then, under 5 mph, apply the brake controller and feel the trailer brakes.\n6. Tires: no damage, pressure as printed on the VIN label (front left), lug nuts tight.\n7. Load hitched and level, within the payload decal (9,820 lb listed). Spread loose material evenly.\n8. To dump: level, firm ground, people clear, no power lines overhead. Chain the doors open, raise in stages and check behind.\nThe Start-Up Guide shows each step.",
+          "text": "1. 2-5/16 in ball, 14,000 lb or more. Seat, latch, pin, test.\n2. Cross the chains. Breakaway cable to the truck; pull-test it.\n3. Plug in the 7-way. Check lights; test brakes under 5 mph.\n4. Before dumping: level, firm ground, people clear, no wires overhead.\n5. Chain the doors open; open the control box.\n6. Raise to about half, look behind; then three-quarters, look again.\n7. Load stuck: lower the body, free it by hand.\n8. Body down, doors latched, controls locked. Then drive.\nTires: undamaged, cold pressure per VIN label, lug nuts tight.\nLoad hitched and level; spread loose material evenly.\nThe Start-Up Guide shows each step.",
           "derived_from": [
             "14lp-s1",
             "14lp-s2",
             "14lp-s3",
             "14lp-s4",
             "14lp-s5",
-            "14lp-s6",
-            "14lp-s7",
             "14lp-s8",
-            "14lp-s9"
+            "14lp-s9",
+            "14lp-s10",
+            "14lp-s11",
+            "14lp-s6",
+            "tire-pressure",
+            "14lp-s7"
           ],
           "status": "REVIEW_REQUIRED",
-          "status_reason": "Condensed from sourced steps; awaiting the reviewer."
+          "status_reason": "Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer."
         },
         "safety_notes": {
-          "text": "Never go under a raised dump body. The body prop is for maintenance, with the body empty.\nStay at the controls while the body is up. Lower it fully, latch the doors and lock the controls before you move.\nDon't fully raise a loaded body: the truck's rear wheels can lose traction.\nIf the hoist won't lift the load, unload some by hand. Never push it with a jack or machine.\nA raised body near power lines can electrocute without touching them.\nDon't move until the coupler is locked, the chains and breakaway cable are on and the jack is up. 60 mph is the maximum recommended speed, in ideal conditions only. No people or hazardous loads.",
+          "text": "Never go under a raised body.\nNever push the hoist with a jack or machine; unload by hand.\nDon't fully raise a loaded body.\nA raised body near power lines can electrocute. Check overhead before raising.\nDon't move until the coupler is pinned, the chains and breakaway cable are on and the jack is up.\nNo riders, and no flammable, explosive or poisonous loads.\n60 mph maximum, in ideal conditions only.\nStay at the controls while the body is up.\nStay within the payload on the trailer's decal.",
           "derived_from": [
             "14lp-w1",
-            "14lp-s11",
-            "14lp-w3",
             "14lp-w2",
+            "14lp-w3",
             "14lp-w4",
             "14lp-w5",
+            "14lp-w6",
             "14lp-w7",
-            "14lp-w6"
+            "14lp-s9",
+            "14lp-s7"
           ],
           "status": "REVIEW_REQUIRED",
-          "status_reason": "Condensed from sourced warnings; awaiting the reviewer."
+          "status_reason": "Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer."
         },
         "fuel_power_notes": {
-          "text": "The hoist runs on the trailer's 12 V deep-cycle battery, which has an onboard 110 V charger and a 5 W solar charger.\nThe breakaway battery runs down fast while its pin is out, so put the pin straight back after testing.",
+          "text": "Hoist: 12 V battery with an onboard 110 V charger and a 5 W solar charger.\nThe breakaway battery drains fast with its pin out: put the pin straight back.",
           "derived_from": [
             "hoist-power",
+            "solar_charger",
             "14lp-n6",
             "14lp-s4"
           ],
           "status": "REVIEW_REQUIRED",
-          "status_reason": "Battery facts from the product page; the pin line from the manual; awaiting the reviewer."
+          "status_reason": "Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer."
         },
         "troubleshooting_notes": {
-          "text": "Hoist won't lift the load: unload some by hand, then use Request Support. Never push it with a jack or machine.\nLoad stuck: lower the body and free it by hand. Don't jerk the button or brake hard.\nLights or brakes dead: check the 7-way plug is fully connected.\nBreakaway test fails: don't tow. Use Request Support.",
+          "text": "Hoist won't lift: unload some by hand, then use Request Support.\nLoad stuck: lower the body and free it by hand.\nLights or brakes dead: check the 7-way plug.\nBreakaway test fails: don't tow. Use Request Support.",
           "derived_from": [
             "14lp-n4",
             "14lp-s10",
@@ -1240,10 +2006,10 @@
             "14lp-n6"
           ],
           "status": "REVIEW_REQUIRED",
-          "status_reason": "Condensed from sourced notes; the hoist manual's battery check stays off the page until Big Tex confirms it applies."
+          "status_reason": "Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer."
         },
         "return_notes": {
-          "text": "Return the straps, chain pins, spare tire and the hoist remote.\nBody fully down, doors latched, controls locked.\nTo unhitch: block the tires, unplug, unclip the breakaway cable, unhook the chains, open the coupler, then lower the jack on firm ground.\nUse Return checklist when you drop it off.",
+          "text": "Return the straps, chain pins, spare tire and hoist remote.\nBody down, doors latched, controls locked.\nUnhitch: block the tires, unplug, unclip the breakaway, unhook the chains, open the coupler, lower the jack on firm ground.\nUse Return checklist when you drop it off.",
           "derived_from": [
             "pol-trailer-accessories",
             "pol-dump-remote",
@@ -1251,7 +2017,7 @@
             "14lp-s13"
           ],
           "status": "REVIEW_REQUIRED",
-          "status_reason": "Unhitching steps awaiting the reviewer; the accessory line is Northridge policy."
+          "status_reason": "Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer."
         },
         "emergency_notes": {
           "text": "For emergencies call your local emergency number. For equipment issues, use the support contact on this page.",
@@ -1271,11 +2037,11 @@
           "file": {
             "file": "guide/bigtex.14lp.14-start-up-guide.pdf",
             "pages": 2,
-            "bytes": 418018,
-            "sha256": "f740d9073359989a81571a13d04b23ab4a4abca4d81c63db17ed67ca258fbab3"
+            "bytes": 417554,
+            "sha256": "26bcbfb31bd8f443a3f4850f1202c2a660c52030b9211d7d998ac6cdaf6a56e7"
           },
           "status": "REVIEW_REQUIRED",
-          "status_reason": "Carries the review-draft banner until every panel is approved."
+          "status_reason": "Carries the review-draft badge until every panel and sign is approved."
         },
         {
           "title": "Big Tex Owners Manual (Dump Trailers)",

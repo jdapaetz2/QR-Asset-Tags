@@ -8,7 +8,7 @@
   - QA isolation guards;
   - the guarded reset interface, which only dry-runs against Production.
   See [DEMO_RECOVERY_RUNBOOK.md](DEMO_RECOVERY_RUNBOOK.md).
-- **E2A complete (2026-10-17):** four sourced content packs in [packs/](packs/README.md), with 20 original pictogram panels, three Start-Up Guide PDFs, the source and rights register, field-level E2C import manifests and marketing candidates. Nothing is published. Open items (the trailer photos, the E20 manual, the knowledgeable review, Big Tex's answers) are listed in the [work log](WORK_LOG.md).
+- **E2A complete (2026-10-17):** four sourced content packs in [packs/](packs/README.md), with 20 original pictogram panels, three Start-Up Guide PDFs, the source and rights register, field-level E2C import manifests and marketing candidates. Nothing is published. Reworked picture-first the same day after the operator's gallery review: panels redrawn as short frame sequences with no words, 24 safety sign tiles, accessory icons, two-page picture guides and a gallery with almost no visible text. Open items (the trailer photos, the E20 manual, the knowledgeable review, Big Tex's answers) are listed in the [work log](WORK_LOG.md).
 - E2B is next. It starts only when the operator runs it, **never** automatically.
 
 This phase is not the older roadmap's "Phase E", and it is not an operational-hold phase.

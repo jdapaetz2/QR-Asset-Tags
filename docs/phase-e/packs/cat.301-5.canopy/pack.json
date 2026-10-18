@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "manifest_id": "showcase-cat-301-5-canopy",
   "kind": "showcase",
   "organization": {
@@ -435,9 +435,9 @@
           ],
           "safety_critical": true,
           "reviewer_checklist": [],
+          "text_alternative": "Walk around first. To be written from the OMM's Before Operation section.",
           "status": "BLOCKED",
-          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead.",
-          "text_alternative": "Walk around first. To be written from the OMM's Before Operation section."
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead."
         },
         {
           "panel_id": "301-p2",
@@ -455,9 +455,9 @@
           ],
           "safety_critical": true,
           "reviewer_checklist": [],
+          "text_alternative": "Climb on, belt on. To be written from the OMM's Operator Station section.",
           "status": "BLOCKED",
-          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead.",
-          "text_alternative": "Climb on, belt on. To be written from the OMM's Operator Station section."
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead."
         },
         {
           "panel_id": "301-p3",
@@ -475,9 +475,9 @@
           ],
           "safety_critical": true,
           "reviewer_checklist": [],
+          "text_alternative": "Start up. To be written from the OMM's Engine Starting section.",
           "status": "BLOCKED",
-          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead.",
-          "text_alternative": "Start up. To be written from the OMM's Engine Starting section."
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead."
         },
         {
           "panel_id": "301-p4",
@@ -495,9 +495,9 @@
           ],
           "safety_critical": true,
           "reviewer_checklist": [],
+          "text_alternative": "Controls and travel. To be written from the OMM's Machine Operation section.",
           "status": "BLOCKED",
-          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead.",
-          "text_alternative": "Controls and travel. To be written from the OMM's Machine Operation section."
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead."
         },
         {
           "panel_id": "301-p5",
@@ -515,9 +515,9 @@
           ],
           "safety_critical": true,
           "reviewer_checklist": [],
+          "text_alternative": "Slopes. To be written from the OMM's Slope Operation section.",
           "status": "BLOCKED",
-          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead.",
-          "text_alternative": "Slopes. To be written from the OMM's Slope Operation section."
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead."
         },
         {
           "panel_id": "301-p6",
@@ -535,9 +535,9 @@
           ],
           "safety_critical": true,
           "reviewer_checklist": [],
+          "text_alternative": "Parking. To be written from the OMM's Parking section.",
           "status": "BLOCKED",
-          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead.",
-          "text_alternative": "Parking. To be written from the OMM's Parking section."
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead."
         },
         {
           "panel_id": "301-p7",
@@ -555,13 +555,13 @@
           ],
           "safety_critical": true,
           "reviewer_checklist": [],
+          "text_alternative": "Loading for transport. To be written from the OMM's Transportation Information section.",
           "status": "BLOCKED",
-          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead.",
-          "text_alternative": "Loading for transport. To be written from the OMM's Transportation Information section."
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead."
         },
         {
           "panel_id": "301-p8",
-          "title": "Engine stopped: lower the boom",
+          "title": "Engine off: lower boom",
           "task": "Lowering the equipment with the engine stopped.",
           "caption": "To be written from the OMM's Equipment Lowering section.",
           "control_orientation": "Not drawn until the OMM is in hand.",
@@ -575,9 +575,9 @@
           ],
           "safety_critical": true,
           "reviewer_checklist": [],
+          "text_alternative": "Engine off: lower boom. To be written from the OMM's Equipment Lowering section.",
           "status": "BLOCKED",
-          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead.",
-          "text_alternative": "Engine stopped: lower the boom. To be written from the OMM's Equipment Lowering section."
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead."
         }
       ],
       "storyboard": "docs/phase-e/packs/cat.301-5.canopy/storyboard.md",
@@ -590,6 +590,169 @@
         "Keys",
         "Attachments",
         "Manual"
+      ],
+      "signs": [
+        {
+          "sign_id": "301-sign-handover",
+          "kind": "info",
+          "label": "Staff walk-through",
+          "shows": "Northridge staff hand over the keys and walk the renter through start-up and the controls",
+          "derived_from": [
+            "pol-cat-handover"
+          ],
+          "source_refs": [
+            {
+              "source_id": "pol-cat-handover"
+            }
+          ],
+          "alt": "Information sign: Northridge staff hand over the keys and walk the renter through start-up and the controls.",
+          "text_alternative": "Staff walk-through. Northridge staff walk every renter through start-up and the controls at handover.",
+          "reviewer_checklist": [
+            "Northridge demo policy wording."
+          ],
+          "files": [
+            {
+              "file": "guide/301-sign-handover.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 2060,
+              "sha256": "f694bc80d5b5d0a10e9709187842965bbda8ee3a63526153562cc2e55f590673"
+            },
+            {
+              "file": "guide/web/301-sign-handover.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 6820,
+              "sha256": "f15b7f5299845d63d1c4eadb7383f7a6f9292d3ce1bf24907719f3c4ec698057"
+            },
+            {
+              "file": "guide/web/301-sign-handover.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 6546,
+              "sha256": "a10ed8a071959a7ddc19dd14e7374e774439ba31a9f63b6a8335fe4f94de0ce8"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from a Northridge demo policy; awaiting the named reviewer (the operator)."
+        },
+        {
+          "sign_id": "301-sign-stop-call",
+          "kind": "info",
+          "label": "Stop and call",
+          "shows": "A warning light, a leak or an odd noise; then stop and call Northridge",
+          "derived_from": [
+            "pol-stop-and-report"
+          ],
+          "source_refs": [
+            {
+              "source_id": "pol-stop-and-report"
+            }
+          ],
+          "alt": "Information sign: A warning light, a leak or an odd noise; then stop and call Northridge.",
+          "text_alternative": "Stop and call. If something seems wrong (a warning light, leak or unusual noise), stop safely and contact Northridge with Request Support.",
+          "reviewer_checklist": [
+            "Northridge demo policy wording."
+          ],
+          "files": [
+            {
+              "file": "guide/301-sign-stop-call.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 3458,
+              "sha256": "8b9c60c8dde99250e506c022151f17a8a5e315384463d6f4ba56c11bbb380c37"
+            },
+            {
+              "file": "guide/web/301-sign-stop-call.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 9448,
+              "sha256": "3685ec4711b4e813c3d2b44f46f15c577cfe2d411612884ac6d327c59e607bfb"
+            },
+            {
+              "file": "guide/web/301-sign-stop-call.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 11194,
+              "sha256": "ecacdb57efdfad590254bb264819e5f4321c60a2bfc2a0fc3dc935584734ec6d"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from a Northridge demo policy; awaiting the named reviewer (the operator)."
+        },
+        {
+          "sign_id": "301-sign-photos",
+          "kind": "info",
+          "label": "Handover photos",
+          "shows": "Photos of the machine when it goes out and when it comes back",
+          "derived_from": [
+            "pol-condition-photos"
+          ],
+          "source_refs": [
+            {
+              "source_id": "pol-condition-photos"
+            }
+          ],
+          "alt": "Information sign: Photos of the machine when it goes out and when it comes back.",
+          "text_alternative": "Handover photos. Northridge records outbound and return photos for every rental.",
+          "reviewer_checklist": [
+            "Northridge demo policy wording."
+          ],
+          "files": [
+            {
+              "file": "guide/301-sign-photos.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 3426,
+              "sha256": "e1b66d46c1a46c93e9e3512eb89702e3abc8d972592e129b12c2b00a9fb6dfb6"
+            },
+            {
+              "file": "guide/web/301-sign-photos.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 8948,
+              "sha256": "94561cd6a7514d85fd8b128e1fe1ed4dacc615f917bc9ab3c45b77e2bb35c59e"
+            },
+            {
+              "file": "guide/web/301-sign-photos.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 10204,
+              "sha256": "5e552547c7155e232adf031c20a908c7137e962a328c1404a7e89c1a6ac789ef"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from a Northridge demo policy; awaiting the named reviewer (the operator)."
+        }
+      ],
+      "accessory_icons": [
+        {
+          "name": "Keys",
+          "icon": "keys",
+          "derived_from": [
+            "template:mini_excavator_skid_steer"
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17; awaiting the named reviewer (the operator)."
+        },
+        {
+          "name": "Attachments",
+          "icon": "attachment",
+          "derived_from": [
+            "template:mini_excavator_skid_steer"
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17; awaiting the named reviewer (the operator)."
+        },
+        {
+          "name": "Manual",
+          "icon": "manual",
+          "derived_from": [
+            "template:mini_excavator_skid_steer"
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17; awaiting the named reviewer (the operator)."
+        }
       ],
       "photo": {
         "source_id": "src-photo-301-5-lostplanetkd73",

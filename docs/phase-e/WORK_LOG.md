@@ -393,6 +393,65 @@ Also checked by eye: all 20 panels on contact sheets, every page of the three gu
 4. **Cat manual**: declined for now. If that changes, the Cat panels and safety notes follow.
 5. **Marketing**: patch A (E20 photo) can go live any time; patch B only after E2C. Both are applied in the marketing repository by the operator.
 
+## E2A rework — picture-first guides and gallery (2026-10-17)
+
+The operator reviewed the gallery and asked for a redo: far too little picture information, and as few words as possible, with any words supporting the pictures rather than explaining them. The rework covers the panels, the guides, the gallery and the public page text. The sourcing rules are unchanged: every picture comes from a cited manual page or a Northridge policy, blocked items stay blocked, and everything stays REVIEW_REQUIRED.
+
+### Approval
+
+| When | What | How |
+|---|---|---|
+| 2026-10-17 | Picture-first plan approved: the text rule, all 20 panels redrawn as frame sequences, 24 sign tiles, accessory icons, schema 1.2.0, two-page picture guides, the gallery rewrite and shorter page text | Plan mode, ExitPlanMode |
+
+### What changed
+
+| Output | Change |
+|---|---|
+| Text rule | Drawings carry numbers, units and symbols only; panel titles at most 4 words, sign labels at most 3; the rest moves to alt text and collapsed records. Enforced at draw time (`text-policy.mjs`) and by the tests |
+| Panels (20) | Redrawn as up to 4 frames each: do, don't (red outline and cross), check (green tick), close-up. Each frame names the ids it comes from; alt text is built from the frames |
+| Errors fixed in the art | "kg" on a trailer rated in pounds (now a weight symbol); an unsourced "40%" (the manual says about 60% in the front half, so the rear is unlabelled); trailers drawn unhitched where the manual loads and dumps them hitched (35SA panel 7; 14LP panels 4, 6, 7); trucks floating above the ground; turn-signal arrows pointing the wrong way; the E20 "backing up" a slope now faces downhill, as B-1699 words it; alt texts that did not match the drawings |
+| Safety signs (24) | Original ISO 3864-style tiles, one per sourced warning or Northridge policy: 35SA 5, 14LP 10, E20 6, Cat 3 |
+| Accessory icons | Straps, chain pins and spare (trailers), hoist remote (14LP), keys, attachments and manual (excavators, from the return template). "Tarp" removed from the 14LP list: no policy issues it |
+| Start-Up Guides | Two tagged Letter pages: panels 1-4 and the signs, then panels 5-8, the accessories to bring back and a one-line source note. Titles only. E20 slots 3, 4, 7 and 8 show "manual needed" cards. Still no Cat guide (no drawable panel) |
+| Gallery | Per machine: photo or "photo pending" card with number chips, large panels with titles, signs, accessories and document icons, one status mark each and one legend. Records, sources, page text (as a phone preview), manual pages and retouch crops are collapsed. Visible words: 6,369 before, 266 after |
+| Page text | Quick start: one line per panel, 10 words or fewer. Safety: one line per sign, plus the 35SA weight limit and the E20 swing and slope rules (its quick start stays BLOCKED, so they must stay publishable). At most 4 lines of fuel, troubleshooting and return text. The 14LP keeps its tire and loading checks as two unnumbered lines, since no panel covers them. Changed fields are REVIEW_REQUIRED; headlines and emergency text unchanged |
+| Records | The e20-p2 caption no longer says "Report anything" (not in its source). The 35SA speed limit moved from panel 8 to its own sign |
+| Schema 1.2.0 | Additive: panel `frames`, model `signs` and `accessory_icons` ([contract note](ONBOARDING_DATA_CONTRACT.md)) |
+
+### Status after the rework
+
+| Asset | Model key | Items (ready / review / blocked) | Page fields | Panels drawn | Signs | Guide |
+|---|---|---|---|---|---|---|
+| EXCAVATOR-017 | `bobcat.e20.b3bl-canopy` | 1 / 24 / 9 | 2 / 3 / 2 | 4 of 8 | 6 | PDF (draft), 204 KB |
+| EXCAVATOR-3015 | `cat.301-5.canopy` | 11 / 3 / 16 | 6 / 0 / 1 | 0 of 8 | 3 | none |
+| TRAILER-014 | `bigtex.35sa.12` | 13 / 28 / 2 | 3 / 4 / 0 | 8 of 8 | 5 | PDF (draft), 356 KB |
+| TRAILER-2041 | `bigtex.14lp.14` | 12 / 41 / 5 | 2 / 5 / 0 | 8 of 8 | 10 | PDF (draft), 418 KB |
+
+Signs count as items, so the review counts went up. Import manifests: `apply.allowed` is still false for all four.
+
+### Checks
+
+| Check | Result |
+|---|---|
+| New tests (`text-policy.test.mjs`; `packs.test.mjs`, `content-pack.test.mjs` extended) | No words in any drawing; every drawn number found in its source; title and sign-label limits; alt text equals the frames; nothing drawn from a BLOCKED item; signs match the drawing registry; accessories traced; visible-word caps (gallery at most 90 per machine and 320 in all, each guide at most 100); SVG safety, labelling and contrast extended to the signs; tagged PDFs |
+| `npm.cmd run lint`, `npm.cmd run typecheck` | Pass |
+| `npm.cmd test` | 206 files, 2,393 tests passed |
+| `npm.cmd run build` | Compiled successfully |
+| Repeatability | A second `phase-e:packs:build` left all 168 pack files byte-identical |
+| By eye | Contact sheets of all panels and signs at 360 px; every page of the three guides; the gallery at 390 px and 1280 px wide (no sideways scroll) |
+
+Two more dump-manual pages (PDF pages 6 and 63) were rendered into the vault for the private gallery's sign records. Local work only: no Supabase project, no `/t/` URL, nothing published, Northridge unchanged.
+
+### Tracked files (rework)
+
+- New: `scripts/phase-e/packs/text-policy.mjs` (with tests), `pictogram-signs.mjs`, `guide-layout.mjs`
+- Changed: `pictogram-kit.mjs`, `pictogram-panels.mjs`, `guide-build.mjs`, `pack-review.mjs`, `packs.test.mjs`, `scripts/lib/content-pack.mjs` (with tests), the schema, the four packs and everything generated from them
+- Docs: this log, `PHASE_E_PLAN.md`, `ONBOARDING_DATA_CONTRACT.md`, `packs/README.md`
+
+### Open, operator-pending
+
+Everything in the E2A list above still applies, plus: **review the redrawn panels, the 24 signs and the shortened page text** in the gallery and the three guides.
+
 ### Next command
 
 **Prompt E2B** (the 105-day synthetic dataset), started in plan mode **only when the operator runs it**; never automatically. It starts with the drift check above, which E2A did not need. After any change to a pack, the register or the drawings, run this from the project folder:

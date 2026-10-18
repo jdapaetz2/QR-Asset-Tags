@@ -1,11 +1,13 @@
 /**
- * Engineering Phase E2A — drawing kit for the original pictographic guide panels.
+ * Engineering Phase E2A — drawing kit for the original pictographic guide panels and sign tiles.
  *
  * Plain functions that return SVG fragments in one visual system: ink outlines on light fills, one blue for the
  * action to take, green for "correct", ISO 3864-style red for "prohibited" and yellow for warnings. Every panel is
  * drawn here from primitives: nothing is traced from photos, OEM figures or standard symbols. Text uses system
- * fonts only. Panels are 480 x 360 units; labels stay at 20 units or larger so they read at 360 px wide.
+ * fonts only. Panels are 480 x 360 units and sign tiles 240 x 240; labels stay at 20 units or larger so they read at
+ * 360 px wide, and they may hold only numbers, units and symbols (text-policy.mjs): the pictures carry the meaning.
  */
+import { isAllowedArtText } from "./text-policy.mjs";
 
 export const W = 480;
 export const H = 360;
@@ -66,9 +68,11 @@ export function poly(points, { fill = C.body, stroke = C.ink, sw = 4 } = {}) {
   return `<polygon ${attrs({ points: points.map(([x, y]) => `${fmt(x)},${fmt(y)}`).join(" "), fill, stroke, "stroke-width": sw, "stroke-linejoin": "round" })}/>`;
 }
 
-export function label(x, y, text, { size = 22, weight = 700, fill = C.ink, anchor = "middle", halo = true } = {}) {
+/** seq marks a sequence number (panel badge, frame step): ordering, not a fact, so the number-source check skips it. */
+export function label(x, y, text, { size = 22, weight = 700, fill = C.ink, anchor = "middle", halo = true, seq = false } = {}) {
   if (size < MIN_LABEL) throw new Error(`Label "${text}" is ${size} units; the minimum is ${MIN_LABEL}.`);
-  const common = { x, y, "font-family": FONT, "font-size": size, "font-weight": weight, "text-anchor": anchor };
+  if (!isAllowedArtText(text)) throw new Error(`Label "${text}" breaks the text rule: drawings carry numbers, units and symbols only.`);
+  const common = { class: seq ? "seq" : undefined, x, y, "font-family": FONT, "font-size": size, "font-weight": weight, "text-anchor": anchor };
   const back = halo
     ? `<text ${attrs({ ...common, fill: "none", stroke: C.paper, "stroke-width": 6, "stroke-linejoin": "round" })}>${esc(text)}</text>`
     : "";
@@ -125,12 +129,12 @@ export function electricWarning(cx, cy, size = 54) {
 
 /** Panel number in the top-left corner. */
 export function badge(n) {
-  return circle(24, 24, 17, { fill: C.ink, stroke: "none" }) + label(24, 32, String(n), { size: 22, fill: C.paper, halo: false });
+  return circle(24, 24, 17, { fill: C.ink, stroke: "none" }) + label(24, 32, String(n), { size: 22, fill: C.paper, halo: false, seq: true });
 }
 
 /** Small numbered disc for a frame inside a panel. */
 export function step(x, y, n) {
-  return circle(x, y, 13, { fill: C.paper, stroke: C.ink, sw: 3 }) + label(x, y + 7.5, String(n), { size: 20, halo: false });
+  return circle(x, y, 13, { fill: C.paper, stroke: C.ink, sw: 3 }) + label(x, y + 7.5, String(n), { size: 20, halo: false, seq: true });
 }
 
 export const ground = (y = 304, x1 = 8, x2 = 472) => line(x1, y, x2, y, { sw: 4 });
@@ -283,10 +287,10 @@ export function tongueJack(x, y, { scale = 1, state = "up", groundY, kind = "top
   return parts.join("");
 }
 
-/** Cargo box. */
+/** Cargo box; a heavy one carries a weight glyph (no unit: the trailers are rated in pounds, the glyph says "heavy"). */
 export function box(x, y, w, h, { fill = C.body, heavy = false } = {}) {
   return rect(x, y, w, h, { fill: heavy ? C.body2 : fill, sw: 3.5, rx: 3 }) +
-    (heavy ? label(x + w / 2, y + h / 2 + 8, "kg", { size: 22, halo: false, fill: C.dark }) : line(x + 6, y + h * 0.35, x + w - 6, y + h * 0.35, { sw: 2.5, stroke: C.steel }));
+    (heavy ? weightGlyph(x + w / 2, y + h / 2 + 2, Math.min(w, h) / 44) : line(x + 6, y + h * 0.35, x + w - 6, y + h * 0.35, { sw: 2.5, stroke: C.steel }));
 }
 
 /** Tow-vehicle socket and trailer plug, side by side. kind "4" (flat) or "7" (round RV). */
@@ -454,10 +458,18 @@ export function excavatorTop(cx, cy, { scale = 1, swing = 0 } = {}) {
   return parts.join("");
 }
 
-/** Smartphone with a short number on screen. */
-export function phone(x, y, text) {
-  return rect(x - 32, y - 58, 64, 116, { fill: C.dark, sw: 4, rx: 10 }) + rect(x - 24, y - 44, 48, 82, { fill: C.paper, sw: 2.5, rx: 4 }) +
-    label(x, y + 6, text, { size: 24, fill: C.action, halo: false });
+/** Smartphone with a short number on screen, or (no text) a call handset on screen. */
+export function phone(x, y, text, s = 1) {
+  const body = rect(x - 32 * s, y - 58 * s, 64 * s, 116 * s, { fill: C.dark, sw: 4 * s, rx: 10 * s }) + rect(x - 24 * s, y - 44 * s, 48 * s, 82 * s, { fill: C.paper, sw: 2.5 * s, rx: 4 * s });
+  if (text) return body + label(x, y + 6 * s, text, { size: Math.max(MIN_LABEL, 24 * s), fill: C.action, halo: false });
+  return body + handset(x - 4 * s, y - 2 * s, s);
+}
+
+/** Telephone handset with call waves. */
+export function handset(cx, cy, s = 1, color = C.action) {
+  return path(`M${fmt(cx - 9 * s)} ${fmt(cy - 17 * s)} Q${fmt(cx - 17 * s)} ${fmt(cy + 5 * s)} ${fmt(cx + 5 * s)} ${fmt(cy + 17 * s)}`, { stroke: color, sw: 7 * s }) +
+    circle(cx - 9 * s, cy - 17 * s, 6 * s, { fill: color, stroke: "none" }) + circle(cx + 5 * s, cy + 17 * s, 6 * s, { fill: color, stroke: "none" }) +
+    path(`M${fmt(cx + 6 * s)} ${fmt(cy - 12 * s)} q${fmt(7 * s)} ${fmt(3 * s)} ${fmt(8 * s)} ${fmt(10 * s)} M${fmt(cx + 9 * s)} ${fmt(cy - 20 * s)} q${fmt(13 * s)} ${fmt(5 * s)} ${fmt(14 * s)} ${fmt(18 * s)}`, { stroke: color, sw: 3 * s });
 }
 
 /** Utility pole pair with sagging wires between x1 and x2 at height y. */
@@ -485,26 +497,341 @@ export function padlock(cx, cy, s = 1) {
     rect(cx - 17 * s, cy - 6 * s, 34 * s, 26 * s, { fill: C.action, sw: 3 * s, rx: 4 * s });
 }
 
-/** Generic hand-held control with UP and DOWN buttons (the words the manual uses), UP highlighted when active. */
-export function upDownControl(cx, cy, { active = "up" } = {}) {
-  return rect(cx - 30, cy - 52, 60, 104, { fill: C.dark, sw: 3.5, rx: 10 }) +
-    rect(cx - 22, cy - 42, 44, 36, { fill: active === "up" ? C.action : C.body2, sw: 2.5, rx: 6 }) +
-    label(cx, cy - 16, "UP", { size: 20, fill: active === "up" ? C.paper : C.ink, halo: false }) +
-    rect(cx - 22, cy + 6, 44, 36, { fill: active === "down" ? C.action : C.body2, sw: 2.5, rx: 6 }) +
-    label(cx, cy + 31, "DN", { size: 20, fill: active === "down" ? C.paper : C.ink, halo: false });
+/** A plain hand-held control: body and an up arrow only. The fitted remote's real buttons are not in the sources. */
+export function remoteFob(cx, cy, s = 1, { arrowUp = true } = {}) {
+  return rect(cx - 13 * s, cy - 24 * s, 26 * s, 48 * s, { fill: C.dark, sw: 3 * s, rx: 7 * s }) +
+    (arrowUp ? arrow(cx, cy + 12 * s, cx, cy - 14 * s, { color: C.paper, sw: 4 * s, head: 9 * s }) : "");
 }
 
-/** Assemble a complete, self-contained SVG document. */
-export function svgDocument({ id, title, desc, body }) {
+// ------------------------------------------------------------------------------------------------ frames and marks
+
+/** Outline of a frame inside a panel: light by default, red for a "don't" frame. */
+export function cell(x, y, w, h, color = C.body2) {
+  return rect(x, y, w, h, { fill: "none", stroke: color, sw: color === C.body2 ? 2.5 : 3.5, rx: 8 });
+}
+
+/** Small red disc with a white cross: "reject this" on a small item. */
+export function cross(cx, cy, r = 14) {
+  const s = r * 0.42;
+  return circle(cx, cy, r, { fill: C.stop, stroke: C.paper, sw: 2.5 }) +
+    line(cx - s, cy - s, cx + s, cy + s, { stroke: C.paper, sw: r * 0.24 }) + line(cx + s, cy - s, cx - s, cy + s, { stroke: C.paper, sw: r * 0.24 });
+}
+
+// ------------------------------------------------------------------------------------------------ small glyphs
+
+/** Kettlebell-style weight: "heavy" without a unit. */
+export function weightGlyph(cx, cy, s = 1) {
+  return path(`M${fmt(cx - 8 * s)} ${fmt(cy - 12 * s)} a${fmt(8 * s)} ${fmt(7 * s)} 0 1 1 ${fmt(16 * s)} 0`, { stroke: C.ink, sw: 4 * s }) +
+    path(`M${fmt(cx - 13 * s)} ${fmt(cy - 9 * s)} L${fmt(cx + 13 * s)} ${fmt(cy - 9 * s)} L${fmt(cx + 17 * s)} ${fmt(cy + 13 * s)} L${fmt(cx - 17 * s)} ${fmt(cy + 13 * s)} Z`, { fill: C.dark, stroke: C.ink, sw: 2.5 * s });
+}
+
+/** The trailer's certification / VIN label: a small plate with lines. */
+export function labelPlate(cx, cy, s = 1) {
+  return rect(cx - 18 * s, cy - 12 * s, 36 * s, 24 * s, { fill: C.action, sw: 2.5 * s, rx: 3 * s }) +
+    line(cx - 11 * s, cy - 4 * s, cx + 11 * s, cy - 4 * s, { stroke: C.paper, sw: 2.5 * s }) + line(cx - 11 * s, cy + 4 * s, cx + 6 * s, cy + 4 * s, { stroke: C.paper, sw: 2.5 * s });
+}
+
+/** Tire-pressure gauge: dial, needle, stem. */
+export function gauge(cx, cy, r = 20) {
+  return circle(cx, cy, r, { fill: C.paper, sw: 3.5 }) + line(cx, cy, cx + r * 0.45, cy - r * 0.6, { stroke: C.action, sw: 3.5 }) +
+    circle(cx, cy, r * 0.12, { fill: C.ink, stroke: "none" }) + rect(cx - r * 0.2, cy + r, r * 0.4, r * 0.7, { fill: C.dark, sw: 2 });
+}
+
+/** Rising heat waves (for "the tire is hot"). */
+export function heatWaves(cx, cy, s = 1) {
+  const wave = (dx) => path(`M${fmt(cx + dx * s)} ${fmt(cy + 14 * s)} q${fmt(6 * s)} ${fmt(-7 * s)} 0 ${fmt(-14 * s)} q${fmt(-6 * s)} ${fmt(-7 * s)} 0 ${fmt(-14 * s)}`, { stroke: C.lamp, sw: 3.5 * s });
+  return wave(-10) + wave(0) + wave(10);
+}
+
+/** Open-jaw wrench from (x1, y1) to its head at (x2, y2). */
+export function wrench(x1, y1, x2, y2, { color = C.action, sw = 10 } = {}) {
+  const a = Math.atan2(y2 - y1, x2 - x1);
+  const r = sw * 1.1;
+  const jx = x2 + Math.cos(a) * r * 0.4;
+  const jy = y2 + Math.sin(a) * r * 0.4;
+  return line(x1, y1, x2, y2, { stroke: color, sw }) + circle(x2, y2, r, { fill: color, stroke: color, sw: 2 }) + circle(jx, jy, r * 0.5, { fill: C.paper, stroke: "none" });
+}
+
+/** A lit lamp (rays around it), for "lights on". */
+export function lampOn(cx, cy, s = 1, color = C.lamp) {
+  const rays = [];
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI * 2 * i) / 6 - Math.PI / 2;
+    rays.push(line(cx + Math.cos(a) * 14 * s, cy + Math.sin(a) * 14 * s, cx + Math.cos(a) * 22 * s, cy + Math.sin(a) * 22 * s, { stroke: color, sw: 3.5 * s }));
+  }
+  return circle(cx, cy, 9 * s, { fill: color, stroke: C.ink, sw: 2.5 * s }) + rays.join("");
+}
+
+/** A foot pressing a pedal. */
+export function footOnPedal(cx, cy, s = 1) {
+  return path(`M${fmt(cx - 4 * s)} ${fmt(cy + 18 * s)} L${fmt(cx + 16 * s)} ${fmt(cy - 6 * s)}`, { stroke: C.dark, sw: 6 * s }) +
+    rect(cx + 6 * s, cy - 16 * s, 22 * s, 9 * s, { fill: C.dark, sw: 2 * s, rx: 2 * s }) +
+    path(`M${fmt(cx - 20 * s)} ${fmt(cy - 30 * s)} L${fmt(cx + 2 * s)} ${fmt(cy - 30 * s)} Q${fmt(cx + 20 * s)} ${fmt(cy - 30 * s)} ${fmt(cx + 22 * s)} ${fmt(cy - 20 * s)} L${fmt(cx - 20 * s)} ${fmt(cy - 18 * s)} Z`, { fill: C.action, stroke: C.ink, sw: 2.5 * s }) +
+    arrow(cx + 4 * s, cy - 46 * s, cx + 4 * s, cy - 34 * s, { sw: 3.5 * s, head: 7 * s });
+}
+
+/** Bold turn arrow pointing left (-1) or right (1). */
+export function turnArrow(cx, cy, dir = -1, s = 1) {
+  const d = dir;
+  return poly([[cx - 18 * s * d, cy - 8 * s], [cx + 2 * s * d, cy - 8 * s], [cx + 2 * s * d, cy - 18 * s], [cx + 20 * s * d, cy], [cx + 2 * s * d, cy + 18 * s], [cx + 2 * s * d, cy + 8 * s], [cx - 18 * s * d, cy + 8 * s]], { fill: C.amber, stroke: C.ink, sw: 2.5 * s });
+}
+
+/** Camera. */
+export function camera(cx, cy, s = 1, color = C.dark) {
+  return rect(cx - 22 * s, cy - 13 * s, 44 * s, 30 * s, { fill: color, sw: 2.5 * s, rx: 5 * s }) + rect(cx - 9 * s, cy - 19 * s, 18 * s, 7 * s, { fill: color, sw: 2.5 * s, rx: 2 * s }) +
+    circle(cx, cy + 2 * s, 9 * s, { fill: C.paper, stroke: C.ink, sw: 2.5 * s });
+}
+
+/** Closed book (a manual). */
+export function book(cx, cy, s = 1, color = C.action) {
+  return rect(cx - 18 * s, cy - 24 * s, 36 * s, 48 * s, { fill: color, sw: 3 * s, rx: 3 * s }) + line(cx - 11 * s, cy - 24 * s, cx - 11 * s, cy + 24 * s, { stroke: C.paper, sw: 2.5 * s }) +
+    rect(cx - 5 * s, cy - 14 * s, 17 * s, 8 * s, { fill: C.paper, stroke: "none" });
+}
+
+/** Key. */
+export function keyGlyph(cx, cy, s = 1) {
+  return circle(cx - 14 * s, cy, 9 * s, { fill: "none", stroke: C.dark, sw: 5 * s }) + line(cx - 5 * s, cy, cx + 20 * s, cy, { stroke: C.dark, sw: 5 * s }) +
+    line(cx + 14 * s, cy, cx + 14 * s, cy + 8 * s, { stroke: C.dark, sw: 4 * s }) + line(cx + 20 * s, cy, cx + 20 * s, cy + 6 * s, { stroke: C.dark, sw: 4 * s });
+}
+
+/** Ratchet strap: coiled band with a buckle. */
+export function strapGlyph(cx, cy, s = 1) {
+  return path(`M${fmt(cx - 24 * s)} ${fmt(cy + 10 * s)} Q${fmt(cx - 24 * s)} ${fmt(cy - 16 * s)} ${fmt(cx)} ${fmt(cy - 16 * s)} Q${fmt(cx + 24 * s)} ${fmt(cy - 16 * s)} ${fmt(cx + 24 * s)} ${fmt(cy + 10 * s)}`, { stroke: C.action, sw: 7 * s }) +
+    rect(cx - 10 * s, cy + 4 * s, 20 * s, 14 * s, { fill: C.dark, sw: 2.5 * s, rx: 3 * s });
+}
+
+/** Chain pin (clevis pin with its clip). */
+export function pinGlyph(cx, cy, s = 1) {
+  return rect(cx - 4 * s, cy - 20 * s, 8 * s, 34 * s, { fill: C.steel, sw: 2.5 * s, rx: 3 * s }) + rect(cx - 8 * s, cy - 24 * s, 16 * s, 7 * s, { fill: C.steel, sw: 2.5 * s, rx: 2 * s }) +
+    path(`M${fmt(cx)} ${fmt(cy + 10 * s)} q${fmt(16 * s)} ${fmt(2 * s)} ${fmt(10 * s)} ${fmt(-18 * s)}`, { stroke: C.action, sw: 3 * s });
+}
+
+/** Excavator bucket (an attachment). */
+export function bucketGlyph(cx, cy, s = 1) {
+  return path(`M${fmt(cx - 20 * s)} ${fmt(cy - 16 * s)} L${fmt(cx + 16 * s)} ${fmt(cy - 16 * s)} Q${fmt(cx + 22 * s)} ${fmt(cy + 14 * s)} ${fmt(cx - 4 * s)} ${fmt(cy + 18 * s)} L${fmt(cx - 20 * s)} ${fmt(cy + 18 * s)} Z`, { fill: C.dark, stroke: C.ink, sw: 2.5 * s }) +
+    line(cx - 20 * s, cy + 18 * s, cx - 24 * s, cy + 22 * s, { sw: 3 * s }) + line(cx - 12 * s, cy + 18 * s, cx - 16 * s, cy + 22 * s, { sw: 3 * s });
+}
+
+/** Fuel can. */
+export function jerrycan(cx, cy, s = 1) {
+  return path(`M${fmt(cx - 18 * s)} ${fmt(cy - 14 * s)} L${fmt(cx + 6 * s)} ${fmt(cy - 14 * s)} L${fmt(cx + 18 * s)} ${fmt(cy - 2 * s)} L${fmt(cx + 18 * s)} ${fmt(cy + 24 * s)} L${fmt(cx - 18 * s)} ${fmt(cy + 24 * s)} Z`, { fill: C.lamp, stroke: C.ink, sw: 3 * s }) +
+    rect(cx - 12 * s, cy - 22 * s, 12 * s, 8 * s, { fill: C.dark, sw: 2 * s, rx: 2 * s }) + path(`M${fmt(cx - 12 * s)} ${fmt(cy + 2 * s)} L${fmt(cx + 10 * s)} ${fmt(cy + 18 * s)} M${fmt(cx + 10 * s)} ${fmt(cy + 2 * s)} L${fmt(cx - 12 * s)} ${fmt(cy + 18 * s)}`, { stroke: C.ink, sw: 2.5 * s });
+}
+
+/** Flame. */
+export function flame(cx, cy, s = 1) {
+  return path(`M${fmt(cx)} ${fmt(cy - 26 * s)} C${fmt(cx + 18 * s)} ${fmt(cy - 8 * s)} ${fmt(cx + 16 * s)} ${fmt(cy + 14 * s)} ${fmt(cx)} ${fmt(cy + 16 * s)} C${fmt(cx - 16 * s)} ${fmt(cy + 14 * s)} ${fmt(cx - 16 * s)} ${fmt(cy - 6 * s)} ${fmt(cx - 4 * s)} ${fmt(cy - 12 * s)} C${fmt(cx - 4 * s)} ${fmt(cy - 2 * s)} ${fmt(cx + 2 * s)} ${fmt(cy)} ${fmt(cx)} ${fmt(cy - 26 * s)} Z`, { fill: C.amber, stroke: C.ink, sw: 2.5 * s });
+}
+
+/** Lit cigarette with smoke. */
+export function cigarette(cx, cy, s = 1) {
+  return rect(cx - 30 * s, cy - 5 * s, 52 * s, 10 * s, { fill: C.paper, sw: 2.5 * s, rx: 2 * s }) + rect(cx + 22 * s, cy - 5 * s, 8 * s, 10 * s, { fill: C.lamp, sw: 2.5 * s }) +
+    path(`M${fmt(cx + 28 * s)} ${fmt(cy - 9 * s)} q${fmt(-6 * s)} ${fmt(-8 * s)} 0 ${fmt(-16 * s)} q${fmt(6 * s)} ${fmt(-8 * s)} 0 ${fmt(-16 * s)}`, { stroke: C.steel, sw: 3 * s });
+}
+
+/** Fuel nozzle. */
+export function fuelNozzle(cx, cy, s = 1) {
+  return path(`M${fmt(cx - 20 * s)} ${fmt(cy + 18 * s)} L${fmt(cx - 20 * s)} ${fmt(cy - 6 * s)} L${fmt(cx + 6 * s)} ${fmt(cy - 6 * s)} L${fmt(cx + 24 * s)} ${fmt(cy - 16 * s)}`, { stroke: C.dark, sw: 8 * s }) +
+    path(`M${fmt(cx - 12 * s)} ${fmt(cy - 6 * s)} q${fmt(-2 * s)} ${fmt(14 * s)} ${fmt(10 * s)} ${fmt(14 * s)}`, { stroke: C.dark, sw: 4 * s });
+}
+
+/** Speedometer with a needle. */
+export function speedometer(cx, cy, r = 40) {
+  const ticks = [];
+  for (let i = 0; i <= 6; i++) {
+    const a = Math.PI + (Math.PI * i) / 6;
+    ticks.push(line(cx + Math.cos(a) * r * 0.78, cy + Math.sin(a) * r * 0.78, cx + Math.cos(a) * r * 0.95, cy + Math.sin(a) * r * 0.95, { sw: 3 }));
+  }
+  return path(`M${fmt(cx - r)} ${fmt(cy)} A${fmt(r)} ${fmt(r)} 0 0 1 ${fmt(cx + r)} ${fmt(cy)}`, { fill: C.paper, stroke: C.ink, sw: 5 }) + ticks.join("") +
+    line(cx, cy, cx + r * 0.55, cy - r * 0.55, { stroke: C.stop, sw: 5 }) + circle(cx, cy, 5, { fill: C.ink, stroke: "none" });
+}
+
+/** Steering wheel. */
+export function steeringWheel(cx, cy, r = 22, color = C.dark) {
+  return circle(cx, cy, r, { fill: "none", stroke: color, sw: 6 }) + line(cx - r, cy, cx + r, cy, { stroke: color, sw: 5 }) + line(cx, cy, cx, cy + r, { stroke: color, sw: 5 }) +
+    circle(cx, cy, r * 0.25, { fill: color, stroke: "none" });
+}
+
+/** Shovel. */
+export function shovel(x, y, s = 1) {
+  return line(x, y, x + 34 * s, y + 34 * s, { stroke: C.dark, sw: 5 * s }) +
+    path(`M${fmt(x + 30 * s)} ${fmt(y + 38 * s)} l${fmt(16 * s)} ${fmt(-6 * s)} l${fmt(8 * s)} ${fmt(16 * s)} l${fmt(-14 * s)} ${fmt(10 * s)} Z`, { fill: C.steel, stroke: C.ink, sw: 2.5 * s });
+}
+
+/** Bottle jack pushing upward. */
+export function bottleJack(cx, groundY, s = 1, extended = 30) {
+  return rect(cx - 14 * s, groundY - 40 * s, 28 * s, 40 * s, { fill: C.lamp, sw: 3 * s, rx: 4 * s }) + rect(cx - 6 * s, groundY - (40 + extended) * s, 12 * s, extended * s, { fill: C.steel, sw: 2.5 * s }) +
+    rect(cx - 12 * s, groundY - (46 + extended) * s, 24 * s, 7 * s, { fill: C.dark, sw: 2 * s });
+}
+
+/** Door latch bar on its catch. */
+export function latchGlyph(cx, cy, s = 1) {
+  return rect(cx - 22 * s, cy - 5 * s, 44 * s, 10 * s, { fill: C.steel, sw: 2.5 * s, rx: 3 * s }) + rect(cx + 10 * s, cy - 12 * s, 10 * s, 24 * s, { fill: C.dark, sw: 2.5 * s, rx: 2 * s });
+}
+
+/** Open padlock (unlocked). */
+export function padlockOpen(cx, cy, s = 1) {
+  return path(`M${fmt(cx - 11 * s)} ${fmt(cy - 4 * s)} L${fmt(cx - 11 * s)} ${fmt(cy - 14 * s)} A${fmt(11 * s)} ${fmt(11 * s)} 0 0 1 ${fmt(cx + 11 * s)} ${fmt(cy - 14 * s)} L${fmt(cx + 11 * s)} ${fmt(cy - 22 * s)}`, { sw: 5 * s }) +
+    rect(cx - 17 * s, cy - 6 * s, 34 * s, 26 * s, { fill: C.body2, sw: 3 * s, rx: 4 * s });
+}
+
+/** Hook (S-hook end) seen from the side. */
+export function hookGlyph(cx, cy, s = 1) {
+  return path(`M${fmt(cx)} ${fmt(cy + 20 * s)} L${fmt(cx)} ${fmt(cy - 6 * s)} A${fmt(9 * s)} ${fmt(9 * s)} 0 1 1 ${fmt(cx + 18 * s)} ${fmt(cy - 6 * s)}`, { stroke: C.dark, sw: 5 * s });
+}
+
+/** Brake arcs around a wheel: brakes applied. */
+export function brakeArcs(cx, cy, r) {
+  return path(`M${fmt(cx - r * 1.05)} ${fmt(cy + r * 0.2)} A${fmt(r * 1.1)} ${fmt(r * 1.1)} 0 0 1 ${fmt(cx + r * 1.05)} ${fmt(cy + r * 0.2)}`, { stroke: C.action, sw: 5 });
+}
+
+/** Soft ground: wavy hatch. */
+export function softGround(x, y, w) {
+  const waves = [];
+  for (let i = 0; i < 3; i++) {
+    let d = `M${fmt(x)} ${fmt(y + i * 9)}`;
+    for (let dx = 0; dx < w; dx += 16) d += ` q8 ${i % 2 ? 5 : -5} 16 0`;
+    waves.push(path(d, { stroke: C.dark, sw: 2.5 }));
+  }
+  return waves.join("");
+}
+
+/** Raised hand: "stop". */
+export function stopHand(cx, cy, s = 1, color = C.paper) {
+  const finger = (dx, top) => rect(cx + dx * s, cy + top * s, 8 * s, (16 - top) * s + 10 * s, { fill: color, stroke: C.ink, sw: 2.5 * s, rx: 4 * s });
+  return finger(-14, -22) + finger(-5, -26) + finger(4, -24) + finger(13, -18) +
+    rect(cx - 14 * s, cy - 2 * s, 35 * s, 26 * s, { fill: color, stroke: C.ink, sw: 2.5 * s, rx: 8 * s });
+}
+
+/** Two people with a key passing between them: a staff handover. */
+export function handover(cx, cy, s = 1) {
+  return person(cx - 34 * s, cy + 52 * s, 96 * s, { pose: "reach", facing: 1 }) + person(cx + 34 * s, cy + 52 * s, 96 * s, { pose: "reach", facing: -1 }) + keyGlyph(cx, cy - 22 * s, 0.7 * s);
+}
+
+/** Payload decal: a plate with a weight glyph and lines. */
+export function payloadDecal(cx, cy, s = 1) {
+  return rect(cx - 26 * s, cy - 18 * s, 52 * s, 36 * s, { fill: C.paper, sw: 3 * s, rx: 4 * s }) + weightGlyph(cx - 10 * s, cy + 1 * s, 0.55 * s) +
+    line(cx + 4 * s, cy - 6 * s, cx + 18 * s, cy - 6 * s, { sw: 3 * s }) + line(cx + 4 * s, cy + 4 * s, cx + 18 * s, cy + 4 * s, { sw: 3 * s });
+}
+
+/** Lift chart plate and a hook with a load. */
+export function liftChart(cx, cy, s = 1, color = C.paper) {
+  return rect(cx - 30 * s, cy - 28 * s, 34 * s, 44 * s, { fill: color, stroke: C.ink, sw: 3 * s, rx: 3 * s }) +
+    line(cx - 24 * s, cy - 18 * s, cx - 2 * s, cy - 18 * s, { sw: 2.5 * s }) + line(cx - 24 * s, cy - 8 * s, cx - 2 * s, cy - 8 * s, { sw: 2.5 * s }) + line(cx - 24 * s, cy + 2 * s, cx - 2 * s, cy + 2 * s, { sw: 2.5 * s }) +
+    line(cx + 20 * s, cy - 30 * s, cx + 20 * s, cy - 8 * s, { stroke: color, sw: 4 * s }) + hookGlyph(cx + 12 * s, cy - 2 * s, 0.6 * s) +
+    rect(cx + 8 * s, cy + 8 * s, 24 * s, 18 * s, { fill: color, stroke: C.ink, sw: 3 * s, rx: 2 * s });
+}
+
+/** Rear view of a compact excavator with canopy (original drawing), tracks on the ground at y. */
+export function excavatorRear(cx, y, s = 1) {
+  return rect(cx - 46 * s, y - 30 * s, 22 * s, 30 * s, { fill: C.dark, sw: 3 * s, rx: 4 * s }) + rect(cx + 24 * s, y - 30 * s, 22 * s, 30 * s, { fill: C.dark, sw: 3 * s, rx: 4 * s }) +
+    rect(cx - 30 * s, y - 40 * s, 60 * s, 14 * s, { fill: C.steel, sw: 3 * s }) +
+    rect(cx - 36 * s, y - 72 * s, 72 * s, 34 * s, { fill: C.body, sw: 3.5 * s, rx: 8 * s }) +
+    line(cx - 30 * s, y - 72 * s, cx - 28 * s, y - 130 * s, { sw: 5 * s }) + line(cx + 30 * s, y - 72 * s, cx + 28 * s, y - 130 * s, { sw: 5 * s }) +
+    line(cx - 36 * s, y - 130 * s, cx + 36 * s, y - 130 * s, { sw: 7 * s });
+}
+
+/** "Less than or equal" drawn as strokes, for limits without a number (a drawn label needs a quantity). */
+export function lessOrEqual(cx, cy, s = 1, color = C.ink) {
+  return path(`M${fmt(cx + 12 * s)} ${fmt(cy - 16 * s)} L${fmt(cx - 12 * s)} ${fmt(cy - 4 * s)} L${fmt(cx + 12 * s)} ${fmt(cy + 8 * s)}`, { stroke: color, sw: 6 * s }) +
+    line(cx - 12 * s, cy + 18 * s, cx + 12 * s, cy + 18 * s, { stroke: color, sw: 6 * s });
+}
+
+/** Seated person in profile facing right, hips at (x, y). */
+export function seatedPerson(x, y, s = 1, color = C.ink) {
+  return circle(x + 2 * s, y - 54 * s, 11 * s, { fill: color, stroke: "none" }) +
+    path(`M${fmt(x)} ${fmt(y - 40 * s)} L${fmt(x)} ${fmt(y)}`, { stroke: color, sw: 13 * s }) +
+    path(`M${fmt(x)} ${fmt(y)} L${fmt(x + 26 * s)} ${fmt(y)} L${fmt(x + 30 * s)} ${fmt(y + 24 * s)}`, { stroke: color, sw: 11 * s }) +
+    path(`M${fmt(x)} ${fmt(y - 34 * s)} L${fmt(x + 20 * s)} ${fmt(y - 16 * s)}`, { stroke: color, sw: 9 * s });
+}
+
+/** Explosion burst. */
+export function burst(cx, cy, s = 1) {
+  const pts = [];
+  for (let i = 0; i < 16; i++) {
+    const r = (i % 2 ? 11 : 24) * s;
+    const a = (Math.PI * 2 * i) / 16 - Math.PI / 2;
+    pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
+  }
+  return poly(pts, { fill: C.amber, stroke: C.ink, sw: 2.5 * s });
+}
+
+/** Skull (poison), original drawing. */
+export function skull(cx, cy, s = 1) {
+  return path(`M${fmt(cx - 18 * s)} ${fmt(cy + 2 * s)} A${fmt(18 * s)} ${fmt(18 * s)} 0 1 1 ${fmt(cx + 18 * s)} ${fmt(cy + 2 * s)} L${fmt(cx + 12 * s)} ${fmt(cy + 10 * s)} L${fmt(cx + 12 * s)} ${fmt(cy + 20 * s)} L${fmt(cx - 12 * s)} ${fmt(cy + 20 * s)} L${fmt(cx - 12 * s)} ${fmt(cy + 10 * s)} Z`, { fill: C.paper, stroke: C.ink, sw: 3 * s }) +
+    circle(cx - 7 * s, cy, 5 * s, { fill: C.ink, stroke: "none" }) + circle(cx + 7 * s, cy, 5 * s, { fill: C.ink, stroke: "none" }) +
+    line(cx - 5 * s, cy + 14 * s, cx - 5 * s, cy + 20 * s, { sw: 2.5 * s }) + line(cx + 5 * s, cy + 14 * s, cx + 5 * s, cy + 20 * s, { sw: 2.5 * s });
+}
+
+/** A warning lamp (dashboard light) glowing. */
+export function warningLamp(cx, cy, s = 1) {
+  return lampOn(cx, cy, s, C.amber);
+}
+
+/** A falling drop (a leak). */
+export function drop(cx, cy, s = 1, color = C.action) {
+  return path(`M${fmt(cx)} ${fmt(cy - 16 * s)} Q${fmt(cx + 13 * s)} ${fmt(cy + 2 * s)} ${fmt(cx + 9 * s)} ${fmt(cy + 8 * s)} A${fmt(10 * s)} ${fmt(10 * s)} 0 1 1 ${fmt(cx - 9 * s)} ${fmt(cy + 8 * s)} Q${fmt(cx - 13 * s)} ${fmt(cy + 2 * s)} ${fmt(cx)} ${fmt(cy - 16 * s)} Z`, { fill: color, stroke: C.ink, sw: 2.5 * s });
+}
+
+/** Sound waves (an odd noise). */
+export function soundWaves(cx, cy, s = 1) {
+  return path(`M${fmt(cx - 6 * s)} ${fmt(cy - 10 * s)} q${fmt(10 * s)} ${fmt(10 * s)} 0 ${fmt(20 * s)} M${fmt(cx + 4 * s)} ${fmt(cy - 18 * s)} q${fmt(18 * s)} ${fmt(18 * s)} 0 ${fmt(36 * s)} M${fmt(cx + 14 * s)} ${fmt(cy - 26 * s)} q${fmt(26 * s)} ${fmt(26 * s)} 0 ${fmt(52 * s)}`, { stroke: C.ink, sw: 4 * s });
+}
+
+/** Lightning bolt. */
+export function bolt(cx, cy, s = 1, color = C.ink) {
+  return poly([[cx + 6 * s, cy - 26 * s], [cx - 12 * s, cy + 4 * s], [cx, cy + 4 * s], [cx - 6 * s, cy + 26 * s], [cx + 12 * s, cy - 4 * s], [cx, cy - 4 * s]], { fill: color, stroke: color, sw: 1.5 * s });
+}
+
+/** Breakaway switch box with its cable pin. */
+export function breakawayBox(cx, cy, s = 1) {
+  return rect(cx - 16 * s, cy - 11 * s, 32 * s, 22 * s, { fill: C.caution, sw: 3 * s, rx: 3 * s }) + circle(cx + 22 * s, cy, 5 * s, { fill: C.action, stroke: C.ink, sw: 2 * s }) +
+    path(`M${fmt(cx + 27 * s)} ${fmt(cy)} q${fmt(14 * s)} ${fmt(-2 * s)} ${fmt(20 * s)} ${fmt(-14 * s)}`, { stroke: C.action, sw: 3 * s });
+}
+
+// ------------------------------------------------------------------------------------------------ sign tiles
+
+export const SIGN = 240;
+
+/**
+ * ISO 3864-style sign frame on a 240 x 240 tile (original drawing, not a copy of a standard symbol). The body is drawn
+ * in tile coordinates and should stay inside the frame's inner area: a circle of radius 88 around (120, 120) for
+ * prohibition and mandatory signs, the triangle's lower two thirds for warnings, and 30..210 on plates.
+ *   prohibition: red ring and bar over a black pictogram        warning: yellow triangle, black border
+ *   mandatory: blue disc, white pictogram                         limit: white plate, black border
+ *   info: pale plate, blue border (customer policies)             checklist: white plate, green border
+ */
+export function signTile(kind, body) {
+  const c = SIGN / 2;
+  switch (kind) {
+    case "prohibition":
+      return circle(c, c, 106, { fill: C.paper, stroke: "none" }) + body +
+        circle(c, c, 101, { fill: "none", stroke: C.stop, sw: 18 }) + line(c - 70, c - 70, c + 70, c + 70, { stroke: C.stop, sw: 18, cap: "butt" });
+    case "warning":
+      return path("M120 16 L227 206 Q230 214 221 214 L19 214 Q10 214 13 206 Z", { fill: C.caution, stroke: C.ink, sw: 9 }) + body;
+    case "mandatory":
+      return circle(c, c, 108, { fill: C.action, stroke: "none" }) + body;
+    case "limit":
+      return rect(10, 10, 220, 220, { fill: C.paper, stroke: C.ink, sw: 9, rx: 22 }) + body;
+    case "info":
+      return rect(10, 10, 220, 220, { fill: C.sky, stroke: C.action, sw: 7, rx: 22 }) + body;
+    case "checklist":
+      return rect(10, 10, 220, 220, { fill: C.paper, stroke: C.go, sw: 7, rx: 22 }) + body;
+    default:
+      throw new Error(`Unknown sign kind ${kind}.`);
+  }
+}
+
+/** Assemble a complete, self-contained SVG document (480 x 360 panels by default; 240 x 240 sign tiles). */
+export function svgDocument({ id, title, desc, body, width = W, height = H, background = C.paper }) {
   const titleId = `${id}-title`;
   const descId = `${id}-desc`;
-  return [
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-labelledby="${titleId} ${descId}">`,
+  const lines = [
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-labelledby="${titleId} ${descId}">`,
     `<title id="${titleId}">${esc(title)}</title>`,
     `<desc id="${descId}">${esc(desc)}</desc>`,
-    `<rect x="0" y="0" width="${W}" height="${H}" fill="${C.paper}"/>`,
-    body,
-    "</svg>",
-    "",
-  ].join("\n");
+  ];
+  if (background) lines.push(`<rect x="0" y="0" width="${width}" height="${height}" fill="${background}"/>`);
+  lines.push(body, "</svg>", "");
+  return lines.join("\n");
 }

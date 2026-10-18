@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "manifest_id": "showcase-bobcat-e20-b3bl-canopy",
   "kind": "showcase",
   "organization": {
@@ -407,7 +407,7 @@
           "title": "Call before you dig",
           "task": "Locate underground utilities and check the ground before digging.",
           "caption": "Call 811 before you dig. Watch for holes, drop-offs and soft ground.",
-          "alt": "A phone with a locate call, then a dig site with marked buried lines and a drop-off flagged at the edge.",
+          "alt": "4 frames. 1. Do: Call 811 to learn where buried lines run (marked by the flag). 2. Check: Look for holes. 3. Check: Look for drop-offs. 4. Check: Look for soft ground.",
           "control_orientation": "No machine controls drawn.",
           "warnings": [
             "Know where underground lines run (PDF p. 2)."
@@ -424,39 +424,73 @@
             "811 matches Bobcat's sheet and the operator's default.",
             "No utility colour codes are invented."
           ],
-          "status": "REVIEW_REQUIRED",
-          "status_reason": "Artwork drawn from the approved storyboard; awaiting the reviewer.",
           "text_alternative": "Call before you dig. Call 811 before you dig. Watch for holes, drop-offs and soft ground.",
           "files": [
             {
               "file": "guide/e20-p1.svg",
               "width": 480,
               "height": 360,
-              "bytes": 2286,
-              "sha256": "c8d250ad7913d213286166f2664a1d07bf0674d32a7aaace972569ca8d6ae905"
+              "bytes": 4554,
+              "sha256": "2510148be399cf5ba41443aea5ddafe7de751f89d9d15cd63dfec4f95941db99"
             },
             {
               "file": "guide/web/e20-p1.png",
               "width": 960,
               "height": 720,
-              "bytes": 7493,
-              "sha256": "61975008e6a7bd68501efea6667206cf606ac8c1e998a6d821869d58c266e7ab"
+              "bytes": 10324,
+              "sha256": "cd6ecf773917d7c1933c500e252d8b0e4d947f45103fcfef2425bd608740bfb3"
             },
             {
               "file": "guide/web/e20-p1.webp",
               "width": 960,
               "height": 720,
-              "bytes": 6100,
-              "sha256": "d5d9477e72bf492a1c250a570e95fc14224f2d8310a140b4899e461f226d985b"
+              "bytes": 8344,
+              "sha256": "6ed315622146e1ec5e1270a8107eebd875458bb1fec2207509c7340525e24c95"
             }
-          ]
+          ],
+          "frames": [
+            {
+              "frame_id": "e20-p1-f1",
+              "kind": "do",
+              "shows": "Call 811 to learn where buried lines run (marked by the flag)",
+              "derived_from": [
+                "e20-s1"
+              ]
+            },
+            {
+              "frame_id": "e20-p1-f2",
+              "kind": "check",
+              "shows": "Look for holes",
+              "derived_from": [
+                "e20-s1"
+              ]
+            },
+            {
+              "frame_id": "e20-p1-f3",
+              "kind": "check",
+              "shows": "Look for drop-offs",
+              "derived_from": [
+                "e20-s1"
+              ]
+            },
+            {
+              "frame_id": "e20-p1-f4",
+              "kind": "check",
+              "shows": "Look for soft ground",
+              "derived_from": [
+                "e20-s1"
+              ]
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Redrawn picture-first on 2026-10-17 after the operator's gallery review; awaiting the named reviewer (the operator)."
         },
         {
           "panel_id": "e20-p2",
           "title": "Walk around first",
           "task": "Look for leaks and broken or damaged parts before starting.",
-          "caption": "Walk around before you start: leaks, broken or damaged parts. Report anything.",
-          "alt": "An outline of the E20 seen from the side, with a person walking around it and magnifier circles on the tracks, cylinders and underside.",
+          "caption": "Walk around before you start: leaks, broken or damaged parts.",
+          "alt": "3 frames. 1. Do: Walk all the way around the machine before starting. 2. Check: Look for leaks. 3. Check: Look for broken or damaged parts, like a cracked hose.",
           "control_orientation": "Original line drawing of a canopy compact excavator in E20 proportions, not traced from any photo or OEM figure; no controls.",
           "warnings": [],
           "interlocks": [],
@@ -478,32 +512,59 @@
             "The silhouette reads as a canopy compact excavator.",
             "The walk-around matches the Northridge policy (renter: leaks and damage)."
           ],
-          "status": "REVIEW_REQUIRED",
-          "status_reason": "Artwork drawn from the approved storyboard; awaiting the reviewer.",
-          "text_alternative": "Walk around first. Walk around before you start: leaks, broken or damaged parts. Report anything.",
+          "text_alternative": "Walk around first. Walk around before you start: leaks, broken or damaged parts.",
           "files": [
             {
               "file": "guide/e20-p2.svg",
               "width": 480,
               "height": 360,
-              "bytes": 6736,
-              "sha256": "375dd771bb8e0ed0382174e7a092592db5387d944b0b3aa48898dee05cbc6a82"
+              "bytes": 7998,
+              "sha256": "ff352b95e096c9f258b1936cffc655756b9565ce201ae804de00d27c123f74f0"
             },
             {
               "file": "guide/web/e20-p2.png",
               "width": 960,
               "height": 720,
-              "bytes": 19705,
-              "sha256": "0a74cf976a279950b002636f5e7a2e9e15779663c841de5734cec328852d5b7c"
+              "bytes": 22721,
+              "sha256": "8361bf62bf844e864e2e88f63e7a3d9f88daac530f8184ad4d3b1daee119d4b0"
             },
             {
               "file": "guide/web/e20-p2.webp",
               "width": 960,
               "height": 720,
-              "bytes": 22760,
-              "sha256": "86a246c6010e4214734db743ad7a1c8133462ec34a6195f6059875439cf9b27c"
+              "bytes": 26968,
+              "sha256": "d06957a1e2e5c5e64a2bde85f8ebcdf708cc28236e10a55988e99ecf61fd7fc1"
             }
-          ]
+          ],
+          "frames": [
+            {
+              "frame_id": "e20-p2-f1",
+              "kind": "do",
+              "shows": "Walk all the way around the machine before starting",
+              "derived_from": [
+                "e20-s2",
+                "pol-renter-walkaround"
+              ]
+            },
+            {
+              "frame_id": "e20-p2-f2",
+              "kind": "check",
+              "shows": "Look for leaks",
+              "derived_from": [
+                "e20-s2"
+              ]
+            },
+            {
+              "frame_id": "e20-p2-f3",
+              "kind": "check",
+              "shows": "Look for broken or damaged parts, like a cracked hose",
+              "derived_from": [
+                "e20-s2"
+              ]
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Redrawn picture-first on 2026-10-17 after the operator's gallery review; awaiting the named reviewer (the operator)."
         },
         {
           "panel_id": "e20-p3",
@@ -530,13 +591,13 @@
           "reviewer_checklist": [
             "Controls are drawn from the OMM's figures, not mirrored or stylized."
           ],
+          "text_alternative": "Belt on, controls neutral. Belt on. Levers and controls in neutral. Start only from the seat.",
           "status": "BLOCKED",
-          "status_reason": "Control depiction needs OMM 7255004.",
-          "text_alternative": "Belt on, controls neutral. Belt on. Levers and controls in neutral. Start only from the seat."
+          "status_reason": "Control depiction needs OMM 7255004."
         },
         {
           "panel_id": "e20-p4",
-          "title": "Levers away: toward the blade",
+          "title": "Levers away: toward blade",
           "task": "Show that pushing the steering levers away drives toward the blade, wherever it is.",
           "caption": "Levers pushed away = travel toward the blade. Check where the blade is before you move.",
           "alt": "Two top views: blade in front with the machine moving forward, and the upper swung around with the blade behind the operator so the same lever push moves it the other way.",
@@ -560,17 +621,17 @@
             "Direction arrows checked against the OMM's travel figure.",
             "Any travel pedals are shown only if the OMM shows them for this configuration."
           ],
+          "text_alternative": "Levers away: toward blade. Levers pushed away = travel toward the blade. Check where the blade is before you move.",
           "status": "BLOCKED",
-          "status_reason": "Control depiction needs OMM 7255004; the rule itself is sourced.",
-          "text_alternative": "Levers away: toward the blade. Levers pushed away = travel toward the blade. Check where the blade is before you move."
+          "status_reason": "Control depiction needs OMM 7255004; the rule itself is sourced."
         },
         {
           "panel_id": "e20-p5",
           "title": "Slope limits",
           "task": "Show the slope limits for travel and the rule against swinging on a slope.",
-          "caption": "Across or up: 15 degrees or less. Down or backing up: 25 degrees or less. No swinging loads on a slope.",
-          "alt": "Machine silhouettes on two slopes marked 15 degrees (across or up) and 25 degrees (down or backing up), and a crossed-out swing on a slope.",
-          "control_orientation": "Side and rear silhouettes; no controls.",
+          "caption": "Up or across: 15 degrees at most. Down, or backing up: 25 degrees at most. No swinging on a slope.",
+          "alt": "4 frames. 1. Check: Driving up a slope: 15° at most. 2. Check: Across a slope: 15° at most (rear view). 3. Check: Driving down a slope, or backing up one: 25° at most. 4. Don't: Swinging a load on a slope.",
+          "control_orientation": "Side views up and down a slope and a rear view across one, each with its angle limit; the machine is drawn in a travel pose with the arm low and, when backing up, facing downhill.",
           "warnings": [
             "Swing loads low and slowly (PDF p. 2)."
           ],
@@ -583,42 +644,77 @@
           ],
           "safety_critical": true,
           "reviewer_checklist": [
-            "Angles match B-1699 exactly.",
-            "Cross-check against the E20 OMM's slope section on receipt."
+            "15° (across or up) and 25° (down or backing up) match B-1699 p. 2.",
+            "Backing up is drawn with the machine facing downhill.",
+            "Cross-check against the E20 OMM when it arrives."
           ],
-          "status": "REVIEW_REQUIRED",
-          "status_reason": "Artwork drawn from the approved storyboard; awaiting the reviewer and the cross-check against the E20 OMM.",
-          "text_alternative": "Slope limits. Across or up: 15 degrees or less. Down or backing up: 25 degrees or less. No swinging loads on a slope.",
+          "text_alternative": "Slope limits. Up or across: 15 degrees at most. Down, or backing up: 25 degrees at most. No swinging on a slope.",
           "files": [
             {
               "file": "guide/e20-p5.svg",
               "width": 480,
               "height": 360,
-              "bytes": 7390,
-              "sha256": "7c2c977b12e73ec06cbe4915ba0489c11d59858f3bbdc935dda718dd2aad8307"
+              "bytes": 14312,
+              "sha256": "edac3a86102afb35bb1d0c4008c87de7958de1d58ea2df4782fbd3aa293526fe"
             },
             {
               "file": "guide/web/e20-p5.png",
               "width": 960,
               "height": 720,
-              "bytes": 21659,
-              "sha256": "d0597f6ee6a3fd5d368def3484332579a85d52020ace20a01114a1562137f230"
+              "bytes": 27934,
+              "sha256": "4991c5d9a01b9774038cbf32e8bc431f525f9cabe65969054171b52097a2d9fc"
             },
             {
               "file": "guide/web/e20-p5.webp",
               "width": 960,
               "height": 720,
-              "bytes": 24394,
-              "sha256": "3d6101817d4961622040be9678eedbbd4de6abe2c093ef29b0dd6df515f88913"
+              "bytes": 32566,
+              "sha256": "a4816b227f46ed1f62c5ec9cbb2259aa39f049487e70c19c6ff45a5ec359d4cb"
             }
-          ]
+          ],
+          "frames": [
+            {
+              "frame_id": "e20-p5-f1",
+              "kind": "check",
+              "shows": "Driving up a slope: 15° at most",
+              "derived_from": [
+                "e20-s7"
+              ]
+            },
+            {
+              "frame_id": "e20-p5-f2",
+              "kind": "check",
+              "shows": "Across a slope: 15° at most (rear view)",
+              "derived_from": [
+                "e20-s7"
+              ]
+            },
+            {
+              "frame_id": "e20-p5-f3",
+              "kind": "check",
+              "shows": "Driving down a slope, or backing up one: 25° at most",
+              "derived_from": [
+                "e20-s7"
+              ]
+            },
+            {
+              "frame_id": "e20-p5-f4",
+              "kind": "dont",
+              "shows": "Swinging a load on a slope",
+              "derived_from": [
+                "e20-s7"
+              ]
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Redrawn picture-first on 2026-10-17 after the operator's gallery review; awaiting the reviewer and the cross-check against the E20 OMM."
         },
         {
           "panel_id": "e20-p6",
           "title": "Keep people clear",
           "task": "Bystanders away; never lift over a person; no riders.",
-          "caption": "Keep people out of the swing area. Never lift over anyone. No riders.",
-          "alt": "Top view of the machine with a shaded swing zone and a person outside it; a crossed-out frame shows a load raised over a person.",
+          "caption": "Keep people out of the swing area. Look before you move or swing. Never lift over anyone.",
+          "alt": "3 frames. 1. Check: People stay outside the swing area. 2. Do: Look where you will travel or swing before moving. 3. Don't: Lifting the boom or bucket over a person.",
           "control_orientation": "Top view; no controls.",
           "warnings": [
             "Never carry riders (PDF p. 2)."
@@ -632,34 +728,62 @@
           ],
           "safety_critical": true,
           "reviewer_checklist": [
-            "The zone is labelled generically; no distance is invented."
+            "The swing area is drawn around the whole machine.",
+            "Matches B-1699 p. 2 (bystanders, lifting over people, looking before moving).",
+            "Cross-check against the E20 OMM when it arrives."
           ],
-          "status": "REVIEW_REQUIRED",
-          "status_reason": "Artwork drawn from the approved storyboard; awaiting the reviewer and the cross-check against the E20 OMM.",
-          "text_alternative": "Keep people clear. Keep people out of the swing area. Never lift over anyone. No riders.",
+          "text_alternative": "Keep people clear. Keep people out of the swing area. Look before you move or swing. Never lift over anyone.",
           "files": [
             {
               "file": "guide/e20-p6.svg",
               "width": 480,
               "height": 360,
-              "bytes": 6705,
-              "sha256": "85b541d72bd87e6932b6d2996e8cd465879ad4d8dac50d832f972cb92950b2a4"
+              "bytes": 7464,
+              "sha256": "328958163597a10a9ad62e6f4ba09fb28415b3d2fe08c5e52e8ade1268ad6c2a"
             },
             {
               "file": "guide/web/e20-p6.png",
               "width": 960,
               "height": 720,
-              "bytes": 26010,
-              "sha256": "be0b69a50856790ab2cfbc2da13f99b1905b80bc7a37212e825ac7b0af906eed"
+              "bytes": 27107,
+              "sha256": "ca09a54d153124533b76b1a5ab1d4a27699498b5b6e358031038072175fd4999"
             },
             {
               "file": "guide/web/e20-p6.webp",
               "width": 960,
               "height": 720,
-              "bytes": 28806,
-              "sha256": "a9b7dfe049976f92c45dab80e52abd23056191b84597bb229a524bb22b16fe31"
+              "bytes": 31764,
+              "sha256": "51cacd72d3e86bc3f1fc0719269cfdbbb367e4f81be3fb6514e6f2f951f08c7b"
             }
-          ]
+          ],
+          "frames": [
+            {
+              "frame_id": "e20-p6-f1",
+              "kind": "check",
+              "shows": "People stay outside the swing area",
+              "derived_from": [
+                "e20-s5"
+              ]
+            },
+            {
+              "frame_id": "e20-p6-f2",
+              "kind": "do",
+              "shows": "Look where you will travel or swing before moving",
+              "derived_from": [
+                "e20-s5"
+              ]
+            },
+            {
+              "frame_id": "e20-p6-f3",
+              "kind": "dont",
+              "shows": "Lifting the boom or bucket over a person",
+              "derived_from": [
+                "e20-s5"
+              ]
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Redrawn picture-first on 2026-10-17 after the operator's gallery review; awaiting the reviewer and the cross-check against the E20 OMM."
         },
         {
           "panel_id": "e20-p7",
@@ -687,9 +811,9 @@
             "The sequence order matches B-1699.",
             "The console frame is drawn from the OMM."
           ],
+          "text_alternative": "Leaving the machine. 1 Bucket on the ground. 2 Shut down. 3 Key out. 4 Console up.",
           "status": "BLOCKED",
-          "status_reason": "Frame 4 needs OMM 7255004; frames 1-3 are sourced.",
-          "text_alternative": "Leaving the machine. 1 Bucket on the ground. 2 Shut down. 3 Key out. 4 Console up."
+          "status_reason": "Frame 4 needs OMM 7255004; frames 1-3 are sourced."
         },
         {
           "panel_id": "e20-p8",
@@ -717,9 +841,9 @@
             "Which end is heavy, checked against the OMM.",
             "The tie-down points match the OMM figure."
           ],
+          "text_alternative": "Loading for transport. Heavy end uphill. Slew lock on. Chain it down at the tie-down points.",
           "status": "BLOCKED",
-          "status_reason": "Tie-down and slew-lock positions need OMM 7255004.",
-          "text_alternative": "Loading for transport. Heavy end uphill. Slew lock on. Chain it down at the tie-down points."
+          "status_reason": "Tie-down and slew-lock positions need OMM 7255004."
         }
       ],
       "storyboard": "docs/phase-e/packs/bobcat.e20.b3bl-canopy/storyboard.md",
@@ -732,6 +856,306 @@
         "Keys",
         "Attachments",
         "Manual"
+      ],
+      "signs": [
+        {
+          "sign_id": "e20-sign-no-riders",
+          "kind": "prohibition",
+          "label": "No riders",
+          "shows": "A person riding on the excavator, crossed out",
+          "derived_from": [
+            "e20-w1"
+          ],
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"While Operating\""
+            }
+          ],
+          "alt": "Prohibition sign: A person riding on the excavator, crossed out.",
+          "text_alternative": "No riders. Never carry riders.",
+          "reviewer_checklist": [
+            "Matches B-1699 p. 2."
+          ],
+          "files": [
+            {
+              "file": "guide/e20-sign-no-riders.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 3363,
+              "sha256": "241c319c598b46995e691a28300c4bc2cf8e60892b78b6d43a3aa92de01a1c92"
+            },
+            {
+              "file": "guide/web/e20-sign-no-riders.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 11304,
+              "sha256": "0dcd1854139cbc37e8fbe1ec9d302f39b0149e3aaba622b4743a7314d664ecce"
+            },
+            {
+              "file": "guide/web/e20-sign-no-riders.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 12856,
+              "sha256": "67c41984212ec41611f204bba47c3a92e2e0aae294767cd69850b0a9572c3a54"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator)."
+        },
+        {
+          "sign_id": "e20-sign-no-ground-controls",
+          "kind": "prohibition",
+          "label": "Never from ground",
+          "shows": "Someone working the controls from the ground, crossed out",
+          "derived_from": [
+            "e20-w2"
+          ],
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"While Operating\""
+            }
+          ],
+          "alt": "Prohibition sign: Someone working the controls from the ground, crossed out.",
+          "text_alternative": "Never from ground. Never operate the controls from the ground.",
+          "reviewer_checklist": [
+            "Matches B-1699 p. 2."
+          ],
+          "files": [
+            {
+              "file": "guide/e20-sign-no-ground-controls.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 3422,
+              "sha256": "1686e83eab7c494c51b798f7769d4b0035c813e6b01cd728e18cc70928146d2a"
+            },
+            {
+              "file": "guide/web/e20-sign-no-ground-controls.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 11698,
+              "sha256": "a574682931f730c75563d600b34c1bb9c4cd5b89eb642ef2b9c59101d5fcbfec"
+            },
+            {
+              "file": "guide/web/e20-sign-no-ground-controls.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 13454,
+              "sha256": "74c122b869b48642144a6477ce621f0a313c961bc80017bbae1af0e4f0f1e3c9"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator)."
+        },
+        {
+          "sign_id": "e20-sign-limbs-inside",
+          "kind": "mandatory",
+          "label": "Hands, feet inside",
+          "shows": "The operator seated with hands and feet inside the canopy",
+          "derived_from": [
+            "e20-w3"
+          ],
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"Leaving the Machine\""
+            }
+          ],
+          "alt": "Mandatory action sign: The operator seated with hands and feet inside the canopy.",
+          "text_alternative": "Hands, feet inside. Keep hands and feet inside the operator's area while the machine is on.",
+          "reviewer_checklist": [
+            "Matches B-1699 p. 2 (while the machine is on)."
+          ],
+          "files": [
+            {
+              "file": "guide/e20-sign-limbs-inside.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 1450,
+              "sha256": "048370c63f47c7eb23514ad25a6ac67cde307a607dc5f6cec525bd3285085b06"
+            },
+            {
+              "file": "guide/web/e20-sign-limbs-inside.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 6257,
+              "sha256": "bd62dfed629d0f8e3d6d8060e87890ecc32d076ff6e3af0cc23b7d65520cbd6a"
+            },
+            {
+              "file": "guide/web/e20-sign-limbs-inside.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 5950,
+              "sha256": "f2c08922dd6326529cb3aa8b6278d86478fa66af9c246887692ef3a40440b799"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator)."
+        },
+        {
+          "sign_id": "e20-sign-no-smoking-fueling",
+          "kind": "prohibition",
+          "label": "Fueling: no smoking",
+          "shows": "A fuel nozzle and a lit cigarette, crossed out",
+          "derived_from": [
+            "e20-w4"
+          ],
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 1, \"Before Operating\""
+            }
+          ],
+          "alt": "Prohibition sign: A fuel nozzle and a lit cigarette, crossed out.",
+          "text_alternative": "Fueling: no smoking. Never smoke while fueling.",
+          "reviewer_checklist": [
+            "Matches B-1699 p. 1."
+          ],
+          "files": [
+            {
+              "file": "guide/e20-sign-no-smoking-fueling.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 1362,
+              "sha256": "9c1163f8ae78e13defd19ec5711b81c3e043abdf1b7cb1681f882b9880626333"
+            },
+            {
+              "file": "guide/web/e20-sign-no-smoking-fueling.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 9395,
+              "sha256": "9663bd3eba675037c82c3c5c22b7f35847ea48fcbd501b4cfa5c4ed4bbb17fe1"
+            },
+            {
+              "file": "guide/web/e20-sign-no-smoking-fueling.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 9754,
+              "sha256": "17580222810bd01414fae075e4fb426a12ec1c00d774e11e4cb9e0944a6c8880"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator)."
+        },
+        {
+          "sign_id": "e20-sign-lift-chart",
+          "kind": "limit",
+          "label": "Within lift chart",
+          "shows": "A lifted load at or under the machine's lift chart",
+          "derived_from": [
+            "e20-s8"
+          ],
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"While Operating\""
+            }
+          ],
+          "alt": "Limit sign: A lifted load at or under the machine's lift chart.",
+          "text_alternative": "Within lift chart. Stay within the rated lift capacity on the machine's lift chart.",
+          "reviewer_checklist": [
+            "Matches B-1699 p. 2; no number is drawn because the machine's chart governs."
+          ],
+          "files": [
+            {
+              "file": "guide/e20-sign-lift-chart.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 1921,
+              "sha256": "bc0fe451f4a7e1db8e99e760f462c9b2e2a2cceeb2abbf4749a242e9551782ec"
+            },
+            {
+              "file": "guide/web/e20-sign-lift-chart.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 5261,
+              "sha256": "136415e563824de58bf4703a3b6b95999921ed9a33d18a51232c674730cd9208"
+            },
+            {
+              "file": "guide/web/e20-sign-lift-chart.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 4262,
+              "sha256": "453816f4a41355341e13ce957350dddcd38e051dc061899694ef31795327e990"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator)."
+        },
+        {
+          "sign_id": "e20-sign-stop-call",
+          "kind": "info",
+          "label": "Stop and call",
+          "shows": "A warning light, a leak or an odd noise; then stop and call Northridge",
+          "derived_from": [
+            "pol-stop-and-report"
+          ],
+          "source_refs": [
+            {
+              "source_id": "pol-stop-and-report"
+            }
+          ],
+          "alt": "Information sign: A warning light, a leak or an odd noise; then stop and call Northridge.",
+          "text_alternative": "Stop and call. If something seems wrong (a warning light, leak or unusual noise), stop safely and contact Northridge with Request Support.",
+          "reviewer_checklist": [
+            "Northridge demo policy wording."
+          ],
+          "files": [
+            {
+              "file": "guide/e20-sign-stop-call.svg",
+              "width": 240,
+              "height": 240,
+              "bytes": 3458,
+              "sha256": "e4c7d3fb1fad5f7cc8440a781fbfcc1181532ba632d86a2e7c55dc58d2ca89d7"
+            },
+            {
+              "file": "guide/web/e20-sign-stop-call.png",
+              "width": 480,
+              "height": 480,
+              "bytes": 9448,
+              "sha256": "3685ec4711b4e813c3d2b44f46f15c577cfe2d411612884ac6d327c59e607bfb"
+            },
+            {
+              "file": "guide/web/e20-sign-stop-call.webp",
+              "width": 480,
+              "height": 480,
+              "bytes": 11194,
+              "sha256": "ecacdb57efdfad590254bb264819e5f4321c60a2bfc2a0fc3dc935584734ec6d"
+            }
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17 from a Northridge demo policy; awaiting the named reviewer (the operator)."
+        }
+      ],
+      "accessory_icons": [
+        {
+          "name": "Keys",
+          "icon": "keys",
+          "derived_from": [
+            "template:mini_excavator_skid_steer"
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17; awaiting the named reviewer (the operator)."
+        },
+        {
+          "name": "Attachments",
+          "icon": "attachment",
+          "derived_from": [
+            "template:mini_excavator_skid_steer"
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17; awaiting the named reviewer (the operator)."
+        },
+        {
+          "name": "Manual",
+          "icon": "manual",
+          "derived_from": [
+            "template:mini_excavator_skid_steer"
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Drawn 2026-10-17; awaiting the named reviewer (the operator)."
+        }
       ],
       "photo": {
         "source_id": "src-photo-e20-taurusemerald",
@@ -818,31 +1242,35 @@
           "status_reason": "Identity facts."
         },
         "quick_start_text": {
-          "text": "1. Before you dig, call 811 and check the area for holes, drop-offs and soft ground.\n2. Walk around the machine: look for leaks and broken or damaged parts.\n3. Climb on with the grab handles and tracks (never jump off) and fasten the seat belt.\n4. Start only from the seat, with the levers and controls in neutral.\n5. Pushing the travel levers away drives toward the blade: check where the blade is first.\n6. Before you leave the seat: bucket on the ground, engine off, key out, console up.\nThe Start-Up Guide shows each step.",
+          "text": "1. Call 811 first. Watch for holes, drop-offs, soft ground.\n2. Walk around it: look for leaks and damaged parts.\n3. Belt on, controls in neutral; start only from the seat.\n4. Levers pushed away drive toward the blade. Check it first.\n5. Slopes: 15° across or up, 25° down or backing up.\n6. Keep people clear of the swing; never lift over anyone.\n7. Leaving: bucket down, engine off, key out, console up.\n8. Transport: heavy end uphill, slew lock on, chained down.\nThe Start-Up Guide shows each step.",
           "derived_from": [
             "e20-s1",
             "e20-s2",
+            "pol-renter-walkaround",
             "e20-s3",
             "e20-s4",
             "e20-s6",
+            "e20-s7",
+            "e20-s5",
             "e20-s9",
-            "pol-renter-walkaround"
+            "e20-s10"
           ],
           "status": "BLOCKED",
           "status_reason": "Start-up and control steps come from Bobcat's E20 manual (7255004), not in hand yet. Publish after they are added and reviewed."
         },
         "safety_notes": {
-          "text": "Keep people out of the swing area, and never lift the boom or bucket over anyone. No riders.\nSlopes: no more than 15° across or up, or 25° down or backing up. Don't swing loads on a slope.\nStay within the lift chart on the machine.\nNever work the controls from the ground. No smoking while fueling.",
+          "text": "Keep people out of the swing area; never lift over anyone.\nSlopes: 15° across or up, 25° down or backing up. No swinging on a slope.\nNo riders.\nNever work the controls from the ground.\nKeep hands and feet inside while the machine is on.\nNo smoking while fueling.\nStay within the lift chart on the machine.",
           "derived_from": [
             "e20-s5",
-            "e20-w1",
             "e20-s7",
-            "e20-s8",
+            "e20-w1",
             "e20-w2",
-            "e20-w4"
+            "e20-w3",
+            "e20-w4",
+            "e20-s8"
           ],
           "status": "REVIEW_REQUIRED",
-          "status_reason": "From Bobcat's rental safety sheet; awaiting the reviewer and the OMM cross-check."
+          "status_reason": "Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer."
         },
         "fuel_power_notes": {
           "text": null,
@@ -886,11 +1314,11 @@
           "file": {
             "file": "guide/bobcat.e20.b3bl-canopy-start-up-guide.pdf",
             "pages": 2,
-            "bytes": 194458,
-            "sha256": "5d867e33991d3b23cad97130df615f79f62544bec902c73201a78d4260e5c682"
+            "bytes": 204287,
+            "sha256": "bc1e70a34b488db475f0ba52a5b6aa9430b1a73daf8eacd7960dcff385bf296d"
           },
           "status": "REVIEW_REQUIRED",
-          "status_reason": "Carries the review-draft banner until every panel is approved."
+          "status_reason": "Carries the review-draft badge until every panel and sign is approved."
         },
         {
           "title": "Bobcat E20 Operation & Maintenance Manual (sold by Bobcat)",

@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   citedSourceIds,
+  composeAlt,
   embedSources,
   locatorPdfPages,
+  missingPolicies,
   readinessProblems,
   renderReviewMarkdown,
   renderStoryboardMarkdown,
@@ -98,6 +100,43 @@ describe("review copies", () => {
     expect(review).toContain("Manual A, p. 3");
     const storyboard = renderStoryboardMarkdown(p, { generator: "gen.mjs" });
     expect(storyboard).toContain("## 1. Panel `p1` · BLOCKED");
-    expect(storyboard).toContain("No final artwork is drawn until it is approved.");
+    expect(storyboard).toContain("drawings carry numbers, units and symbols only");
+  });
+
+  it("lists frames, signs and accessory icons", () => {
+    const p = pack({
+      pictograms: [
+        {
+          panel_id: "p1",
+          title: "Panel",
+          task: "Task",
+          caption: "Caption",
+          source_refs: [{ source_id: "src-a", locator: "p. 3" }],
+          frames: [{ frame_id: "p1-f1", kind: "dont", shows: "Riding in the bed", derived_from: ["s1"] }],
+          status: "REVIEW_REQUIRED",
+        },
+      ],
+      signs: [{ sign_id: "sg1", kind: "prohibition", label: "No riders", shows: "A person riding", derived_from: ["s1"], source_refs: [{ source_id: "src-a", locator: "p. 3" }], status: "REVIEW_REQUIRED" }],
+      accessory_icons: [{ name: "Straps", icon: "strap", derived_from: ["pol-straps"], status: "REVIEW_REQUIRED" }],
+    });
+    p.sources = embedSources(p, register);
+    expect(renderStoryboardMarkdown(p, { generator: "gen.mjs" })).toContain("1. *Don't*: Riding in the bed (from `s1`)");
+    expect(renderStoryboardMarkdown(p, { generator: "gen.mjs" })).toContain("### No riders `sg1` · prohibition · REVIEW_REQUIRED");
+    const review = renderReviewMarkdown(p, { packDir: "docs/x/", generator: "gen.mjs" });
+    expect(review).toContain("| No riders `sg1` | prohibition | A person riding | `s1` | REVIEW_REQUIRED |");
+    expect(review).toContain("Accessory icons: Straps (`strap`, from `pol-straps`, REVIEW_REQUIRED).");
+    // The accessory icon cites a policy the organization does not define.
+    expect(missingPolicies(p)).toEqual(["pol-straps"]);
+  });
+});
+
+describe("composeAlt", () => {
+  it("describes each frame in order, with the frame count", () => {
+    const frames = [
+      { frame_id: "f1", kind: "do", shows: "Cross the chains under the coupler", derived_from: ["s1"] },
+      { frame_id: "f2", kind: "dont", shows: "Chain hooked to the ball mount.", derived_from: ["s1"] },
+    ];
+    expect(composeAlt(frames)).toBe("2 frames. 1. Do: Cross the chains under the coupler. 2. Don't: Chain hooked to the ball mount.");
+    expect(composeAlt(frames.slice(0, 1))).toBe("Do: Cross the chains under the coupler.");
   });
 });

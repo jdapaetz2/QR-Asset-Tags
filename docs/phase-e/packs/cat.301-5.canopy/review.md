@@ -8,7 +8,7 @@ Generated from [pack.json](pack.json) by `scripts/phase-e/packs/pack-review.mjs`
 | Protected route | `ezzs9ueg` (unchanged) |
 | Model key | `cat.301-5.canopy` · Mini Excavator |
 | Review status | **MULEMARK_REVIEW** |
-| Items | 11 READY · 0 REVIEW_REQUIRED · 16 BLOCKED |
+| Items | 11 READY · 3 REVIEW_REQUIRED · 16 BLOCKED |
 | Storyboard | [storyboard.md](storyboard.md) (8 panels) |
 
 ## Blockers
@@ -106,6 +106,14 @@ None.
 
 None.
 
+## Safety signs
+
+| Sign | Kind | Shows | From | Status |
+|---|---|---|---|---|
+| Staff walk-through `301-sign-handover` | info | Northridge staff hand over the keys and walk the renter through start-up and the controls | `pol-cat-handover` | REVIEW_REQUIRED: Drawn 2026-10-17 from a Northridge demo policy; awaiting the named reviewer (the operator). |
+| Stop and call `301-sign-stop-call` | info | A warning light, a leak or an odd noise; then stop and call Northridge | `pol-stop-and-report` | REVIEW_REQUIRED: Drawn 2026-10-17 from a Northridge demo policy; awaiting the named reviewer (the operator). |
+| Handover photos `301-sign-photos` | info | Photos of the machine when it goes out and when it comes back | `pol-condition-photos` | REVIEW_REQUIRED: Drawn 2026-10-17 from a Northridge demo policy; awaiting the named reviewer (the operator). |
+
 ## Public page text
 
 The seven equipment-page fields in display order (6 READY · 0 REVIEW_REQUIRED · 1 BLOCKED). Citations stay here; the page shows plain text only.
@@ -169,6 +177,8 @@ Staff take outbound photos at handover, then a return checklist flags new damage
 ## Checklists
 
 Return and outbound template: `mini_excavator_skid_steer`. Accessories: Keys, Attachments, Manual.
+
+Accessory icons: Keys (`keys`, from `template:mini_excavator_skid_steer`, REVIEW_REQUIRED); Attachments (`attachment`, from `template:mini_excavator_skid_steer`, REVIEW_REQUIRED); Manual (`manual`, from `template:mini_excavator_skid_steer`, REVIEW_REQUIRED).
 
 - Northridge policy `pol-cat-handover`: Northridge staff walk every renter through start-up and the controls at handover. (Fictional demo policy.)
 - Northridge policy `pol-condition-photos`: Northridge records outbound and return photos for every rental. (Fictional demo policy.)

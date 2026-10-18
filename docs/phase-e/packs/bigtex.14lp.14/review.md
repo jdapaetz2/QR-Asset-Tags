@@ -8,7 +8,7 @@ Generated from [pack.json](pack.json) by `scripts/phase-e/packs/pack-review.mjs`
 | Protected route | `67uqc3q7` (unchanged) |
 | Model key | `bigtex.14lp.14` · Dump Trailer |
 | Review status | **MULEMARK_REVIEW** |
-| Items | 12 READY · 31 REVIEW_REQUIRED · 5 BLOCKED |
+| Items | 12 READY · 41 REVIEW_REQUIRED · 5 BLOCKED |
 | Storyboard | [storyboard.md](storyboard.md) (8 panels) |
 
 ## Blockers
@@ -163,6 +163,21 @@ Applicability: Big Tex's dump-trailer Owners Manual (Rev. March 2020) covers its
    - Source: Big Tex Trailers Owners Manual (Dump Trailers), p. 46
    - Status: **REVIEW_REQUIRED**
 
+## Safety signs
+
+| Sign | Kind | Shows | From | Status |
+|---|---|---|---|---|
+| Never go under `14lp-sign-under-body` | prohibition | A person under a raised dump body, crossed out | `14lp-w1` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+| Never assist hoist `14lp-sign-no-assist` | checklist | A jack pushing up the body, crossed out; unloading by hand with a shovel, ticked | `14lp-w2` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+| No full raise `14lp-sign-no-full-raise` | prohibition | A loaded body raised all the way, crossed out | `14lp-w3` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+| Power lines `14lp-sign-power-lines` | warning | A raised body near overhead wires, with a lightning bolt | `14lp-w4` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+| Before you move `14lp-sign-before-moving` | checklist | Coupler pinned, chains crossed, breakaway cable on and jack up, each ticked; then the rig moves off | `14lp-w5` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+| No riders `14lp-sign-no-riders` | prohibition | A person riding in the dump body, crossed out | `14lp-w6` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+| No hazardous loads `14lp-sign-no-hazmat` | prohibition | Flammable, explosive and poisonous loads on the trailer, crossed out | `14lp-w6` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+| Max towing speed `14lp-sign-max-speed` | limit | A speedometer and ≤ 60 mph | `14lp-w7` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+| Stay at controls `14lp-sign-stay-at-controls` | mandatory | The operator holds the remote beside the raised body | `14lp-s9` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+| Within payload decal `14lp-sign-payload` | limit | The load's weight at or under the trailer's payload decal | `14lp-s7` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+
 ## Public page text
 
 The seven equipment-page fields in display order (2 READY · 5 REVIEW_REQUIRED · 0 BLOCKED). Citations stay here; the page shows plain text only.
@@ -175,53 +190,58 @@ From: `bed`, `gawr`, `brakes`, `hoist-power`, `coupler`, `gvwr`, `14lp-s1`, `14l
 
 ### Quick start · REVIEW_REQUIRED
 
-> 1. Ball: 2-5/16 inch, rated 14,000 lb or more. Seat the coupler, latch it and pin it.
-> 2. Lift-test: raise the truck 1 inch with the jack (no more), then raise the jack fully.
-> 3. Cross the safety chains under the coupler and hook them to the truck's frame.
-> 4. Clip the breakaway cable to the truck, not to a chain. Test: pull the pin, feel the brakes hold, put the pin straight back.
-> 5. Plug in the 7-way and check the lights. Then, under 5 mph, apply the brake controller and feel the trailer brakes.
-> 6. Tires: no damage, pressure as printed on the VIN label (front left), lug nuts tight.
-> 7. Load hitched and level, within the payload decal (9,820 lb listed). Spread loose material evenly.
-> 8. To dump: level, firm ground, people clear, no power lines overhead. Chain the doors open, raise in stages and check behind.
+> 1. 2-5/16 in ball, 14,000 lb or more. Seat, latch, pin, test.
+> 2. Cross the chains. Breakaway cable to the truck; pull-test it.
+> 3. Plug in the 7-way. Check lights; test brakes under 5 mph.
+> 4. Before dumping: level, firm ground, people clear, no wires overhead.
+> 5. Chain the doors open; open the control box.
+> 6. Raise to about half, look behind; then three-quarters, look again.
+> 7. Load stuck: lower the body, free it by hand.
+> 8. Body down, doors latched, controls locked. Then drive.
+> Tires: undamaged, cold pressure per VIN label, lug nuts tight.
+> Load hitched and level; spread loose material evenly.
 > The Start-Up Guide shows each step.
 
-From: `14lp-s1`, `14lp-s2`, `14lp-s3`, `14lp-s4`, `14lp-s5`, `14lp-s6`, `14lp-s7`, `14lp-s8`, `14lp-s9`. Condensed from sourced steps; awaiting the reviewer.
+From: `14lp-s1`, `14lp-s2`, `14lp-s3`, `14lp-s4`, `14lp-s5`, `14lp-s8`, `14lp-s9`, `14lp-s10`, `14lp-s11`, `14lp-s6`, `tire-pressure`, `14lp-s7`. Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.
 
 ### Safety · REVIEW_REQUIRED
 
-> Never go under a raised dump body. The body prop is for maintenance, with the body empty.
-> Stay at the controls while the body is up. Lower it fully, latch the doors and lock the controls before you move.
-> Don't fully raise a loaded body: the truck's rear wheels can lose traction.
-> If the hoist won't lift the load, unload some by hand. Never push it with a jack or machine.
-> A raised body near power lines can electrocute without touching them.
-> Don't move until the coupler is locked, the chains and breakaway cable are on and the jack is up. 60 mph is the maximum recommended speed, in ideal conditions only. No people or hazardous loads.
+> Never go under a raised body.
+> Never push the hoist with a jack or machine; unload by hand.
+> Don't fully raise a loaded body.
+> A raised body near power lines can electrocute. Check overhead before raising.
+> Don't move until the coupler is pinned, the chains and breakaway cable are on and the jack is up.
+> No riders, and no flammable, explosive or poisonous loads.
+> 60 mph maximum, in ideal conditions only.
+> Stay at the controls while the body is up.
+> Stay within the payload on the trailer's decal.
 
-From: `14lp-w1`, `14lp-s11`, `14lp-w3`, `14lp-w2`, `14lp-w4`, `14lp-w5`, `14lp-w7`, `14lp-w6`. Condensed from sourced warnings; awaiting the reviewer.
+From: `14lp-w1`, `14lp-w2`, `14lp-w3`, `14lp-w4`, `14lp-w5`, `14lp-w6`, `14lp-w7`, `14lp-s9`, `14lp-s7`. Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.
 
 ### Fuel / power · REVIEW_REQUIRED
 
-> The hoist runs on the trailer's 12 V deep-cycle battery, which has an onboard 110 V charger and a 5 W solar charger.
-> The breakaway battery runs down fast while its pin is out, so put the pin straight back after testing.
+> Hoist: 12 V battery with an onboard 110 V charger and a 5 W solar charger.
+> The breakaway battery drains fast with its pin out: put the pin straight back.
 
-From: `hoist-power`, `14lp-n6`, `14lp-s4`. Battery facts from the product page; the pin line from the manual; awaiting the reviewer.
+From: `hoist-power`, `solar_charger`, `14lp-n6`, `14lp-s4`. Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.
 
 ### Troubleshooting · REVIEW_REQUIRED
 
-> Hoist won't lift the load: unload some by hand, then use Request Support. Never push it with a jack or machine.
-> Load stuck: lower the body and free it by hand. Don't jerk the button or brake hard.
-> Lights or brakes dead: check the 7-way plug is fully connected.
+> Hoist won't lift: unload some by hand, then use Request Support.
+> Load stuck: lower the body and free it by hand.
+> Lights or brakes dead: check the 7-way plug.
 > Breakaway test fails: don't tow. Use Request Support.
 
-From: `14lp-n4`, `14lp-s10`, `14lp-n5`, `14lp-n6`. Condensed from sourced notes; the hoist manual's battery check stays off the page until Big Tex confirms it applies.
+From: `14lp-n4`, `14lp-s10`, `14lp-n5`, `14lp-n6`. Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.
 
 ### Return · REVIEW_REQUIRED
 
-> Return the straps, chain pins, spare tire and the hoist remote.
-> Body fully down, doors latched, controls locked.
-> To unhitch: block the tires, unplug, unclip the breakaway cable, unhook the chains, open the coupler, then lower the jack on firm ground.
+> Return the straps, chain pins, spare tire and hoist remote.
+> Body down, doors latched, controls locked.
+> Unhitch: block the tires, unplug, unclip the breakaway, unhook the chains, open the coupler, lower the jack on firm ground.
 > Use Return checklist when you drop it off.
 
-From: `pol-trailer-accessories`, `pol-dump-remote`, `14lp-s11`, `14lp-s13`. Unhitching steps awaiting the reviewer; the accessory line is Northridge policy.
+From: `pol-trailer-accessories`, `pol-dump-remote`, `14lp-s11`, `14lp-s13`. Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.
 
 ### Emergency · READY
 
@@ -233,7 +253,7 @@ From: `mulemark-standard-emergency`. Mulemark's standard emergency wording (lib/
 
 | Title | Type | Delivery | Target | Status |
 |---|---|---|---|---|
-| Big Tex Trailers 14LP-14 Start-Up Guide | startup_guide | hosted | [guide/bigtex.14lp.14-start-up-guide.pdf](guide/bigtex.14lp.14-start-up-guide.pdf) (418018 bytes, 2 pages) | REVIEW_REQUIRED: Carries the review-draft banner until every panel is approved. |
+| Big Tex Trailers 14LP-14 Start-Up Guide | startup_guide | hosted | [guide/bigtex.14lp.14-start-up-guide.pdf](guide/bigtex.14lp.14-start-up-guide.pdf) (417554 bytes, 2 pages) | REVIEW_REQUIRED: Carries the review-draft badge until every panel and sign is approved. |
 | Big Tex Owners Manual (Dump Trailers) | manual | link | [link](https://www.bigtextrailers.com/wp-content/uploads/2023/11/Big-Tex-Trailers_Owners-Manual_2020-Dump-Trailers-2.pdf) | READY: Official free copy, linked (no hosting without Big Tex permission). |
 
 ## Showcase story: Operational support on simpler equipment
@@ -244,7 +264,9 @@ Renters ask for help through the tag: "the box won't go up", "the lights are out
 
 ## Checklists
 
-Return and outbound template: `utility_trailer`. Accessories: Ratchet straps, Safety-chain pins, Spare tire, Wireless hoist remote, Tarp.
+Return and outbound template: `utility_trailer`. Accessories: Ratchet straps, Safety-chain pins, Spare tire, Wireless hoist remote.
+
+Accessory icons: Ratchet straps (`strap`, from `pol-trailer-accessories`, REVIEW_REQUIRED); Safety-chain pins (`chain-pin`, from `pol-trailer-accessories`, REVIEW_REQUIRED); Spare tire (`spare-tire`, from `pol-trailer-accessories`, REVIEW_REQUIRED); Wireless hoist remote (`remote`, from `pol-dump-remote`, REVIEW_REQUIRED).
 
 - Northridge policy `pol-trailer-accessories`: Ratchet straps, safety-chain pins and the spare tire are issued with each trailer and checked at return. (Fictional demo policy.)
 - Northridge policy `pol-dump-remote`: The wireless hoist remote is issued with the dump trailer and checked at return. (Fictional demo policy.)

@@ -1,13 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://mulemark.io/schemas/phase-e/equipment-content-1.1.0.json",
+  "$id": "https://mulemark.io/schemas/phase-e/equipment-content-1.2.0.json",
   "title": "Mulemark equipment-content manifest",
-  "description": "Versioned content contract shared by the showcase packs (E2) and customer onboarding batches (E4). Four layers: MODEL (exact configuration, sourced guidance), ASSET (customer facts), ORGANIZATION (customer settings and policies) and SOURCE/REVIEW (provenance, rights, applicability, review state). Guidance only exists on an identified model or as a sourced asset exception; a category never supplies model-specific instructions. Cross-reference rules JSON Schema cannot express are listed in docs/phase-e/ONBOARDING_DATA_CONTRACT.md and enforced by the E4B preflight. Draft-07 so any mainstream validator can check it. 1.1.0 (E2A) is additive: sourced specs, pictogram panels, a per-item READY/REVIEW_REQUIRED/BLOCKED status, photo credits and derivative files, and the source vault path and availability. Every 1.0.0 manifest is still valid.",
+  "description": "Versioned content contract shared by the showcase packs (E2) and customer onboarding batches (E4). Four layers: MODEL (exact configuration, sourced guidance), ASSET (customer facts), ORGANIZATION (customer settings and policies) and SOURCE/REVIEW (provenance, rights, applicability, review state). Guidance only exists on an identified model or as a sourced asset exception; a category never supplies model-specific instructions. Cross-reference rules JSON Schema cannot express are listed in docs/phase-e/ONBOARDING_DATA_CONTRACT.md and enforced by the E4B preflight. Draft-07 so any mainstream validator can check it. 1.1.0 (E2A) is additive: sourced specs, pictogram panels, a per-item READY/REVIEW_REQUIRED/BLOCKED status, photo credits and derivative files, and the source vault path and availability. 1.2.0 (E2A picture-first rework) is additive too: panel frames (do, don't, check, detail), safety sign tiles and accessory icons. Every 1.0.0 and 1.1.0 manifest is still valid.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "manifest_id", "kind", "organization", "sources", "models", "assets"],
   "properties": {
-    "schema_version": { "enum": ["1.0.0", "1.1.0"] },
+    "schema_version": { "enum": ["1.0.0", "1.1.0", "1.2.0"] },
     "manifest_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$" },
     "kind": { "enum": ["showcase", "customer-onboarding"] },
     "batch": { "$ref": "#/definitions/batch" },
@@ -256,6 +256,52 @@
         "safety_critical": { "type": "boolean" },
         "reviewer_checklist": { "type": "array", "items": { "type": "string" } },
         "files": { "type": "array", "items": { "$ref": "#/definitions/mediaFile" } },
+        "frames": { "description": "1.2.0. The panel's picture sequence, in drawing order.", "type": "array", "minItems": 1, "maxItems": 4, "items": { "$ref": "#/definitions/frame" } },
+        "status": { "$ref": "#/definitions/itemStatus" },
+        "status_reason": { "type": "string" }
+      }
+    },
+    "frame": {
+      "description": "1.2.0. One frame of a picture-first panel: do (the action, blue arrows), dont (a mistake the source names, red outline and cross), check (a state to confirm, green tick) or detail (a close-up). shows says in plain words what the frame draws; derived_from names the steps, specs, warnings, configuration keys or customer policies it comes from. The panel's alt text is composed from its frames, so it cannot drift from the drawing.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frame_id", "kind", "shows", "derived_from"],
+      "properties": {
+        "frame_id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "kind": { "enum": ["do", "dont", "check", "detail"] },
+        "shows": { "type": "string", "minLength": 1 },
+        "derived_from": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+      }
+    },
+    "signTile": {
+      "description": "1.2.0. One original safety sign tile in ISO 3864 style (not a copy of an ISO 7010 symbol) for a sourced warning or customer policy. The tile carries no words; its label (at most 3 words) is shown under it. Signs do not count toward the 8 panels.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sign_id", "kind", "label", "shows", "derived_from", "source_refs", "status"],
+      "properties": {
+        "sign_id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "kind": { "enum": ["prohibition", "warning", "mandatory", "limit", "info", "checklist"] },
+        "label": { "type": "string", "minLength": 1, "maxLength": 20 },
+        "shows": { "type": "string", "minLength": 1 },
+        "derived_from": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "source_refs": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/sourceRef" } },
+        "alt": { "type": "string" },
+        "text_alternative": { "type": "string" },
+        "reviewer_checklist": { "type": "array", "items": { "type": "string" } },
+        "files": { "type": "array", "items": { "$ref": "#/definitions/mediaFile" } },
+        "status": { "$ref": "#/definitions/itemStatus" },
+        "status_reason": { "type": "string" }
+      }
+    },
+    "accessoryIcon": {
+      "description": "1.2.0. Icon for an accessory issued with the equipment (an entry of common_accessories), traced to the customer policy or checklist template that issues it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "icon", "derived_from", "status"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "icon": { "enum": ["strap", "chain-pin", "spare-tire", "remote", "keys", "attachment", "manual"] },
+        "derived_from": { "type": "array", "minItems": 1, "items": { "type": "string" } },
         "status": { "$ref": "#/definitions/itemStatus" },
         "status_reason": { "type": "string" }
       }
@@ -306,6 +352,8 @@
           }
         },
         "common_accessories": { "type": "array", "items": { "type": "string" } },
+        "signs": { "description": "1.2.0. Safety sign tiles, one per sourced warning or policy.", "type": "array", "maxItems": 12, "items": { "$ref": "#/definitions/signTile" } },
+        "accessory_icons": { "description": "1.2.0. One icon per common accessory.", "type": "array", "items": { "$ref": "#/definitions/accessoryIcon" } },
         "photo": { "$ref": "#/definitions/media" },
         "review": { "$ref": "#/definitions/review" }
       }

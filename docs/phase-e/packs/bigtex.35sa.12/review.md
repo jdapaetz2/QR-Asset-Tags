@@ -8,7 +8,7 @@ Generated from [pack.json](pack.json) by `scripts/phase-e/packs/pack-review.mjs`
 | Protected route | `demo-tr014` (unchanged) |
 | Model key | `bigtex.35sa.12` · Utility Trailer |
 | Review status | **MULEMARK_REVIEW** |
-| Items | 13 READY · 23 REVIEW_REQUIRED · 2 BLOCKED |
+| Items | 13 READY · 28 REVIEW_REQUIRED · 2 BLOCKED |
 | Storyboard | [storyboard.md](storyboard.md) (8 panels) |
 
 ## Blockers
@@ -124,6 +124,16 @@ Applicability: Big Tex's Owners Manual (Rev. March 2020) is general, not model-s
    - Source: Big Tex Trailers Owners Manual, pp. 9 and 70
    - Status: **BLOCKED**: No published value.
 
+## Safety signs
+
+| Sign | Kind | Shows | From | Status |
+|---|---|---|---|---|
+| Before you move `35sa-sign-before-moving` | checklist | Coupler latched and pinned, chains crossed and jack up, each ticked; then the rig moves off | `35sa-w1` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+| No riders `35sa-sign-no-riders` | prohibition | A person riding in the trailer bed, crossed out | `35sa-w2` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+| No hazardous loads `35sa-sign-no-hazmat` | prohibition | Flammable, explosive and poisonous loads on the trailer, crossed out | `35sa-w2` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+| Max towing speed `35sa-sign-max-speed` | limit | A speedometer and ≤ 60 mph | `35sa-w3` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+| If it sways `35sa-sign-sway` | checklist | A swaying trailer, then foot off the gas (tick), steering as little as possible (tick) and no braking (cross) | `35sa-w4` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+
 ## Public page text
 
 The seven equipment-page fields in display order (3 READY · 4 REVIEW_REQUIRED · 0 BLOCKED). Citations stay here; the page shows plain text only.
@@ -136,27 +146,28 @@ From: `bed`, `rear-gate`, `coupler`, `gvwr`, `brakes`, `35sa-s1`. Facts from the
 
 ### Quick start · REVIEW_REQUIRED
 
-> 1. Check the ball: 2 inch, rated 2,995 lb or more, no cracks or wear.
-> 2. Lower the coupler onto the ball, latch it and put the pin in.
-> 3. Lift-test: raise the truck 1 inch with the trailer jack (no more), then wind the jack fully up.
-> 4. Cross the safety chains under the coupler and hook them to the truck's frame or chain loops.
-> 5. Plug in the 4-way and check the tail, brake and turn lights.
-> 6. Tires: no damage, pressure as printed on the VIN label (front left), lug nuts tight.
-> 7. Load with the trailer hitched, on level ground: about 60% of the load in the front half, heavy items low over the axle. Strap it down and latch the gate.
-> 8. Every 50 miles or hour of towing, stop and check the hitch, chains, load and gate.
+> 1. 2 in ball, 2,995 lb or more. Not cracked, worn or loose.
+> 2. Seat, latch, pin. Lift-test ≤ 1 in, then jack fully up.
+> 3. Cross the chains under the coupler, hooks up from below.
+> 4. Plug in the 4-way. Check tail, brake and turn lights.
+> 5. Tires undamaged, cold pressure per VIN label, lug nuts tight.
+> 6. Load hitched, level: about 60% in front, heavy over axle.
+> 7. Strap to the tie-down loops. Gate latched, pin if fitted.
+> 8. Every 50 mi or hour: check coupler, chains, load, gate.
 > The Start-Up Guide shows each step.
 
-From: `35sa-s1`, `35sa-s2`, `35sa-s3`, `35sa-s4`, `35sa-s5`, `35sa-s6`, `35sa-s7`, `35sa-s8`, `35sa-s9`. Condensed from sourced steps; awaiting the reviewer.
+From: `35sa-s1`, `35sa-s3`, `35sa-s4`, `35sa-s5`, `35sa-s6`, `tire-pressure`, `35sa-s7`, `35sa-s8`, `35sa-s9`. Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.
 
 ### Safety · REVIEW_REQUIRED
 
-> Don't move the trailer until the coupler is latched and pinned, the chains are on and the jack is fully up.
-> No more than 2,995 lb for trailer and load together (about 2,012 lb of cargo).
-> 60 mph is the maximum recommended towing speed, in ideal conditions only.
-> If the trailer sways, ease off the gas and steer as little as possible. Don't brake the truck to correct it.
-> Never carry people, or flammable, explosive or poisonous loads.
+> Don't move until the coupler is pinned, the chains are on and the jack is up.
+> No riders.
+> No flammable, explosive or poisonous loads.
+> 60 mph maximum, in ideal conditions only.
+> If it sways: ease off the gas, steer as little as possible, don't brake.
+> Trailer and load together: 2,995 lb at most.
 
-From: `35sa-w1`, `gvwr`, `cargo-capacity`, `35sa-w3`, `35sa-w4`, `35sa-w2`. Condensed from sourced warnings; awaiting the reviewer.
+From: `35sa-w1`, `35sa-w2`, `35sa-w3`, `35sa-w4`, `gvwr`, `35sa-s7`. Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.
 
 ### Fuel / power · READY
 
@@ -174,11 +185,11 @@ From: `35sa-n1`, `35sa-s1`, `35sa-s3`, `35sa-s6`. Condensed from sourced steps; 
 
 ### Return · REVIEW_REQUIRED
 
-> Return the straps, chain pins and spare tire that came with the trailer.
-> To unhitch: block the tires, unplug, unhook the chains, open the coupler, then wind the jack down on firm ground.
+> Return the straps, chain pins and spare tire.
+> Unhitch: block the tires, unplug, unhook the chains, open the coupler, jack down on firm ground.
 > Use Return checklist when you drop it off.
 
-From: `pol-trailer-accessories`, `35sa-s10`. Unhitching steps awaiting the reviewer; the accessory line is Northridge policy.
+From: `pol-trailer-accessories`, `35sa-s10`. Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.
 
 ### Emergency · READY
 
@@ -190,7 +201,7 @@ From: `mulemark-standard-emergency`. Mulemark's standard emergency wording (lib/
 
 | Title | Type | Delivery | Target | Status |
 |---|---|---|---|---|
-| Big Tex Trailers 35SA-12 Start-Up Guide | startup_guide | hosted | [guide/bigtex.35sa.12-start-up-guide.pdf](guide/bigtex.35sa.12-start-up-guide.pdf) (413142 bytes, 2 pages) | REVIEW_REQUIRED: Carries the review-draft banner until every panel is approved. |
+| Big Tex Trailers 35SA-12 Start-Up Guide | startup_guide | hosted | [guide/bigtex.35sa.12-start-up-guide.pdf](guide/bigtex.35sa.12-start-up-guide.pdf) (356402 bytes, 2 pages) | REVIEW_REQUIRED: Carries the review-draft badge until every panel and sign is approved. |
 | Big Tex Owners Manual | manual | link | [link](https://www.bigtextrailers.com/wp-content/uploads/2023/11/Big-Tex-Trailers_Owners-Manual_2020.pdf) | READY: Official free copy, linked (no hosting without Big Tex permission). |
 
 ## Showcase story: Accessories and returns
@@ -202,6 +213,8 @@ Each rental goes out with straps, chain pins and a spare on the outbound checkli
 ## Checklists
 
 Return and outbound template: `utility_trailer`. Accessories: Ratchet straps, Safety-chain pins, Spare tire.
+
+Accessory icons: Ratchet straps (`strap`, from `pol-trailer-accessories`, REVIEW_REQUIRED); Safety-chain pins (`chain-pin`, from `pol-trailer-accessories`, REVIEW_REQUIRED); Spare tire (`spare-tire`, from `pol-trailer-accessories`, REVIEW_REQUIRED).
 
 - Northridge policy `pol-trailer-accessories`: Ratchet straps, safety-chain pins and the spare tire are issued with each trailer and checked at return. (Fictional demo policy.)
 

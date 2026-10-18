@@ -8,7 +8,7 @@ Generated from [pack.json](pack.json) by `scripts/phase-e/packs/pack-review.mjs`
 | Protected route | `demo-ex017` (unchanged) |
 | Model key | `bobcat.e20.b3bl-canopy` · Compact Excavator |
 | Review status | **MULEMARK_REVIEW** |
-| Items | 1 READY · 18 REVIEW_REQUIRED · 9 BLOCKED |
+| Items | 1 READY · 24 REVIEW_REQUIRED · 9 BLOCKED |
 | Storyboard | [storyboard.md](storyboard.md) (8 panels) |
 
 ## Blockers
@@ -126,6 +126,17 @@ Credit: TaurusEmerald, CC BY-SA 4.0 (modified), [source](https://commons.wikimed
    - Source: E20 Compact Excavator Operation & Maintenance Manual, Operating Instructions
    - Status: **BLOCKED**: Needs OMM 7255004.
 
+## Safety signs
+
+| Sign | Kind | Shows | From | Status |
+|---|---|---|---|---|
+| No riders `e20-sign-no-riders` | prohibition | A person riding on the excavator, crossed out | `e20-w1` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+| Never from ground `e20-sign-no-ground-controls` | prohibition | Someone working the controls from the ground, crossed out | `e20-w2` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+| Hands, feet inside `e20-sign-limbs-inside` | mandatory | The operator seated with hands and feet inside the canopy | `e20-w3` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+| Fueling: no smoking `e20-sign-no-smoking-fueling` | prohibition | A fuel nozzle and a lit cigarette, crossed out | `e20-w4` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+| Within lift chart `e20-sign-lift-chart` | limit | A lifted load at or under the machine's lift chart | `e20-s8` | REVIEW_REQUIRED: Drawn 2026-10-17 from the cited warning; awaiting the named reviewer (the operator). |
+| Stop and call `e20-sign-stop-call` | info | A warning light, a leak or an odd noise; then stop and call Northridge | `pol-stop-and-report` | REVIEW_REQUIRED: Drawn 2026-10-17 from a Northridge demo policy; awaiting the named reviewer (the operator). |
+
 ## Public page text
 
 The seven equipment-page fields in display order (2 READY · 3 REVIEW_REQUIRED · 2 BLOCKED). Citations stay here; the page shows plain text only.
@@ -138,24 +149,29 @@ From: `model`, `operator_protection`. Identity facts.
 
 ### Quick start · BLOCKED
 
-> 1. Before you dig, call 811 and check the area for holes, drop-offs and soft ground.
-> 2. Walk around the machine: look for leaks and broken or damaged parts.
-> 3. Climb on with the grab handles and tracks (never jump off) and fasten the seat belt.
-> 4. Start only from the seat, with the levers and controls in neutral.
-> 5. Pushing the travel levers away drives toward the blade: check where the blade is first.
-> 6. Before you leave the seat: bucket on the ground, engine off, key out, console up.
+> 1. Call 811 first. Watch for holes, drop-offs, soft ground.
+> 2. Walk around it: look for leaks and damaged parts.
+> 3. Belt on, controls in neutral; start only from the seat.
+> 4. Levers pushed away drive toward the blade. Check it first.
+> 5. Slopes: 15° across or up, 25° down or backing up.
+> 6. Keep people clear of the swing; never lift over anyone.
+> 7. Leaving: bucket down, engine off, key out, console up.
+> 8. Transport: heavy end uphill, slew lock on, chained down.
 > The Start-Up Guide shows each step.
 
-From: `e20-s1`, `e20-s2`, `e20-s3`, `e20-s4`, `e20-s6`, `e20-s9`, `pol-renter-walkaround`. Start-up and control steps come from Bobcat's E20 manual (7255004), not in hand yet. Publish after they are added and reviewed.
+From: `e20-s1`, `e20-s2`, `pol-renter-walkaround`, `e20-s3`, `e20-s4`, `e20-s6`, `e20-s7`, `e20-s5`, `e20-s9`, `e20-s10`. Start-up and control steps come from Bobcat's E20 manual (7255004), not in hand yet. Publish after they are added and reviewed.
 
 ### Safety · REVIEW_REQUIRED
 
-> Keep people out of the swing area, and never lift the boom or bucket over anyone. No riders.
-> Slopes: no more than 15° across or up, or 25° down or backing up. Don't swing loads on a slope.
+> Keep people out of the swing area; never lift over anyone.
+> Slopes: 15° across or up, 25° down or backing up. No swinging on a slope.
+> No riders.
+> Never work the controls from the ground.
+> Keep hands and feet inside while the machine is on.
+> No smoking while fueling.
 > Stay within the lift chart on the machine.
-> Never work the controls from the ground. No smoking while fueling.
 
-From: `e20-s5`, `e20-w1`, `e20-s7`, `e20-s8`, `e20-w2`, `e20-w4`. From Bobcat's rental safety sheet; awaiting the reviewer and the OMM cross-check.
+From: `e20-s5`, `e20-s7`, `e20-w1`, `e20-w2`, `e20-w3`, `e20-w4`, `e20-s8`. Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.
 
 ### Fuel / power · BLOCKED
 
@@ -187,7 +203,7 @@ From: `mulemark-standard-emergency`. Mulemark's standard emergency wording (lib/
 
 | Title | Type | Delivery | Target | Status |
 |---|---|---|---|---|
-| Bobcat E20 Start-Up Guide | startup_guide | hosted | [guide/bobcat.e20.b3bl-canopy-start-up-guide.pdf](guide/bobcat.e20.b3bl-canopy-start-up-guide.pdf) (194458 bytes, 2 pages) | REVIEW_REQUIRED: Carries the review-draft banner until every panel is approved. |
+| Bobcat E20 Start-Up Guide | startup_guide | hosted | [guide/bobcat.e20.b3bl-canopy-start-up-guide.pdf](guide/bobcat.e20.b3bl-canopy-start-up-guide.pdf) (204287 bytes, 2 pages) | REVIEW_REQUIRED: Carries the review-draft badge until every panel and sign is approved. |
 | Bobcat E20 Operation & Maintenance Manual (sold by Bobcat) | manual | link | [link](https://shop.bobcat.com/ca/e20-excavator-operation-and-maintenance-digital-manual-7255004enuspdf) | READY: Bobcat's official channel; the manual is sold, not free. |
 | Bobcat Rent It Safely: compact excavator safety rules | safety_sheet | link | [link](https://res.cloudinary.com/doosan-bobcat/image/upload/v1642696283/bobcat-assets/na-approved/products/excavators/multi-model/literature/b-1699-rentitsafely-excavator.pdf) | READY: Bobcat's free official rental safety sheet, linked. |
 
@@ -200,6 +216,8 @@ A renter scans the tag on site, opens the Start-Up Guide built from Bobcat's doc
 ## Checklists
 
 Return and outbound template: `mini_excavator_skid_steer`. Accessories: Keys, Attachments, Manual.
+
+Accessory icons: Keys (`keys`, from `template:mini_excavator_skid_steer`, REVIEW_REQUIRED); Attachments (`attachment`, from `template:mini_excavator_skid_steer`, REVIEW_REQUIRED); Manual (`manual`, from `template:mini_excavator_skid_steer`, REVIEW_REQUIRED).
 
 - Northridge policy `pol-renter-walkaround`: Northridge does the daily service checks before each rental; renters walk around for leaks and damage before starting. (Fictional demo policy.)
 - Northridge policy `pol-stop-and-report`: If something seems wrong (a warning light, leak or unusual noise), stop safely and contact Northridge with Request Support. (Fictional demo policy.)

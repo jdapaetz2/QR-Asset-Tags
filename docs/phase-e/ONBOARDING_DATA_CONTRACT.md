@@ -21,6 +21,13 @@ This contract is shared by the showcase content packs (E2A) and the 25–250-ass
 - source `availability`, `vault_path` and `locator_convention`;
 - on the asset: the seven public `page` fields (each with its own status and the ids it condenses), planned `documents` and the `showcase` story.
 
+**Schema 1.2.0 (E2A picture-first rework, 2026-10-17):** additive again, so 1.0.0 and 1.1.0 manifests still validate. It adds:
+- `frames` on a panel (at most 4): each is `do`, `dont`, `check` or `detail`, says what it shows and names the ids it is drawn from; the panel's alt text is built from its frames;
+- `signs` on a model (at most 12): original ISO 3864-style safety tiles (`prohibition`, `warning`, `mandatory`, `limit`, `info`, `checklist`) with a label of at most 3 words, the ids they show, sources and a status. They do not count toward the 8 panels;
+- `accessory_icons`: one icon per common accessory, traced to the policy or return template that issues it.
+
+Drawings carry numbers, units and symbols only; the tests check that every drawn number appears in the step, spec or policy it comes from.
+
 Steps may cite a customer policy as `{ "source_id": "pol-…" }`; it must exist in `organization.policies`. The E2A pack tests (`scripts/phase-e/packs/packs.test.mjs`) validate the four showcase packs with the same transitive ajv 6.15.0.
 
 **Division of labour:**

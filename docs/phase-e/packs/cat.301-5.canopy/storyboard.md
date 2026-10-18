@@ -2,7 +2,7 @@
 
 Generated from [pack.json](pack.json) by `scripts/phase-e/packs/pack-review.mjs`. Do not edit by hand.
 
-8 panels: 0 READY, 0 REVIEW_REQUIRED, 8 BLOCKED. This is the storyboard and source mapping for grouped approval. **No final artwork is drawn until it is approved.** Panels follow ISO 9244, ISO 3864, ISO 7010 and ANSI Z535 conventions without copying their symbols; controls are never mirrored or stylized, and anything the cited source does not show is left out.
+8 panels: 0 READY, 0 REVIEW_REQUIRED, 8 BLOCKED; 3 safety signs. Each drawn panel is a short picture sequence built from the frames listed below (do, don't, check, close-up); drawings carry numbers, units and symbols only, and the alt text is composed from the frames. Panels and signs follow ISO 9244, ISO 3864, ISO 7010 and ANSI Z535 conventions without copying their symbols; controls are never mirrored or stylized, and anything the cited source does not show is left out.
 
 ## 1. Walk around first `301-p1` · BLOCKED
 
@@ -60,10 +60,39 @@ Generated from [pack.json](pack.json) by `scripts/phase-e/packs/pack-review.mjs`
 - **Source:** Operation and Maintenance Manual M0088895: 301.5 to 302 CR Mini Hydraulic Excavators (full), p. 283
 - **Status:** BLOCKED: Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead.
 
-## 8. Engine stopped: lower the boom `301-p8` · BLOCKED
+## 8. Engine off: lower boom `301-p8` · BLOCKED
 
 - **Task:** Lowering the equipment with the engine stopped.
 - **Caption:** To be written from the OMM's Equipment Lowering section.
 - **Control orientation:** Not drawn until the OMM is in hand.
 - **Source:** Operation and Maintenance Manual M0088895: 301.5 to 302 CR Mini Hydraulic Excavators (full), p. 42
 - **Status:** BLOCKED: Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead.
+
+## Safety signs
+
+### Staff walk-through `301-sign-handover` · info · REVIEW_REQUIRED
+
+- **Shows:** Northridge staff hand over the keys and walk the renter through start-up and the controls
+- **From:** `pol-cat-handover`
+- **Source:** Northridge policy `pol-cat-handover`
+- **Status:** REVIEW_REQUIRED: Drawn 2026-10-17 from a Northridge demo policy; awaiting the named reviewer (the operator).
+- **Reviewer checklist:**
+  - [ ] Northridge demo policy wording.
+
+### Stop and call `301-sign-stop-call` · info · REVIEW_REQUIRED
+
+- **Shows:** A warning light, a leak or an odd noise; then stop and call Northridge
+- **From:** `pol-stop-and-report`
+- **Source:** Northridge policy `pol-stop-and-report`
+- **Status:** REVIEW_REQUIRED: Drawn 2026-10-17 from a Northridge demo policy; awaiting the named reviewer (the operator).
+- **Reviewer checklist:**
+  - [ ] Northridge demo policy wording.
+
+### Handover photos `301-sign-photos` · info · REVIEW_REQUIRED
+
+- **Shows:** Photos of the machine when it goes out and when it comes back
+- **From:** `pol-condition-photos`
+- **Source:** Northridge policy `pol-condition-photos`
+- **Status:** REVIEW_REQUIRED: Drawn 2026-10-17 from a Northridge demo policy; awaiting the named reviewer (the operator).
+- **Reviewer checklist:**
+  - [ ] Northridge demo policy wording.
