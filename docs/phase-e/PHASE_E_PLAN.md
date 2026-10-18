@@ -8,7 +8,8 @@
   - QA isolation guards;
   - the guarded reset interface, which only dry-runs against Production.
   See [DEMO_RECOVERY_RUNBOOK.md](DEMO_RECOVERY_RUNBOOK.md).
-- E2A is next. It starts only when the operator runs it, **never** automatically.
+- **E2A complete (2026-10-17):** four sourced content packs in [packs/](packs/README.md), with 20 original pictogram panels, three Start-Up Guide PDFs, the source and rights register, field-level E2C import manifests and marketing candidates. Nothing is published. Open items (the trailer photos, the E20 manual, the knowledgeable review, Big Tex's answers) are listed in the [work log](WORK_LOG.md).
+- E2B is next. It starts only when the operator runs it, **never** automatically.
 
 This phase is not the older roadmap's "Phase E", and it is not an operational-hold phase.
 
@@ -86,7 +87,7 @@ flowchart LR
 | Owner-only guard for disabling a protected or production-primary QR row (migration) | Before E2C |
 | Archive exporter and restore rehearsal tooling (extends the E0 inventory; dry-run, manifest, confirmation) | E1 — **built**: `phase-e:archive:*`, `phase-e:restore`, `phase-e:reset:*`, `phase-e:health:production` |
 | Chronological demo loader; synthetic manifest; watermark refusal | E2B |
-| Photo attribution line; pictogram rendering in guidance | E2A/E4A |
+| Photo attribution line; pictogram rendering in guidance | E2A **proposed** ([packs/EXTENSIONS.md](packs/EXTENSIONS.md)); interim: baked credit label and the Start-Up Guide PDF. Build in E4A |
 | Source register and shared document revisions; rights fields | E4A |
 | Owner batch import for an explicit org (idempotent upsert, coverage pre-check, surfaced errors, publish off); content review status; run log | E4B |
 | Approval record | E5A |

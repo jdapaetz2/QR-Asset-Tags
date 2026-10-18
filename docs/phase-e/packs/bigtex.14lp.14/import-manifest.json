@@ -1,0 +1,270 @@
+{
+  "manifest": "e2c-showcase-import",
+  "format": 1,
+  "generated_by": "scripts/phase-e/packs/import-manifests.mjs",
+  "pack": "docs/phase-e/packs/bigtex.14lp.14/pack.json",
+  "content_version": "e2a-fdd7c5140a42",
+  "target": {
+    "environment": "production",
+    "organization_id": "11111111-1111-4111-8111-111111111111",
+    "asset_id": "3313ed1c-f738-4817-b4fa-6f2163dc2e14",
+    "asset_code": "TRAILER-2041",
+    "qr_link_id": "97c20650-4c09-4828-ac02-3cd6b4d083cb",
+    "short_code": "67uqc3q7"
+  },
+  "apply": {
+    "allowed": false,
+    "blocked_by": [
+      "Exact-model photo: no licensed 14LP photo exists; waiting on Big Tex's reply to the operator's permission request (sent 2026-10-17). The current cover (rights unknown) is cleared, never kept.",
+      "Condensed from sourced steps; awaiting the reviewer.",
+      "Condensed from sourced warnings; awaiting the reviewer.",
+      "Battery facts from the product page; the pin line from the manual; awaiting the reviewer.",
+      "Condensed from sourced notes; the hoist manual's battery check stays off the page until Big Tex confirms it applies.",
+      "Unhitching steps awaiting the reviewer; the accessory line is Northridge policy.",
+      "Published only when every field above is READY and the operator approves.",
+      "Carries the review-draft banner until every panel is approved."
+    ]
+  },
+  "current_from": {
+    "artifact": "showcase-audit-production-northridge-20261017T003343Z.json",
+    "sha256": "7e246de6bffe3a82ffea27729fd1da68374896423ead69327bafa0fadce08ef7",
+    "generated_at": "2026-10-17T00:33:43.489Z",
+    "note": "Read-only E1 audit of Production (gitignored artifact). Current values are informational; E2C re-audits before applying."
+  },
+  "summary": {
+    "READY": 11,
+    "REVIEW_REQUIRED": 8,
+    "BLOCKED": 1
+  },
+  "operations": [
+    {
+      "op": "update",
+      "table": "assets",
+      "match": {
+        "id": "3313ed1c-f738-4817-b4fa-6f2163dc2e14"
+      },
+      "fields": {
+        "asset_name": {
+          "to": "Dump Trailer 2041",
+          "current": "Utility Trailer 204",
+          "status": "READY"
+        },
+        "category": {
+          "to": "Dump Trailer",
+          "current": "Utility Trailer",
+          "status": "READY"
+        },
+        "make": {
+          "to": "Big Tex Trailers",
+          "current": "Snake River Trailers",
+          "status": "READY"
+        },
+        "model": {
+          "to": "14LP-14",
+          "current": "2041",
+          "status": "READY"
+        },
+        "serial_number": {
+          "to": "DEMO-14LP-2041",
+          "current": null,
+          "status": "READY",
+          "note": "Fictional DEMO- serial."
+        },
+        "year": {
+          "to": null,
+          "current": 2025,
+          "status": "READY",
+          "note": "Left empty: the units are fictional."
+        },
+        "cover_image_url": {
+          "to": null,
+          "current": {
+            "kind": "external",
+            "host": "snakerivertrailers.com"
+          },
+          "status": "BLOCKED",
+          "status_reason": "Exact-model photo: no licensed 14LP photo exists; waiting on Big Tex's reply to the operator's permission request (sent 2026-10-17). The current cover (rights unknown) is cleared, never kept."
+        },
+        "return_inspection_template_key": {
+          "to": "utility_trailer",
+          "current": null,
+          "status": "READY"
+        }
+      }
+    },
+    {
+      "op": "upsert",
+      "table": "equipment_pages",
+      "match": {
+        "asset_id": "3313ed1c-f738-4817-b4fa-6f2163dc2e14"
+      },
+      "fields": {
+        "headline": {
+          "to": "14 ft tandem-axle dump trailer with electric brakes, breakaway and a battery-powered hoist. It tows on a 2-5/16 inch ball rated for 14,000 lb or more, with a brake controller in the truck.",
+          "current": "41 characters",
+          "status": "READY",
+          "derived_from": [
+            "bed",
+            "gawr",
+            "brakes",
+            "hoist-power",
+            "coupler",
+            "gvwr",
+            "14lp-s1",
+            "14lp-s5"
+          ],
+          "status_reason": "Facts from the OEM product page and the dump-trailer manual."
+        },
+        "quick_start_text": {
+          "to": "1. Ball: 2-5/16 inch, rated 14,000 lb or more. Seat the coupler, latch it and pin it.\n2. Lift-test: raise the truck 1 inch with the jack (no more), then raise the jack fully.\n3. Cross the safety chains under the coupler and hook them to the truck's frame.\n4. Clip the breakaway cable to the truck, not to a chain. Test: pull the pin, feel the brakes hold, put the pin straight back.\n5. Plug in the 7-way and check the lights. Then, under 5 mph, apply the brake controller and feel the trailer brakes.\n6. Tires: no damage, pressure as printed on the VIN label (front left), lug nuts tight.\n7. Load hitched and level, within the payload decal (9,820 lb listed). Spread loose material evenly.\n8. To dump: level, firm ground, people clear, no power lines overhead. Chain the doors open, raise in stages and check behind.\nThe Start-Up Guide shows each step.",
+          "current": "173 characters",
+          "status": "REVIEW_REQUIRED",
+          "derived_from": [
+            "14lp-s1",
+            "14lp-s2",
+            "14lp-s3",
+            "14lp-s4",
+            "14lp-s5",
+            "14lp-s6",
+            "14lp-s7",
+            "14lp-s8",
+            "14lp-s9"
+          ],
+          "status_reason": "Condensed from sourced steps; awaiting the reviewer."
+        },
+        "safety_notes": {
+          "to": "Never go under a raised dump body. The body prop is for maintenance, with the body empty.\nStay at the controls while the body is up. Lower it fully, latch the doors and lock the controls before you move.\nDon't fully raise a loaded body: the truck's rear wheels can lose traction.\nIf the hoist won't lift the load, unload some by hand. Never push it with a jack or machine.\nA raised body near power lines can electrocute without touching them.\nDon't move until the coupler is locked, the chains and breakaway cable are on and the jack is up. 60 mph is the maximum recommended speed, in ideal conditions only. No people or hazardous loads.",
+          "current": "161 characters",
+          "status": "REVIEW_REQUIRED",
+          "derived_from": [
+            "14lp-w1",
+            "14lp-s11",
+            "14lp-w3",
+            "14lp-w2",
+            "14lp-w4",
+            "14lp-w5",
+            "14lp-w7",
+            "14lp-w6"
+          ],
+          "status_reason": "Condensed from sourced warnings; awaiting the reviewer."
+        },
+        "fuel_power_notes": {
+          "to": "The hoist runs on the trailer's 12 V deep-cycle battery, which has an onboard 110 V charger and a 5 W solar charger.\nThe breakaway battery runs down fast while its pin is out, so put the pin straight back after testing.",
+          "current": "0 characters",
+          "status": "REVIEW_REQUIRED",
+          "derived_from": [
+            "hoist-power",
+            "14lp-n6",
+            "14lp-s4"
+          ],
+          "status_reason": "Battery facts from the product page; the pin line from the manual; awaiting the reviewer."
+        },
+        "troubleshooting_notes": {
+          "to": "Hoist won't lift the load: unload some by hand, then use Request Support. Never push it with a jack or machine.\nLoad stuck: lower the body and free it by hand. Don't jerk the button or brake hard.\nLights or brakes dead: check the 7-way plug is fully connected.\nBreakaway test fails: don't tow. Use Request Support.",
+          "current": "150 characters",
+          "status": "REVIEW_REQUIRED",
+          "derived_from": [
+            "14lp-n4",
+            "14lp-s10",
+            "14lp-n5",
+            "14lp-n6"
+          ],
+          "status_reason": "Condensed from sourced notes; the hoist manual's battery check stays off the page until Big Tex confirms it applies."
+        },
+        "return_notes": {
+          "to": "Return the straps, chain pins, spare tire and the hoist remote.\nBody fully down, doors latched, controls locked.\nTo unhitch: block the tires, unplug, unclip the breakaway cable, unhook the chains, open the coupler, then lower the jack on firm ground.\nUse Return checklist when you drop it off.",
+          "current": "89 characters",
+          "status": "REVIEW_REQUIRED",
+          "derived_from": [
+            "pol-trailer-accessories",
+            "pol-dump-remote",
+            "14lp-s11",
+            "14lp-s13"
+          ],
+          "status_reason": "Unhitching steps awaiting the reviewer; the accessory line is Northridge policy."
+        },
+        "emergency_notes": {
+          "to": "For emergencies call your local emergency number. For equipment issues, use the support contact on this page.",
+          "current": "72 characters",
+          "status": "READY",
+          "derived_from": [
+            "mulemark-standard-emergency"
+          ],
+          "status_reason": "Mulemark's standard emergency wording (lib/onboarding/templates.ts)."
+        },
+        "is_published": {
+          "to": true,
+          "current": true,
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Published only when every field above is READY and the operator approves."
+        }
+      }
+    },
+    {
+      "op": "upload",
+      "key": "document:startup_guide",
+      "bucket": "documents",
+      "path": "org/11111111-1111-4111-8111-111111111111/asset/3313ed1c-f738-4817-b4fa-6f2163dc2e14/documents/dd8e330d-e503-42e1-9d04-5fb04d1caef1/dd8e330d-e503-42e1-9d04-5fb04d1caef1.pdf",
+      "from": "docs/phase-e/packs/bigtex.14lp.14/guide/bigtex.14lp.14-start-up-guide.pdf",
+      "content_type": "application/pdf",
+      "bytes": 418018,
+      "sha256": "f740d9073359989a81571a13d04b23ab4a4abca4d81c63db17ed67ca258fbab3",
+      "status": "REVIEW_REQUIRED",
+      "status_reason": "Carries the review-draft banner until every panel is approved."
+    },
+    {
+      "op": "insert",
+      "table": "documents",
+      "row": {
+        "id": "dd8e330d-e503-42e1-9d04-5fb04d1caef1",
+        "organization_id": "11111111-1111-4111-8111-111111111111",
+        "asset_id": "3313ed1c-f738-4817-b4fa-6f2163dc2e14",
+        "title": "Big Tex Trailers 14LP-14 Start-Up Guide",
+        "document_type": "startup_guide",
+        "url": null,
+        "storage_path": "org/11111111-1111-4111-8111-111111111111/asset/3313ed1c-f738-4817-b4fa-6f2163dc2e14/documents/dd8e330d-e503-42e1-9d04-5fb04d1caef1/dd8e330d-e503-42e1-9d04-5fb04d1caef1.pdf",
+        "visibility": "public",
+        "link_status": "unknown"
+      },
+      "status": "REVIEW_REQUIRED",
+      "status_reason": "Carries the review-draft banner until every panel is approved."
+    },
+    {
+      "op": "insert",
+      "table": "documents",
+      "row": {
+        "id": "eb9be6b4-1254-46ff-aa9c-7a70663edde8",
+        "organization_id": "11111111-1111-4111-8111-111111111111",
+        "asset_id": "3313ed1c-f738-4817-b4fa-6f2163dc2e14",
+        "title": "Big Tex Owners Manual (Dump Trailers)",
+        "document_type": "manual",
+        "url": "https://www.bigtextrailers.com/wp-content/uploads/2023/11/Big-Tex-Trailers_Owners-Manual_2020-Dump-Trailers-2.pdf",
+        "storage_path": null,
+        "visibility": "public",
+        "link_status": "unknown"
+      },
+      "source_id": "src-bigtex-owners-2020-dump",
+      "status": "READY",
+      "status_reason": "Official free copy, linked (no hosting without Big Tex permission)."
+    },
+    {
+      "op": "none",
+      "table": "qr_links",
+      "match": {
+        "id": "97c20650-4c09-4828-ac02-3cd6b4d083cb"
+      },
+      "status": "READY",
+      "status_reason": "Protected route 67uqc3q7: no change of any kind."
+    }
+  ],
+  "pinned_ids": [
+    {
+      "key": "document:startup_guide:Big Tex Trailers 14LP-14 Start-Up Guide",
+      "id": "dd8e330d-e503-42e1-9d04-5fb04d1caef1"
+    },
+    {
+      "key": "document:manual:Big Tex Owners Manual (Dump Trailers)",
+      "id": "eb9be6b4-1254-46ff-aa9c-7a70663edde8"
+    }
+  ]
+}

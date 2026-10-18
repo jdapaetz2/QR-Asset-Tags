@@ -2,6 +2,14 @@
 
 **Status:** written 2026-10-14; **approved 2026-10-16** (grouped approval items 1–3 in [DECISIONS.md](DECISIONS.md)). The OMM purchase still needs an explicit cost confirmation.
 
+**E2A (2026-10-17)** fixed the four configurations and authored their packs ([packs/](packs/README.md)):
+- EXCAVATOR-017: Bobcat E20 with serial prefix B3BL and a canopy, photo A. The operator is buying OMM 7255004.
+- EXCAVATOR-3015: Cat 301.5 with canopy. The OMM purchase was declined for now, so the page links Cat's official channel and uses a handover policy.
+- TRAILER-014: Big Tex 35SA-12 with no brakes fitted.
+- TRAILER-2041: Big Tex 14LP-14 with the solar charger and wireless remote.
+
+Both trailer photos wait on Big Tex's permission.
+
 Inputs:
 - [PROTECTED_DEMO_ROUTES.md](PROTECTED_DEMO_ROUTES.md) — routes are immutable;
 - the read-only Production inventory `showcase-audit-production-northridge-20261014T203533Z.json` (sha256 `62e19f56…960f7d`, gitignored);

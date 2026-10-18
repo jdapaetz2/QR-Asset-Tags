@@ -1,0 +1,4 @@
+# Phase E2A pack artwork is checked against recorded SHA-256 values, and the marketing patches must apply exactly:
+# keep their bytes as generated, whatever core.autocrlf says.
+docs/phase-e/packs/**/*.svg -text
+docs/phase-e/packs/**/*.patch -text

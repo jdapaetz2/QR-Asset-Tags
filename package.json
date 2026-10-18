@@ -76,6 +76,11 @@
     "phase-e:reset:production": "node --env-file=.env.local scripts/phase-e/showcase-reset.mjs --target=production",
     "phase-e:reset:standalone": "node scripts/phase-e/showcase-reset.mjs --target=standalone",
     "phase-e:health:production": "node scripts/phase-e/showcase-health.mjs",
+    "phase-e:packs:photos": "node scripts/phase-e/packs/photo-derivatives.mjs",
+    "phase-e:packs:review": "node scripts/phase-e/packs/pack-review.mjs",
+    "phase-e:packs:guides": "node scripts/phase-e/packs/guide-build.mjs",
+    "phase-e:packs:import": "node scripts/phase-e/packs/import-manifests.mjs",
+    "phase-e:packs:build": "node scripts/phase-e/packs/guide-build.mjs && node scripts/phase-e/packs/pack-review.mjs && node scripts/phase-e/packs/import-manifests.mjs",
     "test:phase-e-local": "npm run db:reset && vitest run --config vitest.phase-e-local.config.ts"
   },
   "dependencies": {

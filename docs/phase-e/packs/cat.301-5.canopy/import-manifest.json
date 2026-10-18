@@ -1,0 +1,238 @@
+{
+  "manifest": "e2c-showcase-import",
+  "format": 1,
+  "generated_by": "scripts/phase-e/packs/import-manifests.mjs",
+  "pack": "docs/phase-e/packs/cat.301-5.canopy/pack.json",
+  "content_version": "e2a-82a9ee6b8031",
+  "target": {
+    "environment": "production",
+    "organization_id": "11111111-1111-4111-8111-111111111111",
+    "asset_id": "7f7753d2-37f9-4e74-bbb2-90f048523f21",
+    "asset_code": "EXCAVATOR-3015",
+    "qr_link_id": "07c8ca60-0102-48c6-ac96-a8cb4b27ca90",
+    "short_code": "ezzs9ueg"
+  },
+  "apply": {
+    "allowed": false,
+    "blocked_by": [
+      "Cat's safety rules come from OMM M0088895, not bought (operator decision, 2026-10-17).",
+      "Published only when every field above is READY and the operator approves."
+    ]
+  },
+  "current_from": {
+    "artifact": "showcase-audit-production-northridge-20261017T003343Z.json",
+    "sha256": "7e246de6bffe3a82ffea27729fd1da68374896423ead69327bafa0fadce08ef7",
+    "generated_at": "2026-10-17T00:33:43.489Z",
+    "note": "Read-only E1 audit of Production (gitignored artifact). Current values are informational; E2C re-audits before applying."
+  },
+  "summary": {
+    "READY": 18,
+    "REVIEW_REQUIRED": 0,
+    "BLOCKED": 2
+  },
+  "operations": [
+    {
+      "op": "upload",
+      "key": "cover",
+      "bucket": "public-assets",
+      "path": "org/11111111-1111-4111-8111-111111111111/asset/7f7753d2-37f9-4e74-bbb2-90f048523f21/cover/be8a08c5-7682-4a7f-a07a-f50e238a5255.webp",
+      "from": "docs/phase-e/packs/cat.301-5.canopy/media/301-5-hero.webp",
+      "content_type": "image/webp",
+      "bytes": 165148,
+      "sha256": "b4701e28dad3cc10311888a5d6b8353a1419d955821fd776c3070554361a5b22",
+      "status": "READY",
+      "status_reason": "Edit approved by the operator on 2026-10-17. CC0; credit given as a courtesy."
+    },
+    {
+      "op": "update",
+      "table": "assets",
+      "match": {
+        "id": "7f7753d2-37f9-4e74-bbb2-90f048523f21"
+      },
+      "fields": {
+        "asset_name": {
+          "to": "Mini Excavator 301.5",
+          "current": "Mini Excavator 301.5",
+          "status": "READY"
+        },
+        "category": {
+          "to": "Mini Excavator",
+          "current": "Mini Excavator",
+          "status": "READY"
+        },
+        "make": {
+          "to": "Caterpillar",
+          "current": "Cat",
+          "status": "READY"
+        },
+        "model": {
+          "to": "301.5",
+          "current": "301.5",
+          "status": "READY"
+        },
+        "serial_number": {
+          "to": "DEMO-301.5-3015",
+          "current": null,
+          "status": "READY",
+          "note": "Fictional DEMO- serial."
+        },
+        "year": {
+          "to": null,
+          "current": 2022,
+          "status": "READY",
+          "note": "Left empty: the units are fictional."
+        },
+        "cover_image_url": {
+          "to": {
+            "public_url_of": "org/11111111-1111-4111-8111-111111111111/asset/7f7753d2-37f9-4e74-bbb2-90f048523f21/cover/be8a08c5-7682-4a7f-a07a-f50e238a5255.webp"
+          },
+          "current": {
+            "kind": "external",
+            "host": "s7d2.scene7.com"
+          },
+          "status": "READY",
+          "status_reason": "Edit approved by the operator on 2026-10-17. CC0; credit given as a courtesy."
+        },
+        "return_inspection_template_key": {
+          "to": "mini_excavator_skid_steer",
+          "current": null,
+          "status": "READY"
+        }
+      }
+    },
+    {
+      "op": "upsert",
+      "table": "equipment_pages",
+      "match": {
+        "asset_id": "7f7753d2-37f9-4e74-bbb2-90f048523f21"
+      },
+      "fields": {
+        "headline": {
+          "to": "Cat 301.5 mini excavator with canopy. Northridge walks you through start-up and the controls at handover.",
+          "current": "32 characters",
+          "status": "READY",
+          "derived_from": [
+            "model",
+            "operator_protection",
+            "pol-cat-handover"
+          ],
+          "status_reason": "Identity facts and Northridge policy."
+        },
+        "quick_start_text": {
+          "to": "Before operating, go through start-up and the controls with Northridge staff at handover. Cat's Operation and Maintenance Manual is linked under Manual.",
+          "current": "138 characters",
+          "status": "READY",
+          "derived_from": [
+            "pol-cat-handover"
+          ],
+          "status_reason": "Northridge policy; no Cat operating steps are written without the manual."
+        },
+        "safety_notes": {
+          "to": null,
+          "current": "147 characters",
+          "status": "BLOCKED",
+          "derived_from": [],
+          "status_reason": "Cat's safety rules come from OMM M0088895, not bought (operator decision, 2026-10-17)."
+        },
+        "fuel_power_notes": {
+          "to": "Fuel tank: 22.0 L (5.8 gal).",
+          "current": "98 characters",
+          "status": "READY",
+          "derived_from": [
+            "fuel-tank"
+          ],
+          "status_reason": "From Cat's brochure, p. 2."
+        },
+        "troubleshooting_notes": {
+          "to": "Something wrong (a warning light, leak or odd noise): stop safely and use Request Support.",
+          "current": "120 characters",
+          "status": "READY",
+          "derived_from": [
+            "pol-stop-and-report"
+          ],
+          "status_reason": "Northridge policy."
+        },
+        "return_notes": {
+          "to": "Return the keys and any attachments.\nNorthridge photographs the machine at handover and at return.\nUse Return checklist when you drop it off.",
+          "current": "87 characters",
+          "status": "READY",
+          "derived_from": [
+            "template:mini_excavator_skid_steer",
+            "pol-condition-photos"
+          ],
+          "status_reason": "Return checklist template and Northridge policy."
+        },
+        "emergency_notes": {
+          "to": "For emergencies call your local emergency number. For equipment issues, use the support contact on this page.",
+          "current": "109 characters",
+          "status": "READY",
+          "derived_from": [
+            "mulemark-standard-emergency"
+          ],
+          "status_reason": "Mulemark's standard emergency wording (lib/onboarding/templates.ts)."
+        },
+        "is_published": {
+          "to": true,
+          "current": true,
+          "status": "BLOCKED",
+          "status_reason": "Published only when every field above is READY and the operator approves."
+        }
+      }
+    },
+    {
+      "op": "insert",
+      "table": "documents",
+      "row": {
+        "id": "50d86f32-5b2e-483d-9904-a29ca63fae68",
+        "organization_id": "11111111-1111-4111-8111-111111111111",
+        "asset_id": "7f7753d2-37f9-4e74-bbb2-90f048523f21",
+        "title": "Cat 301.5 Operation and Maintenance Manual M0088895 (sold by Cat Publications; search M0088895)",
+        "document_type": "manual",
+        "url": "https://catpublications.com/",
+        "storage_path": null,
+        "visibility": "public",
+        "link_status": "unknown"
+      },
+      "source_id": "src-cat-301-5-omm",
+      "status": "READY",
+      "status_reason": "Cat's official channel. Cat Publications has no stable product link (its search is a form), so the title names the media number."
+    },
+    {
+      "op": "update",
+      "table": "documents",
+      "match": {
+        "id": "51a8da3e-6f96-4296-871c-1f2a15c6f79d"
+      },
+      "set": {
+        "visibility": "private"
+      },
+      "current": {
+        "title": "Manual",
+        "document_type": "manual",
+        "visibility": "public",
+        "hosted": true
+      },
+      "status": "READY",
+      "status_reason": "E0 archive boundary (approved 2026-10-16): documents of unknown provenance go non-public at cutover; the showcase uses official links and its own guide."
+    },
+    {
+      "op": "none",
+      "table": "qr_links",
+      "match": {
+        "id": "07c8ca60-0102-48c6-ac96-a8cb4b27ca90"
+      },
+      "status": "READY",
+      "status_reason": "Protected route ezzs9ueg: no change of any kind."
+    }
+  ],
+  "pinned_ids": [
+    {
+      "key": "cover",
+      "id": "be8a08c5-7682-4a7f-a07a-f50e238a5255"
+    },
+    {
+      "key": "document:manual:Cat 301.5 Operation and Maintenance Manual M0088895 (sold by Cat Publications; search M0088895)",
+      "id": "50d86f32-5b2e-483d-9904-a29ca63fae68"
+    }
+  ]
+}

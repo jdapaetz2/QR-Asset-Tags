@@ -1,0 +1,236 @@
+{
+  "index": "model-packs",
+  "generated_by": "scripts/phase-e/packs/pack-review.mjs",
+  "tiers": {
+    "premium-showcase": "Everything in a standard pack, plus original pictographic panels and a Start-Up Guide PDF, retouched licensed photos, staff support notes and a showcase story. Planned for all four Northridge showcase assets (E2A); a pack whose panels are all blocked is listed as standard until they can be drawn.",
+    "standard-onboarding": "Identity and configuration, sourced specs, the official manual link (or hosting where permitted), page text condensed from cited steps, the customer's own photo and the matching return template. No new artwork: a premium pack's panels are reused only for the same model and configuration, and only after the operator approves cross-organization reuse."
+  },
+  "packs": [
+    {
+      "model_key": "bobcat.e20.b3bl-canopy",
+      "manufacturer": "Bobcat",
+      "model": "E20",
+      "category": "Compact Excavator",
+      "tier": "premium-showcase",
+      "pack": "docs/phase-e/packs/bobcat.e20.b3bl-canopy/pack.json",
+      "review_status": "MULEMARK_REVIEW",
+      "items": {
+        "READY": 1,
+        "REVIEW_REQUIRED": 18,
+        "BLOCKED": 9
+      },
+      "page_fields": {
+        "READY": 2,
+        "REVIEW_REQUIRED": 3,
+        "BLOCKED": 2
+      },
+      "panels": {
+        "total": 8,
+        "drawn": 4,
+        "blocked": 4
+      },
+      "guide": "docs/phase-e/packs/bobcat.e20.b3bl-canopy/guide/bobcat.e20.b3bl-canopy-start-up-guide.pdf",
+      "photo": "READY",
+      "manual": {
+        "source_id": "src-bobcat-e20-omm",
+        "delivery": "link",
+        "availability": "to-purchase"
+      },
+      "assets": [
+        "EXCAVATOR-017"
+      ],
+      "reuse": {
+        "shareable_across_orgs": false,
+        "reusable_parts_without_blocks": [
+          "warnings"
+        ],
+        "applies_to_configuration": {
+          "generation": "E20 with serial prefix B3BL (the model Bobcat sold until the new E20 of November 2025)",
+          "operator_protection": "canopy (matches photo candidate A)",
+          "tracks": "rubber",
+          "arm": "not established (OMM; candidate B shows the long arm)",
+          "control_pattern": "not established (OMM)",
+          "auxiliary_hydraulics": "not established (OMM)",
+          "blade": "fitted"
+        },
+        "blocked_by": [
+          "OMM 7255004 not yet in hand (the operator is buying it): specifications, start-up, controls, attachments and transport points; panels 3, 4, 7 and 8.",
+          "Knowledgeable review of the drawn panels and page text by the named reviewer (the operator)."
+        ]
+      }
+    },
+    {
+      "model_key": "cat.301-5.canopy",
+      "manufacturer": "Caterpillar",
+      "model": "301.5",
+      "category": "Mini Excavator",
+      "tier": "standard-onboarding",
+      "pack": "docs/phase-e/packs/cat.301-5.canopy/pack.json",
+      "review_status": "MULEMARK_REVIEW",
+      "items": {
+        "READY": 11,
+        "REVIEW_REQUIRED": 0,
+        "BLOCKED": 16
+      },
+      "page_fields": {
+        "READY": 6,
+        "REVIEW_REQUIRED": 0,
+        "BLOCKED": 1
+      },
+      "panels": {
+        "total": 8,
+        "drawn": 0,
+        "blocked": 8
+      },
+      "guide": null,
+      "photo": "READY",
+      "manual": {
+        "source_id": "src-cat-301-5-omm",
+        "delivery": "link",
+        "availability": "to-purchase"
+      },
+      "assets": [
+        "EXCAVATOR-3015"
+      ],
+      "reuse": {
+        "shareable_across_orgs": false,
+        "reusable_parts_without_blocks": [
+          "specs"
+        ],
+        "applies_to_configuration": {
+          "generation": "current 301.5 with the Cat C1.1 engine",
+          "serial_prefix": "MNH or ZHL (both covered by OMM M0088895-24)",
+          "operator_protection": "canopy",
+          "tracks": "rubber",
+          "stick": "standard (showcase configuration; not verifiable from the photo)",
+          "undercarriage": "not established (fixed or expandable)"
+        },
+        "blocked_by": [
+          "OMM M0088895 not bought (operator: no for now): every operating step and all 8 panels stay unwritten; the page uses the handover policy and links Cat's manual."
+        ]
+      }
+    },
+    {
+      "model_key": "bigtex.35sa.12",
+      "manufacturer": "Big Tex Trailers",
+      "model": "35SA-12",
+      "category": "Utility Trailer",
+      "tier": "premium-showcase",
+      "pack": "docs/phase-e/packs/bigtex.35sa.12/pack.json",
+      "review_status": "MULEMARK_REVIEW",
+      "items": {
+        "READY": 13,
+        "REVIEW_REQUIRED": 23,
+        "BLOCKED": 2
+      },
+      "page_fields": {
+        "READY": 3,
+        "REVIEW_REQUIRED": 4,
+        "BLOCKED": 0
+      },
+      "panels": {
+        "total": 8,
+        "drawn": 8,
+        "blocked": 0
+      },
+      "guide": "docs/phase-e/packs/bigtex.35sa.12/guide/bigtex.35sa.12-start-up-guide.pdf",
+      "photo": "BLOCKED",
+      "manual": {
+        "source_id": "src-bigtex-owners-2020",
+        "delivery": "link",
+        "availability": "in-hand"
+      },
+      "assets": [
+        "TRAILER-014"
+      ],
+      "reuse": {
+        "shareable_across_orgs": false,
+        "reusable_parts_without_blocks": [
+          "quick_guide",
+          "warnings",
+          "pictograms"
+        ],
+        "applies_to_configuration": {
+          "bed_length_ft": 12,
+          "bed_width_in": 77,
+          "pull_type": "bumper pull, 2 in ball coupler",
+          "brakes": "none fitted (axle has brake flanges only)",
+          "breakaway": "not fitted (comes with the optional electric-brake kit)",
+          "rear_gate": "4 ft tall 3-way ramp gate with coil-spring assist",
+          "trailer_plug": "4-way flat",
+          "jack": "2,000 lb top-wind set-back jack with removable sand foot"
+        },
+        "blocked_by": [
+          "Exact-model photo: no licensed 35SA photo exists; waiting on Big Tex's reply to the operator's permission request (sent 2026-10-17).",
+          "Knowledgeable review of the finished guide and page text by the named reviewer (the operator).",
+          "Lug-nut torque: Big Tex's manual leaves the value blank (p. 70); asked of Big Tex."
+        ]
+      }
+    },
+    {
+      "model_key": "bigtex.14lp.14",
+      "manufacturer": "Big Tex Trailers",
+      "model": "14LP-14",
+      "category": "Dump Trailer",
+      "tier": "premium-showcase",
+      "pack": "docs/phase-e/packs/bigtex.14lp.14/pack.json",
+      "review_status": "MULEMARK_REVIEW",
+      "items": {
+        "READY": 12,
+        "REVIEW_REQUIRED": 31,
+        "BLOCKED": 5
+      },
+      "page_fields": {
+        "READY": 2,
+        "REVIEW_REQUIRED": 5,
+        "BLOCKED": 0
+      },
+      "panels": {
+        "total": 8,
+        "drawn": 8,
+        "blocked": 0
+      },
+      "guide": "docs/phase-e/packs/bigtex.14lp.14/guide/bigtex.14lp.14-start-up-guide.pdf",
+      "photo": "BLOCKED",
+      "manual": {
+        "source_id": "src-bigtex-owners-2020-dump",
+        "delivery": "link",
+        "availability": "in-hand"
+      },
+      "assets": [
+        "TRAILER-2041"
+      ],
+      "reuse": {
+        "shareable_across_orgs": false,
+        "reusable_parts_without_blocks": [
+          "quick_guide",
+          "warnings",
+          "pictograms"
+        ],
+        "applies_to_configuration": {
+          "bed_length_ft": 14,
+          "bed_width_in": 83,
+          "pull_type": "bumper pull, 2-5/16 in adjustable ball coupler",
+          "brakes": "electric, both axles (forward self-adjusting)",
+          "breakaway": "fitted (complete breakaway system with zip cable)",
+          "trailer_plug": "7-way RV",
+          "jack": "12,000 lb drop-leg jack (side wind)",
+          "hoist": "self-contained scissor ram; power-up / power-down and gravity-down pump",
+          "battery": "12 V deep cycle, 5 A 110 V onboard charger",
+          "solar_charger": "5 W (showcase configuration; the OEM page does not mark it standard or optional)",
+          "remote": "wireless remote (showcase configuration; same caveat)",
+          "rear_gate": "combo gate: barn doors and spreader gate",
+          "ramps": "not fitted",
+          "drop_axles": "not fitted"
+        },
+        "blocked_by": [
+          "Exact-model photo: no licensed 14LP photo exists; waiting on Big Tex's reply to the operator's permission request (sent 2026-10-17).",
+          "Knowledgeable review of the finished guide and page text by the named reviewer (the operator).",
+          "Hoist Manual applicability to the 14LP: not listed on its cover; asked of Big Tex.",
+          "Lug-nut torque: Big Tex's manual leaves the value blank (p. 80); asked of Big Tex.",
+          "Hoist capacity: not published by Big Tex."
+        ]
+      }
+    }
+  ]
+}

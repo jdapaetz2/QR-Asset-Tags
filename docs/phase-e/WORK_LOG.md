@@ -258,3 +258,145 @@ The E0 list still applies, plus two items. Neither is needed now:
 ```
 npm.cmd run phase-e:audit:production -- --org=11111111-1111-4111-8111-111111111111
 ```
+
+## E2A — sourced showcase packs and pictographic guides (2026-10-17)
+
+E2A ran in two stages with one grouped approval between them:
+- **Stage 1:** sources, identities, photos, pack drafts, storyboards and the review gallery.
+- **Operator approval.**
+- **Stage 2:** artwork, guide PDFs, page text, import manifests, index, extensions, marketing candidates, tests and the commit.
+
+Nothing is published, and Northridge is unchanged.
+
+The drift check above was **not** run: the approved E2A plan touches no Supabase project. E2B starts with it.
+
+### Approvals and operator decisions
+
+| When | What | How |
+|---|---|---|
+| 2026-10-17 | E2A plan approved: two stages, the grouped approval of storyboards and photos before any artwork, the 12 listed downloads, one Cat Publications price search | Plan mode, ExitPlanMode |
+| 2026-10-17 | Bobcat manual purchase and the Big Tex photo request (both recorded under E1 above) | Operator chat |
+| 2026-10-17 | Only official sources are used. Bobcat's manual is not reproduced; the E20 Start-Up Guide is original, cites its sources and links to Bobcat's official manual | Operator chat ("rebuild the E20 manual"), answered with this approach |
+
+### What ran
+
+| When | Action | Target | Effect |
+|---|---|---|---|
+| 10-17 | The 12 approved downloads (Big Tex ×5, Bobcat ×2, Cat ×2, Commons photos ×3), each hashed | OEM sites, Wikimedia Commons | Reads; files in the vault |
+| 10-17 | Cat Publications search for M0088895: price only, no account, no purchase | catpublications.com | Read |
+| 10-17 | Saved the Big Tex 35SA, 14LP and owners-manuals pages for spec provenance; HEAD checks of every OEM file (sizes match the vault) | bigtextrailers.com, Bobcat and Cat hosts | Reads |
+| 10-17 | `npm.cmd run phase-e:packs:photos` (recipes `e20-a`, `e20-b`, `cat-301-5`; `e20-b` dropped in Stage 2) | Local | Photo derivatives under `docs/phase-e/packs/*/media/` |
+| 10-17 | `npm.cmd run phase-e:packs:review` | Local | Packs synced; review copies, storyboards, `SOURCES.md`, both galleries |
+| 10-17 (Stage 2) | `npm.cmd run phase-e:packs:build` (guides, review, import manifests); `phase-e:packs:photos` again (full-frame E20 copy) | Local | Panels, guide PDFs, index, import manifests |
+| 10-17 (Stage 2) | Cat Publications pages (no account): looked for a stable product link for M0088895 and found none | catpublications.com | Reads |
+| 10-17 (Stage 2) | Shallow clone of the marketing repository (`57747c3`) into the session scratchpad; candidate edits there, `git apply --check` of both patches. Nothing committed or pushed there; its own scripts were not run | GitHub | Read; local scratch copy only |
+
+No Supabase project was touched, no `/t/` URL was requested, nothing was published or emailed, and Northridge is unchanged.
+
+### Source vault (outside Git)
+
+`%USERPROFILE%\Mulemark-Sources\e2a\`. `SHA256SUMS` lists all 15 originals: 9 OEM PDFs, 3 OEM web pages and 3 Commons photos. Also there:
+- `renders\`: cited manual pages as images (made with `scripts\phase-e\packs\render-pdf-pages.ps1`);
+- `inspect\retouch\`: before-and-after crops of every photo edit;
+- `review\REVIEW_GALLERY_PRIVATE.html`: the review gallery with manual pages and unretouched crops. **Private: never commit, share or publish it.**
+
+The register is [packs/SOURCES_REGISTER.json](packs/SOURCES_REGISTER.json), rendered as [packs/SOURCES.md](packs/SOURCES.md).
+
+### Findings
+
+| Finding | Effect |
+|---|---|
+| Both Big Tex owner's manuals are unfinished: the lug-nut torque table is a placeholder (Owners Manual p. 70, Dump Trailers p. 80) | Torque is BLOCKED. Guides say "tight before each tow" and show no number |
+| The Hoist Manual (February 2013) lists the 14LX/GX, 10LP-12 and 70LP, not the 14LP | Its troubleshooting answers are BLOCKED until Big Tex confirms; question added to the operator's Big Tex email |
+| Big Tex's two connector sheets disagree about the 7-way black and blue wires | No pin-level guidance; staff check the connection only |
+| The 35SA page calls the ramp gate both standard and optional; the 14LP page does not mark the solar charger or remote | The showcase units have them fitted; recorded as warnings |
+| The licensed E20 photos and OMM 7255004 are the E20 with serial prefix B3BL. Bobcat's current site and brochure B-3038 describe the newer E20 (November 2025) | E20 specs come only from 7255004; B-3038 is never used |
+| Bobcat's B-1699 rental safety sheet covers all its compact excavators and gives the US utility-locate number (811) | Rules from it are REVIEW_REQUIRED until cross-checked in the E20 OMM; the regional number is a Northridge input |
+| Cat OMM M0088895-24 (June 2026) covers the 301.5 prefixes MNH and ZHL; price US$97 download, US$97 CD, US$114 printed | All 301.5 steps and panels are BLOCKED until the operator decides |
+| The Cat brochure's text layer interleaves its columns | Specs were read from page images (p. 2: maximum operating weight with canopy 1,775 kg / 3,913 lb) |
+| E20 photo A shows a rental company's decals, phone number and fleet number; the Cat photo has a political sticker and a dealer decal; photo B has a dealer sticker | Removed by recorded, repeatable recipes; wear and background left as photographed |
+| The equipment-content schema needed somewhere for specs, panels, item status and credits | Schema 1.1.0, additive: every 1.0.0 manifest still validates |
+
+### Status at the Stage 1 stop
+
+| Asset | Model key | READY | REVIEW_REQUIRED | BLOCKED | What holds it |
+|---|---|---|---|---|---|
+| EXCAVATOR-017 | `bobcat.e20.b3bl-canopy` | 0 | 19 | 9 | E20 OMM purchase; photo choice; reviewer |
+| EXCAVATOR-3015 | `cat.301-5.canopy` | 10 | 1 | 16 | Cat OMM decision; reviewer |
+| TRAILER-014 | `bigtex.35sa.12` | 13 | 23 | 2 | Big Tex photo permission; reviewer; torque |
+| TRAILER-2041 | `bigtex.14lp.14` | 12 | 31 | 5 | Big Tex photo permission; reviewer; hoist manual; torque; hoist capacity |
+
+### Grouped approval (Stage 1 → Stage 2)
+
+| When | What | How |
+|---|---|---|
+| 2026-10-17 | Storyboards and source mapping approved "for the initial pass" | Operator chat, item 1 |
+| 2026-10-17 | E20 photo **A** (the US canopy unit, retouched); candidate B dropped and its derivatives deleted | Operator chat, item 2 |
+| 2026-10-17 | Cat photo edit approved | Operator chat, item 3 |
+| 2026-10-17 | Bobcat E20 manual: being bought, not yet in hand | Operator chat, item 4 |
+| 2026-10-17 | Cat manual: **no for now**. The Cat page links Cat's official channel; every Cat operating step and panel stays BLOCKED | Operator chat, item 5 |
+| 2026-10-17 | Big Tex request sent (photos, manual hosting, hoist-manual applicability; the draft also asked for the torque values); waiting on the reply | Operator chat, item 6 |
+| 2026-10-17 | **Reviewer: the operator**, with final approval authority. Items stay REVIEW_REQUIRED until the operator reviews the finished guides and page text | Operator chat, item 7 |
+| 2026-10-17 | Defaults for the fictional Northridge: show 811; the yard does the daily service checks and renters walk around for leaks and damage | Operator chat, item 8 |
+
+### Stage 2 outputs
+
+| Output | Where | Notes |
+|---|---|---|
+| 20 original pictogram panels (35SA 8, 14LP 8, E20 4) | `packs/<model>/guide/*.svg`, `guide/web/*.{png,webp}` | Drawn in code from primitives (`pictogram-kit.mjs`, `pictogram-panels.mjs`); nothing traced from photos, OEM figures or standard symbols. E20 panels 3, 4, 7 and 8 need the OMM; all 8 Cat panels need the declined OMM |
+| Start-Up Guide PDFs (2 pages each, "Review draft" banner) | `packs/<model>/guide/<model>-start-up-guide.pdf` | 35SA 413 KB, 14LP 418 KB (compact layout), E20 194 KB with labelled gaps for the four blocked panels. No Cat guide |
+| Public page text: the 7 fields per asset, each with a status and the ids it condenses | `asset.page` in each `pack.json` | E20 quick start BLOCKED (needs the OMM's start-up and control steps). Cat page uses the fictional handover policy and the brochure's fuel-tank figure only |
+| Documents per asset: the guide (hosted) and official manual links | `asset.documents` | Bobcat and Cat manuals are sold; links go to the official stores. Cat Publications has no stable product link, so the title says to search M0088895 |
+| Showcase story, narrative and limitation per asset | `asset.showcase` | From the E0 stories |
+| Field-level E2C import manifests | `packs/<model>/import-manifest.json` | From and to per field, the app's storage paths, pinned v4 ids, existing unknown-rights documents set private, QR rows untouched. `apply.allowed` is false for all four |
+| Model-pack index | `packs/MODEL_PACK_INDEX.{json,md}` | Cat listed as standard tier until its panels can be drawn |
+| Extension proposals (not built) | `packs/EXTENSIONS.md` | Credit line, pictograms in the page, a dump-trailer return checklist, store-link labelling |
+| Marketing candidates (not pushed) | `packs/marketing/` | A: the live site's E20 scene hotlinks the **unedited** photo with the rental company's decals; the patch swaps in the full-frame retouched copy. B: demo-card labels, after E2C only. The trailer scene waits on Big Tex |
+| Schema 1.1.0 additions | `schema/equipment-content.schema.json` | `asset.page`, `asset.documents`, `asset.showcase`; policy citations (`pol-…`) |
+
+Every generated file is deterministic: a second `phase-e:packs:build` left all 63 guide files byte-identical.
+
+### Status at E2A close
+
+| Asset | Model key | Items (ready / review / blocked) | Page fields | Panels drawn | Guide | Photo | Import |
+|---|---|---|---|---|---|---|---|
+| EXCAVATOR-017 | `bobcat.e20.b3bl-canopy` | 1 / 18 / 9 | 2 / 3 / 2 | 4 of 8 | PDF (draft) | READY | not yet |
+| EXCAVATOR-3015 | `cat.301-5.canopy` | 11 / 0 / 16 | 6 / 0 / 1 | 0 of 8 | none | READY | not yet |
+| TRAILER-014 | `bigtex.35sa.12` | 13 / 23 / 2 | 3 / 4 / 0 | 8 of 8 | PDF (draft) | BLOCKED | not yet |
+| TRAILER-2041 | `bigtex.14lp.14` | 12 / 31 / 5 | 2 / 5 / 0 | 8 of 8 | PDF (draft) | BLOCKED | not yet |
+
+### Tracked files (E2A)
+
+- `docs/phase-e/schema/equipment-content.schema.json` (1.1.0); `docs/phase-e/packs/` (see its [README](packs/README.md))
+- `scripts/lib/photo-retouch.mjs`, `scripts/lib/content-pack.mjs`, each with tests
+- `scripts/phase-e/packs/`: `photo-derivatives.mjs`, `pictogram-kit.mjs`, `pictogram-panels.mjs`, `guide-build.mjs`, `pack-review.mjs`, `import-manifests.mjs`, `render-pdf-pages.ps1`, `packs.test.mjs`
+- `package.json`: `phase-e:packs:photos`, `:review`, `:guides`, `:import`, `:build`
+- `.gitattributes` (new): pack SVGs and patches are stored byte-for-byte (`-text`). This machine has `core.autocrlf=true`, which would otherwise rewrite their line endings on checkout and break the recorded SHA-256 values
+- Doc updates: this log, `PHASE_E_PLAN.md`, `ONBOARDING_DATA_CONTRACT.md`, `CANONICAL_SHOWCASE_FLEET.md`
+
+### Gates (2026-10-17)
+
+| Gate | Result |
+|---|---|
+| `npm.cmd run lint` | 0 errors. The one warning (an unused parameter in `guide-build.mjs`) was fixed and the pack scripts re-linted clean |
+| `npm.cmd run typecheck` | Pass |
+| `npm.cmd test` | 205 files, 2,375 tests passed, including the 38 E2A tests (schema, sources, status rules, hashes, PDF structure, image sizes, budgets, SVG safety, contrast and legibility, import manifests, vault hashes) |
+| `npm.cmd run build` | Compiled successfully |
+
+Also checked by eye: all 20 panels on contact sheets, every page of the three guide PDFs (rendered with `render-pdf-pages.ps1`), and both galleries (headless Chromium, every image loads).
+
+### Open, operator-pending
+
+1. **Review** the three draft guides and the page text (the operator is the reviewer). Approved items become READY and the review-draft banner drops on the next build.
+2. **Bobcat E20 manual** (`7255004ENUSPDF`): save the PDF in the vault. Then panels 3, 4, 7 and 8, the E20 specs, fuel notes and the start-up and control steps get written and drawn.
+3. **Big Tex's reply**: photos (both trailers' heroes and the marketing trailer scene), manual hosting, the 14LP hoist manual and the torque values.
+4. **Cat manual**: declined for now. If that changes, the Cat panels and safety notes follow.
+5. **Marketing**: patch A (E20 photo) can go live any time; patch B only after E2C. Both are applied in the marketing repository by the operator.
+
+### Next command
+
+**Prompt E2B** (the 105-day synthetic dataset), started in plan mode **only when the operator runs it**; never automatically. It starts with the drift check above, which E2A did not need. After any change to a pack, the register or the drawings, run this from the project folder:
+
+```
+npm.cmd run phase-e:packs:build
+```

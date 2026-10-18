@@ -1,0 +1,258 @@
+{
+  "manifest": "e2c-showcase-import",
+  "format": 1,
+  "generated_by": "scripts/phase-e/packs/import-manifests.mjs",
+  "pack": "docs/phase-e/packs/bigtex.35sa.12/pack.json",
+  "content_version": "e2a-541a4733ed2a",
+  "target": {
+    "environment": "production",
+    "organization_id": "11111111-1111-4111-8111-111111111111",
+    "asset_id": "21111111-1111-4111-8111-111111111102",
+    "asset_code": "TRAILER-014",
+    "qr_link_id": "41111111-1111-4111-8111-111111111102",
+    "short_code": "demo-tr014"
+  },
+  "apply": {
+    "allowed": false,
+    "blocked_by": [
+      "Exact-model photo: no licensed 35SA photo exists; waiting on Big Tex's reply to the operator's permission request (sent 2026-10-17). The current cover (rights unknown) is cleared, never kept.",
+      "Condensed from sourced steps; awaiting the reviewer.",
+      "Condensed from sourced warnings; awaiting the reviewer.",
+      "Unhitching steps awaiting the reviewer; the accessory line is Northridge policy.",
+      "Published only when every field above is READY and the operator approves.",
+      "Carries the review-draft banner until every panel is approved."
+    ]
+  },
+  "current_from": {
+    "artifact": "showcase-audit-production-northridge-20261017T003343Z.json",
+    "sha256": "7e246de6bffe3a82ffea27729fd1da68374896423ead69327bafa0fadce08ef7",
+    "generated_at": "2026-10-17T00:33:43.489Z",
+    "note": "Read-only E1 audit of Production (gitignored artifact). Current values are informational; E2C re-audits before applying."
+  },
+  "summary": {
+    "READY": 12,
+    "REVIEW_REQUIRED": 7,
+    "BLOCKED": 1
+  },
+  "operations": [
+    {
+      "op": "update",
+      "table": "assets",
+      "match": {
+        "id": "21111111-1111-4111-8111-111111111102"
+      },
+      "fields": {
+        "asset_name": {
+          "to": "Trailer 014",
+          "current": "Trailer 014",
+          "status": "READY"
+        },
+        "category": {
+          "to": "Utility Trailer",
+          "current": "Utility Trailer",
+          "status": "READY"
+        },
+        "make": {
+          "to": "Big Tex Trailers",
+          "current": "Big Tex",
+          "status": "READY"
+        },
+        "model": {
+          "to": "35SA-12",
+          "current": "35SA",
+          "status": "READY"
+        },
+        "serial_number": {
+          "to": "DEMO-35SA-0014",
+          "current": "BTX35SA-2021-0014",
+          "status": "READY",
+          "note": "Fictional DEMO- serial."
+        },
+        "year": {
+          "to": null,
+          "current": 2021,
+          "status": "READY",
+          "note": "Left empty: the units are fictional."
+        },
+        "cover_image_url": {
+          "to": null,
+          "current": {
+            "kind": "external",
+            "host": "s3.us-west-2.amazonaws.com"
+          },
+          "status": "BLOCKED",
+          "status_reason": "Exact-model photo: no licensed 35SA photo exists; waiting on Big Tex's reply to the operator's permission request (sent 2026-10-17). The current cover (rights unknown) is cleared, never kept."
+        },
+        "return_inspection_template_key": {
+          "to": "utility_trailer",
+          "current": "utility_trailer",
+          "status": "READY"
+        }
+      }
+    },
+    {
+      "op": "upsert",
+      "table": "equipment_pages",
+      "match": {
+        "asset_id": "21111111-1111-4111-8111-111111111102"
+      },
+      "fields": {
+        "headline": {
+          "to": "12 ft single-axle utility trailer with a 4 ft ramp gate. It tows on a 2-inch ball rated for 2,995 lb or more and has no brakes.",
+          "current": "28 characters",
+          "status": "READY",
+          "derived_from": [
+            "bed",
+            "rear-gate",
+            "coupler",
+            "gvwr",
+            "brakes",
+            "35sa-s1"
+          ],
+          "status_reason": "Facts from the OEM product page."
+        },
+        "quick_start_text": {
+          "to": "1. Check the ball: 2 inch, rated 2,995 lb or more, no cracks or wear.\n2. Lower the coupler onto the ball, latch it and put the pin in.\n3. Lift-test: raise the truck 1 inch with the trailer jack (no more), then wind the jack fully up.\n4. Cross the safety chains under the coupler and hook them to the truck's frame or chain loops.\n5. Plug in the 4-way and check the tail, brake and turn lights.\n6. Tires: no damage, pressure as printed on the VIN label (front left), lug nuts tight.\n7. Load with the trailer hitched, on level ground: about 60% of the load in the front half, heavy items low over the axle. Strap it down and latch the gate.\n8. Every 50 miles or hour of towing, stop and check the hitch, chains, load and gate.\nThe Start-Up Guide shows each step.",
+          "current": "157 characters",
+          "status": "REVIEW_REQUIRED",
+          "derived_from": [
+            "35sa-s1",
+            "35sa-s2",
+            "35sa-s3",
+            "35sa-s4",
+            "35sa-s5",
+            "35sa-s6",
+            "35sa-s7",
+            "35sa-s8",
+            "35sa-s9"
+          ],
+          "status_reason": "Condensed from sourced steps; awaiting the reviewer."
+        },
+        "safety_notes": {
+          "to": "Don't move the trailer until the coupler is latched and pinned, the chains are on and the jack is fully up.\nNo more than 2,995 lb for trailer and load together (about 2,012 lb of cargo).\n60 mph is the maximum recommended towing speed, in ideal conditions only.\nIf the trailer sways, ease off the gas and steer as little as possible. Don't brake the truck to correct it.\nNever carry people, or flammable, explosive or poisonous loads.",
+          "current": "127 characters",
+          "status": "REVIEW_REQUIRED",
+          "derived_from": [
+            "35sa-w1",
+            "gvwr",
+            "cargo-capacity",
+            "35sa-w3",
+            "35sa-w4",
+            "35sa-w2"
+          ],
+          "status_reason": "Condensed from sourced warnings; awaiting the reviewer."
+        },
+        "fuel_power_notes": {
+          "to": null,
+          "current": "0 characters",
+          "status": "READY",
+          "derived_from": [],
+          "status_reason": "No fuel or power system; the lights run from the tow vehicle, covered in the quick start."
+        },
+        "troubleshooting_notes": {
+          "to": "Lights not working: check the 4-way plug is fully connected.\nCoupler won't latch: check the ball is 2 inches. Don't tow until it locks.\nAnything cracked, loose or damaged: don't tow. Use Request Support.",
+          "current": "157 characters",
+          "status": "REVIEW_REQUIRED",
+          "derived_from": [
+            "35sa-n1",
+            "35sa-s1",
+            "35sa-s3",
+            "35sa-s6"
+          ],
+          "status_reason": "Condensed from sourced steps; awaiting the reviewer."
+        },
+        "return_notes": {
+          "to": "Return the straps, chain pins and spare tire that came with the trailer.\nTo unhitch: block the tires, unplug, unhook the chains, open the coupler, then wind the jack down on firm ground.\nUse Return checklist when you drop it off.",
+          "current": "92 characters",
+          "status": "REVIEW_REQUIRED",
+          "derived_from": [
+            "pol-trailer-accessories",
+            "35sa-s10"
+          ],
+          "status_reason": "Unhitching steps awaiting the reviewer; the accessory line is Northridge policy."
+        },
+        "emergency_notes": {
+          "to": "For emergencies call your local emergency number. For equipment issues, use the support contact on this page.",
+          "current": "84 characters",
+          "status": "READY",
+          "derived_from": [
+            "mulemark-standard-emergency"
+          ],
+          "status_reason": "Mulemark's standard emergency wording (lib/onboarding/templates.ts)."
+        },
+        "is_published": {
+          "to": true,
+          "current": true,
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Published only when every field above is READY and the operator approves."
+        }
+      }
+    },
+    {
+      "op": "upload",
+      "key": "document:startup_guide",
+      "bucket": "documents",
+      "path": "org/11111111-1111-4111-8111-111111111111/asset/21111111-1111-4111-8111-111111111102/documents/5943cdd0-b222-47de-b43a-13781e4ee281/5943cdd0-b222-47de-b43a-13781e4ee281.pdf",
+      "from": "docs/phase-e/packs/bigtex.35sa.12/guide/bigtex.35sa.12-start-up-guide.pdf",
+      "content_type": "application/pdf",
+      "bytes": 413142,
+      "sha256": "569e77457d5540424beb7fd5f965215dd1036202b86fb56e4f13d252f5f452f0",
+      "status": "REVIEW_REQUIRED",
+      "status_reason": "Carries the review-draft banner until every panel is approved."
+    },
+    {
+      "op": "insert",
+      "table": "documents",
+      "row": {
+        "id": "5943cdd0-b222-47de-b43a-13781e4ee281",
+        "organization_id": "11111111-1111-4111-8111-111111111111",
+        "asset_id": "21111111-1111-4111-8111-111111111102",
+        "title": "Big Tex Trailers 35SA-12 Start-Up Guide",
+        "document_type": "startup_guide",
+        "url": null,
+        "storage_path": "org/11111111-1111-4111-8111-111111111111/asset/21111111-1111-4111-8111-111111111102/documents/5943cdd0-b222-47de-b43a-13781e4ee281/5943cdd0-b222-47de-b43a-13781e4ee281.pdf",
+        "visibility": "public",
+        "link_status": "unknown"
+      },
+      "status": "REVIEW_REQUIRED",
+      "status_reason": "Carries the review-draft banner until every panel is approved."
+    },
+    {
+      "op": "insert",
+      "table": "documents",
+      "row": {
+        "id": "bd0de054-57e3-4759-a41b-b7e57815254d",
+        "organization_id": "11111111-1111-4111-8111-111111111111",
+        "asset_id": "21111111-1111-4111-8111-111111111102",
+        "title": "Big Tex Owners Manual",
+        "document_type": "manual",
+        "url": "https://www.bigtextrailers.com/wp-content/uploads/2023/11/Big-Tex-Trailers_Owners-Manual_2020.pdf",
+        "storage_path": null,
+        "visibility": "public",
+        "link_status": "unknown"
+      },
+      "source_id": "src-bigtex-owners-2020",
+      "status": "READY",
+      "status_reason": "Official free copy, linked (no hosting without Big Tex permission)."
+    },
+    {
+      "op": "none",
+      "table": "qr_links",
+      "match": {
+        "id": "41111111-1111-4111-8111-111111111102"
+      },
+      "status": "READY",
+      "status_reason": "Protected route demo-tr014: no change of any kind."
+    }
+  ],
+  "pinned_ids": [
+    {
+      "key": "document:startup_guide:Big Tex Trailers 35SA-12 Start-Up Guide",
+      "id": "5943cdd0-b222-47de-b43a-13781e4ee281"
+    },
+    {
+      "key": "document:manual:Big Tex Owners Manual",
+      "id": "bd0de054-57e3-4759-a41b-b7e57815254d"
+    }
+  ]
+}

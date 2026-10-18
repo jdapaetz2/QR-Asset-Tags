@@ -1,0 +1,309 @@
+{
+  "manifest": "e2c-showcase-import",
+  "format": 1,
+  "generated_by": "scripts/phase-e/packs/import-manifests.mjs",
+  "pack": "docs/phase-e/packs/bobcat.e20.b3bl-canopy/pack.json",
+  "content_version": "e2a-f5f000421cf9",
+  "target": {
+    "environment": "production",
+    "organization_id": "11111111-1111-4111-8111-111111111111",
+    "asset_id": "21111111-1111-4111-8111-111111111101",
+    "asset_code": "EXCAVATOR-017",
+    "qr_link_id": "41111111-1111-4111-8111-111111111101",
+    "short_code": "demo-ex017"
+  },
+  "apply": {
+    "allowed": false,
+    "blocked_by": [
+      "Start-up and control steps come from Bobcat's E20 manual (7255004), not in hand yet. Publish after they are added and reviewed.",
+      "From Bobcat's rental safety sheet; awaiting the reviewer and the OMM cross-check.",
+      "Fuel type and tank capacity come from the E20 manual.",
+      "Northridge policy plus Bobcat's leaving-the-machine sequence; awaiting the reviewer.",
+      "Accessories from the return checklist template; the parking line from Bobcat's sheet.",
+      "Published only when every field above is READY and the operator approves.",
+      "Carries the review-draft banner until every panel is approved."
+    ]
+  },
+  "current_from": {
+    "artifact": "showcase-audit-production-northridge-20261017T003343Z.json",
+    "sha256": "7e246de6bffe3a82ffea27729fd1da68374896423ead69327bafa0fadce08ef7",
+    "generated_at": "2026-10-17T00:33:43.489Z",
+    "note": "Read-only E1 audit of Production (gitignored artifact). Current values are informational; E2C re-audits before applying."
+  },
+  "summary": {
+    "READY": 15,
+    "REVIEW_REQUIRED": 5,
+    "BLOCKED": 3
+  },
+  "operations": [
+    {
+      "op": "upload",
+      "key": "cover",
+      "bucket": "public-assets",
+      "path": "org/11111111-1111-4111-8111-111111111111/asset/21111111-1111-4111-8111-111111111101/cover/4ce0dd36-8ee8-4ce0-b446-a81a37317668.webp",
+      "from": "docs/phase-e/packs/bobcat.e20.b3bl-canopy/media/e20-hero-a.webp",
+      "content_type": "image/webp",
+      "bytes": 173670,
+      "sha256": "0f9718aa0cff16c6435ade4ae6ffb2e9582cbf7b9bc3bcb4283165aec3680139",
+      "status": "READY",
+      "status_reason": "Candidate A, chosen by the operator on 2026-10-17. Licence CC BY-SA 4.0 with credit; edits recorded."
+    },
+    {
+      "op": "update",
+      "table": "assets",
+      "match": {
+        "id": "21111111-1111-4111-8111-111111111101"
+      },
+      "fields": {
+        "asset_name": {
+          "to": "Excavator 017",
+          "current": "Excavator 017",
+          "status": "READY"
+        },
+        "category": {
+          "to": "Compact Excavator",
+          "current": "Excavator",
+          "status": "READY"
+        },
+        "make": {
+          "to": "Bobcat",
+          "current": "Kubota",
+          "status": "READY"
+        },
+        "model": {
+          "to": "E20",
+          "current": "U17",
+          "status": "READY"
+        },
+        "serial_number": {
+          "to": "DEMO-E20-0017",
+          "current": "KBU17-2022-0417",
+          "status": "READY",
+          "note": "Fictional DEMO- serial."
+        },
+        "year": {
+          "to": null,
+          "current": 2022,
+          "status": "READY",
+          "note": "Left empty: the units are fictional."
+        },
+        "cover_image_url": {
+          "to": {
+            "public_url_of": "org/11111111-1111-4111-8111-111111111111/asset/21111111-1111-4111-8111-111111111101/cover/4ce0dd36-8ee8-4ce0-b446-a81a37317668.webp"
+          },
+          "current": {
+            "kind": "external",
+            "host": "cdn.dealerspike.com"
+          },
+          "status": "READY",
+          "status_reason": "Candidate A, chosen by the operator on 2026-10-17. Licence CC BY-SA 4.0 with credit; edits recorded."
+        },
+        "return_inspection_template_key": {
+          "to": "mini_excavator_skid_steer",
+          "current": null,
+          "status": "READY"
+        }
+      }
+    },
+    {
+      "op": "upsert",
+      "table": "equipment_pages",
+      "match": {
+        "asset_id": "21111111-1111-4111-8111-111111111101"
+      },
+      "fields": {
+        "headline": {
+          "to": "Bobcat E20 compact excavator with canopy. Read the Start-Up Guide before you start.",
+          "current": "25 characters",
+          "status": "READY",
+          "derived_from": [
+            "model",
+            "operator_protection"
+          ],
+          "status_reason": "Identity facts."
+        },
+        "quick_start_text": {
+          "to": "1. Before you dig, call 811 and check the area for holes, drop-offs and soft ground.\n2. Walk around the machine: look for leaks and broken or damaged parts.\n3. Climb on with the grab handles and tracks (never jump off) and fasten the seat belt.\n4. Start only from the seat, with the levers and controls in neutral.\n5. Pushing the travel levers away drives toward the blade: check where the blade is first.\n6. Before you leave the seat: bucket on the ground, engine off, key out, console up.\nThe Start-Up Guide shows each step.",
+          "current": "85 characters",
+          "status": "BLOCKED",
+          "derived_from": [
+            "e20-s1",
+            "e20-s2",
+            "e20-s3",
+            "e20-s4",
+            "e20-s6",
+            "e20-s9",
+            "pol-renter-walkaround"
+          ],
+          "status_reason": "Start-up and control steps come from Bobcat's E20 manual (7255004), not in hand yet. Publish after they are added and reviewed."
+        },
+        "safety_notes": {
+          "to": "Keep people out of the swing area, and never lift the boom or bucket over anyone. No riders.\nSlopes: no more than 15° across or up, or 25° down or backing up. Don't swing loads on a slope.\nStay within the lift chart on the machine.\nNever work the controls from the ground. No smoking while fueling.",
+          "current": "132 characters",
+          "status": "REVIEW_REQUIRED",
+          "derived_from": [
+            "e20-s5",
+            "e20-w1",
+            "e20-s7",
+            "e20-s8",
+            "e20-w2",
+            "e20-w4"
+          ],
+          "status_reason": "From Bobcat's rental safety sheet; awaiting the reviewer and the OMM cross-check."
+        },
+        "fuel_power_notes": {
+          "to": null,
+          "current": "61 characters",
+          "status": "BLOCKED",
+          "derived_from": [],
+          "status_reason": "Fuel type and tank capacity come from the E20 manual."
+        },
+        "troubleshooting_notes": {
+          "to": "Something wrong (a warning light, leak or odd noise): stop, lower the bucket to the ground, shut down and use Request Support.",
+          "current": "80 characters",
+          "status": "REVIEW_REQUIRED",
+          "derived_from": [
+            "pol-stop-and-report",
+            "e20-s9"
+          ],
+          "status_reason": "Northridge policy plus Bobcat's leaving-the-machine sequence; awaiting the reviewer."
+        },
+        "return_notes": {
+          "to": "Return the keys and any attachments.\nLeave it with the bucket on the ground, engine off, key out and console up.\nUse Return checklist when you drop it off.",
+          "current": "76 characters",
+          "status": "REVIEW_REQUIRED",
+          "derived_from": [
+            "template:mini_excavator_skid_steer",
+            "e20-s9"
+          ],
+          "status_reason": "Accessories from the return checklist template; the parking line from Bobcat's sheet."
+        },
+        "emergency_notes": {
+          "to": "For emergencies call your local emergency number. For equipment issues, use the support contact on this page.",
+          "current": "84 characters",
+          "status": "READY",
+          "derived_from": [
+            "mulemark-standard-emergency"
+          ],
+          "status_reason": "Mulemark's standard emergency wording (lib/onboarding/templates.ts)."
+        },
+        "is_published": {
+          "to": true,
+          "current": true,
+          "status": "BLOCKED",
+          "status_reason": "Published only when every field above is READY and the operator approves."
+        }
+      }
+    },
+    {
+      "op": "upload",
+      "key": "document:startup_guide",
+      "bucket": "documents",
+      "path": "org/11111111-1111-4111-8111-111111111111/asset/21111111-1111-4111-8111-111111111101/documents/55721b22-f182-40b6-b53d-299d7c5a23e5/55721b22-f182-40b6-b53d-299d7c5a23e5.pdf",
+      "from": "docs/phase-e/packs/bobcat.e20.b3bl-canopy/guide/bobcat.e20.b3bl-canopy-start-up-guide.pdf",
+      "content_type": "application/pdf",
+      "bytes": 194458,
+      "sha256": "5d867e33991d3b23cad97130df615f79f62544bec902c73201a78d4260e5c682",
+      "status": "REVIEW_REQUIRED",
+      "status_reason": "Carries the review-draft banner until every panel is approved."
+    },
+    {
+      "op": "insert",
+      "table": "documents",
+      "row": {
+        "id": "55721b22-f182-40b6-b53d-299d7c5a23e5",
+        "organization_id": "11111111-1111-4111-8111-111111111111",
+        "asset_id": "21111111-1111-4111-8111-111111111101",
+        "title": "Bobcat E20 Start-Up Guide",
+        "document_type": "startup_guide",
+        "url": null,
+        "storage_path": "org/11111111-1111-4111-8111-111111111111/asset/21111111-1111-4111-8111-111111111101/documents/55721b22-f182-40b6-b53d-299d7c5a23e5/55721b22-f182-40b6-b53d-299d7c5a23e5.pdf",
+        "visibility": "public",
+        "link_status": "unknown"
+      },
+      "status": "REVIEW_REQUIRED",
+      "status_reason": "Carries the review-draft banner until every panel is approved."
+    },
+    {
+      "op": "insert",
+      "table": "documents",
+      "row": {
+        "id": "058927ca-0f5b-4888-886d-1861c3b2b5df",
+        "organization_id": "11111111-1111-4111-8111-111111111111",
+        "asset_id": "21111111-1111-4111-8111-111111111101",
+        "title": "Bobcat E20 Operation & Maintenance Manual (sold by Bobcat)",
+        "document_type": "manual",
+        "url": "https://shop.bobcat.com/ca/e20-excavator-operation-and-maintenance-digital-manual-7255004enuspdf",
+        "storage_path": null,
+        "visibility": "public",
+        "link_status": "unknown"
+      },
+      "source_id": "src-bobcat-e20-omm",
+      "status": "READY",
+      "status_reason": "Bobcat's official channel; the manual is sold, not free."
+    },
+    {
+      "op": "insert",
+      "table": "documents",
+      "row": {
+        "id": "9801b249-ecdf-4755-b9e8-c23011e19bfe",
+        "organization_id": "11111111-1111-4111-8111-111111111111",
+        "asset_id": "21111111-1111-4111-8111-111111111101",
+        "title": "Bobcat Rent It Safely: compact excavator safety rules",
+        "document_type": "safety_sheet",
+        "url": "https://res.cloudinary.com/doosan-bobcat/image/upload/v1642696283/bobcat-assets/na-approved/products/excavators/multi-model/literature/b-1699-rentitsafely-excavator.pdf",
+        "storage_path": null,
+        "visibility": "public",
+        "link_status": "unknown"
+      },
+      "source_id": "src-bobcat-b1699",
+      "status": "READY",
+      "status_reason": "Bobcat's free official rental safety sheet, linked."
+    },
+    {
+      "op": "update",
+      "table": "documents",
+      "match": {
+        "id": "20f8bbb0-8c63-415c-bcf8-674a885f042f"
+      },
+      "set": {
+        "visibility": "private"
+      },
+      "current": {
+        "title": "Kubota U17-3 Manual",
+        "document_type": "manual",
+        "visibility": "public",
+        "hosted": true
+      },
+      "status": "READY",
+      "status_reason": "E0 archive boundary (approved 2026-10-16): documents of unknown provenance go non-public at cutover; the showcase uses official links and its own guide."
+    },
+    {
+      "op": "none",
+      "table": "qr_links",
+      "match": {
+        "id": "41111111-1111-4111-8111-111111111101"
+      },
+      "status": "READY",
+      "status_reason": "Protected route demo-ex017: no change of any kind."
+    }
+  ],
+  "pinned_ids": [
+    {
+      "key": "cover",
+      "id": "4ce0dd36-8ee8-4ce0-b446-a81a37317668"
+    },
+    {
+      "key": "document:startup_guide:Bobcat E20 Start-Up Guide",
+      "id": "55721b22-f182-40b6-b53d-299d7c5a23e5"
+    },
+    {
+      "key": "document:manual:Bobcat E20 Operation & Maintenance Manual (sold by Bobcat)",
+      "id": "058927ca-0f5b-4888-886d-1861c3b2b5df"
+    },
+    {
+      "key": "document:safety_sheet:Bobcat Rent It Safely: compact excavator safety rules",
+      "id": "9801b249-ecdf-4755-b9e8-c23011e19bfe"
+    }
+  ]
+}

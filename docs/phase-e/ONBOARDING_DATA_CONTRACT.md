@@ -14,6 +14,15 @@ This contract is shared by the showcase content packs (E2A) and the 25–250-ass
 - These cases were rejected: READY with open facts; a null model marked READY; a guidance step without a source; approval without a record; a partial batch without asset lists; an unknown field.
 - E4B owns the permanent validator. Adding one as a dependency is that slice's decision.
 
+**Schema 1.1.0 (E2A, 2026-10-17):** additive only, so every 1.0.0 manifest still validates. It adds:
+- sourced `specs`, `pictograms` (storyboard fields plus files), staff-only `support_notes`;
+- a per-item status (`READY` / `REVIEW_REQUIRED` / `BLOCKED`, with a reason);
+- photo `credit` and derivative `files`;
+- source `availability`, `vault_path` and `locator_convention`;
+- on the asset: the seven public `page` fields (each with its own status and the ids it condenses), planned `documents` and the `showcase` story.
+
+Steps may cite a customer policy as `{ "source_id": "pol-…" }`; it must exist in `organization.policies`. The E2A pack tests (`scripts/phase-e/packs/packs.test.mjs`) validate the four showcase packs with the same transitive ajv 6.15.0.
+
 **Division of labour:**
 - The customer supplies facts and files.
 - Mulemark configures, maps, imports and checks.

@@ -1,13 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://mulemark.io/schemas/phase-e/equipment-content-1.0.0.json",
+  "$id": "https://mulemark.io/schemas/phase-e/equipment-content-1.1.0.json",
   "title": "Mulemark equipment-content manifest",
-  "description": "Versioned content contract shared by the showcase packs (E2) and customer onboarding batches (E4). Four layers: MODEL (exact configuration, sourced guidance), ASSET (customer facts), ORGANIZATION (customer settings and policies) and SOURCE/REVIEW (provenance, rights, applicability, review state). Guidance only exists on an identified model or as a sourced asset exception; a category never supplies model-specific instructions. Cross-reference rules JSON Schema cannot express are listed in docs/phase-e/ONBOARDING_DATA_CONTRACT.md and enforced by the E4B preflight. Draft-07 so any mainstream validator can check it.",
+  "description": "Versioned content contract shared by the showcase packs (E2) and customer onboarding batches (E4). Four layers: MODEL (exact configuration, sourced guidance), ASSET (customer facts), ORGANIZATION (customer settings and policies) and SOURCE/REVIEW (provenance, rights, applicability, review state). Guidance only exists on an identified model or as a sourced asset exception; a category never supplies model-specific instructions. Cross-reference rules JSON Schema cannot express are listed in docs/phase-e/ONBOARDING_DATA_CONTRACT.md and enforced by the E4B preflight. Draft-07 so any mainstream validator can check it. 1.1.0 (E2A) is additive: sourced specs, pictogram panels, a per-item READY/REVIEW_REQUIRED/BLOCKED status, photo credits and derivative files, and the source vault path and availability. Every 1.0.0 manifest is still valid.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "manifest_id", "kind", "organization", "sources", "models", "assets"],
   "properties": {
-    "schema_version": { "const": "1.0.0" },
+    "schema_version": { "enum": ["1.0.0", "1.1.0"] },
     "manifest_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$" },
     "kind": { "enum": ["showcase", "customer-onboarding"] },
     "batch": { "$ref": "#/definitions/batch" },
@@ -21,6 +21,10 @@
     "reviewStatus": {
       "description": "Content review state. Separate from asset lifecycle (draft/public/archived) and rental state.",
       "enum": ["READY", "READY_WITH_WARNINGS", "CUSTOMER_INPUT_REQUIRED", "MULEMARK_REVIEW"]
+    },
+    "itemStatus": {
+      "description": "1.1.0. State of one spec, step, panel or photo. READY = sourced and reviewed; REVIEW_REQUIRED = sourced but the knowledgeable review (or another named check) is outstanding; BLOCKED = a source, permission or fact is missing. A model cannot be READY while any of its items is REVIEW_REQUIRED or BLOCKED (checked by the pack tests).",
+      "enum": ["READY", "REVIEW_REQUIRED", "BLOCKED"]
     },
     "review": {
       "type": "object",
@@ -67,7 +71,7 @@
       "required": ["source_id", "kind", "title", "rights", "verification"],
       "properties": {
         "source_id": { "type": "string", "pattern": "^src-[a-z0-9-]+$" },
-        "kind": { "enum": ["oem-manual", "oem-web", "oem-brochure", "photo", "illustration", "customer-file", "customer-statement"] },
+        "kind": { "enum": ["oem-manual", "oem-web", "oem-brochure", "oem-document", "photo", "illustration", "customer-file", "customer-statement"] },
         "title": { "type": "string", "minLength": 1 },
         "publisher": { "type": "string" },
         "url": { "type": "string" },
@@ -82,7 +86,13 @@
         "verification": {
           "description": "headers-only = existence/size/date checked, content not read; read = content reviewed; customer-confirmed = customer attested; unverified = not checked.",
           "enum": ["headers-only", "read", "customer-confirmed", "unverified"]
-        }
+        },
+        "availability": {
+          "description": "1.1.0. in-hand = original bytes held (vault_path); to-purchase = sold only, not yet bought; permission-requested = waiting on the rights holder; unavailable = no lawful source found.",
+          "enum": ["in-hand", "to-purchase", "permission-requested", "unavailable"]
+        },
+        "vault_path": { "description": "1.1.0. Path inside the private source vault (outside Git). Never a public URL.", "type": "string" },
+        "locator_convention": { "description": "1.1.0. How locators cite pages, e.g. printed page numbers and the PDF offset.", "type": "string" }
       }
     },
     "sourceRef": {
@@ -102,14 +112,153 @@
         "pictogram": { "type": "string" },
         "source_refs": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/sourceRef" } },
         "safety_critical": { "type": "boolean" },
-        "reviewer_role": { "type": "string" }
+        "reviewer_role": { "type": "string" },
+        "status": { "$ref": "#/definitions/itemStatus" },
+        "status_reason": { "type": "string" }
+      }
+    },
+    "spec": {
+      "description": "1.1.0. One published specification value, always with its source. Unknown values are listed as blockers, never estimated.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["spec_id", "label", "value", "source_refs", "status"],
+      "properties": {
+        "spec_id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "label": { "type": "string", "minLength": 1 },
+        "value": { "type": "string", "minLength": 1 },
+        "source_refs": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/sourceRef" } },
+        "status": { "$ref": "#/definitions/itemStatus" },
+        "status_reason": { "type": "string" },
+        "public": { "description": "false = kept for staff and review only (for example a capability a renter could misread as a limit).", "type": "boolean" }
+      }
+    },
+    "credit": {
+      "description": "1.1.0. Attribution for a photo or illustration (TASL: title via source, author, source, licence) and whether it was modified.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["author", "license"],
+      "properties": {
+        "author": { "type": "string", "minLength": 1 },
+        "license": { "type": "string", "minLength": 1 },
+        "license_url": { "type": "string" },
+        "source_url": { "type": "string" },
+        "modified": { "type": "boolean" },
+        "modifications": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "mediaFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "sha256"],
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
       }
     },
     "media": {
       "type": "object",
       "additionalProperties": false,
       "required": ["source_id"],
-      "properties": { "source_id": { "type": "string" }, "alt": { "type": "string" }, "crop": { "type": "string" } }
+      "properties": {
+        "source_id": { "type": "string" },
+        "alt": { "type": "string" },
+        "crop": { "type": "string" },
+        "credit": { "$ref": "#/definitions/credit" },
+        "files": { "type": "array", "items": { "$ref": "#/definitions/mediaFile" } },
+        "status": { "$ref": "#/definitions/itemStatus" },
+        "status_reason": { "type": "string" }
+      }
+    },
+    "pageField": {
+      "description": "1.1.0. One plain-text field of the public equipment page. derived_from names the steps, specs, warnings or customer policies (ids) it condenses, so citations stay in the review record instead of on the page.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "status"],
+      "properties": {
+        "text": { "type": ["string", "null"] },
+        "derived_from": { "type": "array", "items": { "type": "string" } },
+        "status": { "$ref": "#/definitions/itemStatus" },
+        "status_reason": { "type": "string" }
+      }
+    },
+    "page": {
+      "description": "1.1.0. The seven equipment_pages text fields, in the app's display order.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["headline", "quick_start_text", "safety_notes", "fuel_power_notes", "troubleshooting_notes", "return_notes", "emergency_notes"],
+      "properties": {
+        "headline": { "$ref": "#/definitions/pageField" },
+        "quick_start_text": { "$ref": "#/definitions/pageField" },
+        "safety_notes": { "$ref": "#/definitions/pageField" },
+        "fuel_power_notes": { "$ref": "#/definitions/pageField" },
+        "troubleshooting_notes": { "$ref": "#/definitions/pageField" },
+        "return_notes": { "$ref": "#/definitions/pageField" },
+        "emergency_notes": { "$ref": "#/definitions/pageField" }
+      }
+    },
+    "plannedDocument": {
+      "description": "1.1.0. A documents row the import will create: a link to an official copy, or a hosted file Mulemark owns or may host.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "document_type", "delivery", "visibility", "status"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "document_type": { "enum": ["manual", "startup_guide", "safety_sheet", "video", "return_checklist", "other"] },
+        "delivery": { "enum": ["link", "hosted"] },
+        "visibility": { "enum": ["public", "private"] },
+        "url": { "type": "string" },
+        "source_id": { "type": "string" },
+        "file": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["file", "sha256"],
+          "properties": {
+            "file": { "type": "string" },
+            "bytes": { "type": "integer", "minimum": 0 },
+            "pages": { "type": "integer", "minimum": 1 },
+            "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+          }
+        },
+        "status": { "$ref": "#/definitions/itemStatus" },
+        "status_reason": { "type": "string" }
+      }
+    },
+    "showcase": {
+      "description": "1.1.0. Showcase assets only: the demo story, the sales narrative and the honest limit of what it shows.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["story", "narrative", "limitation"],
+      "properties": {
+        "story": { "type": "string" },
+        "narrative": { "type": "string" },
+        "limitation": { "type": "string" }
+      }
+    },
+    "pictogramPanel": {
+      "description": "1.1.0. One original pictographic panel. The storyboard fields are approved before artwork; files are added when the artwork exists. Controls are never mirrored or stylized: control_orientation states what is shown and from where, and anything the cited source does not show is left out.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["panel_id", "title", "task", "caption", "source_refs", "status"],
+      "properties": {
+        "panel_id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "title": { "type": "string", "minLength": 1 },
+        "task": { "type": "string", "minLength": 1 },
+        "caption": { "type": "string", "minLength": 1 },
+        "alt": { "type": "string" },
+        "text_alternative": { "type": "string" },
+        "control_orientation": { "type": "string" },
+        "warnings": { "type": "array", "items": { "type": "string" } },
+        "interlocks": { "type": "array", "items": { "type": "string" } },
+        "source_refs": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/sourceRef" } },
+        "safety_critical": { "type": "boolean" },
+        "reviewer_checklist": { "type": "array", "items": { "type": "string" } },
+        "files": { "type": "array", "items": { "$ref": "#/definitions/mediaFile" } },
+        "status": { "$ref": "#/definitions/itemStatus" },
+        "status_reason": { "type": "string" }
+      }
     },
     "model": {
       "type": "object",
@@ -141,8 +290,12 @@
             "supplements": { "type": "array", "items": { "type": "string" } }
           }
         },
+        "specs": { "type": "array", "items": { "$ref": "#/definitions/spec" } },
         "quick_guide": { "type": "array", "items": { "$ref": "#/definitions/guidanceStep" } },
         "warnings": { "type": "array", "items": { "$ref": "#/definitions/guidanceStep" } },
+        "pictograms": { "type": "array", "maxItems": 8, "items": { "$ref": "#/definitions/pictogramPanel" } },
+        "support_notes": { "description": "1.1.0. Staff-facing answers to likely support requests, each sourced. Never shown on the public page.", "type": "array", "items": { "$ref": "#/definitions/guidanceStep" } },
+        "storyboard": { "description": "1.1.0. Repository path of the generated human-readable storyboard.", "type": "string" },
         "templates": {
           "type": "object",
           "additionalProperties": false,
@@ -191,6 +344,9 @@
           "properties": { "asset_id": { "type": "string" }, "qr_link_id": { "type": "string" } }
         },
         "publish_intent": { "type": "boolean" },
+        "page": { "$ref": "#/definitions/page" },
+        "documents": { "type": "array", "items": { "$ref": "#/definitions/plannedDocument" } },
+        "showcase": { "$ref": "#/definitions/showcase" },
         "review": { "$ref": "#/definitions/review" }
       },
       "if": { "properties": { "model_key": { "type": "null" } }, "required": ["model_key"] },

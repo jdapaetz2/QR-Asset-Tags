@@ -1,0 +1,329 @@
+{
+  "generated_by": "scripts/phase-e/packs/photo-derivatives.mjs",
+  "budget_bytes": 300000,
+  "items": [
+    {
+      "id": "cat-301-5",
+      "status": "approved",
+      "model_key": "cat.301-5.canopy",
+      "source_id": "src-photo-301-5-lostplanetkd73",
+      "alt": "Caterpillar 301.5 mini excavator with an open canopy, seen from the right side in a gravel yard",
+      "original": {
+        "file": "A_small_Cat_vehicle_in_Bay_Shore_NY_-_July_2024.jpg",
+        "sha256": "dd86f34d500d06b70b22519fa9bbe61337e44aad47cf149b4fe3de040f300292",
+        "width": 4032,
+        "height": 3024
+      },
+      "credit": {
+        "author": "LostplanetKD73",
+        "license": "CC0 1.0",
+        "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "source_url": "https://commons.wikimedia.org/wiki/File:A_small_Cat_vehicle_in_Bay_Shore,_NY_-_July_2024.jpg",
+        "baked": null,
+        "modified": true
+      },
+      "modifications": [
+        "Removed the round political sticker on the boom.",
+        "Removed the dealer decal above the 301.5 model decal (the model decal is kept).",
+        "Cropped to 16:9 (left 0, top 427, 4032x2268) and resized to 1280x720.",
+        "Dropped the original's camera and location metadata."
+      ],
+      "retouch": [
+        {
+          "what": "round political sticker on the boom",
+          "polygon": [
+            [
+              1628.7,
+              1249
+            ],
+            [
+              1628.1,
+              1258.3
+            ],
+            [
+              1626.3,
+              1267.4
+            ],
+            [
+              1623.3,
+              1276.2
+            ],
+            [
+              1619.2,
+              1284.5
+            ],
+            [
+              1614,
+              1292.2
+            ],
+            [
+              1607.9,
+              1299.2
+            ],
+            [
+              1600.9,
+              1305.3
+            ],
+            [
+              1593.2,
+              1310.5
+            ],
+            [
+              1584.9,
+              1314.6
+            ],
+            [
+              1576.1,
+              1317.6
+            ],
+            [
+              1567,
+              1319.4
+            ],
+            [
+              1557.7,
+              1320
+            ],
+            [
+              1548.4,
+              1319.4
+            ],
+            [
+              1539.3,
+              1317.6
+            ],
+            [
+              1530.5,
+              1314.6
+            ],
+            [
+              1522.2,
+              1310.5
+            ],
+            [
+              1514.5,
+              1305.3
+            ],
+            [
+              1507.5,
+              1299.2
+            ],
+            [
+              1501.4,
+              1292.2
+            ],
+            [
+              1496.2,
+              1284.5
+            ],
+            [
+              1492.1,
+              1276.2
+            ],
+            [
+              1489.1,
+              1267.4
+            ],
+            [
+              1487.3,
+              1258.3
+            ],
+            [
+              1486.7,
+              1249
+            ],
+            [
+              1487.3,
+              1239.7
+            ],
+            [
+              1489.1,
+              1230.6
+            ],
+            [
+              1492.1,
+              1221.8
+            ],
+            [
+              1496.2,
+              1213.5
+            ],
+            [
+              1501.4,
+              1205.8
+            ],
+            [
+              1507.5,
+              1198.8
+            ],
+            [
+              1514.5,
+              1192.7
+            ],
+            [
+              1522.2,
+              1187.5
+            ],
+            [
+              1530.5,
+              1183.4
+            ],
+            [
+              1539.3,
+              1180.4
+            ],
+            [
+              1548.4,
+              1178.6
+            ],
+            [
+              1557.7,
+              1178
+            ],
+            [
+              1567,
+              1178.6
+            ],
+            [
+              1576.1,
+              1180.4
+            ],
+            [
+              1584.9,
+              1183.4
+            ],
+            [
+              1593.2,
+              1187.5
+            ],
+            [
+              1600.9,
+              1192.7
+            ],
+            [
+              1607.9,
+              1198.8
+            ],
+            [
+              1614,
+              1205.8
+            ],
+            [
+              1619.2,
+              1213.5
+            ],
+            [
+              1623.3,
+              1221.8
+            ],
+            [
+              1626.3,
+              1230.6
+            ],
+            [
+              1628.1,
+              1239.7
+            ]
+          ],
+          "exclude": [],
+          "angle": 40,
+          "relax_sweeps": 20,
+          "grain": [
+            1471,
+            1172,
+            13,
+            60
+          ],
+          "pixels_changed": 15796
+        },
+        {
+          "what": "dealer decal above the 301.5 model decal (the model decal is kept)",
+          "polygon": [
+            [
+              2644,
+              1901
+            ],
+            [
+              2830,
+              1910
+            ],
+            [
+              2882,
+              1918
+            ],
+            [
+              2882,
+              1972
+            ],
+            [
+              2826,
+              1972
+            ],
+            [
+              2700,
+              1968
+            ],
+            [
+              2644,
+              1968
+            ]
+          ],
+          "exclude": [
+            [
+              [
+                2640,
+                1966
+              ],
+              [
+                2910,
+                1966
+              ],
+              [
+                2910,
+                2060
+              ],
+              [
+                2640,
+                2060
+              ]
+            ]
+          ],
+          "angle": 3,
+          "relax_sweeps": 102,
+          "grain": [
+            2660,
+            1889,
+            180,
+            11
+          ],
+          "pixels_changed": 14909
+        }
+      ],
+      "crop": {
+        "left": 0,
+        "top": 427,
+        "width": 4032,
+        "height": 2268
+      },
+      "credit_box": null,
+      "outputs": [
+        {
+          "file": "301-5-hero.webp",
+          "width": 1280,
+          "height": 720,
+          "bytes": 165148,
+          "sha256": "b4701e28dad3cc10311888a5d6b8353a1419d955821fd776c3070554361a5b22",
+          "quality": 84
+        },
+        {
+          "file": "301-5-hero.jpg",
+          "width": 1280,
+          "height": 720,
+          "bytes": 180811,
+          "sha256": "6eeeddcf56b41b0aa6dfae62058a721a8f9d6ecb23571e7269a89cfa3f72362b",
+          "quality": 84
+        }
+      ]
+    }
+  ]
+}

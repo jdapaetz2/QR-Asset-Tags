@@ -1,0 +1,750 @@
+{
+  "schema_version": "1.1.0",
+  "manifest_id": "showcase-cat-301-5-canopy",
+  "kind": "showcase",
+  "organization": {
+    "organization_id": "11111111-1111-4111-8111-111111111111",
+    "name": "Northridge Rentals",
+    "fictional": true,
+    "support": {
+      "email": "support@mulemark.io"
+    },
+    "notifications": {
+      "return_mode": "instant_renter",
+      "address_role": "Mulemark support inbox"
+    },
+    "approver": {
+      "role": "Northridge demo owner (operator)"
+    },
+    "policies": [
+      {
+        "policy_id": "pol-cat-handover",
+        "text": "Northridge staff walk every renter through start-up and the controls at handover. (Fictional demo policy.)",
+        "owner": "customer"
+      },
+      {
+        "policy_id": "pol-condition-photos",
+        "text": "Northridge records outbound and return photos for every rental. (Fictional demo policy.)",
+        "owner": "customer"
+      },
+      {
+        "policy_id": "pol-stop-and-report",
+        "text": "If something seems wrong (a warning light, leak or unusual noise), stop safely and contact Northridge with Request Support. (Fictional demo policy.)",
+        "owner": "customer"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "source_id": "src-cat-301-5-brochure",
+      "kind": "oem-brochure",
+      "title": "301.5 Mini Excavator (specifications brochure AEHQ8144-08)",
+      "publisher": "Caterpillar Inc.",
+      "url": "https://s7d2.scene7.com/is/content/Caterpillar/CM20180625-48918-63979",
+      "part_number": "AEHQ8144-08",
+      "edition": "AEHQ8144-08",
+      "bytes": 1189479,
+      "sha256": "bb4248381d1903b81d12687abc764de9539ec6332978e499430abd7f6d1f6137",
+      "last_modified": "2025-02-08T10:36:19Z",
+      "retrieved_at": "2026-10-17",
+      "applicability": "Current-generation 301.5 with the C1.1 engine (Tier 4 Final / Stage V). Specifications on pp. 2-3, read from page renders because the text layer interleaves columns.",
+      "rights": {
+        "status": "unknown",
+        "redistribution": "link-only",
+        "shareable_across_orgs": false,
+        "attribution": "© Caterpillar"
+      },
+      "verification": "read",
+      "availability": "in-hand",
+      "vault_path": "oem/cat/AEHQ8144-08_cat-301.5-brochure.pdf",
+      "locator_convention": "Printed page numbers (equal to PDF pages)."
+    },
+    {
+      "source_id": "src-cat-301-5-omm-preview",
+      "kind": "oem-manual",
+      "title": "Operation and Maintenance Manual M0088895-24: 301.5, 301.6, 301.7 CR, 301.8, 302 CR (publisher preview)",
+      "publisher": "Caterpillar Inc.",
+      "url": "https://catpublications.com/previews/M0088895EN-US.pdf",
+      "part_number": "M0088895",
+      "edition": "M0088895-24 (en-us), June 2026",
+      "bytes": 503921,
+      "sha256": "17ab9922fc53c6d9d1a12c32ffa16ce3f0db30deb82450d4165da80e6a1ff6d6",
+      "last_modified": "2026-06-16T14:27:23Z",
+      "retrieved_at": "2026-10-17",
+      "applicability": "301.5 serial prefixes MNH 1-UP and ZHL 1-UP. The preview holds only the cover, the safety notice and the table of contents (Safety pp. 7-51, Operation pp. 171-293, Maintenance pp. 295+), so it locates content but supplies no steps.",
+      "rights": {
+        "status": "unknown",
+        "redistribution": "link-only",
+        "shareable_across_orgs": false,
+        "attribution": "© Caterpillar"
+      },
+      "verification": "read",
+      "availability": "in-hand",
+      "vault_path": "oem/cat/M0088895EN-US-preview.pdf",
+      "locator_convention": "Page numbers from the manual's own table of contents."
+    },
+    {
+      "source_id": "src-cat-301-5-omm",
+      "kind": "oem-manual",
+      "title": "Operation and Maintenance Manual M0088895: 301.5 to 302 CR Mini Hydraulic Excavators (full)",
+      "publisher": "Caterpillar Inc.",
+      "url": "https://catpublications.com/",
+      "part_number": "M0088895",
+      "edition": "M0088895-24 (en-us), June 2026. Cat Publications price seen 2026-10-17: download US$97, CD US$97, printed book US$114",
+      "applicability": "301.5 serial prefixes MNH 1-UP and ZHL 1-UP. Source of every 301.5 control and procedure. The operator declined the purchase for now (2026-10-17); the page links Cat Publications, which has no stable product link (search M0088895).",
+      "rights": {
+        "status": "purchased-private",
+        "redistribution": "private-only",
+        "shareable_across_orgs": false,
+        "attribution": "© Caterpillar"
+      },
+      "verification": "unverified",
+      "availability": "to-purchase"
+    },
+    {
+      "source_id": "src-photo-301-5-lostplanetkd73",
+      "kind": "photo",
+      "title": "A small Cat vehicle in Bay Shore, NY - July 2024.jpg",
+      "publisher": "Wikimedia Commons",
+      "url": "https://commons.wikimedia.org/wiki/File:A_small_Cat_vehicle_in_Bay_Shore,_NY_-_July_2024.jpg",
+      "edition": "Taken July 2024; 4032 x 3024",
+      "bytes": 2259364,
+      "sha256": "dd86f34d500d06b70b22519fa9bbe61337e44aad47cf149b4fe3de040f300292",
+      "retrieved_at": "2026-10-17",
+      "applicability": "Current-generation Cat 301.5 with canopy and rubber tracks, right side (model decal \"301.5\"). A political sticker and a dealer decal are removed in the derivative (recipe cat-301-5). Background signage and a parked van remain.",
+      "rights": {
+        "status": "cc0",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false,
+        "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "attribution": "LostplanetKD73 via Wikimedia Commons (CC0; credit given as a courtesy)"
+      },
+      "verification": "read",
+      "availability": "in-hand",
+      "vault_path": "photos/originals/A_small_Cat_vehicle_in_Bay_Shore_NY_-_July_2024.jpg"
+    }
+  ],
+  "models": [
+    {
+      "model_key": "cat.301-5.canopy",
+      "manufacturer": "Caterpillar",
+      "model": "301.5",
+      "category": "Mini Excavator",
+      "configuration": {
+        "generation": "current 301.5 with the Cat C1.1 engine",
+        "serial_prefix": "MNH or ZHL (both covered by OMM M0088895-24)",
+        "operator_protection": "canopy",
+        "tracks": "rubber",
+        "stick": "standard (showcase configuration; not verifiable from the photo)",
+        "undercarriage": "not established (fixed or expandable)"
+      },
+      "applicability": {
+        "serial_from": "MNH1 / ZHL1 (1-UP)",
+        "notes": "OMM M0088895-24 (June 2026) covers 301.5 prefixes MNH and ZHL. Only its preview (cover, safety notice, contents) is in hand."
+      },
+      "manual": {
+        "source_id": "src-cat-301-5-omm",
+        "delivery": "link",
+        "supplements": [
+          "src-cat-301-5-omm-preview",
+          "src-cat-301-5-brochure"
+        ]
+      },
+      "specs": [
+        {
+          "spec_id": "engine",
+          "label": "Engine",
+          "value": "Cat C1.1 (U.S. EPA Tier 4 Final / EU Stage V)",
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-brochure",
+              "locator": "p. 2, Engine"
+            }
+          ],
+          "status": "READY"
+        },
+        {
+          "spec_id": "net-power",
+          "label": "Net power (ISO 9249)",
+          "value": "15.7 kW (21 hp)",
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-brochure",
+              "locator": "p. 2, Engine"
+            }
+          ],
+          "status": "READY"
+        },
+        {
+          "spec_id": "operating-weight",
+          "label": "Operating weight with canopy",
+          "value": "1,580-1,775 kg (3,483-3,913 lb), depending on tracks and undercarriage",
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-brochure",
+              "locator": "p. 2, Weights (minimum: rubber tracks, fixed undercarriage; maximum: steel tracks, expandable undercarriage; both with operator and full fuel)"
+            }
+          ],
+          "status": "READY"
+        },
+        {
+          "spec_id": "travel-speed",
+          "label": "Travel speed",
+          "value": "4.4 km/h (2.7 mph) high, 2.9 km/h (1.8 mph) low",
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-brochure",
+              "locator": "p. 2, Travel System"
+            }
+          ],
+          "status": "READY"
+        },
+        {
+          "spec_id": "fuel-tank",
+          "label": "Fuel tank",
+          "value": "22.0 L (5.8 gal)",
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-brochure",
+              "locator": "p. 2, Service Refill Capacities"
+            }
+          ],
+          "status": "READY"
+        },
+        {
+          "spec_id": "dig-depth",
+          "label": "Dig depth",
+          "value": "2,340 mm (92.1 in) with the standard stick",
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-brochure",
+              "locator": "p. 3, dimension 1"
+            }
+          ],
+          "status": "READY"
+        },
+        {
+          "spec_id": "tail-swing",
+          "label": "Tail swing",
+          "value": "820 mm (32.3 in)",
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-brochure",
+              "locator": "p. 3, dimension 8"
+            }
+          ],
+          "status": "READY"
+        },
+        {
+          "spec_id": "blade-width",
+          "label": "Blade width",
+          "value": "990 mm (39.0 in); 1,300 mm (51 in) expanded",
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-brochure",
+              "locator": "p. 2, Blade"
+            }
+          ],
+          "status": "READY"
+        },
+        {
+          "spec_id": "canopy-certification",
+          "label": "Canopy certification",
+          "value": "ROPS ISO 12117-2:2008; TOPS ISO 12117:1997; top guard ISO 10262:1998 (Level I)",
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-brochure",
+              "locator": "p. 2, Certification - Canopy"
+            }
+          ],
+          "status": "READY"
+        },
+        {
+          "spec_id": "gradeability",
+          "label": "Gradeability (maximum)",
+          "value": "30 degrees",
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-brochure",
+              "locator": "p. 2, Travel System"
+            }
+          ],
+          "status": "READY",
+          "public": false,
+          "status_reason": "A machine capability, not an operating limit; renters could misread it. Slope rules come from the OMM (Slope Operation, p. 41)."
+        }
+      ],
+      "quick_guide": [
+        {
+          "step_id": "301-s1",
+          "text": "Before-operation checks.",
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-omm-preview",
+              "locator": "Contents: Before Operation p. 171 (also Safety, Before Operation p. 36)"
+            },
+            {
+              "source_id": "src-cat-301-5-omm",
+              "locator": "p. 171"
+            }
+          ],
+          "safety_critical": true,
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead."
+        },
+        {
+          "step_id": "301-s2",
+          "text": "Mounting, seat belt and operator station.",
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-omm-preview",
+              "locator": "Contents: Operator Station p. 51"
+            },
+            {
+              "source_id": "src-cat-301-5-omm",
+              "locator": "p. 51"
+            }
+          ],
+          "safety_critical": true,
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead."
+        },
+        {
+          "step_id": "301-s3",
+          "text": "Engine starting and stopping.",
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-omm-preview",
+              "locator": "Contents: Engine Starting p. 236 (Safety: p. 35; Engine Stopping p. 40)"
+            },
+            {
+              "source_id": "src-cat-301-5-omm",
+              "locator": "p. 236"
+            }
+          ],
+          "safety_critical": true,
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead."
+        },
+        {
+          "step_id": "301-s4",
+          "text": "Controls and travel, including the Stick Steer travel mode the brochure describes.",
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-omm-preview",
+              "locator": "Contents: Machine Operation p. 174"
+            },
+            {
+              "source_id": "src-cat-301-5-brochure",
+              "locator": "p. 1, Stick Steer Travel Mode"
+            },
+            {
+              "source_id": "src-cat-301-5-omm",
+              "locator": "p. 174"
+            }
+          ],
+          "safety_critical": true,
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead."
+        },
+        {
+          "step_id": "301-s5",
+          "text": "Slope operation.",
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-omm-preview",
+              "locator": "Contents: Slope Operation p. 41"
+            },
+            {
+              "source_id": "src-cat-301-5-omm",
+              "locator": "p. 41"
+            }
+          ],
+          "safety_critical": true,
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead."
+        },
+        {
+          "step_id": "301-s6",
+          "text": "Parking.",
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-omm-preview",
+              "locator": "Contents: Parking p. 279 (Safety: Parking p. 41)"
+            },
+            {
+              "source_id": "src-cat-301-5-omm",
+              "locator": "p. 279"
+            }
+          ],
+          "safety_critical": true,
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead."
+        },
+        {
+          "step_id": "301-s7",
+          "text": "Loading and transporting.",
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-omm-preview",
+              "locator": "Contents: Transportation Information p. 283"
+            },
+            {
+              "source_id": "src-cat-301-5-omm",
+              "locator": "p. 283"
+            }
+          ],
+          "safety_critical": true,
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead."
+        },
+        {
+          "step_id": "301-s8",
+          "text": "Lowering the equipment with the engine stopped.",
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-omm-preview",
+              "locator": "Contents: Equipment Lowering with Engine Stopped p. 42"
+            },
+            {
+              "source_id": "src-cat-301-5-omm",
+              "locator": "p. 42"
+            }
+          ],
+          "safety_critical": true,
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead."
+        }
+      ],
+      "warnings": [],
+      "support_notes": [],
+      "pictograms": [
+        {
+          "panel_id": "301-p1",
+          "title": "Walk around first",
+          "task": "Before-operation checks.",
+          "caption": "To be written from the OMM's Before Operation section.",
+          "control_orientation": "Not drawn until the OMM is in hand.",
+          "warnings": [],
+          "interlocks": [],
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-omm",
+              "locator": "p. 171"
+            }
+          ],
+          "safety_critical": true,
+          "reviewer_checklist": [],
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead.",
+          "text_alternative": "Walk around first. To be written from the OMM's Before Operation section."
+        },
+        {
+          "panel_id": "301-p2",
+          "title": "Climb on, belt on",
+          "task": "Mounting and the operator station.",
+          "caption": "To be written from the OMM's Operator Station section.",
+          "control_orientation": "Not drawn until the OMM is in hand.",
+          "warnings": [],
+          "interlocks": [],
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-omm",
+              "locator": "p. 51"
+            }
+          ],
+          "safety_critical": true,
+          "reviewer_checklist": [],
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead.",
+          "text_alternative": "Climb on, belt on. To be written from the OMM's Operator Station section."
+        },
+        {
+          "panel_id": "301-p3",
+          "title": "Start up",
+          "task": "Engine starting.",
+          "caption": "To be written from the OMM's Engine Starting section.",
+          "control_orientation": "Not drawn until the OMM is in hand.",
+          "warnings": [],
+          "interlocks": [],
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-omm",
+              "locator": "p. 236"
+            }
+          ],
+          "safety_critical": true,
+          "reviewer_checklist": [],
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead.",
+          "text_alternative": "Start up. To be written from the OMM's Engine Starting section."
+        },
+        {
+          "panel_id": "301-p4",
+          "title": "Controls and travel",
+          "task": "Controls, travel and Stick Steer mode.",
+          "caption": "To be written from the OMM's Machine Operation section.",
+          "control_orientation": "Not drawn until the OMM is in hand.",
+          "warnings": [],
+          "interlocks": [],
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-omm",
+              "locator": "p. 174"
+            }
+          ],
+          "safety_critical": true,
+          "reviewer_checklist": [],
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead.",
+          "text_alternative": "Controls and travel. To be written from the OMM's Machine Operation section."
+        },
+        {
+          "panel_id": "301-p5",
+          "title": "Slopes",
+          "task": "Slope operation.",
+          "caption": "To be written from the OMM's Slope Operation section.",
+          "control_orientation": "Not drawn until the OMM is in hand.",
+          "warnings": [],
+          "interlocks": [],
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-omm",
+              "locator": "p. 41"
+            }
+          ],
+          "safety_critical": true,
+          "reviewer_checklist": [],
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead.",
+          "text_alternative": "Slopes. To be written from the OMM's Slope Operation section."
+        },
+        {
+          "panel_id": "301-p6",
+          "title": "Parking",
+          "task": "Parking and leaving the machine.",
+          "caption": "To be written from the OMM's Parking section.",
+          "control_orientation": "Not drawn until the OMM is in hand.",
+          "warnings": [],
+          "interlocks": [],
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-omm",
+              "locator": "p. 279"
+            }
+          ],
+          "safety_critical": true,
+          "reviewer_checklist": [],
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead.",
+          "text_alternative": "Parking. To be written from the OMM's Parking section."
+        },
+        {
+          "panel_id": "301-p7",
+          "title": "Loading for transport",
+          "task": "Loading, tying down and transporting.",
+          "caption": "To be written from the OMM's Transportation Information section.",
+          "control_orientation": "Not drawn until the OMM is in hand.",
+          "warnings": [],
+          "interlocks": [],
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-omm",
+              "locator": "p. 283"
+            }
+          ],
+          "safety_critical": true,
+          "reviewer_checklist": [],
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead.",
+          "text_alternative": "Loading for transport. To be written from the OMM's Transportation Information section."
+        },
+        {
+          "panel_id": "301-p8",
+          "title": "Engine stopped: lower the boom",
+          "task": "Lowering the equipment with the engine stopped.",
+          "caption": "To be written from the OMM's Equipment Lowering section.",
+          "control_orientation": "Not drawn until the OMM is in hand.",
+          "warnings": [],
+          "interlocks": [],
+          "source_refs": [
+            {
+              "source_id": "src-cat-301-5-omm",
+              "locator": "p. 42"
+            }
+          ],
+          "safety_critical": true,
+          "reviewer_checklist": [],
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM M0088895; the operator declined the purchase for now (2026-10-17). The page links Cat's official channel instead.",
+          "text_alternative": "Engine stopped: lower the boom. To be written from the OMM's Equipment Lowering section."
+        }
+      ],
+      "storyboard": "docs/phase-e/packs/cat.301-5.canopy/storyboard.md",
+      "templates": {
+        "return": "mini_excavator_skid_steer",
+        "outbound": "mini_excavator_skid_steer",
+        "equipment_page_seed": null
+      },
+      "common_accessories": [
+        "Keys",
+        "Attachments",
+        "Manual"
+      ],
+      "photo": {
+        "source_id": "src-photo-301-5-lostplanetkd73",
+        "alt": "Caterpillar 301.5 mini excavator with an open canopy, seen from the right side in a gravel yard",
+        "crop": "16:9 from the full width (recipe cat-301-5)",
+        "credit": {
+          "author": "LostplanetKD73",
+          "license": "CC0 1.0",
+          "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+          "source_url": "https://commons.wikimedia.org/wiki/File:A_small_Cat_vehicle_in_Bay_Shore,_NY_-_July_2024.jpg",
+          "modified": true,
+          "modifications": [
+            "Removed a political sticker from the boom.",
+            "Removed a dealer decal above the 301.5 model decal (the model decal is kept).",
+            "Cropped to 16:9 and resized."
+          ]
+        },
+        "files": [
+          {
+            "file": "media/301-5-hero.webp",
+            "width": 1280,
+            "height": 720,
+            "bytes": 165148,
+            "sha256": "b4701e28dad3cc10311888a5d6b8353a1419d955821fd776c3070554361a5b22"
+          },
+          {
+            "file": "media/301-5-hero.jpg",
+            "width": 1280,
+            "height": 720,
+            "bytes": 180811,
+            "sha256": "6eeeddcf56b41b0aa6dfae62058a721a8f9d6ecb23571e7269a89cfa3f72362b"
+          }
+        ],
+        "status": "READY",
+        "status_reason": "Edit approved by the operator on 2026-10-17. CC0; credit given as a courtesy."
+      },
+      "review": {
+        "status": "MULEMARK_REVIEW",
+        "blockers": [
+          "OMM M0088895 not bought (operator: no for now): every operating step and all 8 panels stay unwritten; the page uses the handover policy and links Cat's manual."
+        ],
+        "warnings": [
+          "The photo shows a rental unit in a working yard; background signage remains."
+        ],
+        "missing_facts": [
+          "Undercarriage (fixed or expandable) and stick length for the showcase unit."
+        ],
+        "reviewer_role": "Mulemark owner (operator): named reviewer with final approval authority, 2026-10-17"
+      }
+    }
+  ],
+  "assets": [
+    {
+      "asset_code": "EXCAVATOR-3015",
+      "asset_name": "Mini Excavator 301.5",
+      "model_key": "cat.301-5.canopy",
+      "category": "Mini Excavator",
+      "year": null,
+      "serial_number": "DEMO-301.5-3015",
+      "fitted_options": [],
+      "qr": {
+        "create": false,
+        "existing_short_code": "ezzs9ueg",
+        "protected": true
+      },
+      "existing_ids": {
+        "asset_id": "7f7753d2-37f9-4e74-bbb2-90f048523f21",
+        "qr_link_id": "07c8ca60-0102-48c6-ac96-a8cb4b27ca90"
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "MULEMARK_REVIEW",
+        "blockers": [
+          "Model content under review (see model cat.301-5.canopy)."
+        ]
+      },
+      "page": {
+        "headline": {
+          "text": "Cat 301.5 mini excavator with canopy. Northridge walks you through start-up and the controls at handover.",
+          "derived_from": [
+            "model",
+            "operator_protection",
+            "pol-cat-handover"
+          ],
+          "status": "READY",
+          "status_reason": "Identity facts and Northridge policy."
+        },
+        "quick_start_text": {
+          "text": "Before operating, go through start-up and the controls with Northridge staff at handover. Cat's Operation and Maintenance Manual is linked under Manual.",
+          "derived_from": [
+            "pol-cat-handover"
+          ],
+          "status": "READY",
+          "status_reason": "Northridge policy; no Cat operating steps are written without the manual."
+        },
+        "safety_notes": {
+          "text": null,
+          "derived_from": [],
+          "status": "BLOCKED",
+          "status_reason": "Cat's safety rules come from OMM M0088895, not bought (operator decision, 2026-10-17)."
+        },
+        "fuel_power_notes": {
+          "text": "Fuel tank: 22.0 L (5.8 gal).",
+          "derived_from": [
+            "fuel-tank"
+          ],
+          "status": "READY",
+          "status_reason": "From Cat's brochure, p. 2."
+        },
+        "troubleshooting_notes": {
+          "text": "Something wrong (a warning light, leak or odd noise): stop safely and use Request Support.",
+          "derived_from": [
+            "pol-stop-and-report"
+          ],
+          "status": "READY",
+          "status_reason": "Northridge policy."
+        },
+        "return_notes": {
+          "text": "Return the keys and any attachments.\nNorthridge photographs the machine at handover and at return.\nUse Return checklist when you drop it off.",
+          "derived_from": [
+            "template:mini_excavator_skid_steer",
+            "pol-condition-photos"
+          ],
+          "status": "READY",
+          "status_reason": "Return checklist template and Northridge policy."
+        },
+        "emergency_notes": {
+          "text": "For emergencies call your local emergency number. For equipment issues, use the support contact on this page.",
+          "derived_from": [
+            "mulemark-standard-emergency"
+          ],
+          "status": "READY",
+          "status_reason": "Mulemark's standard emergency wording (lib/onboarding/templates.ts)."
+        }
+      },
+      "documents": [
+        {
+          "title": "Cat 301.5 Operation and Maintenance Manual M0088895 (sold by Cat Publications; search M0088895)",
+          "document_type": "manual",
+          "delivery": "link",
+          "visibility": "public",
+          "url": "https://catpublications.com/",
+          "source_id": "src-cat-301-5-omm",
+          "status": "READY",
+          "status_reason": "Cat's official channel. Cat Publications has no stable product link (its search is a form), so the title names the media number."
+        }
+      ],
+      "showcase": {
+        "story": "Condition evidence",
+        "narrative": "Staff take outbound photos at handover, then a return checklist flags new damage with photos and staff review and resolve it. One renter damage report arrives without photos, and the record shows exactly what was and wasn't captured.",
+        "limitation": "It shows when something was recorded, not who caused it."
+      }
+    }
+  ],
+  "approval": {
+    "status": "not_requested"
+  }
+}

@@ -1,0 +1,230 @@
+{
+  "generated_by": "scripts/phase-e/packs/photo-derivatives.mjs",
+  "budget_bytes": 300000,
+  "items": [
+    {
+      "id": "e20-a",
+      "status": "approved",
+      "model_key": "bobcat.e20.b3bl-canopy",
+      "source_id": "src-photo-e20-taurusemerald",
+      "alt": "Bobcat E20 compact excavator with an open canopy, seen from the left side on a dirt lot",
+      "original": {
+        "file": "Bobcat_E20_Mini_Excavator.jpg",
+        "sha256": "7577af369f83de13553d722108accec23e38e3544d5d0f52f02799c5e3c5cb81",
+        "width": 3658,
+        "height": 2686
+      },
+      "credit": {
+        "author": "TaurusEmerald",
+        "license": "CC BY-SA 4.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Bobcat_E20_Mini_Excavator.jpg",
+        "baked": "Photo: TaurusEmerald (Wikimedia Commons), CC BY-SA 4.0, modified",
+        "modified": true
+      },
+      "modifications": [
+        "Removed the rental company's phone number on the lower body panel.",
+        "Removed the rental company's name and 'Rents' sticker below the E20 model decal (the E20 decal is kept).",
+        "Removed the rental fleet number label on the canopy roof.",
+        "Cropped to 16:9 (left 0, top 326, 3658x2058) and resized to 1280x720.",
+        "Added the credit label \"Photo: TaurusEmerald (Wikimedia Commons), CC BY-SA 4.0, modified\" in the top-right corner.",
+        "e20-fullframe-a.jpg: the same edits on the full frame, resized to 1280x940, no label (getmulemark.com placement scenes (candidate)).",
+        "Dropped the original's camera and location metadata."
+      ],
+      "retouch": [
+        {
+          "what": "rental company's phone number on the lower body panel",
+          "polygon": [
+            [
+              738,
+              1895
+            ],
+            [
+              1022,
+              1895
+            ],
+            [
+              1022,
+              1961
+            ],
+            [
+              738,
+              1961
+            ]
+          ],
+          "exclude": [],
+          "angle": 0,
+          "relax_sweeps": 89,
+          "grain": [
+            760,
+            1966,
+            240,
+            30
+          ],
+          "pixels_changed": 18744
+        },
+        {
+          "what": "rental company's name and 'Rents' sticker below the E20 model decal (the E20 decal is kept)",
+          "polygon": [
+            [
+              1025,
+              1883
+            ],
+            [
+              1104,
+              1883
+            ],
+            [
+              1105,
+              1871
+            ],
+            [
+              1318,
+              1878
+            ],
+            [
+              1317,
+              1977
+            ],
+            [
+              1104,
+              1971
+            ],
+            [
+              1103,
+              1949
+            ],
+            [
+              1025,
+              1949
+            ]
+          ],
+          "exclude": [
+            [
+              [
+                1040,
+                1790
+              ],
+              [
+                1330,
+                1790
+              ],
+              [
+                1330,
+                1878
+              ],
+              [
+                1105,
+                1871
+              ],
+              [
+                1040,
+                1871
+              ]
+            ]
+          ],
+          "angle": 0,
+          "relax_sweeps": 428,
+          "grain": [
+            760,
+            1966,
+            240,
+            30
+          ],
+          "pixels_changed": 26468
+        },
+        {
+          "what": "rental fleet number label on the canopy roof",
+          "polygon": [
+            [
+              872,
+              383
+            ],
+            [
+              1076,
+              394
+            ],
+            [
+              1076,
+              440
+            ],
+            [
+              872,
+              428
+            ]
+          ],
+          "exclude": [
+            [
+              [
+                820,
+                300
+              ],
+              [
+                1130,
+                300
+              ],
+              [
+                1130,
+                399
+              ],
+              [
+                820,
+                377.5
+              ]
+            ]
+          ],
+          "angle": 3.9,
+          "relax_sweeps": 0,
+          "grain": [
+            1082,
+            406,
+            56,
+            22
+          ],
+          "pixels_changed": 9258
+        }
+      ],
+      "crop": {
+        "left": 0,
+        "top": 326,
+        "width": 3658,
+        "height": 2058
+      },
+      "credit_box": {
+        "left": 579,
+        "top": 14,
+        "width": 687,
+        "height": 29
+      },
+      "outputs": [
+        {
+          "file": "e20-hero-a.webp",
+          "width": 1280,
+          "height": 720,
+          "bytes": 173670,
+          "sha256": "0f9718aa0cff16c6435ade4ae6ffb2e9582cbf7b9bc3bcb4283165aec3680139",
+          "quality": 84
+        },
+        {
+          "file": "e20-hero-a.jpg",
+          "width": 1280,
+          "height": 720,
+          "bytes": 183852,
+          "sha256": "9d319f30c7952c48fff2d26fd662d47c0240692abe4835d6b0942f38169f3b41",
+          "quality": 84
+        }
+      ],
+      "extras": [
+        {
+          "file": "e20-fullframe-a.jpg",
+          "width": 1280,
+          "height": 940,
+          "bytes": 228654,
+          "sha256": "3aa71945cec0f3403ff98966b9b5fb44b0237f97d7ecef2d0982b4de50e293b2",
+          "quality": 84,
+          "purpose": "getmulemark.com placement scenes (candidate)"
+        }
+      ]
+    }
+  ]
+}

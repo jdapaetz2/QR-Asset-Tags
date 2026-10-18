@@ -1,0 +1,926 @@
+{
+  "schema_version": "1.1.0",
+  "manifest_id": "showcase-bobcat-e20-b3bl-canopy",
+  "kind": "showcase",
+  "organization": {
+    "organization_id": "11111111-1111-4111-8111-111111111111",
+    "name": "Northridge Rentals",
+    "fictional": true,
+    "support": {
+      "email": "support@mulemark.io"
+    },
+    "notifications": {
+      "return_mode": "instant_renter",
+      "address_role": "Mulemark support inbox"
+    },
+    "approver": {
+      "role": "Northridge demo owner (operator)"
+    },
+    "policies": [
+      {
+        "policy_id": "pol-renter-walkaround",
+        "text": "Northridge does the daily service checks before each rental; renters walk around for leaks and damage before starting. (Fictional demo policy.)",
+        "owner": "customer"
+      },
+      {
+        "policy_id": "pol-stop-and-report",
+        "text": "If something seems wrong (a warning light, leak or unusual noise), stop safely and contact Northridge with Request Support. (Fictional demo policy.)",
+        "owner": "customer"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "source_id": "src-bobcat-b1699",
+      "kind": "oem-document",
+      "title": "Rent It Safely: Safety Rules for Bobcat Compact Excavators (B-1699)",
+      "publisher": "Bobcat Company",
+      "url": "https://res.cloudinary.com/doosan-bobcat/image/upload/v1642696283/bobcat-assets/na-approved/products/excavators/multi-model/literature/b-1699-rentitsafely-excavator.pdf",
+      "part_number": "B-1699",
+      "edition": "04/25",
+      "bytes": 1816446,
+      "sha256": "d48e316f11e6b12ba8501409f6670a5246701ff77b70ecb5751b65bcfe6e0b9f",
+      "last_modified": "2025-04-15T18:30:40Z",
+      "retrieved_at": "2026-10-17",
+      "applicability": "Bobcat compact excavators in general (Bobcat's rental safety sheet), so it covers the E20 but is not E20-specific. Rules taken from it stay REVIEW_REQUIRED until cross-checked in the E20 OMM; control layouts are never drawn from it.",
+      "rights": {
+        "status": "unknown",
+        "redistribution": "link-only",
+        "shareable_across_orgs": false,
+        "attribution": "© 2025 Bobcat Company"
+      },
+      "verification": "read",
+      "availability": "in-hand",
+      "vault_path": "oem/bobcat/b-1699-rentitsafely-excavator.pdf",
+      "locator_convention": "PDF page 1 = outside panels (before operating, servicing, transporting); PDF page 2 = inside panels (worksite, leaving the machine, while operating)."
+    },
+    {
+      "source_id": "src-bobcat-e19-e20-schedule",
+      "kind": "oem-document",
+      "title": "Service Schedule: E19, E20 Compact Excavator (SS EXC E19 E20-0315)",
+      "publisher": "Bobcat Company",
+      "url": "https://res.cloudinary.com/doosan-bobcat/image/upload/v1650574486/bobcat-assets/na-approved/products/excavators/compact-excavators/service-schedules/ss-exc-e19-e20-0315.pdf",
+      "part_number": "SS EXC E19 E20-0315",
+      "edition": "0315",
+      "bytes": 25503,
+      "sha256": "236c67132330693c276dca8033aa0f52f8b73ab40a695307e10c997c427c9cf9",
+      "last_modified": "2022-04-21T20:54:48Z",
+      "retrieved_at": "2026-10-17",
+      "applicability": "E19 and E20. Bobcat's service-schedule listing (bobcat.com/na/en/parts-service/service/service-schedules/excavators) ties it to the E20 with the Tier 4 Kubota engine, serial prefix B3BL: the generation in both licensed photos.",
+      "rights": {
+        "status": "unknown",
+        "redistribution": "link-only",
+        "shareable_across_orgs": false,
+        "attribution": "© Bobcat Company"
+      },
+      "verification": "read",
+      "availability": "in-hand",
+      "vault_path": "oem/bobcat/ss-exc-e19-e20-0315.pdf",
+      "locator_convention": "PDF page 1 = 10, 50 and 100 hour items; PDF page 2 = 250 hour to 24 month items."
+    },
+    {
+      "source_id": "src-bobcat-e20-omm",
+      "kind": "oem-manual",
+      "title": "E20 Compact Excavator Operation & Maintenance Manual",
+      "publisher": "Bobcat Company",
+      "url": "https://shop.bobcat.com/ca/e20-excavator-operation-and-maintenance-digital-manual-7255004enuspdf",
+      "part_number": "7255004ENUSPDF (digital PDF, CA$85.99); 7255004ENUS (paper)",
+      "edition": "7255004 ENUS; for serial B3BL11001 and above per Bobcat's listing (confirmed on receipt)",
+      "applicability": "The 2015-2025 E20 (B3BL). Not the next-generation E20 launched November 2025, whose brochure B-3038 must not be used. Source of every E20 spec, control and procedure. The operator is buying it (2026-10-17).",
+      "rights": {
+        "status": "purchased-private",
+        "redistribution": "private-only",
+        "shareable_across_orgs": false,
+        "attribution": "© Bobcat Company"
+      },
+      "verification": "unverified",
+      "availability": "to-purchase"
+    },
+    {
+      "source_id": "src-photo-e20-taurusemerald",
+      "kind": "photo",
+      "title": "Bobcat E20 Mini Excavator.jpg",
+      "publisher": "Wikimedia Commons",
+      "url": "https://commons.wikimedia.org/wiki/File:Bobcat_E20_Mini_Excavator.jpg",
+      "edition": "Taken 2024-08-22; 3658 x 2686",
+      "bytes": 2299439,
+      "sha256": "7577af369f83de13553d722108accec23e38e3544d5d0f52f02799c5e3c5cb81",
+      "retrieved_at": "2026-10-17",
+      "applicability": "Bobcat E20 with canopy, left side, B3BL-generation styling. A rental company's decals, phone number and fleet number are removed in the derivative (scripts/phase-e/packs/photo-derivatives.mjs, recipe e20-a).",
+      "rights": {
+        "status": "cc-by-sa",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false,
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "attribution": "TaurusEmerald, CC BY-SA 4.0, via Wikimedia Commons (modified)"
+      },
+      "verification": "read",
+      "availability": "in-hand",
+      "vault_path": "photos/originals/Bobcat_E20_Mini_Excavator.jpg"
+    }
+  ],
+  "models": [
+    {
+      "model_key": "bobcat.e20.b3bl-canopy",
+      "manufacturer": "Bobcat",
+      "model": "E20",
+      "category": "Compact Excavator",
+      "configuration": {
+        "generation": "E20 with serial prefix B3BL (the model Bobcat sold until the new E20 of November 2025)",
+        "operator_protection": "canopy (matches photo candidate A)",
+        "tracks": "rubber",
+        "arm": "not established (OMM; candidate B shows the long arm)",
+        "control_pattern": "not established (OMM)",
+        "auxiliary_hydraulics": "not established (OMM)",
+        "blade": "fitted"
+      },
+      "applicability": {
+        "serial_from": "B3BL11001",
+        "notes": "Per Bobcat's listing for OMM 7255004; confirmed when the manual arrives. Never use brochure B-3038, which describes the newer E20."
+      },
+      "manual": {
+        "source_id": "src-bobcat-e20-omm",
+        "delivery": "link",
+        "supplements": [
+          "src-bobcat-b1699",
+          "src-bobcat-e19-e20-schedule"
+        ]
+      },
+      "specs": [
+        {
+          "spec_id": "all-specs",
+          "label": "Specifications (weights, dimensions, engine, capacities)",
+          "value": "Not yet sourced: taken from OMM 7255004 once it is bought",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-e20-omm",
+              "locator": "Specifications section"
+            }
+          ],
+          "status": "BLOCKED",
+          "status_reason": "The operator is buying the manual. Current Bobcat web specs describe the newer E20 and are not used."
+        }
+      ],
+      "quick_guide": [
+        {
+          "step_id": "e20-s1",
+          "text": "Before you dig, call 811 and learn where underground lines run. Check the area for holes, drop-offs and soft ground.",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"Knowing the Worksite\""
+            }
+          ],
+          "safety_critical": true,
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "811 is the number on Bobcat's sheet and the operator's default for Northridge."
+        },
+        {
+          "step_id": "e20-s2",
+          "text": "Walk around the machine before you start: look for leaks and broken or damaged parts.",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 1, \"Before Operating\""
+            },
+            {
+              "source_id": "src-bobcat-e19-e20-schedule",
+              "locator": "PDF p. 1, \"Every 10 Hours (Before Starting The Excavator)\""
+            },
+            {
+              "source_id": "pol-renter-walkaround"
+            }
+          ],
+          "safety_critical": true,
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Northridge policy (operator default): the yard does the daily service checks; the renter walks around."
+        },
+        {
+          "step_id": "e20-s3",
+          "text": "Climb on and off using the grab handles and tracks; never jump off. Fasten the seat belt snugly.",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 1, \"Before Operating\"; PDF p. 2, \"Leaving the Machine\""
+            }
+          ],
+          "safety_critical": true,
+          "status": "REVIEW_REQUIRED"
+        },
+        {
+          "step_id": "e20-s4",
+          "text": "Start the machine only from the seat, with the steering levers and controls in neutral.",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"While Operating\""
+            }
+          ],
+          "safety_critical": true,
+          "status": "REVIEW_REQUIRED"
+        },
+        {
+          "step_id": "e20-s5",
+          "text": "Keep bystanders away and never lift the boom or an attachment over anyone. Look in the direction of travel before moving or swinging.",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"While Operating\""
+            }
+          ],
+          "safety_critical": true,
+          "status": "REVIEW_REQUIRED"
+        },
+        {
+          "step_id": "e20-s6",
+          "text": "Pushing the steering levers away from you drives the machine toward the blade, so check where the blade is first. Travel with the attachment low.",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"While Operating\""
+            }
+          ],
+          "safety_critical": true,
+          "status": "REVIEW_REQUIRED"
+        },
+        {
+          "step_id": "e20-s7",
+          "text": "Do not travel across or up slopes over 15 degrees, or down or backing up slopes over 25 degrees. Do not swing loads on a slope.",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"While Operating\""
+            }
+          ],
+          "safety_critical": true,
+          "status": "REVIEW_REQUIRED"
+        },
+        {
+          "step_id": "e20-s8",
+          "text": "Stay within the rated lift capacity on the machine's lift chart.",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"While Operating\""
+            }
+          ],
+          "safety_critical": true,
+          "status": "REVIEW_REQUIRED"
+        },
+        {
+          "step_id": "e20-s9",
+          "text": "Before leaving the seat: lower the attachment to the ground, shut down, take the key out and raise the control console.",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"Leaving the Machine\""
+            }
+          ],
+          "safety_critical": true,
+          "status": "REVIEW_REQUIRED"
+        },
+        {
+          "step_id": "e20-s10",
+          "text": "To trailer it: drive up the ramp with the heavy end uphill, engage the slew lock and chain the machine down at its tie-down points.",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 1, \"Safely Transporting the Machine and Attachment\""
+            }
+          ],
+          "safety_critical": true,
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "The tie-down points and slew lock are located from the OMM."
+        },
+        {
+          "step_id": "e20-s11",
+          "text": "Engine start, warm-up and shutdown procedure.",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-e20-omm",
+              "locator": "Operating Instructions (section to be located on receipt)"
+            }
+          ],
+          "safety_critical": true,
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM 7255004."
+        },
+        {
+          "step_id": "e20-s12",
+          "text": "Control layout and lever functions: dig, swing, boom offset, blade, travel and any pattern selector.",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-e20-omm",
+              "locator": "Operating Instructions (section to be located on receipt)"
+            }
+          ],
+          "safety_critical": true,
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM 7255004; never drawn from generic material."
+        },
+        {
+          "step_id": "e20-s13",
+          "text": "Using hydraulic attachments: the auxiliary hydraulics mode switch.",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 1, \"Before Operating\""
+            },
+            {
+              "source_id": "src-bobcat-e20-omm",
+              "locator": "Auxiliary hydraulics (section to be located on receipt)"
+            }
+          ],
+          "safety_critical": false,
+          "status": "BLOCKED",
+          "status_reason": "B-1699 names the switch; its location and use come from the OMM."
+        }
+      ],
+      "warnings": [
+        {
+          "step_id": "e20-w1",
+          "text": "Never carry riders.",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"While Operating\""
+            }
+          ],
+          "safety_critical": true,
+          "status": "REVIEW_REQUIRED"
+        },
+        {
+          "step_id": "e20-w2",
+          "text": "Never operate the controls from the ground.",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"While Operating\""
+            }
+          ],
+          "safety_critical": true,
+          "status": "REVIEW_REQUIRED"
+        },
+        {
+          "step_id": "e20-w3",
+          "text": "Keep hands and feet inside the operator's area while the machine is on.",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"Leaving the Machine\""
+            }
+          ],
+          "safety_critical": true,
+          "status": "REVIEW_REQUIRED"
+        },
+        {
+          "step_id": "e20-w4",
+          "text": "Never smoke while fueling.",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 1, \"Before Operating\""
+            }
+          ],
+          "safety_critical": true,
+          "status": "REVIEW_REQUIRED"
+        }
+      ],
+      "support_notes": [
+        {
+          "step_id": "e20-n1",
+          "text": "\"How do I start it?\" or \"Which lever does what?\": point the renter to the Start-Up Guide once its control panels are approved; until then, staff answer from the OMM.",
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-e20-omm",
+              "locator": "Operating Instructions"
+            }
+          ],
+          "safety_critical": true,
+          "status": "BLOCKED",
+          "status_reason": "Needs OMM 7255004."
+        }
+      ],
+      "pictograms": [
+        {
+          "panel_id": "e20-p1",
+          "title": "Call before you dig",
+          "task": "Locate underground utilities and check the ground before digging.",
+          "caption": "Call 811 before you dig. Watch for holes, drop-offs and soft ground.",
+          "alt": "A phone with a locate call, then a dig site with marked buried lines and a drop-off flagged at the edge.",
+          "control_orientation": "No machine controls drawn.",
+          "warnings": [
+            "Know where underground lines run (PDF p. 2)."
+          ],
+          "interlocks": [],
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"Knowing the Worksite\""
+            }
+          ],
+          "safety_critical": true,
+          "reviewer_checklist": [
+            "811 matches Bobcat's sheet and the operator's default.",
+            "No utility colour codes are invented."
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Artwork drawn from the approved storyboard; awaiting the reviewer.",
+          "text_alternative": "Call before you dig. Call 811 before you dig. Watch for holes, drop-offs and soft ground.",
+          "files": [
+            {
+              "file": "guide/e20-p1.svg",
+              "width": 480,
+              "height": 360,
+              "bytes": 2286,
+              "sha256": "c8d250ad7913d213286166f2664a1d07bf0674d32a7aaace972569ca8d6ae905"
+            },
+            {
+              "file": "guide/web/e20-p1.png",
+              "width": 960,
+              "height": 720,
+              "bytes": 7493,
+              "sha256": "61975008e6a7bd68501efea6667206cf606ac8c1e998a6d821869d58c266e7ab"
+            },
+            {
+              "file": "guide/web/e20-p1.webp",
+              "width": 960,
+              "height": 720,
+              "bytes": 6100,
+              "sha256": "d5d9477e72bf492a1c250a570e95fc14224f2d8310a140b4899e461f226d985b"
+            }
+          ]
+        },
+        {
+          "panel_id": "e20-p2",
+          "title": "Walk around first",
+          "task": "Look for leaks and broken or damaged parts before starting.",
+          "caption": "Walk around before you start: leaks, broken or damaged parts. Report anything.",
+          "alt": "An outline of the E20 seen from the side, with a person walking around it and magnifier circles on the tracks, cylinders and underside.",
+          "control_orientation": "Original line drawing of a canopy compact excavator in E20 proportions, not traced from any photo or OEM figure; no controls.",
+          "warnings": [],
+          "interlocks": [],
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 1, \"Before Operating\""
+            },
+            {
+              "source_id": "src-bobcat-e19-e20-schedule",
+              "locator": "PDF p. 1"
+            },
+            {
+              "source_id": "pol-renter-walkaround"
+            }
+          ],
+          "safety_critical": true,
+          "reviewer_checklist": [
+            "The silhouette reads as a canopy compact excavator.",
+            "The walk-around matches the Northridge policy (renter: leaks and damage)."
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Artwork drawn from the approved storyboard; awaiting the reviewer.",
+          "text_alternative": "Walk around first. Walk around before you start: leaks, broken or damaged parts. Report anything.",
+          "files": [
+            {
+              "file": "guide/e20-p2.svg",
+              "width": 480,
+              "height": 360,
+              "bytes": 6736,
+              "sha256": "375dd771bb8e0ed0382174e7a092592db5387d944b0b3aa48898dee05cbc6a82"
+            },
+            {
+              "file": "guide/web/e20-p2.png",
+              "width": 960,
+              "height": 720,
+              "bytes": 19705,
+              "sha256": "0a74cf976a279950b002636f5e7a2e9e15779663c841de5734cec328852d5b7c"
+            },
+            {
+              "file": "guide/web/e20-p2.webp",
+              "width": 960,
+              "height": 720,
+              "bytes": 22760,
+              "sha256": "86a246c6010e4214734db743ad7a1c8133462ec34a6195f6059875439cf9b27c"
+            }
+          ]
+        },
+        {
+          "panel_id": "e20-p3",
+          "title": "Belt on, controls neutral",
+          "task": "Seat belt fastened; start only from the seat with the levers and controls in neutral.",
+          "caption": "Belt on. Levers and controls in neutral. Start only from the seat.",
+          "alt": "Operator seated in the canopy with the belt fastened and the controls at rest.",
+          "control_orientation": "Needs the E20's real control layout from the OMM: lever positions, the console and the key switch. Nothing is drawn until then.",
+          "warnings": [
+            "Never operate controls from the ground (PDF p. 2)."
+          ],
+          "interlocks": [],
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 1; PDF p. 2, \"While Operating\""
+            },
+            {
+              "source_id": "src-bobcat-e20-omm",
+              "locator": "Operator station (to be located)"
+            }
+          ],
+          "safety_critical": true,
+          "reviewer_checklist": [
+            "Controls are drawn from the OMM's figures, not mirrored or stylized."
+          ],
+          "status": "BLOCKED",
+          "status_reason": "Control depiction needs OMM 7255004.",
+          "text_alternative": "Belt on, controls neutral. Belt on. Levers and controls in neutral. Start only from the seat."
+        },
+        {
+          "panel_id": "e20-p4",
+          "title": "Levers away: toward the blade",
+          "task": "Show that pushing the steering levers away drives toward the blade, wherever it is.",
+          "caption": "Levers pushed away = travel toward the blade. Check where the blade is before you move.",
+          "alt": "Two top views: blade in front with the machine moving forward, and the upper swung around with the blade behind the operator so the same lever push moves it the other way.",
+          "control_orientation": "Top views of the undercarriage and blade. The levers' real form and position come from the OMM, so this panel waits for it.",
+          "warnings": [
+            "Look in the direction of travel before moving (PDF p. 2)."
+          ],
+          "interlocks": [],
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"While Operating\""
+            },
+            {
+              "source_id": "src-bobcat-e20-omm",
+              "locator": "Travel controls (to be located)"
+            }
+          ],
+          "safety_critical": true,
+          "reviewer_checklist": [
+            "Direction arrows checked against the OMM's travel figure.",
+            "Any travel pedals are shown only if the OMM shows them for this configuration."
+          ],
+          "status": "BLOCKED",
+          "status_reason": "Control depiction needs OMM 7255004; the rule itself is sourced.",
+          "text_alternative": "Levers away: toward the blade. Levers pushed away = travel toward the blade. Check where the blade is before you move."
+        },
+        {
+          "panel_id": "e20-p5",
+          "title": "Slope limits",
+          "task": "Show the slope limits for travel and the rule against swinging on a slope.",
+          "caption": "Across or up: 15 degrees or less. Down or backing up: 25 degrees or less. No swinging loads on a slope.",
+          "alt": "Machine silhouettes on two slopes marked 15 degrees (across or up) and 25 degrees (down or backing up), and a crossed-out swing on a slope.",
+          "control_orientation": "Side and rear silhouettes; no controls.",
+          "warnings": [
+            "Swing loads low and slowly (PDF p. 2)."
+          ],
+          "interlocks": [],
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"While Operating\""
+            }
+          ],
+          "safety_critical": true,
+          "reviewer_checklist": [
+            "Angles match B-1699 exactly.",
+            "Cross-check against the E20 OMM's slope section on receipt."
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Artwork drawn from the approved storyboard; awaiting the reviewer and the cross-check against the E20 OMM.",
+          "text_alternative": "Slope limits. Across or up: 15 degrees or less. Down or backing up: 25 degrees or less. No swinging loads on a slope.",
+          "files": [
+            {
+              "file": "guide/e20-p5.svg",
+              "width": 480,
+              "height": 360,
+              "bytes": 7390,
+              "sha256": "7c2c977b12e73ec06cbe4915ba0489c11d59858f3bbdc935dda718dd2aad8307"
+            },
+            {
+              "file": "guide/web/e20-p5.png",
+              "width": 960,
+              "height": 720,
+              "bytes": 21659,
+              "sha256": "d0597f6ee6a3fd5d368def3484332579a85d52020ace20a01114a1562137f230"
+            },
+            {
+              "file": "guide/web/e20-p5.webp",
+              "width": 960,
+              "height": 720,
+              "bytes": 24394,
+              "sha256": "3d6101817d4961622040be9678eedbbd4de6abe2c093ef29b0dd6df515f88913"
+            }
+          ]
+        },
+        {
+          "panel_id": "e20-p6",
+          "title": "Keep people clear",
+          "task": "Bystanders away; never lift over a person; no riders.",
+          "caption": "Keep people out of the swing area. Never lift over anyone. No riders.",
+          "alt": "Top view of the machine with a shaded swing zone and a person outside it; a crossed-out frame shows a load raised over a person.",
+          "control_orientation": "Top view; no controls.",
+          "warnings": [
+            "Never carry riders (PDF p. 2)."
+          ],
+          "interlocks": [],
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"While Operating\""
+            }
+          ],
+          "safety_critical": true,
+          "reviewer_checklist": [
+            "The zone is labelled generically; no distance is invented."
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Artwork drawn from the approved storyboard; awaiting the reviewer and the cross-check against the E20 OMM.",
+          "text_alternative": "Keep people clear. Keep people out of the swing area. Never lift over anyone. No riders.",
+          "files": [
+            {
+              "file": "guide/e20-p6.svg",
+              "width": 480,
+              "height": 360,
+              "bytes": 6705,
+              "sha256": "85b541d72bd87e6932b6d2996e8cd465879ad4d8dac50d832f972cb92950b2a4"
+            },
+            {
+              "file": "guide/web/e20-p6.png",
+              "width": 960,
+              "height": 720,
+              "bytes": 26010,
+              "sha256": "be0b69a50856790ab2cfbc2da13f99b1905b80bc7a37212e825ac7b0af906eed"
+            },
+            {
+              "file": "guide/web/e20-p6.webp",
+              "width": 960,
+              "height": 720,
+              "bytes": 28806,
+              "sha256": "a9b7dfe049976f92c45dab80e52abd23056191b84597bb229a524bb22b16fe31"
+            }
+          ]
+        },
+        {
+          "panel_id": "e20-p7",
+          "title": "Leaving the machine",
+          "task": "Attachment down, shut down, key out, console up.",
+          "caption": "1 Bucket on the ground. 2 Shut down. 3 Key out. 4 Console up.",
+          "alt": "Four numbered frames: bucket resting on the ground, engine off, key removed, control console raised.",
+          "control_orientation": "Frames 1-3 use generic icons. Frame 4 needs the E20 console's real form and raise direction from the OMM.",
+          "warnings": [],
+          "interlocks": [
+            "Raising the console is the lockout the service schedule checks daily (PDF p. 1)."
+          ],
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 2, \"Leaving the Machine\""
+            },
+            {
+              "source_id": "src-bobcat-e19-e20-schedule",
+              "locator": "PDF p. 1, console lockout"
+            }
+          ],
+          "safety_critical": true,
+          "reviewer_checklist": [
+            "The sequence order matches B-1699.",
+            "The console frame is drawn from the OMM."
+          ],
+          "status": "BLOCKED",
+          "status_reason": "Frame 4 needs OMM 7255004; frames 1-3 are sourced.",
+          "text_alternative": "Leaving the machine. 1 Bucket on the ground. 2 Shut down. 3 Key out. 4 Console up."
+        },
+        {
+          "panel_id": "e20-p8",
+          "title": "Loading for transport",
+          "task": "Heavy end uphill on the ramp, slew lock on, chained at the tie-down points.",
+          "caption": "Heavy end uphill. Slew lock on. Chain it down at the tie-down points.",
+          "alt": "Side view of the machine climbing a trailer ramp heavy end first, then chained at four tie-down points.",
+          "control_orientation": "Side view. Tie-down point and slew-lock positions come from the OMM.",
+          "warnings": [
+            "Use a tow vehicle and trailer of adequate capacity (PDF p. 1)."
+          ],
+          "interlocks": [],
+          "source_refs": [
+            {
+              "source_id": "src-bobcat-b1699",
+              "locator": "PDF p. 1, \"Safely Transporting the Machine and Attachment\""
+            },
+            {
+              "source_id": "src-bobcat-e20-omm",
+              "locator": "Transporting (to be located)"
+            }
+          ],
+          "safety_critical": true,
+          "reviewer_checklist": [
+            "Which end is heavy, checked against the OMM.",
+            "The tie-down points match the OMM figure."
+          ],
+          "status": "BLOCKED",
+          "status_reason": "Tie-down and slew-lock positions need OMM 7255004.",
+          "text_alternative": "Loading for transport. Heavy end uphill. Slew lock on. Chain it down at the tie-down points."
+        }
+      ],
+      "storyboard": "docs/phase-e/packs/bobcat.e20.b3bl-canopy/storyboard.md",
+      "templates": {
+        "return": "mini_excavator_skid_steer",
+        "outbound": "mini_excavator_skid_steer",
+        "equipment_page_seed": null
+      },
+      "common_accessories": [
+        "Keys",
+        "Attachments",
+        "Manual"
+      ],
+      "photo": {
+        "source_id": "src-photo-e20-taurusemerald",
+        "alt": "Bobcat E20 compact excavator with an open canopy, seen from the left side on a dirt lot",
+        "crop": "16:9 from the full width (recipe e20-a)",
+        "credit": {
+          "author": "TaurusEmerald",
+          "license": "CC BY-SA 4.0",
+          "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+          "source_url": "https://commons.wikimedia.org/wiki/File:Bobcat_E20_Mini_Excavator.jpg",
+          "modified": true,
+          "modifications": [
+            "Removed the rental company's phone number, name and sticker from the lower body panel (the E20 decal is kept).",
+            "Removed the rental fleet number from the canopy roof.",
+            "Cropped to 16:9 and resized; credit label added."
+          ]
+        },
+        "files": [
+          {
+            "file": "media/e20-hero-a.webp",
+            "width": 1280,
+            "height": 720,
+            "bytes": 173670,
+            "sha256": "0f9718aa0cff16c6435ade4ae6ffb2e9582cbf7b9bc3bcb4283165aec3680139"
+          },
+          {
+            "file": "media/e20-hero-a.jpg",
+            "width": 1280,
+            "height": 720,
+            "bytes": 183852,
+            "sha256": "9d319f30c7952c48fff2d26fd662d47c0240692abe4835d6b0942f38169f3b41"
+          }
+        ],
+        "status": "READY",
+        "status_reason": "Candidate A, chosen by the operator on 2026-10-17. Licence CC BY-SA 4.0 with credit; edits recorded."
+      },
+      "review": {
+        "status": "MULEMARK_REVIEW",
+        "blockers": [
+          "OMM 7255004 not yet in hand (the operator is buying it): specifications, start-up, controls, attachments and transport points; panels 3, 4, 7 and 8.",
+          "Knowledgeable review of the drawn panels and page text by the named reviewer (the operator)."
+        ],
+        "warnings": [
+          "B-1699 is Bobcat's general compact-excavator rental sheet; each rule taken from it is cross-checked against the E20 OMM on receipt."
+        ],
+        "missing_facts": [],
+        "reviewer_role": "Mulemark owner (operator): named reviewer with final approval authority, 2026-10-17"
+      }
+    }
+  ],
+  "assets": [
+    {
+      "asset_code": "EXCAVATOR-017",
+      "asset_name": "Excavator 017",
+      "model_key": "bobcat.e20.b3bl-canopy",
+      "category": "Compact Excavator",
+      "year": null,
+      "serial_number": "DEMO-E20-0017",
+      "fitted_options": [],
+      "qr": {
+        "create": false,
+        "existing_short_code": "demo-ex017",
+        "protected": true
+      },
+      "existing_ids": {
+        "asset_id": "21111111-1111-4111-8111-111111111101",
+        "qr_link_id": "41111111-1111-4111-8111-111111111101"
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "MULEMARK_REVIEW",
+        "blockers": [
+          "Model content under review (see model bobcat.e20.b3bl-canopy)."
+        ]
+      },
+      "page": {
+        "headline": {
+          "text": "Bobcat E20 compact excavator with canopy. Read the Start-Up Guide before you start.",
+          "derived_from": [
+            "model",
+            "operator_protection"
+          ],
+          "status": "READY",
+          "status_reason": "Identity facts."
+        },
+        "quick_start_text": {
+          "text": "1. Before you dig, call 811 and check the area for holes, drop-offs and soft ground.\n2. Walk around the machine: look for leaks and broken or damaged parts.\n3. Climb on with the grab handles and tracks (never jump off) and fasten the seat belt.\n4. Start only from the seat, with the levers and controls in neutral.\n5. Pushing the travel levers away drives toward the blade: check where the blade is first.\n6. Before you leave the seat: bucket on the ground, engine off, key out, console up.\nThe Start-Up Guide shows each step.",
+          "derived_from": [
+            "e20-s1",
+            "e20-s2",
+            "e20-s3",
+            "e20-s4",
+            "e20-s6",
+            "e20-s9",
+            "pol-renter-walkaround"
+          ],
+          "status": "BLOCKED",
+          "status_reason": "Start-up and control steps come from Bobcat's E20 manual (7255004), not in hand yet. Publish after they are added and reviewed."
+        },
+        "safety_notes": {
+          "text": "Keep people out of the swing area, and never lift the boom or bucket over anyone. No riders.\nSlopes: no more than 15° across or up, or 25° down or backing up. Don't swing loads on a slope.\nStay within the lift chart on the machine.\nNever work the controls from the ground. No smoking while fueling.",
+          "derived_from": [
+            "e20-s5",
+            "e20-w1",
+            "e20-s7",
+            "e20-s8",
+            "e20-w2",
+            "e20-w4"
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "From Bobcat's rental safety sheet; awaiting the reviewer and the OMM cross-check."
+        },
+        "fuel_power_notes": {
+          "text": null,
+          "derived_from": [],
+          "status": "BLOCKED",
+          "status_reason": "Fuel type and tank capacity come from the E20 manual."
+        },
+        "troubleshooting_notes": {
+          "text": "Something wrong (a warning light, leak or odd noise): stop, lower the bucket to the ground, shut down and use Request Support.",
+          "derived_from": [
+            "pol-stop-and-report",
+            "e20-s9"
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Northridge policy plus Bobcat's leaving-the-machine sequence; awaiting the reviewer."
+        },
+        "return_notes": {
+          "text": "Return the keys and any attachments.\nLeave it with the bucket on the ground, engine off, key out and console up.\nUse Return checklist when you drop it off.",
+          "derived_from": [
+            "template:mini_excavator_skid_steer",
+            "e20-s9"
+          ],
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Accessories from the return checklist template; the parking line from Bobcat's sheet."
+        },
+        "emergency_notes": {
+          "text": "For emergencies call your local emergency number. For equipment issues, use the support contact on this page.",
+          "derived_from": [
+            "mulemark-standard-emergency"
+          ],
+          "status": "READY",
+          "status_reason": "Mulemark's standard emergency wording (lib/onboarding/templates.ts)."
+        }
+      },
+      "documents": [
+        {
+          "title": "Bobcat E20 Start-Up Guide",
+          "document_type": "startup_guide",
+          "delivery": "hosted",
+          "visibility": "public",
+          "file": {
+            "file": "guide/bobcat.e20.b3bl-canopy-start-up-guide.pdf",
+            "pages": 2,
+            "bytes": 194458,
+            "sha256": "5d867e33991d3b23cad97130df615f79f62544bec902c73201a78d4260e5c682"
+          },
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Carries the review-draft banner until every panel is approved."
+        },
+        {
+          "title": "Bobcat E20 Operation & Maintenance Manual (sold by Bobcat)",
+          "document_type": "manual",
+          "delivery": "link",
+          "visibility": "public",
+          "url": "https://shop.bobcat.com/ca/e20-excavator-operation-and-maintenance-digital-manual-7255004enuspdf",
+          "source_id": "src-bobcat-e20-omm",
+          "status": "READY",
+          "status_reason": "Bobcat's official channel; the manual is sold, not free."
+        },
+        {
+          "title": "Bobcat Rent It Safely: compact excavator safety rules",
+          "document_type": "safety_sheet",
+          "delivery": "link",
+          "visibility": "public",
+          "url": "https://res.cloudinary.com/doosan-bobcat/image/upload/v1642696283/bobcat-assets/na-approved/products/excavators/multi-model/literature/b-1699-rentitsafely-excavator.pdf",
+          "source_id": "src-bobcat-b1699",
+          "status": "READY",
+          "status_reason": "Bobcat's free official rental safety sheet, linked."
+        }
+      ],
+      "showcase": {
+        "story": "Guidance and handoff",
+        "narrative": "A renter scans the tag on site, opens the Start-Up Guide built from Bobcat's documents and acknowledges it. Staff record the outbound condition, a support question is answered by pointing to the guide, and most returns are clean.",
+        "limitation": "It shows the guidance was delivered and acknowledged, not that it was read or understood."
+      }
+    }
+  ],
+  "approval": {
+    "status": "not_requested"
+  }
+}
