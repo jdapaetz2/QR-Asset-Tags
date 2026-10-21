@@ -91,6 +91,26 @@ describe("buildSessionComparison", () => {
     expect(c.followUps.length).toBeGreaterThan(0);
   });
 
+  it("shows a meter difference at the readings' own precision, without floating-point noise", () => {
+    const clean = { damage_observed: "no" as const, accessories_missing: false };
+    const meter = (out: number, back: number) =>
+      buildSessionComparison({
+        outbound: data("outbound", { engine_hours: out }, clean),
+        staff: data("return", { engine_hours: back }, clean),
+        renterReports: [],
+      }).rows.find((r) => r.fieldId === "engine_hours");
+
+    expect(meter(1110, 1120.7)?.delta).toBe("+10.7 hours"); // the raw float is +10.700000000000045
+    expect(meter(0.1, 0.3)?.delta).toBe("+0.2 hours");
+    expect(meter(3, 5)?.delta).toBe("+2 hours");
+    expect(meter(7.25, 5)?.delta).toBe("-2.25 hours");
+
+    const same = meter(100.5, 100.5);
+    expect(same?.delta).toBe("+0 hours");
+    expect(same?.changed).toBe(false);
+    expect(same?.note).toBeNull();
+  });
+
   it("labels a confirmed renter damage report vs an unconfirmed one, with no blame language", () => {
     const renterDamaged = data(
       "return",

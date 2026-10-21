@@ -113,6 +113,14 @@ const COMPARABLE = new Set([
   "accessory_checklist",
 ]);
 
+/** Decimal places a meter reading was entered with, at most 2 (the precision its difference is shown at). */
+function readingDecimals(n: number): number {
+  const text = String(n);
+  if (/e/i.test(text)) return 2;
+  const dot = text.indexOf(".");
+  return dot === -1 ? 0 : Math.min(2, text.length - dot - 1);
+}
+
 function kindOf(field: InspectionField): ComparisonRow["kind"] {
   if (field.type === "numeric_meter") return "meter";
   if (field.type === "fuel_charge_level") return "fuel";
@@ -172,7 +180,8 @@ export function buildSessionComparison(input: {
           const o = typeof outRaw === "number" ? outRaw : Number(outRaw);
           const s = typeof staffRaw === "number" ? staffRaw : Number(staffRaw);
           if (Number.isFinite(o) && Number.isFinite(s)) {
-            const d = s - o;
+            // Shown at the readings' own precision: 1120.7 − 1110 is "+10.7", not the float "+10.700000000000045".
+            const d = Number((s - o).toFixed(Math.max(readingDecimals(o), readingDecimals(s))));
             delta = `${d >= 0 ? "+" : ""}${d}${field.unit ? ` ${field.unit}` : ""}`;
             changed = d !== 0;
             if (changed) note = "Difference recorded";
