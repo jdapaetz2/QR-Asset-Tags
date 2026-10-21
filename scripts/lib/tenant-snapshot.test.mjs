@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { readOnlyClient, referencedProfileIds } from "./tenant-snapshot.mjs";
+import { PAGE, readAll, readOnlyClient, referencedProfileIds } from "./tenant-snapshot.mjs";
 
 // Phase E1: the exporter and the shared snapshot reader are read-only on the source by construction. This scans their
 // source for any write surface; Storage `download` and `list` and PostgREST `select` are the only calls allowed.
@@ -19,15 +19,32 @@ describe("read-only source", () => {
     }
   });
 
-  it("exposes only page, list and download", () => {
+  it("exposes only count, page, list and download", () => {
     const calls = [];
     const chain = new Proxy(() => chain, { get: (_, prop) => (prop === "then" ? undefined : () => (calls.push(prop), chain)) });
     const client = readOnlyClient({ from: () => chain, storage: { from: () => chain } });
-    expect(Object.keys(client).sort()).toEqual(["download", "list", "page"]);
+    expect(Object.keys(client).sort()).toEqual(["count", "download", "list", "page"]);
+    client.count("assets", (q) => q.eq("organization_id", "x"));
     client.page("assets", "*", (q) => q.eq("organization_id", "x"), null);
     client.list("submissions", "org/x", 0);
     client.download("submissions", "org/x/y.jpg");
-    expect(calls).toEqual(["select", "eq", "order", "limit", "list", "download"]);
+    expect(calls).toEqual(["select", "eq", "select", "eq", "order", "limit", "list", "download"]);
+  });
+});
+
+describe("readAll", () => {
+  const fake = (rows, cap, count = rows.length) => ({
+    count: async () => ({ count, error: null }),
+    page: async (_t, _c, _s, after) => ({ data: rows.filter((r) => !after || r.id > after).slice(0, cap), error: null }),
+  });
+  const rows = Array.from({ length: 1200 }, (_, i) => ({ id: String(i).padStart(5, "0") }));
+
+  it("pages through every row and checks the exact count", async () => {
+    expect(await readAll(fake(rows, PAGE), "t", (x) => x)).toHaveLength(1200);
+  });
+
+  it("refuses a short read that a server row cap below the page size would cause", async () => {
+    await expect(readAll(fake(rows, 500), "t", (x) => x)).rejects.toThrow(/read 500 rows but the server counts 1200/);
   });
 });
 

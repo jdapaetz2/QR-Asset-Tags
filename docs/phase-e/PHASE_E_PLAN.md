@@ -9,7 +9,12 @@
   - the guarded reset interface, which only dry-runs against Production.
   See [DEMO_RECOVERY_RUNBOOK.md](DEMO_RECOVERY_RUNBOOK.md).
 - **E2A complete (2026-10-17):** four sourced content packs in [packs/](packs/README.md), with 20 original pictogram panels, three Start-Up Guide PDFs, the source and rights register, field-level E2C import manifests and marketing candidates. Nothing is published. Reworked picture-first the same day after the operator's gallery review: panels redrawn as short frame sequences with no words, 24 safety sign tiles, accessory icons, two-page picture guides and a gallery with almost no visible text. Open items (the trailer photos, the E20 manual, the knowledgeable review, Big Tex's answers) are listed in the [work log](WORK_LOG.md).
-- E2B is next. It starts only when the operator runs it, **never** automatically.
+- **E2B complete (2026-10-21):** a coherent, synthetic 105-day rental history for the four showcase assets. See [SHOWCASE_STORIES.md](SHOWCASE_STORIES.md), [PRESENTER_RUNBOOK.md](PRESENTER_RUNBOOK.md) and [DEMO_REFRESH_POLICY.md](DEMO_REFRESH_POLICY.md).
+  - Built with the app's own inspection code, from a seeded scenario.
+  - Applied with the guarded reset planner, which gains the showcase, presenter and refresh kinds.
+  - Rehearsed on the local stack (suite and real-app walkthrough) and on staging.
+  - Dry-run only against Production ([E2B_REHEARSAL_REPORT.md](E2B_REHEARSAL_REPORT.md), [E2C_CUTOVER_PACKAGE.md](E2C_CUTOVER_PACKAGE.md)).
+- E2C is next. It starts only when the operator runs it, **never** automatically.
 
 This phase is not the older roadmap's "Phase E", and it is not an operational-hold phase.
 

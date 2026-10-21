@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
 const SCRIPTS = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const WRITE_OR_SCAN = /\/t\/|\/forms\/|\.insert\(|\.update\(|\.upsert\(|\.upload\(|\.delete\(|\.remove\(|page\.goto/;
-const GUARD_IMPORT = /from\s+["'](?:\.\.?\/)+(?:lib\/)?(?:qa-targets|local-stack)\.mjs["']|from\s+["'](?:\.\.?\/)+production\/lib\/qa-forms\.mjs["']|from\s+["']\.\/lib\/qa-forms\.mjs["']/;
+const GUARD_IMPORT = /from\s+["'](?:\.\.?\/)+(?:lib\/)?(?:qa-targets|local-stack|showcase-target)\.mjs["']|from\s+["'](?:\.\.?\/)+production\/lib\/qa-forms\.mjs["']|from\s+["']\.\/lib\/qa-forms\.mjs["']/;
 
 /** Scripts that match the patterns but need no target guard, each with the reason. */
 const EXEMPT = {

@@ -156,7 +156,21 @@ Docker Desktop on this machine publishes the Supabase CLI's containers on **all 
 Kinds:
 - `noop`: wants the snapshot itself.
 - `draft-e2c`: the approved boundary's relational shape without E2A/E2B content. It closes open sessions (`cancelled`, pointers cleared), removes the access-restricted submissions and acknowledgements, and makes hosted documents of unknown rights private.
-- `restore`: an archive's rows plus every later row that the cutover did not insert.
+- `restore`: an archive's rows plus every later row that the cutover did not insert. With `--dataset` (E2B), it also removes every row and scan the showcase dataset owns or retired.
+- `showcase` (E2B): the first application of the synthetic showcase history ([E2C_CUTOVER_PACKAGE.md](E2C_CUTOVER_PACKAGE.md)). It combines:
+  - the draft-e2c shape;
+  - the old rentals of the four showcase assets, removed by exact id;
+  - the E2A content;
+  - the dataset (`docs/phase-e/showcase/dataset.json`).
+  It is refused once any dataset row exists on the target.
+- `presenter` and `refresh` (E2B): the bounded presenter reset ([PRESENTER_RUNBOOK.md](PRESENTER_RUNBOOK.md)) and the owner-run new snapshot ([DEMO_REFRESH_POLICY.md](DEMO_REFRESH_POLICY.md)). Both are composed from the live rows at plan time and again on the locked rows inside the apply. They change only dataset rows, the four rental pointers and exact ids named in `--remove`.
+
+**Dataset manifests:** the three E2B kinds carry the dataset's `owned` ids, plus:
+- `owned_history`: ids an earlier version owned;
+- `remove`: exact ids of other rows to delete;
+- `allow_insert` and `allow_update`: the exact other rows the overlay may write, and for updates the columns;
+- `append`: the dataset's own scans.
+Every change outside those lists is refused.
 
 Manifests contain row data, so they live in the archive folder.
 
@@ -168,13 +182,31 @@ Manifests contain row data, so they live in the archive folder.
 |---|---|
 | `drift-*` | A live row that is neither the row the manifest saw nor already the row it wants; a row it relies on is gone; the digest watermark moved backwards (ledger history missing) |
 | `frozen` | Any write to `qr_links` (published destinations) or `profiles` |
-| `append-only` | A manifest that lists `scan_events` or the digest ledger. Their new rows are legitimate; a reset never writes them. |
+| `append-only` | A manifest that lists `scan_events` or the digest ledger. Their new rows are legitimate; a reset never writes them, except the dataset's own scans (`append`) and exact scan ids in `remove`. The ledger is never written. |
+| `delete-allowlist` / `insert-bound` / `update-bound` (dataset manifests) | A deletion that is neither a dataset row nor in `remove`; an insert or update outside the dataset and the allowed overlay rows and columns |
+| `future` / `anchor` (dataset manifests) | A dataset timestamp later than now; less than an hour after the dataset's 6 AM anchor (that morning's digest run may still be running) |
+| `overlap` / `reference` (dataset manifests) | Two rentals of one asset overlap; a dataset row would share its `RNT-` / `SUB-` display reference with another row |
+| `conflict` (dataset manifests) | A kept return checklist that is not the dataset's sits on a dataset rental the reset leaves active (a live demo return). Name it in `--remove` |
 | `protected` | Deleting a protected asset or its page; changing its code, public status or archive state; unpublishing its page; a protected row missing on **Production** (rehearsal targets hold only the rows their data has) |
 | `locked` | Organization status, plan, export or notification-routing columns (trigger-protected or seed-unsafe) |
 | `integrity` / `cross-org` | A dangling or cross-tenant reference; a delete whose CASCADE / SET NULL / RESTRICT effect reaches a kept row; a new active-session or pointer inconsistency; a new duplicate staff return or outbound per session; an edit of a published inspection template |
 | `watermark` | An inserted or changed return checklist dated after the digest watermark ([§6](#6-seed-notification-suppression)) |
 
-**Apply** is loopback only in E1: the local stack or the standalone container. The tool refuses `apply` on staging or Production before connecting. Everything happens in one transaction with **triggers on and foreign keys enforced**:
+**Apply targets:**
+- **Loopback** (the local stack or the standalone container): every kind.
+- **Staging** (E2B): the three dataset kinds only, through the staging database URL in `PHASE_E_STAGING_DB_URL` (`.env.staging.local`, never printed). `scripts/lib/showcase-target.mjs` checks four things before the transaction:
+  1. the URL is the staging project's direct host or its session pooler on port 5432 (never 6543, never the Production ref), with TLS;
+  2. the API URL is staging and its schema matches the graph;
+  3. the staging-only probe row exists;
+  4. the trigger and job catalog is the reviewed one (§6).
+  A staging apply also needs `--approved-plan` (below).
+- **Production:** refused before any connection.
+
+`--approved-plan=<the dry run's .plan.json>`: the change set computed on the locked rows must equal the reviewed one, or the apply stops without writing.
+
+**Snapshots:** hosted snapshot reads check each table's exact row count, so a server row cap can never silently truncate a plan.
+
+Everything happens in one transaction with **triggers on and foreign keys enforced**:
 1. Lock the organization row (`FOR UPDATE`). Every new row that references Northridge waits for the transaction; **no other tenant is affected**.
 2. Lock the in-scope rows.
 3. Plan on the locked rows; a refusal rolls back.
@@ -234,6 +266,12 @@ What the reset does **not** do:
 - a public control return was **excluded** under `instant_renter`;
 - the ledger window started exactly at W.
 
+**E2B evidence** (`test:phase-e-showcase-local`): the same worker ran over the applied synthetic dataset, re-anchored three days back, with a ledger row at its 6 AM anchor.
+- It listed none of the dataset's 95 return checklists under either mode.
+- It listed the later staff control under `instant_renter`, and the public and staff controls under `daily_exceptions`.
+
+The dataset itself sits at or before its anchor by construction, so the planner's watermark rule accepts it only once that morning's run is recorded.
+
 **Operator live check before E2B.** The repository cannot show something added in the Supabase dashboard that reacts to new rows, such as a Database Webhook (a trigger on a table) or a scheduled database job. One read-only query shows both:
 1. Open the Production SQL editor: `https://supabase.com/dashboard/project/apeiswnkheiwrpvumder/sql/new`.
 2. Paste the query below and click **Run**. It only reads the database catalog.
@@ -287,7 +325,7 @@ Staging Northridge is reserved for the E2B rehearsal. The read-only health check
 
 **Preconditions.** All must be true before asking for the Production approval:
 - [ ] E2A content approved, E2B dataset rehearsed on staging, business-card evidence verified, printed-sheet answers received, owner-only QR-disable guard migrated ([PHASE_E_PLAN.md](PHASE_E_PLAN.md)).
-- [ ] The E2C manifest builder exists, and its dry run against Production is **ACCEPTED**: `npm.cmd run phase-e:reset:production -- plan --manifest=<file>`. The counts are recorded and the emitted SQL has been reviewed.
+- [ ] The cutover manifest is the E2B `showcase` kind ([E2C_CUTOVER_PACKAGE.md](E2C_CUTOVER_PACKAGE.md); its 2026-10-20 dry run was **ACCEPTED**). Rebuild the dataset for the cutover date, compose the manifest and dry-run it again: `npm.cmd run phase-e:reset:production -- plan --manifest=<file>`. The counts are recorded and the emitted SQL has been reviewed.
 - [ ] The execution mode is decided and approved: one SQL transaction in the SQL editor, or through the database URL. E1's `apply` refuses hosted targets, so E2C adds that path under its own approval.
 - [ ] The operator live checks in [§6](#6-seed-notification-suppression) are done and recorded.
 - [ ] A separate Production approval names the exact ids, taken from the plan file.
@@ -327,9 +365,9 @@ A rollback restores the archive's rows for everything the cutover changed and ke
 1. In the owner UI, **suspend Northridge**.
 2. Build the rollback manifest:
    ```
-   npm.cmd run phase-e:reset:production -- manifest --kind=restore --org=11111111-1111-4111-8111-111111111111 --archive=<pre-cutover package> --cutover=<cutover manifest> --out=<abs file>
+   npm.cmd run phase-e:reset:production -- manifest --kind=restore --org=11111111-1111-4111-8111-111111111111 --archive=<pre-cutover package> --cutover=<cutover manifest> --dataset=<the applied dataset file> --out=<abs file>
    ```
-   The organization's locked columns keep their live values, so the archive may predate the suspension.
+   The organization's locked columns keep their live values, so the archive may predate the suspension. `--dataset` adds every row and scan the applied showcase dataset owns or retired to the removals, including those of later presenter resets or refreshes. Visitor rows are kept.
 3. `plan` must be ACCEPTED. A refusal means a kept post-cutover row depends on something the rollback would remove, and that is an operator decision.
 4. Stage missing objects. The manifest lists every archived object; staging uploads only missing ones and never overwrites.
 5. Apply in the approved mode.

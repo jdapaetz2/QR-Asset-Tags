@@ -459,3 +459,94 @@ Everything in the E2A list above still applies, plus: **review the redrawn panel
 ```
 npm.cmd run phase-e:packs:build
 ```
+
+## E2B — coherent showcase history and repeatable sales scenarios (2026-10-20/21)
+
+A coherent, synthetic 105-day rental history for the four showcase assets: built, rehearsed on the local stack and staging, and dry-run against Production (reads only). The stories are in [SHOWCASE_STORIES.md](SHOWCASE_STORIES.md), the results in [E2B_REHEARSAL_REPORT.md](E2B_REHEARSAL_REPORT.md), and the cutover in [E2C_CUTOVER_PACKAGE.md](E2C_CUTOVER_PACKAGE.md).
+
+### Approvals and operator decisions
+
+| When | What | How |
+|---|---|---|
+| 2026-10-19 | Read-only Production catalog check before E2B (runbook §6): `21 \| none \| pg_cron not installed`, as expected | Operator, SQL editor |
+| 2026-10-20 | E2B plan approved | Plan mode, ExitPlanMode |
+| 2026-10-20 | Staging is written through a database URL the operator adds (`PHASE_E_STAGING_DB_URL`) | Answer |
+| 2026-10-20 | Staff are fictional names only, with no accounts | Answer |
+| 2026-10-20 | Evidence images: the licensed E20 and Cat photos tagged "Illustrative photo" for routine excavator photos; original drawings tagged "Illustration" for the trailer photos and the key incidents; other incidents without a photo; minimal labels, only where required | Answer |
+| 2026-10-20 | The analytics "repeated reports" quirk goes in the presenter notes now and gets a separate fix | Answer |
+
+### Drift check (E1 → 2026-10-20 15:50Z, read-only audit)
+
+All rows unchanged except the append-only tables:
+- scans 3,190 → **3,202** (visitors);
+- digest runs 35 → **39** (the daily runs, last window ending 2026-10-20 13:00 UTC).
+
+Scans on the four showcase assets: 017 948, 3015 792, 014 60, 2041 828 (mostly June and July testing; an E2C decision).
+
+### What was built
+
+| Part | Files |
+|---|---|
+| Scenario (authored) | `docs/phase-e/showcase/scenario.json`: seed, anchor, fictional renters and staff, per-model use patterns and rates, curated incidents |
+| Evidence media (written once, hashed) | `docs/phase-e/showcase/media/` (11 WebP), `media.json`, `MEDIA_NOTICE.md`; `scripts/phase-e/showcase/make-media.mjs`, `evidence-drawings.mjs` |
+| Builder | `scripts/phase-e/showcase/build-dataset.ts` (the app's own inspection, triage, acknowledgement and scan code), `build.showcase.ts`, `build.mjs`, `vitest.showcase-build.config.ts`; `npm run phase-e:showcase:build` |
+| Dataset (generated, tracked) | `docs/phase-e/showcase/dataset.json`: every row, frozen template snapshots, the evidence objects, pinned ids |
+| Planner | `scripts/lib/showcase-reset.mjs`: the dataset kinds `showcase`, `presenter` and `refresh`, with bounded changes, exact removals, appended scans and the new refusals. `scripts/lib/showcase-compose.mjs`, `showcase-dataset.mjs`. `tenant-snapshot.mjs` gains an exact-count check |
+| Staging guard | `scripts/lib/showcase-target.mjs`, recognised by `qa-guard-coverage` |
+| CLI | `scripts/phase-e/showcase-reset.mjs`: the new kinds, `--remove`, `--approved-plan`, `--dataset`, `--scans`, and the staging apply. Production applies are refused before any connection |
+| Bootstrap and check | `scripts/phase-e/showcase-bootstrap.mjs` (local and staging only), `showcase-staging-check.mjs` (read-only) |
+| Owner report | `lib/owner/org-activity.ts`; `app/(platform)/owner/analytics/page.tsx` labels demo organizations and uses exact counts (it undercounted past 1,000 rows) |
+| Rehearsals | `tests/phase-e-showcase-local/` (`npm run test:phase-e-showcase-local`); `tests/phase-e-showcase-walkthrough/` and `playwright.phase-e-showcase.config.ts` (`npm run test:phase-e-showcase-walkthrough`) |
+
+### Dataset
+
+- Anchor **2026-10-20 06:00 America/Vancouver** (the rehearsal anchor; E2C rebuilds it for the cutover date).
+- 92 rentals (90 completed, 017 and 2041 on rent): 64 outbound inspections, 77 staff returns, 18 renter returns, 55 acknowledgements, 12 damage reports, 8 support requests, 700 scans, 226 evidence files.
+- At the anchor: 3 items `new`, 2 `reviewed`.
+- SHA-256 hashes:
+  - `scenario.json` `3a17569de110b983b0ec15486d29d20984c9d471aecab843c2f8d2ef3c92c49d`;
+  - `dataset.json` `92f58bce59d7cc09d08db900339d99881ba894aea3c232ca93fce4ec4155aea9`;
+  - `media.json` `cb73df94dfa95fda2fa8386b9423a3f19189c350886fabab1d179bdb2e0021f7`.
+
+### What ran
+
+| Step | Target | Result |
+|---|---|---|
+| `phase-e:showcase:media`, `phase-e:showcase:build` | Repository files | 11 images, the dataset |
+| `test:phase-e-showcase-local` | Local stack | **13/13** |
+| `test:phase-e-local` (E1) | Local stack | **34/34** |
+| `test:phase-e-showcase-walkthrough` | Local stack, the real app | **6/6** |
+| Production dry run (`showcase-production-e2b-dryrun-20261020`) | Production, reads only | **ACCEPTED**; summary in `docs/phase-e/archives/` |
+| Staging rehearsal (bootstrap, plan, `--fail-at`, apply, converge, no-op, presenter dry run, read-only checks) | Staging, guarded database URL | **Applied and converged**: 183 statements, all 15 checks passed, including the scan-free `/nojs/t/` view of the four codes on the branch Preview |
+
+### Findings
+
+- **Fixed in E2B:**
+  - The planner could not converge after it removed append-only rows (the re-plan counted them as missing). Intended removals are now exempt, with a regression test.
+  - The owner report undercounted organizations past one PostgREST page (1,000 rows). It now uses exact counts.
+  - Hosted snapshots could be truncated by a server row cap without notice. Exact counts are now checked.
+  - The rental evidence page printed a meter difference as a raw float ("+10.700000000000045 hours"). It is now shown at the readings' own precision, with a unit test (`lib/inspections/session-comparison.ts`).
+- **Known app behaviour, for presenters** ([PRESENTER_RUNBOOK.md](PRESENTER_RUNBOOK.md)): "repeated reports" on every showcase machine, "came with photos" counting every record, "Difference recorded" for hours and fuel, and recommended photos reported missing.
+- **Production test scans:** about 2,628 pre-cutover test scans on the four assets would swamp the 90-day analytics. That is an E2C decision.
+
+### Gates (2026-10-20)
+
+| Check | Result |
+|---|---|
+| `npm.cmd run lint`, `npm.cmd run typecheck` | Pass |
+| `npm.cmd test` | 211 files, 2,430 tests passed |
+| `npm.cmd run build` | Compiled successfully |
+
+### Open, operator-pending
+
+- The E2C decisions in [E2C_CUTOVER_PACKAGE.md](E2C_CUTOVER_PACKAGE.md).
+- A look at the evidence drawings, which are replaceable ([showcase/MEDIA_NOTICE.md](showcase/MEDIA_NOTICE.md)).
+- Everything open from E2A.
+
+### Next command
+
+**Prompt E2C**, only when the operator runs it; never automatically. Before the cutover, rebuild the dataset for the cutover date:
+
+```
+npm run phase-e:showcase:build -- --anchor=YYYY-MM-DD
+```

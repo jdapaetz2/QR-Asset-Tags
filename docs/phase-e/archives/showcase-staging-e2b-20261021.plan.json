@@ -1,0 +1,155 @@
+{
+  "schema": "mulemark.phase-e.reset-plan-summary/v1",
+  "name": "showcase-staging-e2b-20261021",
+  "kind": "showcase",
+  "organization_id": "11111111-1111-4111-8111-111111111111",
+  "planned_at": "2026-10-21T21:52:54.337Z",
+  "ok": true,
+  "counts": {
+    "organizations": {
+      "KEEP": 1,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "equipment_page_templates": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "inspection_templates": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "notification_digest_runs": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "profiles": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "activity_log": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "assets": {
+      "KEEP": 2,
+      "UPDATE": 4,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "inspection_category_defaults": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "tag_requests": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "asset_rental_sessions": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 92,
+      "DELETE": 0
+    },
+    "documents": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 8,
+      "DELETE": 0
+    },
+    "equipment_pages": {
+      "KEEP": 2,
+      "UPDATE": 4,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "qr_links": {
+      "KEEP": 6,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "tag_request_assets": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 0,
+      "DELETE": 0
+    },
+    "asset_acknowledgements": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 55,
+      "DELETE": 0
+    },
+    "form_submissions": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 179,
+      "DELETE": 1
+    },
+    "scan_events": {
+      "KEEP": 0,
+      "UPDATE": 0,
+      "INSERT": 700,
+      "DELETE": 0
+    }
+  },
+  "refusal_codes": [],
+  "refusals": 0,
+  "watermark": {
+    "last_success_window_end": null,
+    "first_window_start": null,
+    "next_cutoff": "2026-10-22T13:00:00.000Z",
+    "effective_start": "2026-10-21T13:00:00.000Z"
+  },
+  "target": "staging",
+  "supabase_ref": "kwserenxwjxozztyigmw",
+  "manifest_sha256": "9c3fc5d4636478b55948c7edc7624fccafd5c3428ea7e561e1a713cae40d0191",
+  "dataset": {
+    "scenario_version": "e2b-1",
+    "anchor_utc": "2026-10-20T13:00:00+00:00",
+    "appended_scans": 700,
+    "staged_objects": 231,
+    "e2a": {
+      "applied_as": "draft",
+      "apply_allowed": false,
+      "statuses": {
+        "docs/phase-e/packs/bobcat.e20.b3bl-canopy/pack.json": {
+          "READY": 13,
+          "REVIEW_REQUIRED": 5,
+          "BLOCKED": 3
+        },
+        "docs/phase-e/packs/cat.301-5.canopy/pack.json": {
+          "READY": 16,
+          "REVIEW_REQUIRED": 0,
+          "BLOCKED": 2
+        },
+        "docs/phase-e/packs/bigtex.35sa.12/pack.json": {
+          "READY": 11,
+          "REVIEW_REQUIRED": 7,
+          "BLOCKED": 1
+        },
+        "docs/phase-e/packs/bigtex.14lp.14/pack.json": {
+          "READY": 10,
+          "REVIEW_REQUIRED": 8,
+          "BLOCKED": 1
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,539 @@
+{
+  "schema": "mulemark.phase-e.showcase-scenario/v1",
+  "scenario_id": "northridge-showcase",
+  "version": "e2b-1",
+  "seed": 4207,
+  "notes": [
+    "Synthetic Northridge rental history for the four canonical showcase assets (Engineering Phase E2B). Every person, company, address, phone number, serial and rental reference is fictional; emails use the reserved .example domain and phones the reserved 555-01XX range.",
+    "Times are local America/Vancouver wall times given as a day offset from the anchor date plus HH:MM. The anchor itself is 06:00 local on the anchor date, a daily-digest cutoff: every synthetic timestamp is at or before it.",
+    "The tracked dataset uses the rehearsal anchor below. A new anchor (E2C cutover, an owner-run refresh) is an explicit rebuild: npm run phase-e:showcase:build -- --anchor=YYYY-MM-DD (docs/phase-e/DEMO_REFRESH_POLICY.md)."
+  ],
+  "time_zone": "America/Vancouver",
+  "anchor": { "date": "2026-10-20", "local_hour": 6, "purpose": "E2B rehearsal anchor (local and staging). E2C rebuilds for the cutover date." },
+  "history_days": 105,
+  "event_hours": { "earliest": "06:00", "latest": "21:00" },
+  "organization_id": "11111111-1111-4111-8111-111111111111",
+  "labels": {
+    "rental_reference_prefix": "DEMO-",
+    "first_contract_number": 41207,
+    "acknowledgement_name_suffix": " (demo)"
+  },
+  "rates_target": {
+    "outbound": 0.7,
+    "acknowledgement": 0.6,
+    "staff_return": 0.85,
+    "renter_return": 0.2,
+    "damage_reports": 12,
+    "support_requests": 8,
+    "open_at_anchor": { "new": 3, "reviewed": 2 },
+    "scans_total": 700
+  },
+  "staff": [
+    { "key": "dana", "name": "Dana Whitfield", "email": "dana.whitfield@northridge.example", "role": "Yard lead, weekday mornings", "device": "staff-iphone" },
+    { "key": "luis", "name": "Luis Ferreira", "email": "luis.ferreira@northridge.example", "role": "Yard, weekends and late returns", "device": "staff-android" }
+  ],
+  "staff_rules": {
+    "weekday": "dana",
+    "weekend": "luis",
+    "weekday_after_16_luis_share": 0.35
+  },
+  "devices": {
+    "staff-iphone": { "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1", "network": "192.0.2.10" },
+    "staff-android": { "user_agent": "Mozilla/5.0 (Linux; Android 15; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36", "network": "192.0.2.11" },
+    "iphone-a": { "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1" },
+    "iphone-b": { "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.7 Mobile/15E148 Safari/604.1" },
+    "android-a": { "user_agent": "Mozilla/5.0 (Linux; Android 14; SM-S921W) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36" },
+    "android-b": { "user_agent": "Mozilla/5.0 (Linux; Android 15; moto g power 5G - 2025) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36" },
+    "ipad": { "user_agent": "Mozilla/5.0 (iPad; CPU OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1" },
+    "desktop": { "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0" }
+  },
+  "visitor_devices": { "iphone-a": 34, "iphone-b": 14, "android-a": 26, "android-b": 14, "ipad": 4, "desktop": 8 },
+  "renters": [
+    { "key": "harlow", "name": "Priya Natarajan", "company": "Harlow Excavating", "email": "priya@harlow-excavating.example", "phone": "604-555-0142", "crew": 3, "device": "iphone-a", "assets": { "EXCAVATOR-017": 3, "EXCAVATOR-3015": 2, "TRAILER-2041": 2 } },
+    { "key": "coastline", "name": "Marcus Bell", "company": "Coastline Landscaping", "email": "marcus@coastline-landscaping.example", "phone": "778-555-0117", "crew": 2, "device": "android-a", "assets": { "EXCAVATOR-3015": 3, "TRAILER-2041": 3, "TRAILER-014": 2 } },
+    { "key": "fraser", "name": "Tom Okafor", "company": "Fraser Valley Fencing", "email": null, "phone": "604-555-0163", "crew": 2, "device": "android-b", "assets": { "TRAILER-014": 3, "EXCAVATOR-3015": 1 } },
+    { "key": "ridgeline", "name": "Sam Delgado", "company": "Ridgeline Plumbing", "email": "sam@ridgeline-plumbing.example", "phone": "778-555-0190", "crew": 2, "device": "iphone-b", "assets": { "EXCAVATOR-017": 3 } },
+    { "key": "northshore", "name": "Kim Laurent", "company": "North Shore Pools", "email": "kim@northshore-pools.example", "phone": "604-555-0171", "crew": 3, "device": "iphone-a", "assets": { "EXCAVATOR-3015": 3, "EXCAVATOR-017": 1 } },
+    { "key": "birchwood", "name": "Devon Reyes", "company": "Birchwood Builders", "email": "devon@birchwood-builders.example", "phone": "604-555-0151", "crew": 2, "device": "android-a", "assets": { "EXCAVATOR-017": 2, "TRAILER-2041": 2 } },
+    { "key": "summit", "name": "Owen Price", "company": "Summit Drainage", "email": "owen@summit-drainage.example", "phone": "604-555-0122", "crew": 2, "device": "iphone-b", "assets": { "EXCAVATOR-017": 2, "EXCAVATOR-3015": 2 } },
+    { "key": "hydroseed", "name": "Lena Fischer", "company": "Pacific Hydroseed", "email": "lena@pacific-hydroseed.example", "phone": null, "crew": 2, "device": "android-b", "assets": { "TRAILER-014": 2, "TRAILER-2041": 1 } },
+    { "key": "kowalski", "name": "Jenna Kowalski", "company": null, "email": "jenna.kowalski@mail.example", "phone": "604-555-0128", "crew": 1, "device": "iphone-a", "assets": { "TRAILER-014": 2, "EXCAVATOR-017": 1 } },
+    { "key": "mehta", "name": "Aaron Mehta", "company": null, "email": null, "phone": "604-555-0175", "crew": 1, "device": "android-a", "assets": { "TRAILER-014": 2 } },
+    { "key": "liu", "name": "Grace Liu", "company": null, "email": "grace.liu@mail.example", "phone": "778-555-0109", "crew": 1, "device": "iphone-b", "assets": { "TRAILER-2041": 2, "TRAILER-014": 1 } },
+    { "key": "sinclair", "name": "Rob Sinclair", "company": null, "email": null, "phone": "604-555-0136", "crew": 1, "device": "android-b", "assets": { "TRAILER-014": 2, "TRAILER-2041": 1 } },
+    { "key": "thompson", "name": "Maya Thompson", "company": null, "email": "maya.thompson@mail.example", "phone": "778-555-0184", "crew": 1, "device": "iphone-a", "assets": { "TRAILER-014": 2 } },
+    { "key": "novak", "name": "Chris Novak", "company": null, "email": "chris.novak@mail.example", "phone": "778-555-0158", "crew": 1, "device": "ipad", "assets": { "TRAILER-2041": 2, "EXCAVATOR-3015": 1 } }
+  ],
+  "assets": [
+    {
+      "asset_code": "EXCAVATOR-017",
+      "asset_id": "21111111-1111-4111-8111-111111111101",
+      "qr_link_id": "41111111-1111-4111-8111-111111111101",
+      "short_code": "demo-ex017",
+      "model": "Bobcat E20 (canopy)",
+      "category": "Compact Excavator",
+      "template_key": "mini_excavator_skid_steer",
+      "not_before": "2026-06-15T23:56:43.962Z",
+      "kind": "excavator",
+      "use_pattern": "Contractors and plumbers trenching: 1-3 day jobs on weekdays, an occasional week-long job, no Sunday starts.",
+      "completed_rentals": 24,
+      "same_day_rentals": 0,
+      "duration_days": { "1": 35, "2": 30, "3": 20, "5": 10, "7": 5 },
+      "start_weekday_weight": { "mon": 10, "tue": 10, "wed": 10, "thu": 9, "fri": 8, "sat": 3, "sun": 0 },
+      "rates": { "outbound": 0.72, "acknowledgement": 0.65, "staff_return": 0.88, "renter_return": 0.15 },
+      "meter": { "start_hours": 1412.6, "hours_per_rental_day": [4.0, 7.5] },
+      "photos": { "overall_photo": "e20-illustrative-photo", "attachment_photo": "e20-bucket-illustration" },
+      "photo_rates": {
+        "outbound": { "overall_photo": 0.85, "attachment_photo": 0.5 },
+        "staff_return": { "overall_photo": 0.8, "attachment_photo": 0.45 },
+        "renter_return": { "overall_photo": 0.5, "attachment_photo": 0.15 }
+      },
+      "accessories": {
+        "outbound": { "keys": "issued", "attachments": "not_issued", "manual": "not_issued" },
+        "return": { "keys": "returned", "attachments": "na", "manual": "na" }
+      },
+      "final": [
+        {
+          "key": "clean-previous",
+          "renter": "ridgeline",
+          "out": { "day": -6, "at": "07:41" },
+          "back": { "day": -4, "at": "16:22" },
+          "outbound": { "staff": "dana", "photos": ["overall_photo", "attachment_photo"] },
+          "acknowledgement": { "day": -6, "at": "08:12" },
+          "close": { "mode": "staff", "staff": "dana", "photos": ["overall_photo", "attachment_photo"] },
+          "story": "Current clean result: outbound and staff return both clean with photos, renter acknowledged at handoff."
+        },
+        {
+          "key": "active",
+          "renter": "harlow",
+          "out": { "day": -1, "at": "07:32" },
+          "outbound": { "staff": "dana", "photos": ["overall_photo", "attachment_photo"] },
+          "acknowledgement": { "day": -1, "at": "07:58" },
+          "story": "On rent at the anchor: a 3-day trenching job that started the day before. The presenter scans the tag and acknowledges live."
+        }
+      ]
+    },
+    {
+      "asset_code": "EXCAVATOR-3015",
+      "asset_id": "7f7753d2-37f9-4e74-bbb2-90f048523f21",
+      "qr_link_id": "07c8ca60-0102-48c6-ac96-a8cb4b27ca90",
+      "short_code": "ezzs9ueg",
+      "model": "Cat 301.5 (canopy)",
+      "category": "Mini Excavator",
+      "template_key": "mini_excavator_skid_steer",
+      "not_before": "2026-06-27T18:09:09.114Z",
+      "kind": "excavator",
+      "use_pattern": "Landscapers and pool builders: mostly 1-2 day jobs, some 3-4 day jobs, light Saturdays.",
+      "completed_rentals": 20,
+      "same_day_rentals": 0,
+      "duration_days": { "1": 40, "2": 30, "3": 15, "4": 10, "6": 5 },
+      "start_weekday_weight": { "mon": 10, "tue": 9, "wed": 10, "thu": 9, "fri": 7, "sat": 4, "sun": 0 },
+      "rates": { "outbound": 0.85, "acknowledgement": 0.6, "staff_return": 0.9, "renter_return": 0.25 },
+      "meter": { "start_hours": 868.4, "hours_per_rental_day": [3.5, 7.0] },
+      "photos": { "overall_photo": "cat-301-5-illustrative-photo", "attachment_photo": "cat-301-5-bucket-illustration" },
+      "photo_rates": {
+        "outbound": { "overall_photo": 0.9, "attachment_photo": 0.55 },
+        "staff_return": { "overall_photo": 0.85, "attachment_photo": 0.5 },
+        "renter_return": { "overall_photo": 0.6, "attachment_photo": 0.2 }
+      },
+      "accessories": {
+        "outbound": { "keys": "issued", "attachments": "not_issued", "manual": "not_issued" },
+        "return": { "keys": "returned", "attachments": "na", "manual": "na" }
+      },
+      "final": [
+        {
+          "key": "connected-clean",
+          "renter": "northshore",
+          "out": { "day": -12, "at": "07:46" },
+          "back": { "day": -10, "at": "16:31" },
+          "outbound": { "staff": "dana", "photos": ["overall_photo", "attachment_photo"] },
+          "acknowledgement": { "day": -12, "at": "08:19" },
+          "renter_return": { "day": -10, "at": "16:04", "photos": ["overall_photo"] },
+          "close": { "mode": "staff", "staff": "luis", "photos": ["overall_photo", "attachment_photo"] },
+          "story": "Current clean result with all three sources: outbound baseline, the renter's own return checklist with a photo, and the staff return."
+        },
+        {
+          "key": "leak",
+          "renter": "summit",
+          "out": { "day": -5, "at": "07:39" },
+          "back": { "day": -2, "at": "16:42" },
+          "outbound": { "staff": "dana", "photos": ["overall_photo", "attachment_photo"] },
+          "acknowledgement": { "day": -5, "at": "08:06" },
+          "close": {
+            "mode": "staff",
+            "staff": "luis",
+            "photos": ["overall_photo"],
+            "damage_photos": ["cat-301-5-weeping-fitting-illustration"],
+            "answers": {
+              "hydraulics_leaks": "fail",
+              "damage_observed": "yes",
+              "damage_location": "Boom cylinder hose fitting",
+              "damage_severity": "moderate",
+              "damage_description": "Fitting at the boom cylinder is weeping. Still wet 10 minutes after wiping it clean. Needs the shop before it goes out again."
+            },
+            "status": "new"
+          },
+          "story": "The consequential issue: the renter reported an oil drip mid-rental, and the staff return confirmed a weeping fitting. Both stay open at the anchor."
+        }
+      ]
+    },
+    {
+      "asset_code": "TRAILER-014",
+      "asset_id": "21111111-1111-4111-8111-111111111102",
+      "qr_link_id": "41111111-1111-4111-8111-111111111102",
+      "short_code": "demo-tr014",
+      "model": "Big Tex Trailers 35SA-12",
+      "category": "Utility Trailer",
+      "template_key": "utility_trailer",
+      "not_before": "2026-06-15T23:56:43.962Z",
+      "kind": "trailer",
+      "use_pattern": "Homeowners moving and hauling, small contractors: many same-day rentals, busiest Friday and Saturday.",
+      "completed_rentals": 30,
+      "same_day_rentals": 14,
+      "duration_days": { "1": 45, "2": 35, "3": 20 },
+      "start_weekday_weight": { "mon": 6, "tue": 6, "wed": 6, "thu": 7, "fri": 10, "sat": 13, "sun": 5 },
+      "rates": { "outbound": 0.6, "acknowledgement": 0.55, "staff_return": 0.85, "renter_return": 0.15 },
+      "meter": null,
+      "photos": { "front_hitch_photo": "35sa-hitch-illustration", "deck_photo": "35sa-deck-illustration" },
+      "photo_rates": {
+        "outbound": { "front_hitch_photo": 0.7, "deck_photo": 0.7 },
+        "staff_return": { "front_hitch_photo": 0.75, "deck_photo": 0.75 },
+        "renter_return": { "front_hitch_photo": 0.35, "deck_photo": 0.4 }
+      },
+      "accessories": {
+        "outbound": { "straps": "issued", "chains": "not_issued", "pins": "issued", "spare": "issued" },
+        "return": { "straps": "returned", "chains": "na", "pins": "returned", "spare": "returned" }
+      },
+      "final": [
+        {
+          "key": "clean-previous",
+          "renter": "fraser",
+          "out": { "day": -4, "at": "08:14" },
+          "back": { "day": -3, "at": "16:09" },
+          "outbound": { "staff": "dana", "photos": ["front_hitch_photo", "deck_photo"] },
+          "acknowledgement": { "day": -4, "at": "08:31" },
+          "close": { "mode": "staff", "staff": "luis", "photos": ["front_hitch_photo", "deck_photo"] },
+          "story": "Current clean result: every accessory issued and returned, lights, coupler and gate checked."
+        },
+        {
+          "key": "pins-missing",
+          "renter": "sinclair",
+          "out": { "day": -1, "at": "08:06" },
+          "back": { "day": -1, "at": "17:04" },
+          "outbound": { "staff": "dana", "photos": ["front_hitch_photo", "deck_photo"] },
+          "close": {
+            "mode": "staff",
+            "staff": "dana",
+            "photos": ["deck_photo"],
+            "answers": { "accessories": { "pins": "missing" } },
+            "status": "new"
+          },
+          "story": "Current actionable item: a same-day rental came back without its safety-chain pins."
+        }
+      ]
+    },
+    {
+      "asset_code": "TRAILER-2041",
+      "asset_id": "3313ed1c-f738-4817-b4fa-6f2163dc2e14",
+      "qr_link_id": "97c20650-4c09-4828-ac02-3cd6b4d083cb",
+      "short_code": "67uqc3q7",
+      "model": "Big Tex Trailers 14LP-14 (dump)",
+      "category": "Dump Trailer",
+      "template_key": "utility_trailer",
+      "not_before": "2026-06-23T18:46:31.354Z",
+      "kind": "trailer",
+      "use_pattern": "Landscapers, cleanouts and weekend yard projects: 1-4 day rentals, weekend-heavy.",
+      "completed_rentals": 16,
+      "same_day_rentals": 0,
+      "duration_days": { "1": 30, "2": 35, "3": 20, "4": 15 },
+      "start_weekday_weight": { "mon": 7, "tue": 6, "wed": 6, "thu": 8, "fri": 11, "sat": 12, "sun": 3 },
+      "rates": { "outbound": 0.65, "acknowledgement": 0.6, "staff_return": 0.75, "renter_return": 0.25 },
+      "meter": null,
+      "photos": { "front_hitch_photo": "14lp-hitch-illustration", "deck_photo": "14lp-body-illustration" },
+      "photo_rates": {
+        "outbound": { "front_hitch_photo": 0.7, "deck_photo": 0.7 },
+        "staff_return": { "front_hitch_photo": 0.7, "deck_photo": 0.75 },
+        "renter_return": { "front_hitch_photo": 0.3, "deck_photo": 0.45 }
+      },
+      "accessories": {
+        "outbound": { "straps": "issued", "chains": "not_issued", "pins": "issued", "spare": "issued" },
+        "return": { "straps": "returned", "chains": "na", "pins": "returned", "spare": "returned" }
+      },
+      "final": [
+        {
+          "key": "clean-previous",
+          "renter": "coastline",
+          "out": { "day": -7, "at": "07:52" },
+          "back": { "day": -5, "at": "16:33" },
+          "outbound": { "staff": "dana", "photos": ["front_hitch_photo", "deck_photo"] },
+          "acknowledgement": { "day": -7, "at": "08:15" },
+          "close": { "mode": "staff", "staff": "dana", "photos": ["front_hitch_photo", "deck_photo"] },
+          "story": "Current clean result: a clean outbound and staff return with photos."
+        },
+        {
+          "key": "active",
+          "renter": "liu",
+          "out": { "day": -2, "at": "08:01" },
+          "outbound": { "staff": "luis", "photos": ["front_hitch_photo", "deck_photo"] },
+          "acknowledgement": { "day": -2, "at": "08:22" },
+          "story": "On rent at the anchor: a weekend yard cleanup, with a support request from the day before still new."
+        }
+      ]
+    }
+  ],
+  "incidents": [
+    {
+      "key": "017-current-support",
+      "asset": "EXCAVATOR-017",
+      "session": "active",
+      "form": "support_request",
+      "at": { "day": -1, "at": "10:21" },
+      "triage": { "issue_type": "operating_question", "response_need": "routine", "preferred_contact_method": "text" },
+      "description": "Second operator on the crew wants to go over the start-up steps again. Is there a copy we can look at on a phone?",
+      "status": "reviewed",
+      "story": "Useful support on the active rental: the answer is the Start-Up Guide linked on the scan page."
+    },
+    {
+      "key": "017-slew-lock",
+      "asset": "EXCAVATOR-017",
+      "session": { "near_day": -60 },
+      "form": "support_request",
+      "triage": { "issue_type": "operating_question", "response_need": "routine", "preferred_contact_method": "text" },
+      "renter": "birchwood",
+      "description": "Moving it to the next site on our own trailer. Where is the slew lock?",
+      "status": "resolved"
+    },
+    {
+      "key": "017-track-off",
+      "asset": "EXCAVATOR-017",
+      "session": { "near_day": -38 },
+      "form": "support_request",
+      "triage": { "issue_type": "stuck_recovery", "response_need": "immediate", "preferred_contact_method": "phone" },
+      "renter": "summit",
+      "description": "Left track came off on soft ground at the back of the lot. Machine is parked and shut down.",
+      "status": "resolved"
+    },
+    {
+      "key": "017-blade-dent",
+      "asset": "EXCAVATOR-017",
+      "session": { "near_day": -75 },
+      "form": "damage_report",
+      "triage": { "equipment_state": "operating", "response_need": "routine", "damage_severity": "minor" },
+      "renter": "ridgeline",
+      "description": "Dented the corner of the blade on a concrete curb. Still works fine.",
+      "status": "resolved"
+    },
+    {
+      "key": "017-arm-paint",
+      "asset": "EXCAVATOR-017",
+      "session": { "near_day": -22 },
+      "form": "damage_report",
+      "triage": { "equipment_state": "operating", "response_need": "routine", "damage_severity": "minor" },
+      "renter": "harlow",
+      "description": "Scratched the paint on the arm digging next to a foundation wall.",
+      "status": "archived"
+    },
+    {
+      "key": "3015-worn-tooth",
+      "asset": "EXCAVATOR-3015",
+      "session": { "near_day": -34 },
+      "form": "damage_report",
+      "triage": { "equipment_state": "operating", "response_need": "routine", "damage_severity": "minor" },
+      "renter": "northshore",
+      "description": "One bucket tooth is worn down a lot shorter than the others.",
+      "photos": ["cat-301-5-worn-tooth-illustration"],
+      "status": "resolved",
+      "story": "The minor issue: a worn tooth reported with a photo and resolved."
+    },
+    {
+      "key": "3015-counterweight-paint",
+      "asset": "EXCAVATOR-3015",
+      "session": { "near_day": -66 },
+      "form": "damage_report",
+      "triage": { "equipment_state": "operating", "response_need": "routine", "damage_severity": "minor" },
+      "renter": "coastline",
+      "description": "Scuffed the paint on the counterweight against a fence post.",
+      "status": "archived"
+    },
+    {
+      "key": "3015-controls-walkthrough",
+      "asset": "EXCAVATOR-3015",
+      "session": { "near_day": -50 },
+      "form": "support_request",
+      "triage": { "issue_type": "operating_question", "response_need": "prompt", "preferred_contact_method": "phone" },
+      "renter": "summit",
+      "description": "A crew member missed the handover walkthrough. Can someone go over the controls with him by phone?",
+      "status": "resolved"
+    },
+    {
+      "key": "3015-oil-drip",
+      "asset": "EXCAVATOR-3015",
+      "session": "leak",
+      "form": "damage_report",
+      "at": { "day": -3, "at": "15:12" },
+      "triage": { "equipment_state": "operating_with_limitations", "response_need": "prompt", "damage_severity": "not_sure" },
+      "description": "Oil dripping under the boom after a full day of digging. It still runs. Should we keep using it?",
+      "status": "reviewed",
+      "story": "The consequential issue, as the renter first reported it (a valid report without a photo)."
+    },
+    {
+      "key": "014-tail-lamp",
+      "asset": "TRAILER-014",
+      "session": { "near_day": -47 },
+      "form": "staff_return_flag",
+      "staff_photos": ["front_hitch_photo", "deck_photo"],
+      "damage_photos": ["35sa-tail-lamp-illustration"],
+      "answers": {
+        "damage_observed": "yes",
+        "damage_location": "Left tail lamp",
+        "damage_severity": "minor",
+        "damage_description": "Lens cracked. The lamp still works."
+      },
+      "status": "resolved"
+    },
+    {
+      "key": "014-straps-missing",
+      "asset": "TRAILER-014",
+      "session": { "near_day": -29 },
+      "form": "staff_return_flag",
+      "answers": { "accessories": { "straps": "missing" } },
+      "status": "resolved",
+      "story": "The resolved missing-item example: straps missing at return, brought back by the renter."
+    },
+    {
+      "key": "014-gate-latch",
+      "asset": "TRAILER-014",
+      "session": { "near_day": -70 },
+      "form": "damage_report",
+      "triage": { "equipment_state": "operating", "response_need": "routine", "damage_severity": "minor" },
+      "renter": "fraser",
+      "description": "The ramp gate latch is bent and the gate rattles when towing.",
+      "status": "resolved"
+    },
+    {
+      "key": "014-fender-late",
+      "asset": "TRAILER-014",
+      "session": { "near_day": -15 },
+      "form": "damage_report",
+      "late": true,
+      "triage": { "equipment_state": "operating", "response_need": "routine", "damage_severity": "minor" },
+      "renter": "mehta",
+      "description": "Forgot to mention at drop-off: I backed into a post and dented the left fender.",
+      "status": "resolved",
+      "story": "A late report, filed the morning after the return."
+    },
+    {
+      "key": "014-low-tire",
+      "asset": "TRAILER-014",
+      "session": { "near_day": -88 },
+      "form": "damage_report",
+      "triage": { "equipment_state": "operating", "response_need": "routine", "damage_severity": "not_sure" },
+      "renter": "kowalski",
+      "description": "The right tire looked a bit low when I picked it up.",
+      "status": "archived"
+    },
+    {
+      "key": "014-deck-board",
+      "asset": "TRAILER-014",
+      "session": { "near_day": -55 },
+      "form": "damage_report",
+      "triage": { "equipment_state": "operating", "response_need": "routine", "damage_severity": "minor" },
+      "renter": "thompson",
+      "description": "A deck board near the gate is cracked.",
+      "status": "resolved"
+    },
+    {
+      "key": "014-lights-plug",
+      "asset": "TRAILER-014",
+      "session": { "near_day": -80 },
+      "form": "support_request",
+      "triage": { "issue_type": "operating_question", "response_need": "prompt", "preferred_contact_method": "phone" },
+      "renter": "sinclair",
+      "description": "Trailer lights don't come on with my truck.",
+      "status": "resolved"
+    },
+    {
+      "key": "014-coupler-latch",
+      "asset": "TRAILER-014",
+      "session": { "near_day": -40 },
+      "form": "support_request",
+      "triage": { "issue_type": "operating_question", "response_need": "prompt", "preferred_contact_method": "phone" },
+      "renter": "kowalski",
+      "description": "The coupler won't latch onto my hitch ball.",
+      "status": "resolved"
+    },
+    {
+      "key": "2041-current-hoist",
+      "asset": "TRAILER-2041",
+      "session": "active",
+      "form": "support_request",
+      "at": { "day": -1, "at": "13:11" },
+      "triage": { "issue_type": "breakdown_no_start", "response_need": "prompt", "preferred_contact_method": "phone" },
+      "description": "Hoist stops partway up with a full load of wet soil. I shovelled some out like the page says and it lifts now, but slowly. Is the battery low?",
+      "status": "new",
+      "story": "The current follow-up: a troubleshooting request on the active rental, after the renter followed the page's own step."
+    },
+    {
+      "key": "2041-breakaway",
+      "asset": "TRAILER-2041",
+      "session": { "near_day": -45 },
+      "form": "support_request",
+      "triage": { "issue_type": "other", "response_need": "prompt", "preferred_contact_method": "phone" },
+      "renter": "birchwood",
+      "description": "Did the breakaway test before leaving and the brakes didn't lock when I pulled the pin. Not towing until someone checks.",
+      "status": "resolved"
+    },
+    {
+      "key": "2041-fender-late",
+      "asset": "TRAILER-2041",
+      "session": { "near_day": -63 },
+      "form": "damage_report",
+      "late": true,
+      "triage": { "equipment_state": "operating", "response_need": "routine", "damage_severity": "minor" },
+      "renter": "novak",
+      "description": "Noticed the day after drop-off that I scraped the right fender on a gatepost.",
+      "status": "resolved"
+    },
+    {
+      "key": "2041-door-hook",
+      "asset": "TRAILER-2041",
+      "session": { "near_day": -30 },
+      "form": "damage_report",
+      "triage": { "equipment_state": "operating", "response_need": "routine", "damage_severity": "minor" },
+      "renter": "hydroseed",
+      "description": "One of the rear door chain hooks is bent.",
+      "status": "resolved"
+    },
+    {
+      "key": "2041-tail-light-out",
+      "asset": "TRAILER-2041",
+      "session": { "near_day": -84 },
+      "form": "damage_report",
+      "triage": { "equipment_state": "operating", "response_need": "routine", "damage_severity": "minor" },
+      "renter": "coastline",
+      "description": "Left tail light was out when I picked it up.",
+      "status": "resolved"
+    }
+  ],
+  "closing_mix": {
+    "renter_return_then_admin_mark_share": 0.6,
+    "admin_mark_delay_minutes": [35, 180],
+    "after_hours_dropoff_share": 0.4,
+    "renter_return_before_staff_minutes": [6, 40]
+  },
+  "scans": {
+    "target_total": 700,
+    "tolerance": 30,
+    "staff_scan_before_action_minutes": [2, 7],
+    "renter_scan_before_action_minutes": [1, 6],
+    "first_day_scans": { "excavator": { "1": 35, "2": 35, "3": 22, "4": 8 }, "trailer": { "0": 15, "1": 60, "2": 25 } },
+    "later_day_scans": { "excavator": { "0": 35, "1": 45, "2": 20 }, "trailer": { "0": 60, "1": 35, "2": 5 } },
+    "idle_hours": ["07:30", "17:30"],
+    "idle_weekday_weight": { "mon": 10, "tue": 10, "wed": 10, "thu": 10, "fri": 10, "sat": 6, "sun": 2 }
+  },
+  "text": {
+    "deck_notes_staff": ["Swept clean.", "Some mud on the deck; hosed off.", "Clean."],
+    "deck_notes_renter": ["Swept it out.", "Left it clean.", "A little dirt left on the deck, sorry."],
+    "deck_notes_rate": { "staff_return": 0.25, "renter_return": 0.5 }
+  }
+}

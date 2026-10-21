@@ -20,6 +20,16 @@
  *              inconsistency, a new duplicate staff return / outbound per session, a published template edit;
  *   watermark  an inserted or changed return checklist dated after the digest watermark — it would be summarized as a
  *              new return in the next daily email (seed-notification suppression, docs/phase-e/DEMO_RECOVERY_RUNBOOK.md).
+ *
+ * DATASET MANIFESTS (Engineering Phase E2B: kinds showcase, presenter, refresh) also carry `owned` — the ids of the
+ * synthetic showcase dataset (docs/phase-e/showcase/dataset.json) — and may carry `owned_history` (ids of an earlier
+ * dataset version), `remove` (exact ids of other rows to delete; nothing else is ever deleted), `allow_insert` /
+ * `allow_update` (the exact other rows, and for updates the columns, the overlay may write), `append` (the dataset's own
+ * scan rows: scans stay append-only for every row the dataset does not own) and `dataset` (its version and anchor).
+ * They are refused on top of the rules above when a change falls outside those bounds (delete-allowlist, insert-bound,
+ * update-bound), a dataset row is in the removal list, a dataset timestamp is in the future or its anchor's 6 AM
+ * digest run may still be running (future, anchor), two rentals of one asset overlap (overlap), or a dataset row would
+ * share its RNT- / SUB- display reference with another row (reference).
  */
 import { createHash } from "node:crypto";
 
@@ -28,7 +38,13 @@ import { integrityChecks, scopeWhere } from "./tenant-graph.mjs";
 
 export const RESET_MANIFEST_SCHEMA = "mulemark.phase-e.reset-manifest/v1";
 export const RESET_PLAN_SCHEMA = "mulemark.phase-e.reset-plan/v1";
-export const MANIFEST_KINDS = Object.freeze(["noop", "draft-e2c", "restore", "fixture"]);
+export const MANIFEST_KINDS = Object.freeze(["noop", "draft-e2c", "restore", "fixture", "showcase", "presenter", "refresh"]);
+/** Kinds that carry the synthetic showcase dataset: their rows are `owned` and every change is bounded (E2B). */
+export const OWNED_KINDS = Object.freeze(["showcase", "presenter", "refresh"]);
+/** Kinds composed from the locked live rows inside the apply transaction, so organic rows arriving meanwhile are kept. */
+export const IN_LOCK_KINDS = Object.freeze(["presenter", "refresh"]);
+/** Optional manifest fields a dataset manifest may carry (buildManifest copies only these). */
+const MANIFEST_EXTRAS = Object.freeze(["owned", "owned_history", "remove", "allow_insert", "allow_update", "append", "dataset", "storage", "e2a", "notes"]);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -85,6 +101,24 @@ export const PROTECTED_ASSET_COLUMNS = Object.freeze(["organization_id", "asset_
 /** Submission columns the insert trigger (M0028) rewrites for a non-user caller; inserted unbound, then set exactly. */
 const SUBMISSION_FIXUP_COLUMNS = Object.freeze(["form_type", "submission_origin", "submitted_by_profile_id", "rental_session_id"]);
 const UNBOUND_SUBMISSION = Object.freeze({ form_type: "damage_report", submission_origin: "public", submitted_by_profile_id: null, rental_session_id: null });
+
+/**
+ * The desired rows of an append-only table: every live row, minus the exact ids the manifest removes and the dataset
+ * rows (this version's or an earlier one's) it no longer carries, plus the dataset's own appended rows. Without `append`
+ * and `remove` this is the live table itself (every row KEEP), as before E2B.
+ */
+function appendOnlyDesired(table, manifest, liveMap) {
+  const map = new Map(liveMap);
+  const appended = manifest?.append?.[table] ?? [];
+  const carried = new Set(appended.map((r) => r?.id));
+  for (const id of manifest?.remove?.[table] ?? []) map.delete(id);
+  for (const id of [...(manifest?.owned?.[table] ?? []), ...(manifest?.owned_history?.[table] ?? [])]) if (!carried.has(id)) map.delete(id);
+  for (const row of appended) map.set(row.id, row);
+  return map;
+}
+
+const idSet = (lists, table) => new Set(lists?.[table] ?? []);
+const yearOf = (value) => String(new Date(value).getUTCFullYear()).padStart(4, "0");
 
 /** Columns the database re-stamps on every UPDATE (set_updated_at); never compared, never written by an update. */
 export function managedColumns(graph) {
@@ -241,9 +275,11 @@ export function restoreDesired({ snapshot, archiveRows, cutoverInsertIds = {} })
   return desired;
 }
 
-export function buildManifest({ name, kind, target, organizationId, snapshot, graph, protectedSet, desired, now = new Date() }) {
+export function buildManifest({ name, kind, target, organizationId, snapshot, graph, protectedSet, desired, extra = {}, now = new Date() }) {
   if (!MANIFEST_KINDS.includes(kind)) throw new Error(`unknown manifest kind ${kind}`);
+  if (OWNED_KINDS.includes(kind) !== Boolean(extra.owned)) throw new Error(`a ${kind} manifest ${OWNED_KINDS.includes(kind) ? "needs" : "never carries"} owned dataset ids`);
   return {
+    ...Object.fromEntries(MANIFEST_EXTRAS.filter((k) => extra[k] !== undefined).map((k) => [k, extra[k]])),
     schema: RESET_MANIFEST_SCHEMA,
     name,
     kind,
@@ -324,6 +360,7 @@ export function planReset({ manifest, live, graph, now = new Date() }) {
   if (manifest?.schema !== RESET_MANIFEST_SCHEMA) refuse("manifest", "not a Phase E reset manifest");
   if (!UUID_RE.test(String(org))) refuse("manifest", "organization_id must be one exact organization id (no wildcard)");
   if (manifest?.graph_sha256 !== graph.graph_sha256) refuse("manifest", "the manifest was built against a different schema graph");
+  if (OWNED_KINDS.includes(manifest?.kind) !== Boolean(manifest?.owned)) refuse("manifest", "dataset rows (owned) belong to showcase, presenter and refresh manifests only");
   if (refusals.length > 0) return { ...base, ok: false, refusals, counts: {}, changes: {} };
 
   const { classes } = graph;
@@ -341,28 +378,38 @@ export function planReset({ manifest, live, graph, now = new Date() }) {
   for (const table of order) {
     counts[table] = { KEEP: 0, UPDATE: 0, INSERT: 0, DELETE: 0 };
     changes[table] = { insert: [], update: [], delete: [] };
-    if (APPEND_ONLY_TABLES[table]) {
-      if (manifest.desired?.[table] !== undefined) refuse("append-only", `${table} is append-only; a manifest never lists its rows`);
-      desiredById[table] = liveById[table];
-      counts[table].KEEP = liveById[table].size;
-      continue;
-    }
-    const rows = manifest.desired?.[table];
-    if (!Array.isArray(rows)) {
-      refuse("manifest", `the manifest has no desired rows for ${table} (an empty list means none)`);
-      desiredById[table] = liveById[table];
-      continue;
-    }
     const columns = (graph.tables[table].columns ?? []).map((c) => c.name);
-    const map = new Map();
-    for (const row of rows) {
+    const checkRow = (row, map) => {
       if (!UUID_RE.test(String(row?.id))) {
         refuse("manifest", `${table} has a desired row without an exact uuid id`);
-        continue;
+        return false;
       }
       if (map.has(row.id)) refuse("manifest", `${table} lists ${row.id} twice`);
       if (Object.keys(row).length !== columns.length || columns.some((c) => !(c in row))) refuse("columns", `${table} row ${row.id} does not carry exactly the table's columns`);
-      map.set(row.id, row);
+      return true;
+    };
+    let map;
+    if (APPEND_ONLY_TABLES[table]) {
+      if (manifest.desired?.[table] !== undefined) refuse("append-only", `${table} is append-only; a manifest never lists its rows`);
+      const appended = manifest.append?.[table];
+      const writes = (appended?.length ?? 0) + (manifest.remove?.[table]?.length ?? 0) + (manifest.owned_history?.[table]?.length ?? 0);
+      if (writes > 0 && table !== "scan_events") refuse("append-only", `${table} is never written by a reset (no appended or removed rows)`);
+      if (appended !== undefined && !manifest.owned) refuse("manifest", `appended ${table} rows need a dataset manifest (owned ids)`);
+      const seen = new Map();
+      for (const row of appended ?? []) if (checkRow(row, seen)) seen.set(row.id, row);
+      if (manifest.owned && [...seen.keys()].sort().join(",") !== [...idSet(manifest.owned, table)].sort().join(",")) {
+        refuse("manifest", `the appended ${table} rows are not exactly the dataset's owned ${table} ids`);
+      }
+      map = appendOnlyDesired(table, manifest, liveById[table]);
+    } else {
+      const rows = manifest.desired?.[table];
+      if (!Array.isArray(rows)) {
+        refuse("manifest", `the manifest has no desired rows for ${table} (an empty list means none)`);
+        desiredById[table] = liveById[table];
+        continue;
+      }
+      map = new Map();
+      for (const row of rows) if (checkRow(row, map)) map.set(row.id, row);
     }
     desiredById[table] = map;
     for (const row of map.values()) {
@@ -408,7 +455,13 @@ export function planReset({ manifest, live, graph, now = new Date() }) {
       refuse("manifest", `the manifest records no expected rows for ${table}`);
       continue;
     }
-    const gone = Object.keys(expected).filter((id) => !liveById[table].has(id) && (APPEND_ONLY_TABLES[table] || desiredById[table].has(id)));
+    // Append-only rows the manifest itself removes (exact removals, earlier dataset versions, dataset rows it no longer
+    // carries) may be gone — that is the applied state, so a re-plan after the apply still converges.
+    const carried = new Set((manifest.append?.[table] ?? []).map((r) => r?.id));
+    const intended = APPEND_ONLY_TABLES[table]
+      ? new Set([...idSet(manifest.remove, table), ...idSet(manifest.owned_history, table), ...[...idSet(manifest.owned, table)].filter((id) => !carried.has(id))])
+      : null;
+    const gone = Object.keys(expected).filter((id) => !liveById[table].has(id) && (APPEND_ONLY_TABLES[table] ? !intended.has(id) : desiredById[table].has(id)));
     if (gone.length) refuse("drift-missing", `${table}: ${gone.length} row(s) the manifest relies on are gone (${sample(gone)})`);
     if (APPEND_ONLY_TABLES[table]) continue;
     const unexpected = [];
@@ -452,6 +505,70 @@ export function planReset({ manifest, live, graph, now = new Date() }) {
   }
   for (const u of changes.inspection_templates?.update ?? []) {
     if (liveById.inspection_templates.get(u.id)?.status !== "draft") refuse("integrity", `inspection template ${u.id} is published or retired (immutable; insert a new version instead)`);
+  }
+
+  // 3b. Dataset manifests (E2B): every change stays inside the dataset, the exact removals and the allowed overlay;
+  // dataset dates are in the past; one rental at a time per asset; display references stay unique.
+  if (manifest.owned) {
+    for (const table of order) {
+      const owned = idSet(manifest.owned, table);
+      const history = idSet(manifest.owned_history, table);
+      const removal = idSet(manifest.remove, table);
+      const ch = changes[table];
+      const strayDeletes = ch.delete.filter((id) => !owned.has(id) && !history.has(id) && !removal.has(id));
+      if (strayDeletes.length) refuse("delete-allowlist", `${table}: ${strayDeletes.length} deletion(s) are neither dataset rows nor named in the exact removal list (${sample(strayDeletes)})`);
+      const allowInsert = idSet(manifest.allow_insert, table);
+      const strayInserts = ch.insert.filter((id) => !owned.has(id) && !allowInsert.has(id));
+      if (strayInserts.length) refuse("insert-bound", `${table}: ${strayInserts.length} insert(s) are neither dataset rows nor allowed overlay rows (${sample(strayInserts)})`);
+      const allowUpdate = manifest.allow_update?.[table] ?? {};
+      const strayUpdates = ch.update.filter((u) => !owned.has(u.id) && !u.columns.every((c) => (allowUpdate[u.id] ?? []).includes(c)));
+      if (strayUpdates.length) refuse("update-bound", `${table}: ${strayUpdates.length} update(s) outside the dataset and the allowed overlay (${sample(strayUpdates.map((u) => `${u.id} ${u.columns.join("/")}`))})`);
+      const ownedRemoved = [...removal].filter((id) => owned.has(id));
+      if (ownedRemoved.length) refuse("manifest", `${table}: dataset rows are never in the removal list (${sample(ownedRemoved)})`);
+      const stamps = (graph.tables[table].columns ?? []).filter((c) => c.type === "timestamp with time zone").map((c) => c.name);
+      const future = [];
+      for (const id of owned) {
+        const row = desiredById[table].get(id);
+        if (!row) continue;
+        for (const c of stamps) if (row[c] !== null && row[c] !== undefined && !(Date.parse(row[c]) <= now.getTime())) future.push(`${id} ${c}`);
+      }
+      if (future.length) refuse("future", `${table}: ${future.length} dataset timestamp(s) are later than now (${sample(future)})`);
+    }
+    const anchor = Date.parse(manifest.dataset?.anchor_utc ?? "");
+    if (!Number.isFinite(anchor)) refuse("manifest", "a dataset manifest records its anchor (dataset.anchor_utc)");
+    else if (now.getTime() < anchor + HOUR_MS) refuse("anchor", `the dataset's anchor ${manifest.dataset.anchor_utc} is less than an hour ago: its 6 AM digest run may still be running`);
+    // One rental at a time on every asset that has dataset rentals (a closed session without returned_at is a point).
+    const ownedSessions = idSet(manifest.owned, "asset_rental_sessions");
+    const datasetAssets = new Set([...ownedSessions].map((id) => desiredById.asset_rental_sessions.get(id)?.asset_id).filter(Boolean));
+    for (const assetId of datasetAssets) {
+      const list = [...desiredById.asset_rental_sessions.values()].filter((s) => s.asset_id === assetId).sort((a, b) => Date.parse(a.started_at) - Date.parse(b.started_at));
+      for (let i = 1; i < list.length; i++) {
+        const prev = list[i - 1];
+        const end = prev.status === "active" ? Infinity : Date.parse(prev.returned_at ?? prev.started_at);
+        if (Date.parse(list[i].started_at) < end) refuse("overlap", `asset ${assetId}: rentals ${prev.id} and ${list[i].id} overlap`);
+      }
+    }
+    // A kept return checklist that is not the dataset's, on a dataset rental the reset leaves (or makes) active, records a
+    // return the authored state contradicts — a live demo staff or renter return on the synthetic active rental. Name it.
+    const ownedSubmissions = idSet(manifest.owned, "form_submissions");
+    for (const row of desiredById.form_submissions.values()) {
+      if (ownedSubmissions.has(row.id) || row.form_type !== "return_checklist" || !row.rental_session_id) continue;
+      const session = desiredById.asset_rental_sessions.get(row.rental_session_id);
+      if (session && ownedSessions.has(session.id) && session.status === "active") {
+        refuse("conflict", `return checklist ${row.id} records a return on dataset rental ${session.id}, which stays active: name it in --remove to reset`);
+      }
+    }
+    // RNT-YYYY-XXXXXX / SUB-YYYY-XXXXXX are derived from the id and the start/creation year: a dataset row's must be unique.
+    for (const [table, column] of [["asset_rental_sessions", "started_at"], ["form_submissions", "created_at"]]) {
+      const owned = idSet(manifest.owned, table);
+      const byRef = new Map();
+      for (const row of desiredById[table].values()) {
+        const ref = `${yearOf(row[column])}-${String(row.id).slice(0, 6)}`;
+        byRef.set(ref, [...(byRef.get(ref) ?? []), row.id]);
+      }
+      const clashes = [...byRef.entries()].filter(([, ids]) => ids.length > 1 && ids.some((id) => owned.has(id))).map(([ref]) => ref);
+      if (clashes.length) refuse("reference", `${table}: dataset rows share a display reference with another row (${sample(clashes)})`);
+    }
   }
 
   // 4. Every reference in the desired state resolves inside the organization (or to a shared identity).
@@ -594,7 +711,7 @@ export function emitResetSql({ plan, manifest, live, graph }) {
   const managed = managedColumns(graph);
   const liveById = Object.fromEntries(order.map((t) => [t, new Map((live.tables[t] ?? []).map((r) => [r.id, r]))]));
   const desiredById = Object.fromEntries(
-    order.map((t) => [t, APPEND_ONLY_TABLES[t] ? liveById[t] : new Map((manifest.desired[t] ?? []).map((r) => [r.id, r]))])
+    order.map((t) => [t, APPEND_ONLY_TABLES[t] ? appendOnlyDesired(t, manifest, liveById[t]) : new Map((manifest.desired[t] ?? []).map((r) => [r.id, r]))])
   );
   let block = 0;
   const doBlock = (body) => {

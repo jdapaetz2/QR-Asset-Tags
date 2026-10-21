@@ -23,3 +23,10 @@ export const PLATFORM_NAME = "Mulemark";
  */
 export const PUBLIC_DISCLAIMER =
   "Information is provided by the rental company. Always follow manufacturer instructions, rental agreement terms, and applicable safety requirements.";
+
+/**
+ * Organizations whose activity is synthetic demo history (Engineering Phase E2B): Northridge Rentals, the fictional
+ * showcase tenant. Platform reports label them so their scans and submissions are never read as customer adoption.
+ */
+export const DEMO_ORGANIZATION_IDS: readonly string[] = ["11111111-1111-4111-8111-111111111111"];
+export const DEMO_DATA_LABEL = "Demo data · synthetic history";

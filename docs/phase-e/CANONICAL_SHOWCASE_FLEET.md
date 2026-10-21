@@ -203,6 +203,28 @@ Further rules:
   - **Never delete `notification_digest_runs` rows.** That would move the watermark back.
 - If a cleaner path is preferred, the alternative is an additive, org-allowlisted `SECURITY DEFINER` loader function. That is a migration and needs separate approval.
 
+### As built in E2B (2026-10-20)
+
+[SHOWCASE_STORIES.md](SHOWCASE_STORIES.md) has the stories and exact records. `docs/phase-e/showcase/` holds the scenario, the dataset and the media.
+
+**Volumes:**
+- 90 completed rentals: 24 / 20 / 30 (14 same-day) / 16; 017 and 2041 are on rent at the anchor.
+- 64 outbound inspections, 55 acknowledgements, 77 staff returns, 18 renter returns.
+- 12 damage reports, 8 support requests and 700 scans; 3 items `new` and 2 `reviewed` at the anchor.
+- Every count is exact against its rate, and the builder refuses to emit a dataset that misses one by more than 1.
+
+**Durations:** per-model weights in `scenario.json`. Excavators run 1-7 days, with no Sunday starts. The 35SA is busiest Friday and Saturday. The 14LP runs 1-4 days.
+
+**Changes against the provisional design above:**
+- **Staff:** fictional names only, Dana Whitfield and Luis Ferreira (operator decision 2026-10-20). There is no demo staff profile, so profile columns stay empty. The app shows only the name fields.
+- **Media:** decided by the operator on 2026-10-20.
+  - The licensed E20 and Cat photos, tagged "Illustrative photo", are the routine excavator photos.
+  - Original drawings, tagged "Illustration", are the trailer photos and three key incidents.
+  - Every other incident is a report without photos, so 11 of the 12 damage reports have none.
+- **Insertion:** no per-asset loader. The reset planner writes everything in one guarded transaction. Submissions go in unbound and are corrected exactly ([runbook §5](DEMO_RECOVERY_RUNBOOK.md#5-reset-planner)).
+- **Acknowledgements:** names end in "(demo)", so they read as demo records.
+- **Live staff outbound:** still possible on 3015 and 014; the presenter reset removes it by exact id ([PRESENTER_RUNBOOK.md](PRESENTER_RUNBOOK.md)).
+
 ## 6. Data classes
 
 | Class | What it is | How it is identified | Retention | Claims |

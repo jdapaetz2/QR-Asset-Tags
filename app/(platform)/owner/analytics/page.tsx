@@ -1,23 +1,18 @@
 import Link from "next/link";
 
+import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/session";
 import { ROLES } from "@/lib/auth/roles";
+import { DEMO_DATA_LABEL } from "@/lib/constants";
+import { getOrgActivityCounts } from "@/lib/owner/org-activity";
 
 // Cross-org counts are live per request; never cache.
 export const dynamic = "force-dynamic";
 
 type OrgRow = { id: string; name: string };
 
-function tally(
-  rows: { organization_id: string }[] | null
-): Map<string, number> {
-  const map = new Map<string, number>();
-  for (const r of rows ?? []) {
-    map.set(r.organization_id, (map.get(r.organization_id) ?? 0) + 1);
-  }
-  return map;
-}
+const show = (n: number | null | undefined) => (n === null || n === undefined ? "—" : n.toLocaleString("en-CA"));
 
 export default async function OwnerAnalyticsPage() {
   // Platform admin only; clearly separate from the customer dashboard.
@@ -31,19 +26,8 @@ export default async function OwnerAnalyticsPage() {
     .order("name", { ascending: true });
   const orgs = (orgData ?? []) as OrgRow[];
 
-  const { data: assetData } = await supabase
-    .from("assets")
-    .select("organization_id");
-  const { data: scanData } = await supabase
-    .from("scan_events")
-    .select("organization_id");
-  const { data: subData } = await supabase
-    .from("form_submissions")
-    .select("organization_id");
-
-  const assetCounts = tally(assetData as { organization_id: string }[] | null);
-  const scanCounts = tally(scanData as { organization_id: string }[] | null);
-  const subCounts = tally(subData as { organization_id: string }[] | null);
+  // Exact counts per organization; demo organizations are flagged (synthetic history, not customer adoption).
+  const activity = await getOrgActivityCounts(supabase, orgs.map((o) => o.id));
 
   return (
     <div className="flex flex-col gap-6">
@@ -51,7 +35,7 @@ export default async function OwnerAnalyticsPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Analytics</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Organization-level activity summary.
+            Organization-level activity summary. Demo organizations hold synthetic history and are labelled.
           </p>
         </div>
         <Link
@@ -83,20 +67,24 @@ export default async function OwnerAnalyticsPage() {
                 </td>
               </tr>
             ) : (
-              orgs.map((org) => (
-                <tr key={org.id} className="border-b last:border-0">
-                  <td className="px-4 py-2 font-medium">{org.name}</td>
-                  <td className="px-4 py-2 tabular-nums text-muted-foreground">
-                    {assetCounts.get(org.id) ?? 0}
-                  </td>
-                  <td className="px-4 py-2 tabular-nums text-muted-foreground">
-                    {scanCounts.get(org.id) ?? 0}
-                  </td>
-                  <td className="px-4 py-2 tabular-nums text-muted-foreground">
-                    {subCounts.get(org.id) ?? 0}
-                  </td>
-                </tr>
-              ))
+              orgs.map((org) => {
+                const counts = activity.get(org.id);
+                return (
+                  <tr key={org.id} className="border-b last:border-0">
+                    <td className="px-4 py-2 font-medium">
+                      <span>{org.name}</span>
+                      {counts?.demo ? (
+                        <Badge tone="neutral" className="ml-2 align-middle" data-demo-org="">
+                          {DEMO_DATA_LABEL}
+                        </Badge>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-2 tabular-nums text-muted-foreground">{show(counts?.assets)}</td>
+                    <td className="px-4 py-2 tabular-nums text-muted-foreground">{show(counts?.scans)}</td>
+                    <td className="px-4 py-2 tabular-nums text-muted-foreground">{show(counts?.submissions)}</td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

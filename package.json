@@ -81,7 +81,14 @@
     "phase-e:packs:guides": "node scripts/phase-e/packs/guide-build.mjs",
     "phase-e:packs:import": "node scripts/phase-e/packs/import-manifests.mjs",
     "phase-e:packs:build": "node scripts/phase-e/packs/guide-build.mjs && node scripts/phase-e/packs/pack-review.mjs && node scripts/phase-e/packs/import-manifests.mjs",
-    "test:phase-e-local": "npm run db:reset && vitest run --config vitest.phase-e-local.config.ts"
+    "phase-e:showcase:media": "node scripts/phase-e/showcase/make-media.mjs",
+    "phase-e:showcase:build": "node scripts/phase-e/showcase/build.mjs",
+    "phase-e:showcase:bootstrap:local": "node scripts/phase-e/showcase-bootstrap.mjs --target=local",
+    "phase-e:showcase:bootstrap:staging": "node --env-file=.env.staging.local scripts/phase-e/showcase-bootstrap.mjs --target=staging",
+    "phase-e:showcase:check:staging": "node --env-file=.env.staging.local scripts/phase-e/showcase-staging-check.mjs",
+    "test:phase-e-local": "npm run db:reset && vitest run --config vitest.phase-e-local.config.ts",
+    "test:phase-e-showcase-local": "npm run db:reset && vitest run --config vitest.phase-e-showcase-local.config.ts",
+    "test:phase-e-showcase-walkthrough": "npm run db:reset && playwright test --config playwright.phase-e-showcase.config.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

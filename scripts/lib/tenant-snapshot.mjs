@@ -31,9 +31,10 @@ export async function fetchOpenApi(url, key) {
   return res.json();
 }
 
-/** The only database surface the hosted readers get: reads. */
+/** The only database surface the hosted readers get: reads (pages, an exact count, Storage listings and downloads). */
 export function readOnlyClient(db) {
   return {
+    count: (table, scope) => scope(db.from(table).select("id", { count: "exact", head: true })),
     page: (table, columns, scope, after) => {
       let query = scope(db.from(table).select(columns)).order("id", { ascending: true }).limit(PAGE);
       if (after) query = query.gt("id", after);
@@ -51,10 +52,17 @@ export async function readAll(client, table, scope, columns = "*") {
     const { data, error } = await client.page(table, columns, scope, after);
     if (error) throw new Error(`could not read ${table} (${error.message})`);
     rows.push(...(data ?? []));
-    if ((data ?? []).length < PAGE) return rows;
+    if ((data ?? []).length < PAGE) break;
     after = data[data.length - 1].id;
     if (rows.length > MAX_ROWS) throw new Error(`${table} holds more rows than this tool reads`);
   }
+  // A short page also ends the walk when a server row cap below PAGE truncates it: the exact count catches that (E2B).
+  if (typeof client.count === "function") {
+    const { count, error } = await client.count(table, scope);
+    if (error) throw new Error(`could not count ${table} (${error.message})`);
+    if (count !== rows.length) throw new Error(`${table}: read ${rows.length} rows but the server counts ${count} (a row cap or a concurrent write); read again`);
+  }
+  return rows;
 }
 
 /** Every scoped table's rows through PostgREST; scan_events up to T0 only. */
