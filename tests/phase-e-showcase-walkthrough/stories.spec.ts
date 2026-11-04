@@ -33,6 +33,79 @@ async function axeCheck(page: Page) {
   expect(blocking, `${new URL(page.url()).pathname}: ${JSON.stringify(blocking)}`).toEqual([]);
 }
 
+type Box = { x: number; y: number; width: number; height: number };
+const keyboard: { route: string; controls: number; stops: string[]; skipped: string[]; out_of_order: string[]; no_visible_focus: string[]; small_targets: string[] }[] = [];
+
+/**
+ * What axe cannot see (E2C Gate A): Tab reaches every control in DOM order, and each focused control visibly changes on
+ * screen (compared pixel for pixel with the unfocused page). Both are asserted. Touch targets are measured against the
+ * 44 x 44 px design rule (a checkbox, radio or file input by its label, which is what a finger presses; inline text
+ * links exempt) and recorded in keyboard-targets.json, not asserted: the shared public components have known targets
+ * under 44 px that predate Phase E (E2C Gate A finding, recorded in docs/phase-e/E2C_APPROVAL_PACKET.md).
+ */
+async function keyboardAndTargets(page: Page) {
+  const route = new URL(page.url()).pathname;
+  await page.mouse.move(0, 0);
+  const controls = await page.evaluate(() => {
+    const selector = 'a[href], button, input:not([type="hidden"]), select, textarea, summary, [tabindex]:not([tabindex="-1"])';
+    return [...document.querySelectorAll<HTMLElement>(selector)]
+      .filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden" && !(el as HTMLButtonElement).disabled && !el.closest("[inert]");
+      })
+      .map((el, index) => {
+        el.dataset.kbd = String(index);
+        const toggle = el.matches('input[type="checkbox"], input[type="radio"], input[type="file"]');
+        const label = toggle ? (el.closest("label") ?? (el.id ? document.querySelector<HTMLElement>(`label[for="${el.id}"]`) : null)) : null;
+        const r = (label ?? el).getBoundingClientRect();
+        const text = (el.getAttribute("aria-label") || el.innerText || label?.innerText || el.getAttribute("name") || "").trim().replace(/\s+/g, " ");
+        return {
+          index,
+          name: `${el.tagName.toLowerCase()}${el.getAttribute("type") ? `[${el.getAttribute("type")}]` : ""} "${text.slice(0, 48)}"`,
+          radioGroup: el.matches('input[type="radio"]') ? (el as HTMLInputElement).name : null,
+          inline: el.tagName === "A" && getComputedStyle(el).display === "inline",
+          box: { x: r.left + window.scrollX, y: r.top + window.scrollY, width: r.width, height: r.height },
+        };
+      });
+  });
+  const clip = (b: Box) => ({ x: Math.max(0, b.x - 6), y: Math.max(0, b.y - 6), width: b.width + 12, height: b.height + 12 });
+  const shotOf = (b: Box) => page.screenshot({ fullPage: true, clip: clip(b), animations: "disabled", caret: "hide" });
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  const before = new Map<number, Buffer>();
+  for (const c of controls) before.set(c.index, await shotOf(c.box));
+  // Start sequential navigation at the top of the document.
+  await page.evaluate(() => {
+    const start = document.createElement("span");
+    start.tabIndex = -1;
+    start.id = "kbd-start";
+    document.body.prepend(start);
+    start.focus();
+  });
+  const stops: number[] = [];
+  const noFocus: string[] = [];
+  for (let i = 0; i < controls.length + 3; i += 1) {
+    await page.keyboard.press("Tab");
+    const at = await page.evaluate(() => (document.activeElement as HTMLElement | null)?.dataset.kbd ?? null);
+    if (at === null) break; // focus left the page's controls (end of the document)
+    const index = Number(at);
+    if (stops.includes(index)) break;
+    stops.push(index);
+    const control = controls[index];
+    if ((await shotOf(control.box)).equals(before.get(index) as Buffer)) noFocus.push(control.name);
+  }
+  await page.evaluate(() => document.getElementById("kbd-start")?.remove());
+  const reachedGroups = new Set(stops.map((s) => controls[s].radioGroup).filter(Boolean));
+  const skipped = controls.filter((c) => !stops.includes(c.index) && !(c.radioGroup && reachedGroups.has(c.radioGroup))).map((c) => c.name);
+  const outOfOrder = stops.filter((s, i) => i > 0 && s < stops[i - 1]).map((s) => controls[s].name);
+  const small = controls
+    .filter((c) => !c.inline && (c.box.width < 44 || c.box.height < 44))
+    .map((c) => `${c.name} ${Math.round(c.box.width)}x${Math.round(c.box.height)}`);
+  keyboard.push({ route, controls: controls.length, stops: stops.map((s) => controls[s].name), skipped, out_of_order: outOfOrder, no_visible_focus: noFocus, small_targets: small });
+  expect.soft(skipped, `${route}: controls Tab never reaches`).toEqual([]);
+  expect.soft(outOfOrder, `${route}: Tab order differs from the page order`).toEqual([]);
+  expect.soft(noFocus, `${route}: focused controls with no visible change`).toEqual([]);
+}
+
 type Dataset = {
   assets: { asset_code: string; asset_id: string; short_code: string; active_rental_session_id: string | null }[];
   stories: Record<string, { sessions: { key: string; reference: string; status: string; records: { key: string; reference: string; status: string }[] }[]; incidents: { key: string; record: { reference: string; status: string } | null }[] }>;
@@ -73,6 +146,7 @@ test.afterAll(() => {
   mkdirSync(OUT, { recursive: true });
   writeFileSync(path.join(OUT, "walkthrough-routes.json"), `${JSON.stringify(visited, null, 2)}\n`);
   writeFileSync(path.join(OUT, "accessibility.json"), `${JSON.stringify(accessibility, null, 2)}\n`);
+  writeFileSync(path.join(OUT, "keyboard-targets.json"), `${JSON.stringify(keyboard, null, 2)}\n`);
 });
 
 test("the operator's step — the owner puts Northridge on the Demo plan, and every showcase page says so", async ({ browser }) => {
@@ -94,12 +168,14 @@ test("the operator's step — the owner puts Northridge on the Demo plan, and ev
     const prompt = renter.getByRole("dialog", { name: "Before you use this equipment" });
     if (await prompt.isVisible().catch(() => false)) await prompt.getByRole("button", { name: "Dismiss for now" }).click();
     await axeCheck(renter);
+    await keyboardAndTargets(renter);
   }
   const ex017 = asset("EXCAVATOR-017");
   for (const form of ["support", "damage", "return"]) {
     await renter.goto(`/forms/${ex017.short_code}/${form}`);
     await expect(renter.locator("[data-demo-notice]")).toBeVisible();
     await axeCheck(renter);
+    await keyboardAndTargets(renter);
   }
   await renter.close();
 });

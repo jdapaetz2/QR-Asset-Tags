@@ -680,3 +680,15 @@ Stage 1 commit: `af8a34a` (pushed; Preview only).
 - **What's in it:** the two rollback fixes found on staging (`compatibleGraphShas`; `restoreDesired`), the restore tool's use of them, the marketing patch and report, and the six counts-only archive and plan summaries above.
 - **QA-guard exemption:** `lib/tenant-graph.mjs` is now exempt in `qa-guard-coverage`. Its only `.update(` call feeds a SHA-256 hash; it makes no write and no request.
 - **Gates:** lint and typecheck pass; `npm test` 213 files, 2,450 tests passed; `test:phase-e-showcase-local` 13/13 and `test:phase-e-local` 34/34, both re-run after the restore change.
+
+### Keyboard and touch targets (Gate A)
+
+The walkthrough now measures what axe can't see on the four scan pages and three forms: `keyboardAndTargets` in `tests/phase-e-showcase-walkthrough/stories.spec.ts`, with results in `qa-artifacts/phase-e-showcase/keyboard-targets.json`.
+- **Keyboard (asserted): all 7 pages pass.** Tab reaches every control in page order, counting a radio group once, and each focused control visibly changes on screen (pixel comparison with the unfocused page).
+- **Touch targets (44 px design rule; recorded, not asserted):** shortfalls on every tenant's public pages, all from before Phase E.
+  - **Scan pages:** the documents' "Open" links 35 × 20; "Call" and "Email" 24 px tall; "Staff member? Sign in" 16 px tall.
+  - **Support and damage forms:** the name, email and phone fields 38 px; the contact select 39 px; the submit button 36 px.
+  - **Return form:** the engine-hours field 38 px.
+
+  Not fixed in E2C, because the fix changes every customer's pages. A CSS-only follow-up is offered as a separate task; it is listed in the approval packet's known limitations.
+- **Run:** walkthrough 7/7 (2.1 min); axe found no violations on the 7 pages.
