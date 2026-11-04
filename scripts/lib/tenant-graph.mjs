@@ -13,6 +13,7 @@
  *   tenant-child  no organization_id, but every row hangs off a tenant parent (tag_request_assets);
  *   shared        explicitly listed in SHARED_TABLES with the reason it is never copied or deleted per tenant.
  */
+import { createHash } from "node:crypto";
 
 /** Tables that belong to no tenant, with the reason. A public table that is not tenant-scoped must be listed here. */
 export const SHARED_TABLES = Object.freeze({
@@ -225,6 +226,27 @@ export function alwaysTriggers(catalog) {
     for (const trigger of info.triggers ?? []) if (trigger.enabled === "A") out.push(`${table}.${trigger.name}`);
   }
   return out;
+}
+
+/**
+ * Engineering Phase E2C — reviewed migrations that change no table, column, key, check or trigger (a function body or
+ * a new function only). Rows archived before them restore unchanged, so an archive taken just before them stays usable.
+ */
+export const FUNCTION_ONLY_MIGRATIONS = Object.freeze(["0040_qr_primary_disable_guard", "0041_demo_organization_flag"]);
+
+/**
+ * The graph hashes an archive may carry under this graph: its own, then the same graph before each trailing
+ * function-only migration (recomputed exactly as schema-graph.mjs does, so nothing else may differ).
+ */
+export function compatibleGraphShas(graph) {
+  const { graph_sha256: sha, ...body } = graph;
+  const shas = [sha];
+  const migrations = [...(body.migrations ?? [])];
+  while (migrations.length > 0 && FUNCTION_ONLY_MIGRATIONS.includes(migrations[migrations.length - 1])) {
+    migrations.pop();
+    shas.push(createHash("sha256").update(JSON.stringify({ ...body, migrations })).digest("hex"));
+  }
+  return shas;
 }
 
 /**

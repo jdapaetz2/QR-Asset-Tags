@@ -46,7 +46,7 @@ import {
 } from "../lib/local-stack.mjs";
 import { bucketRuleViolations, canonicalJson, columnSetProblems, sha256, tableHash, verifyArchiveDir } from "../lib/showcase-archive.mjs";
 import { redactionProblems } from "../lib/showcase-inventory.mjs";
-import { integrityChecks, scopeWhere } from "../lib/tenant-graph.mjs";
+import { compatibleGraphShas, integrityChecks, scopeWhere } from "../lib/tenant-graph.mjs";
 
 const TAG = "[restore]";
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -168,7 +168,8 @@ function loadPackage(dir) {
   if (!verified.ok) throw new RestoreStop(`the package failed verification: ${verified.problems.slice(0, 6).join("; ")}`);
   const read = (rel) => JSON.parse(readFileSync(path.join(dir, ...rel.split("/")), "utf8"));
   const manifest = verified.manifest;
-  if (manifest.graph.sha256 !== GRAPH.graph_sha256) {
+  // E2C: a package taken before only reviewed function-only migrations (tenant-graph.mjs) restores row for row.
+  if (!compatibleGraphShas(GRAPH).includes(manifest.graph.sha256)) {
     throw new RestoreStop(
       "the package was taken under a different schema graph. Reset the local database to the package's migrations, restore, " +
         "then migrate forward (runbook); this tool restores only into the current schema."

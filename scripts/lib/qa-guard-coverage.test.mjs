@@ -23,6 +23,7 @@ const EXEMPT = {
   "lib/local-stack.mjs": "the loopback guard itself; its only write is a rolled-back canary on an already-guarded client",
   "lib/showcase-archive.mjs": "pure archive format and checks; no request of its own",
   "lib/showcase-reset.mjs": "pure planner and SQL emitter; never executes anything itself",
+  "lib/tenant-graph.mjs": "pure graph logic; its only `.update(` feeds a SHA-256 hash (E2C compatible-graph check)",
   "perf/inbox-freshness.mjs": "read-only dashboard timing; no /t/ visit and no write",
   "phase-e/decode-qr-svg.mjs": "decodes local SVG files only",
   "phase-e/showcase-health.mjs": "read-only scan-free /nojs/t/ checks of the protected routes",

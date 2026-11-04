@@ -9,6 +9,7 @@ import {
   alwaysTriggers,
   classifyTables,
   compareWithOpenApi,
+  compatibleGraphShas,
   deleteOrder,
   insertOrder,
   integrityChecks,
@@ -30,6 +31,16 @@ const col = (name, nullable = false) => ({ name, nullable });
 const catalog = (tables) => ({ tables });
 
 describe("the tracked graph", () => {
+  it("keeps archives taken before the reviewed function-only migrations restorable, and nothing else (E2C)", () => {
+    const shas = compatibleGraphShas(GRAPH);
+    expect(shas[0]).toBe(GRAPH.graph_sha256);
+    // The graph E1 and E2B archived under (0001–0039): the E1 Production package and its USB copy stay usable.
+    expect(shas).toContain("f90f1d97894199a1dbc3535a231c6a35f25ba87736a3d2cf0f6763c98500e065");
+    // Any other change (a table, a column) gives a hash no archive may claim.
+    const changed = { ...GRAPH, tables: { ...GRAPH.tables, extra: { columns: [] } } };
+    expect(compatibleGraphShas(changed).slice(1)).not.toContain("f90f1d97894199a1dbc3535a231c6a35f25ba87736a3d2cf0f6763c98500e065");
+  });
+
   it("is internally consistent: graph_sha256 covers the body", () => {
     const { graph_sha256: sha, ...body } = GRAPH;
     expect(createHash("sha256").update(JSON.stringify(body)).digest("hex")).toBe(sha);

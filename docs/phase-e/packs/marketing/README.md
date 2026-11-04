@@ -1,5 +1,12 @@
 # Marketing candidates for getmulemark.com (not pushed)
 
+**E2C (2026-11-03):** use `e2c-showcase-marketing.patch`.
+- **What it is:** patches A and B below plus the TRAILER-014 scene C (Big Tex's 35SA photo, with permission), as one binary patch that includes both photos.
+- **Checks and apply steps:** [../../MARKETING_CONSISTENCY_REPORT.md](../../MARKETING_CONSISTENCY_REPORT.md).
+- **Release:** together with the cutover (approval packet, item 5).
+
+A and B stay here as their E2A record.
+
 Prepared in E2A against marketing commit `57747c3` of `jdapaetz2/Getmulemark.com`. Nothing was committed or pushed to that repository: these are proposals for the operator, who owns that site. Both patches were checked with `git apply --check` against an unmodified copy of `57747c3`. The marketing repository's own `npm run check` was **not** run here; run it when applying.
 
 ## A. E20 placement photo without the rental company's decals (can go now)
@@ -25,6 +32,6 @@ Licence: the photo is TaurusEmerald's, CC BY-SA 4.0. The modified version stays 
 
 [`b-demo-labels.patch`](b-demo-labels.patch) renames the four cards on `demo.html` from "Mini excavator" and "Trailer" to the showcase identities: Bobcat E20 compact excavator, Cat 301.5 mini excavator, Big Tex 35SA utility trailer and Big Tex 14LP dump trailer. **Apply it only after E2C**, when the four equipment pages actually show those machines.
 
-## Not prepared: the TRAILER-014 scene
+## C. The TRAILER-014 scene (E2C, inside the combined patch only)
 
-E0 found that the trailer scene shows a Twister enclosed cargo trailer, a different category from TRAILER-014. No licensed Big Tex 35SA photo exists yet. When Big Tex's permission arrives, replace that scene's photo and recompute its `quad` from the new frame. Until then the scene stays as it is.
+E0 found that the trailer scene shows a Twister enclosed cargo trailer, a different category from TRAILER-014. Big Tex gave written permission on 2026-11-03, so scene C swaps in Big Tex's own 35SA photo, self-hosted and credited to Big Tex Trailer Manufacturing, LLC. The tag position (`quad`) is recomputed for the new frame, and the caption becomes "On the tongue rail" (for the operator's OK). There is no separate C patch: the files it touches are listed in the [consistency report](../../MARKETING_CONSISTENCY_REPORT.md).

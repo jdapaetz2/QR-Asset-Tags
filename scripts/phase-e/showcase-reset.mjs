@@ -59,7 +59,7 @@ import {
   restoreDesired,
 } from "../lib/showcase-reset.mjs";
 import { STAGING_REF, assertProductionDatabase, assertStagingDatabase, productionDbConfig, stagingDbConfig } from "../lib/showcase-target.mjs";
-import { compareWithOpenApi, openApiTables } from "../lib/tenant-graph.mjs";
+import { compareWithOpenApi, compatibleGraphShas, openApiTables } from "../lib/tenant-graph.mjs";
 import { fetchOpenApi, pgIdentity, pgTables, postgrestIdentity, postgrestTables, readOnlyClient } from "../lib/tenant-snapshot.mjs";
 
 const TAG = "[reset]";
@@ -333,7 +333,8 @@ async function runManifest(args, conn) {
     if (!args.archive || !path.isAbsolute(args.archive)) refuse("--kind=restore needs --archive=<absolute package directory>", 2);
     const verified = verifyArchiveDir(args.archive);
     if (!verified.ok) refuse(`the archive failed verification: ${verified.problems.slice(0, 4).join("; ")}`);
-    if (verified.manifest.graph.sha256 !== GRAPH.graph_sha256) refuse("the archive was taken under a different schema graph");
+    // E2C: an archive taken before only reviewed function-only migrations still restores row for row.
+    if (!compatibleGraphShas(GRAPH).includes(verified.manifest.graph.sha256)) refuse("the archive was taken under a different schema graph");
     if (verified.manifest.source.organization_id !== NORTHRIDGE) refuse("the archive is not Northridge's");
     const archiveRows = Object.fromEntries(
       Object.keys(verified.manifest.tables).map((t) => [t, JSON.parse(readFileSync(path.join(args.archive, "rows", `${t}.json`), "utf8"))])

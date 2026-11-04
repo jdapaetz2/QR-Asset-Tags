@@ -1,0 +1,83 @@
+{
+  "schema": "mulemark.phase-e.archive-summary/v1",
+  "archive_id": "northridge-staging-20261104T005255Z",
+  "created_at": "2026-11-04T00:56:04.016Z",
+  "source": {
+    "target": "staging",
+    "supabase_ref": "kwserenxwjxozztyigmw",
+    "organization_id": "11111111-1111-4111-8111-111111111111",
+    "fixture": "northridge"
+  },
+  "manifest_sha256": "2b21ebd1c6e5ddfe1ff3f5ecac4030e4e76dee4a1cfda1142fa7c2c1d57130f6",
+  "graph_sha256": "f4425744b6796f3d33c84e68faaf44428e231ce092a8ae5fd9106a08ce4639ff",
+  "tables": {
+    "organizations": 1,
+    "equipment_page_templates": 0,
+    "inspection_templates": 0,
+    "notification_digest_runs": 0,
+    "profiles": 0,
+    "activity_log": 0,
+    "assets": 6,
+    "inspection_category_defaults": 0,
+    "tag_requests": 0,
+    "asset_rental_sessions": 92,
+    "documents": 8,
+    "equipment_pages": 6,
+    "qr_links": 6,
+    "asset_acknowledgements": 55,
+    "form_submissions": 179,
+    "scan_events": 700,
+    "tag_request_assets": 0
+  },
+  "objects": {
+    "count": 231,
+    "bytes": 10795013,
+    "by_bucket": {
+      "submissions": {
+        "objects": 226,
+        "bytes": 9477952
+      },
+      "documents": {
+        "objects": 3,
+        "bytes": 978243
+      },
+      "public-assets": {
+        "objects": 2,
+        "bytes": 338818
+      }
+    }
+  },
+  "references": {
+    "total": 456,
+    "present": 456,
+    "missing": 0
+  },
+  "identity": {
+    "profiles_in_tenant": 0,
+    "external_profiles": 0
+  },
+  "protected": {
+    "routes": 6,
+    "qr_links": 6,
+    "assets": 4
+  },
+  "checks": {
+    "schema_matches_graph": true,
+    "coherent": true,
+    "references_in_tenant": true,
+    "storage_paths_known": true,
+    "etags_match": true
+  },
+  "window": {
+    "t0": "2026-11-04T00:52:28.440Z",
+    "t1": "2026-11-04T00:56:04.016Z",
+    "scans_after_t0_excluded": true
+  },
+  "custody": {
+    "owner": "operator",
+    "location": "local Windows profile folder outside the repository and outside OneDrive (path not recorded in Git)",
+    "retention": "until Phase E closeout (E5C) plus the operator's explicit retention decision; never auto-deleted",
+    "second_copy": "a verified copy on separate media is required before any E2C approval",
+    "restore_rule": "loopback-only targets; a real archive only into the standalone 127.0.0.1-bound container"
+  }
+}

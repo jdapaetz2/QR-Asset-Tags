@@ -640,3 +640,43 @@ The operator pasted Prompt E2C on 2026-11-03. Plan approved the same day in plan
 | `test:phase-e-showcase-local` | 13/13: stand-in old scans removed by exact id, the organization's 2 settings, guides not imported, the rollback restores the scans and the settings |
 | `test:phase-e-local` (E1) | 34/34 |
 | Walkthrough | 7/7. The owner sets the Demo plan in the owner UI; the four scan pages and three forms show the demo notice and no guide; axe (WCAG 2.1 A/AA) found **no violations** on those seven pages |
+
+Stage 1 commit: `af8a34a` (pushed; Preview only).
+
+### Staging rehearsal (2026-11-03/04, guarded staging URL)
+
+| Step | Result |
+|---|---|
+| Rollback with the E1 staging package (`northridge-staging-20261017T003019Z`) | **REFUSED**, correctly: the package predates the E2B bootstrap, so restoring it would change protected QR rows and leave TRAILER-2041 pointing at a deleted rental |
+| Fix 1: archives across function-only migrations | `tenant-graph.mjs` `compatibleGraphShas`: archives taken before 0040/0041 (graph `f90f1d97…`) stay restorable. A test proves the old hash is reproduced exactly; any table change breaks it |
+| Fix 2: rollback removes the cutover's rows | `restoreDesired` also removes the cutover's inserted rows when the archive already holds them (an archive taken after the cutover). A pre-cutover archive, as on Production, never holds them |
+| New rollback point | The two showcase rental pointers cleared (rehearsal setup), then a fresh staging archive `northridge-staging-20261104T005255Z` (verified, manifest `2b21ebd1…`) |
+| Rollback on a hosted target (first time) | Plan ACCEPTED (removes 92 rentals, 179 submissions, 55 acknowledgements, 700 scans and the 8 E2B documents; keeps machines, pages and QR rows); applied in one transaction, CONVERGED |
+| Bootstrap | 0 changes |
+| Stand-in old scans | 4 labelled rows, one per showcase machine (`phase-e-e2c-staging-rehearsal (stand-in old test scan)`) |
+| E2C cutover plan | ACCEPTED. History in (92 / 179 / 55 / 700); the 4 stand-in scans removed by exact id; 5 documents (no guides); 3 assets and 3 pages updated; the organization's 2 settings; 230 files to stage |
+| `--fail-at=writes` | Stopped and rolled back. The files were staged first (230 present afterwards; nothing overwritten) |
+| Apply | One transaction, 181 guarded statements, CONVERGED |
+| Demo plan | Set as the staging platform owner (plan fields are owner-only) |
+| No-op plan | ACCEPTED, all KEEP |
+| `phase-e:precall:staging` before the staging migrations | Data, covers, documents, history, curated items and the four routes PASS. The demo notice failed, as expected until 0041 is on staging. The Bobcat store link did not answer an automated request (note; opens by hand) |
+
+### Production reads (2026-11-04, read-only)
+
+| Read | Result |
+|---|---|
+| Drift audit | Unchanged since E2B except visitor scans (3,202 → 3,248) and digest runs (39 → 53). Scans on the four machines: 974 / 797 / 66 / 837 = **2,674** |
+| Fresh archive | `northridge-production-20261104T010914Z`, verified (manifest `46c68b3a67bafb3ece4a9525346632a1f8c8fed143876be91fcb8d7019670b72`). 17 tables (3,248 scans, 49 submissions, 53 ledger rows); 53 objects, 23,107,566 bytes; 7 missing references (the E0 seven) |
+| Restore proof | Standalone loopback container: **VERIFIED**. 80 integrity checks passed, 17 tables hash-identical, 12 routes checked under anon RLS with 0 mismatches, 53 objects hash-verified. The container was removed afterwards |
+| USB copy | `D:\Mulemark-Ops-Archive\northridge-production-20261104T010914Z` verified, same manifest |
+| Cutover dry run | **ACCEPTED** (`showcase-production-20261104T011054Z`). The counts are in the approval packet. Digest watermark: last success 2026-11-03 13:00 UTC = the anchor (so the server's time zone agrees: UTC-7) |
+
+### Marketing (prepared, not pushed)
+
+`docs/phase-e/packs/marketing/e2c-showcase-marketing.patch` (A + B + C; SHA-256 `1145a511…`). It applies cleanly to `57747c3`; the site's `check` and `build` pass; the QR and tag files are unchanged ([MARKETING_CONSISTENCY_REPORT.md](MARKETING_CONSISTENCY_REPORT.md)).
+
+### Follow-up commit (stage 1b)
+
+- **What's in it:** the two rollback fixes found on staging (`compatibleGraphShas`; `restoreDesired`), the restore tool's use of them, the marketing patch and report, and the six counts-only archive and plan summaries above.
+- **QA-guard exemption:** `lib/tenant-graph.mjs` is now exempt in `qa-guard-coverage`. Its only `.update(` call feeds a SHA-256 hash; it makes no write and no request.
+- **Gates:** lint and typecheck pass; `npm test` 213 files, 2,450 tests passed; `test:phase-e-showcase-local` 13/13 and `test:phase-e-local` 34/34, both re-run after the restore change.

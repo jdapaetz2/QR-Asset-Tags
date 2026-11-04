@@ -264,9 +264,11 @@ export function restoreDesired({ snapshot, archiveRows, cutoverInsertIds = {} })
   const desired = {};
   for (const [table, live] of Object.entries(snapshot.tables)) {
     if (APPEND_ONLY_TABLES[table]) continue;
-    const archived = archiveRows[table] ?? [];
-    const archivedIds = new Set(archived.map((r) => r.id));
     const inserted = new Set(cutoverInsertIds[table] ?? []);
+    // A row the cutover inserted is removed even when the archive already held it (an archive taken after the
+    // cutover, E2C staging); a pre-cutover archive never holds one, so a Production rollback is unchanged.
+    const archived = (archiveRows[table] ?? []).filter((r) => !inserted.has(r.id));
+    const archivedIds = new Set(archived.map((r) => r.id));
     desired[table] = [...clone(archived), ...clone(live.filter((r) => !archivedIds.has(r.id) && !inserted.has(r.id)))];
   }
   const liveOrg = new Map((snapshot.tables.organizations ?? []).map((o) => [o.id, o]));
