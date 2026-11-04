@@ -44,7 +44,7 @@ export const OWNED_KINDS = Object.freeze(["showcase", "presenter", "refresh"]);
 /** Kinds composed from the locked live rows inside the apply transaction, so organic rows arriving meanwhile are kept. */
 export const IN_LOCK_KINDS = Object.freeze(["presenter", "refresh"]);
 /** Optional manifest fields a dataset manifest may carry (buildManifest copies only these). */
-const MANIFEST_EXTRAS = Object.freeze(["owned", "owned_history", "remove", "allow_insert", "allow_update", "append", "dataset", "storage", "e2a", "notes"]);
+const MANIFEST_EXTRAS = Object.freeze(["owned", "owned_history", "remove", "allow_insert", "allow_update", "append", "reinstate", "dataset", "storage", "e2a", "notes"]);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -104,8 +104,9 @@ const UNBOUND_SUBMISSION = Object.freeze({ form_type: "damage_report", submissio
 
 /**
  * The desired rows of an append-only table: every live row, minus the exact ids the manifest removes and the dataset
- * rows (this version's or an earlier one's) it no longer carries, plus the dataset's own appended rows. Without `append`
- * and `remove` this is the live table itself (every row KEEP), as before E2B.
+ * rows (this version's or an earlier one's) it no longer carries, plus the dataset's own appended rows, plus (a rollback
+ * only, E2C) the archived rows a cutover removed and the target no longer holds. Without `append`, `remove` and
+ * `reinstate` this is the live table itself (every row KEEP), as before E2B.
  */
 function appendOnlyDesired(table, manifest, liveMap) {
   const map = new Map(liveMap);
@@ -114,6 +115,7 @@ function appendOnlyDesired(table, manifest, liveMap) {
   for (const id of manifest?.remove?.[table] ?? []) map.delete(id);
   for (const id of [...(manifest?.owned?.[table] ?? []), ...(manifest?.owned_history?.[table] ?? [])]) if (!carried.has(id)) map.delete(id);
   for (const row of appended) map.set(row.id, row);
+  for (const row of manifest?.reinstate?.[table] ?? []) if (!map.has(row.id)) map.set(row.id, row);
   return map;
 }
 
@@ -392,9 +394,14 @@ export function planReset({ manifest, live, graph, now = new Date() }) {
     if (APPEND_ONLY_TABLES[table]) {
       if (manifest.desired?.[table] !== undefined) refuse("append-only", `${table} is append-only; a manifest never lists its rows`);
       const appended = manifest.append?.[table];
-      const writes = (appended?.length ?? 0) + (manifest.remove?.[table]?.length ?? 0) + (manifest.owned_history?.[table]?.length ?? 0);
+      const reinstated = manifest.reinstate?.[table];
+      const writes = (appended?.length ?? 0) + (reinstated?.length ?? 0) + (manifest.remove?.[table]?.length ?? 0) + (manifest.owned_history?.[table]?.length ?? 0);
       if (writes > 0 && table !== "scan_events") refuse("append-only", `${table} is never written by a reset (no appended or removed rows)`);
       if (appended !== undefined && !manifest.owned) refuse("manifest", `appended ${table} rows need a dataset manifest (owned ids)`);
+      // E2C: only a rollback puts archived rows back (the scans a cutover removed by exact id).
+      if (reinstated !== undefined && manifest.kind !== "restore") refuse("manifest", `only a rollback (restore) reinstates archived ${table} rows`);
+      const reinstatedSeen = new Map();
+      for (const row of reinstated ?? []) if (checkRow(row, reinstatedSeen)) reinstatedSeen.set(row.id, row);
       const seen = new Map();
       for (const row of appended ?? []) if (checkRow(row, seen)) seen.set(row.id, row);
       if (manifest.owned && [...seen.keys()].sort().join(",") !== [...idSet(manifest.owned, table)].sort().join(",")) {

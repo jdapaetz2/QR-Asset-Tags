@@ -10,7 +10,7 @@ import { getOrgActivityCounts } from "@/lib/owner/org-activity";
 // Cross-org counts are live per request; never cache.
 export const dynamic = "force-dynamic";
 
-type OrgRow = { id: string; name: string };
+type OrgRow = { id: string; name: string; plan_key: string | null };
 
 const show = (n: number | null | undefined) => (n === null || n === undefined ? "—" : n.toLocaleString("en-CA"));
 
@@ -22,12 +22,12 @@ export default async function OwnerAnalyticsPage() {
   // RLS lets the platform owner read all orgs' rows (is_platform_owner bypass).
   const { data: orgData } = await supabase
     .from("organizations")
-    .select("id, name")
+    .select("id, name, plan_key")
     .order("name", { ascending: true });
   const orgs = (orgData ?? []) as OrgRow[];
 
-  // Exact counts per organization; demo organizations are flagged (synthetic history, not customer adoption).
-  const activity = await getOrgActivityCounts(supabase, orgs.map((o) => o.id));
+  // Exact counts per organization; Demo-plan organizations are flagged (synthetic history, not customer adoption).
+  const activity = await getOrgActivityCounts(supabase, orgs);
 
   return (
     <div className="flex flex-col gap-6">

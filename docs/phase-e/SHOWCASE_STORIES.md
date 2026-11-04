@@ -1,10 +1,15 @@
-# Showcase stories (Engineering Phase E2B)
+# Showcase stories (Engineering Phase E2B, released in E2C)
 
 Northridge Rentals is the fictional showcase tenant. E2B gives its four canonical assets a coherent, synthetic rental history, so the real app is worth exploring in a demo. Everything in it is fictional: people, companies, phone numbers (555-01XX), emails (`.example`), serials and rental references (`DEMO-`).
 
 - **Source:** `docs/phase-e/showcase/scenario.json` (authored) → `docs/phase-e/showcase/dataset.json` (built by `npm run phase-e:showcase:build`, using the app's own inspection, triage and scan code).
 - **As of:** 06:00 Vancouver time on the anchor date. That is a daily-digest cutoff, and nothing in the history is later than it.
-- **This rehearsal:** the tracked dataset is anchored at **2026-10-20 06:00 PDT**. E2C rebuilds it for the cutover date ([DEMO_REFRESH_POLICY.md](DEMO_REFRESH_POLICY.md)). Rental and submission ids stay the same; dates, and the year in a reference, follow the new anchor.
+- **The anchor:** **2026-11-03 06:00 Vancouver time** (13:00 UTC), the E2C cutover anchor. E2B rehearsed with 2026-10-20. A refresh moves it ([DEMO_REFRESH_POLICY.md](DEMO_REFRESH_POLICY.md)); rental and submission ids stay the same, while dates and the year in a reference follow the new anchor.
+- **What the pages show (E2C):**
+  - each machine's identity, cover, manual link and quick-start text;
+  - a demo notice in the footer.
+
+  The Start-Up Guides and their drawings are parked until reviewed, so no page offers one.
 - **References below** are the ones the app shows: `RNT-…` for a rental, `SUB-…` for a submission. Paste an `RNT-` reference into the search on **Rentals**, or either kind into the search on an asset's **Timeline**.
 
 ## At the anchor
@@ -33,24 +38,24 @@ At the anchor, 3 items are `new` and 2 `reviewed`; everything else is resolved o
 
 ---
 
-## 1. EXCAVATOR-017: the pictographic handoff, the manual, a live acknowledgement
+## 1. EXCAVATOR-017: the handoff, the manual, a live acknowledgement
 
-**The point:** the renter has the right guide and manual on their phone, and support is one tap away.
+**The point:** the renter has the right machine, its manual and its safety rules on their phone, knows Northridge walks them through start-up at handover, and support is one tap away.
 
 **90 seconds:**
-1. Scan the tag (`demo-ex017`). The page shows the E20, the **Start-Up Guide**, the **Manual** link and the acknowledgement prompt for the active rental.
+1. Scan the tag (`demo-ex017`). The page shows the E20, the handover line, the **Manual** link and the acknowledgement prompt for the active rental.
 2. Acknowledge on your phone, live.
 3. Open the dashboard. 017 is on rent, with one open question.
 
 **5 minutes:**
-1. On the scan page, open the Start-Up Guide (pictures, one line per step).
+1. On the scan page, open Quick start and Safety (Northridge's handover wording, the swing and slope rules).
 2. Acknowledge live.
 3. Send a support request from the page.
 4. In the dashboard, open the active rental `RNT-2026-7234CF`:
    - the outbound inspection with its photos;
    - the renter's acknowledgement (`Priya Natarajan (demo)`);
    - your own acknowledgement.
-5. Open the reviewed question `SUB-2026-462E2D`. The crew asked for the start-up steps on a phone, and the answer is the guide link on the page.
+5. Open the reviewed question `SUB-2026-462E2D`. The crew asked for the start-up steps on a phone; the answer is the walk-through at the yard that the page promises, plus the manual link.
 6. Close with the previous clean rental `RNT-2026-F447B4`: outbound and staff return, both clean, with photos.
 
 | Record | Opens |
@@ -60,7 +65,7 @@ At the anchor, 3 items are `new` and 2 `reviewed`; everything else is resolved o
 | `RNT-2026-F447B4` | Current clean result: outbound `SUB-2026-F26D09`, staff return `SUB-2026-ACFB70` |
 | `SUB-2026-60F519` | Older resolved case: a track off on soft ground, help needed now |
 
-**Depends on E2A:** the E20 Start-Up Guide is still `REVIEW_REQUIRED`, and its quick-start text waits for Bobcat's manual. Rehearsal targets show the draft; Production shows it only after approval.
+**Limits (E2C):** Bobcat's manual is sold, not bought, so the quick start is the handover line, the fuel section is blank, and the Manual link opens Bobcat's store. The picture guide is parked.
 
 ## 2. EXCAVATOR-3015: connected condition evidence, a minor and a consequential issue
 
@@ -96,8 +101,8 @@ At the anchor, 3 items are `new` and 2 `reviewed`; everything else is resolved o
 2. Open `RNT-2026-AC3506`. The safety-chain pins were issued at outbound and are missing at return.
 
 **5 minutes:**
-1. Show the scan page: the 35SA-12 guide, and the 2-inch ball and towing facts from Big Tex's page.
-2. Open the clean rental `RNT-2026-B3F1B8`: every accessory issued and returned, with the hitch and deck pictures.
+1. Show the scan page: the Big Tex cover, the quick start (coupler, chains, lights, load), and the 2-inch ball and towing facts from Big Tex's page.
+2. Open the clean rental `RNT-2026-B3F1B8`: every accessory issued and returned, with the hitch and deck photos (Big Tex photos, tagged "Illustrative photo").
 3. Open the resolved missing-item case `SUB-2026-357550` (straps), resolved after the renter brought them back.
 4. Show `SUB-2026-1B8D14`: a cracked tail-lamp lens the staff found at return, with an illustration, resolved.
 5. Show a late report, `SUB-2026-2D2ED3`: a fender dent mentioned the morning after the return.

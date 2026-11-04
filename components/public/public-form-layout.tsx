@@ -9,6 +9,7 @@ export function PublicFormLayout({
   orgName,
   assetName,
   assetCode,
+  demoNotice = false,
   children,
 }: {
   shortCode: string;
@@ -16,6 +17,8 @@ export function PublicFormLayout({
   orgName: string;
   assetName: string;
   assetCode: string;
+  /** True for a demo organization (Demo plan): the footer adds the demo notice. */
+  demoNotice?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -46,7 +49,7 @@ export function PublicFormLayout({
 
       {children}
 
-      <PublicFooter />
+      <PublicFooter demoNotice={demoNotice} />
     </main>
   );
 }

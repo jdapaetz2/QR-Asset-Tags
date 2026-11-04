@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { composeDatasetReset, composeShowcase, datasetStage, e2aOverlay, publicObjectUrl, rollbackScanRemovals } from "./showcase-compose.mjs";
+import { composeDatasetReset, composeShowcase, datasetStage, e2aOverlay, publicObjectUrl, rollbackScanReinstatements, rollbackScanRemovals } from "./showcase-compose.mjs";
 import { expandDataset, ownedIds } from "./showcase-dataset.mjs";
 import { buildManifest, emitResetSql, planReset } from "./showcase-reset.mjs";
 
@@ -87,14 +87,35 @@ describe("E2A overlay", () => {
     expect(o.assets.size).toBe(4);
     expect(o.pages.size).toBe(4);
     expect(o.assets.get(EX017.asset_id).cover_image_url).toBe(publicObjectUrl(API, IMPORTS[0].operations.find((op) => op.op === "upload" && op.bucket === "public-assets").path));
-    expect(o.assets.get(TR014.asset_id).cover_image_url).toBeNull();
+    expect(o.assets.get(TR014.asset_id).cover_image_url).toMatch(/\/storage\/v1\/object\/public\/public-assets\/org\/.+\/cover\/[0-9a-f-]{36}\.webp$/);
     expect(o.assets.get(TR2041.asset_id).return_inspection_template_key).toBe("utility_trailer");
     expect(o.insertDocuments.every((d) => d.created_at === DATASET.history_start_utc && d.last_checked_at === null)).toBe(true);
-    expect(o.applyAllowed).toBe(false);
+    // E2C: the parked Start-Up Guides are never imported; every pack is approved.
+    expect(o.insertDocuments.some((d) => d.document_type === "startup_guide")).toBe(false);
+    expect(o.uploads.filter((u) => u.bucket === "public-assets")).toHaveLength(4);
+    expect(o.uploads.filter((u) => u.bucket === "documents")).toHaveLength(0);
+    expect(o.applyAllowed).toBe(true);
   });
 });
 
 describe("showcase (first application)", () => {
+  it("clears the hotlinked logo and corrects the stored label (E2C), and nothing else on the organization", () => {
+    const snap = snapshot();
+    Object.assign(snap.tables.organizations[0], { logo_url: "https://dealer.example/logo.png", powered_by_label: "Powered by AssetTag QR", support_phone: "+1-555-1122", plan_key: "standard" });
+    const composed = composeShowcase({ snapshot: snap, dataset: DATASET, datasetSha256: "x", overlay: overlay(), stage: datasetStage(DATASET, MEDIA.items, "/repo") });
+    expect(composed.extra.allow_update.organizations).toEqual({ [ORG]: ["logo_url", "powered_by_label"] });
+    const desired = composed.desired.organizations.find((o) => o.id === ORG);
+    expect(desired).toMatchObject({ logo_url: null, powered_by_label: "Powered by Mulemark", support_phone: "+1-555-1122", plan_key: "standard" });
+    const p = plan(manifestOf("showcase", snap, composed), snap);
+    expect(p.refusals).toEqual([]);
+    expect(p.changes.organizations.update).toEqual([{ id: ORG, columns: ["logo_url", "powered_by_label"] }]);
+    // Already corrected: no organization update at all.
+    const again = snapshot();
+    Object.assign(again.tables.organizations[0], { logo_url: null, powered_by_label: "Powered by Mulemark" });
+    const recomposed = composeShowcase({ snapshot: again, dataset: DATASET, datasetSha256: "x", overlay: overlay(), stage: [] });
+    expect(recomposed.extra.allow_update.organizations).toBeUndefined();
+  });
+
   it("is accepted: old rentals of the showcase assets removed by exact id, draft-e2c elsewhere, E2A and the dataset added", () => {
     const { snap, manifest } = showcase();
     const p = plan(manifest, snap);
@@ -258,5 +279,26 @@ describe("presenter reset and refresh (composed from the locked live rows)", () 
     const { snap, manifest } = showcase();
     const live = applied(manifest, snap);
     expect(rollbackScanRemovals(manifest, live)).toEqual(expandDataset(DATASET).rows.scan_events.map((r) => r.id).sort());
+  });
+
+  it("lets a rollback put back, from the archive, exactly the old scans a cutover removed (E2C), and nothing else may", () => {
+    const snap = snapshot();
+    const archivedScans = clone(snap.tables.scan_events);
+    const composed = composeShowcase({ snapshot: snap, dataset: DATASET, datasetSha256: "x", overlay: overlay(), stage: [], options: { removeShowcaseScans: true } });
+    const cutover = manifestOf("showcase", snap, composed);
+    expect(cutover.remove.scan_events).toEqual([id("c2", 1)]);
+    const live = applied(cutover, snap);
+    const back = rollbackScanReinstatements(cutover, archivedScans, live);
+    expect(back.map((r) => r.id)).toEqual([id("c2", 1)]);
+    expect(back[0]).toEqual(archivedScans[0]);
+    // A restore manifest carrying them plans exactly one INSERT on scan_events; any other kind is refused.
+    const restoreLike = { ...buildManifest({ name: "unit-restore", kind: "restore", target: "local", organizationId: ORG, snapshot: live, graph: GRAPH, protectedSet: PROTECTED, desired: Object.fromEntries(Object.entries(live.tables).filter(([t]) => t !== "scan_events" && t !== "notification_digest_runs")), extra: { reinstate: { scan_events: back } }, now: NOW }) };
+    const p = plan(restoreLike, live);
+    expect(p.refusals).toEqual([]);
+    expect(p.counts.scan_events).toMatchObject({ INSERT: 1, DELETE: 0, UPDATE: 0 });
+    const notRestore = { ...restoreLike, kind: "noop" };
+    expect(codes(plan(notRestore, live))).toContain("manifest");
+    // Already back: nothing to reinstate.
+    expect(rollbackScanReinstatements(cutover, archivedScans, snap)).toEqual([]);
   });
 });

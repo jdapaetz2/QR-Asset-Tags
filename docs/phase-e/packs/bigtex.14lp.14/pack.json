@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.2.0",
+  "schema_version": "1.3.0",
   "manifest_id": "showcase-bigtex-14lp-14",
   "kind": "showcase",
   "organization": {
@@ -141,6 +141,28 @@
       "availability": "in-hand",
       "vault_path": "oem/bigtex/web/14lp.html",
       "locator_convention": "Page section names. The page changes over time; the vault copy is the record."
+    },
+    {
+      "source_id": "src-photo-14lp-bigtex",
+      "kind": "photo",
+      "title": "Big Tex 14LP product image",
+      "publisher": "Big Tex Trailer Manufacturing, LLC",
+      "url": "https://www.bigtextrailers.com/wp-content/uploads/2023/07/14LP-Commercial-Grade-Dump-Trailer.png",
+      "edition": "685 x 300 product image on a transparent background",
+      "bytes": 44942,
+      "sha256": "89cb636cb65f0a59e47bec2b980a7383d7843c164eac0fc533657ab762cdcfb6",
+      "retrieved_at": "2026-11-03",
+      "applicability": "Big Tex's own image of the model (not the showcase unit).",
+      "rights": {
+        "status": "oem-permission",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false,
+        "attribution": "Photo: Big Tex Trailer Manufacturing, LLC",
+        "permission_ref": "Big Tex's reply to the operator, 2026-11-03 (vault: oem/bigtex/big-tex-permission-reply.txt)"
+      },
+      "verification": "read",
+      "availability": "in-hand",
+      "vault_path": "oem/bigtex/web/img/14LP-Commercial-Grade-Dump-Trailer.png"
     }
   ],
   "models": [
@@ -1893,8 +1915,7 @@
       "review": {
         "status": "MULEMARK_REVIEW",
         "blockers": [
-          "Exact-model photo: no licensed 14LP photo exists; waiting on Big Tex's reply to the operator's permission request (sent 2026-10-17).",
-          "Knowledgeable review of the finished guide and page text by the named reviewer (the operator).",
+          "Guide panels and signs: parked by the operator on 2026-11-02; their knowledgeable review is outstanding (the page text was approved on 2026-11-03).",
           "Hoist Manual applicability to the 14LP: not listed on its cover; asked of Big Tex.",
           "Lug-nut torque: Big Tex's manual leaves the value blank (p. 80); asked of Big Tex.",
           "Hoist capacity: not published by Big Tex."
@@ -1904,6 +1925,40 @@
         ],
         "missing_facts": [],
         "reviewer_role": "Mulemark owner (operator): named reviewer with final approval authority, 2026-10-17"
+      },
+      "photo": {
+        "source_id": "src-photo-14lp-bigtex",
+        "alt": "Big Tex 14LP tandem-axle dump trailer with its body partly raised, seen from the front left",
+        "crop": "The whole Big Tex product image on a white 16:9 canvas (recipe 14lp-bigtex)",
+        "credit": {
+          "author": "Big Tex Trailer Manufacturing, LLC",
+          "license": "Used with Big Tex's permission (reply to the operator, 2026-11-03)",
+          "source_url": "https://www.bigtextrailers.com/wp-content/uploads/2023/07/14LP-Commercial-Grade-Dump-Trailer.png",
+          "modified": true,
+          "modifications": [
+            "Placed whole on a #FFFFFF 1280x720 canvas: resized to 1178x516 and centred.",
+            "Added the credit label \"Photo: Big Tex Trailer Manufacturing, LLC\" in the top-right corner.",
+            "Dropped the original's camera and location metadata."
+          ]
+        },
+        "files": [
+          {
+            "file": "media/14lp-hero.webp",
+            "width": 1280,
+            "height": 720,
+            "bytes": 38998,
+            "sha256": "58d6bf66bbe547b7943d251180019e0360b58baa06c362d984770b542552c3a7"
+          },
+          {
+            "file": "media/14lp-hero.jpg",
+            "width": 1280,
+            "height": 720,
+            "bytes": 53706,
+            "sha256": "e0a289cc66a99dffc8fe3e65b82fa41279a99b9c28ad5c6a7bd175e91a557579"
+          }
+        ],
+        "status": "READY",
+        "status_reason": "Big Tex's permission (reply to the operator, 2026-11-03), credited in the image as asked."
       }
     }
   ],
@@ -1928,7 +1983,7 @@
         "asset_id": "3313ed1c-f738-4817-b4fa-6f2163dc2e14",
         "qr_link_id": "97c20650-4c09-4828-ac02-3cd6b4d083cb"
       },
-      "publish_intent": false,
+      "publish_intent": true,
       "review": {
         "status": "MULEMARK_REVIEW",
         "blockers": [
@@ -1952,7 +2007,7 @@
           "status_reason": "Facts from the OEM product page and the dump-trailer manual."
         },
         "quick_start_text": {
-          "text": "1. 2-5/16 in ball, 14,000 lb or more. Seat, latch, pin, test.\n2. Cross the chains. Breakaway cable to the truck; pull-test it.\n3. Plug in the 7-way. Check lights; test brakes under 5 mph.\n4. Before dumping: level, firm ground, people clear, no wires overhead.\n5. Chain the doors open; open the control box.\n6. Raise to about half, look behind; then three-quarters, look again.\n7. Load stuck: lower the body, free it by hand.\n8. Body down, doors latched, controls locked. Then drive.\nTires: undamaged, cold pressure per VIN label, lug nuts tight.\nLoad hitched and level; spread loose material evenly.\nThe Start-Up Guide shows each step.",
+          "text": "1. 2-5/16 in ball, 14,000 lb or more. Seat, latch, pin, test.\n2. Cross the chains. Breakaway cable to the truck; pull-test it.\n3. Plug in the 7-way. Check lights; test brakes under 5 mph.\n4. Before dumping: level, firm ground, people clear, no wires overhead.\n5. Chain the doors open; open the control box.\n6. Raise to about half, look behind; then three-quarters, look again.\n7. Load stuck: lower the body, free it by hand.\n8. Body down, doors latched, controls locked. Then drive.\nTires: undamaged, cold pressure per VIN label, lug nuts tight.\nLoad hitched and level; spread loose material evenly.",
           "derived_from": [
             "14lp-s1",
             "14lp-s2",
@@ -1967,8 +2022,8 @@
             "tire-pressure",
             "14lp-s7"
           ],
-          "status": "REVIEW_REQUIRED",
-          "status_reason": "Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer."
+          "status": "READY",
+          "status_reason": "Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md)."
         },
         "safety_notes": {
           "text": "Never go under a raised body.\nNever push the hoist with a jack or machine; unload by hand.\nDon't fully raise a loaded body.\nA raised body near power lines can electrocute. Check overhead before raising.\nDon't move until the coupler is pinned, the chains and breakaway cable are on and the jack is up.\nNo riders, and no flammable, explosive or poisonous loads.\n60 mph maximum, in ideal conditions only.\nStay at the controls while the body is up.\nStay within the payload on the trailer's decal.",
@@ -1983,8 +2038,8 @@
             "14lp-s9",
             "14lp-s7"
           ],
-          "status": "REVIEW_REQUIRED",
-          "status_reason": "Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer."
+          "status": "READY",
+          "status_reason": "Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md)."
         },
         "fuel_power_notes": {
           "text": "Hoist: 12 V battery with an onboard 110 V charger and a 5 W solar charger.\nThe breakaway battery drains fast with its pin out: put the pin straight back.",
@@ -1994,8 +2049,8 @@
             "14lp-n6",
             "14lp-s4"
           ],
-          "status": "REVIEW_REQUIRED",
-          "status_reason": "Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer."
+          "status": "READY",
+          "status_reason": "Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md)."
         },
         "troubleshooting_notes": {
           "text": "Hoist won't lift: unload some by hand, then use Request Support.\nLoad stuck: lower the body and free it by hand.\nLights or brakes dead: check the 7-way plug.\nBreakaway test fails: don't tow. Use Request Support.",
@@ -2005,8 +2060,8 @@
             "14lp-n5",
             "14lp-n6"
           ],
-          "status": "REVIEW_REQUIRED",
-          "status_reason": "Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer."
+          "status": "READY",
+          "status_reason": "Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md)."
         },
         "return_notes": {
           "text": "Return the straps, chain pins, spare tire and hoist remote.\nBody down, doors latched, controls locked.\nUnhitch: block the tires, unplug, unclip the breakaway, unhook the chains, open the coupler, lower the jack on firm ground.\nUse Return checklist when you drop it off.",
@@ -2016,8 +2071,8 @@
             "14lp-s11",
             "14lp-s13"
           ],
-          "status": "REVIEW_REQUIRED",
-          "status_reason": "Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer."
+          "status": "READY",
+          "status_reason": "Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md)."
         },
         "emergency_notes": {
           "text": "For emergencies call your local emergency number. For equipment issues, use the support contact on this page.",
@@ -2037,11 +2092,12 @@
           "file": {
             "file": "guide/bigtex.14lp.14-start-up-guide.pdf",
             "pages": 2,
-            "bytes": 417554,
-            "sha256": "26bcbfb31bd8f443a3f4850f1202c2a660c52030b9211d7d998ac6cdaf6a56e7"
+            "bytes": 417552,
+            "sha256": "ce9581da3e58c9065a16cf82ba2fb1c89a6ff3fa3ee89fde82342640e811f8a4"
           },
           "status": "REVIEW_REQUIRED",
-          "status_reason": "Carries the review-draft badge until every panel and sign is approved."
+          "status_reason": "Carries the review-draft badge until every panel and sign is approved.",
+          "release": "parked"
         },
         {
           "title": "Big Tex Owners Manual (Dump Trailers)",
@@ -2062,6 +2118,13 @@
     }
   ],
   "approval": {
-    "status": "not_requested"
+    "status": "approved",
+    "content_version": "e2a-69e05038816d",
+    "scope_asset_codes": [
+      "TRAILER-2041"
+    ],
+    "approver_role": "Mulemark owner (operator): named reviewer with final approval authority",
+    "approved_at": "2026-11-03",
+    "record_ref": "docs/phase-e/E2C_PAGE_TEXT_REVIEW.md (page text approved as worded, 2026-11-03); Start-Up Guides parked (2026-11-02); WORK_LOG.md"
   }
 }

@@ -537,16 +537,106 @@ Scans on the four showcase assets: 017 948, 3015 792, 014 60, 2041 828 (mostly J
 | `npm.cmd test` | 211 files, 2,430 tests passed |
 | `npm.cmd run build` | Compiled successfully |
 
+### Operator decisions after the E2B close
+
+| When | What | How |
+|---|---|---|
+| 2026-11-02 | The pre-cutover test scans on the four assets are removed at the cutover | Operator chat |
+| 2026-11-02 | The redrawn imagery (panels, signs, Start-Up Guides) is parked as an open item to come back to later. It stays off Production | Operator chat |
+| 2026-11-02 | Big Tex gave permission to use any of its images. The reply is not yet in the source vault | Operator chat |
+| 2026-11-03 | Big Tex's reply: photos and materials from its website may be used, credited to "Big Tex Trailer Manufacturing, LLC" where practical; higher-resolution versions on request. It does not answer the hoist-manual or torque questions. Text saved in the source vault | Operator chat (email pasted) |
+| 2026-11-03 | Bobcat's E20 manual not bought. Proceed without it and come back to it later | Operator chat |
+| 2026-11-03 | Page text in [E2C_PAGE_TEXT_REVIEW.md](E2C_PAGE_TEXT_REVIEW.md) approved as worded; tweaks may come later | Operator chat |
+| 2026-11-03 | Anchor date D = 2026-11-03 | Operator chat |
+| 2026-11-03 | Production apply mode: a database URL with a Production guard | Operator chat |
+| 2026-11-03 | Northridge's logo is cleared at the cutover until owned artwork exists | Operator chat |
+
+Findings the same day, recorded in [E2C_CUTOVER_PACKAGE.md](E2C_CUTOVER_PACKAGE.md):
+- **Organization settings:** the package left out the real dealer's logo, the undialable support phone and the old "Powered by" label (decision 7).
+- **Time zone:** in data 2026b, `America/Vancouver` stays on UTC-7 all year. A test build for 2026-11-10 passed the time rules; its output stayed outside the repository and the tracked dataset was not touched.
+- **Scan removal:** `--scans=remove-showcase` has only a unit test, so E2C rehearses it on staging first.
+
+On 2026-11-03 a test build for the chosen anchor passed the same time rules. Its output again stayed outside the repository.
+
 ### Open, operator-pending
 
-- The E2C decisions in [E2C_CUTOVER_PACKAGE.md](E2C_CUTOVER_PACKAGE.md).
+- The support phone and the "Powered by" label (decision 7 in [E2C_CUTOVER_PACKAGE.md](E2C_CUTOVER_PACKAGE.md)). The E2C plan carries the recommendations for approval.
+- Before any E2C approval: the business-card evidence, the printed-sheet answer and a second verified archive copy on a USB drive or external disk.
+- **Later, not blocking E2C:**
+  - the parked imagery (panels, signs, Start-Up Guides);
+  - Bobcat's E20 manual;
+  - Big Tex's answers on the hoist manual and torque;
+  - a new Northridge logo;
+  - page-text tweaks.
 - A look at the evidence drawings, which are replaceable ([showcase/MEDIA_NOTICE.md](showcase/MEDIA_NOTICE.md)).
-- Everything open from E2A.
 
 ### Next command
 
-**Prompt E2C**, only when the operator runs it; never automatically. Before the cutover, rebuild the dataset for the cutover date:
+**Prompt E2C**, only when the operator runs it; never automatically. Before the cutover, rebuild the dataset for the chosen anchor date:
 
 ```
-npm run phase-e:showcase:build -- --anchor=YYYY-MM-DD
+npm run phase-e:showcase:build -- --anchor=2026-11-03
 ```
+
+## E2C — release the curated Northridge showcase (2026-11-03, in progress)
+
+The operator pasted Prompt E2C on 2026-11-03. Plan approved the same day in plan mode: four stages with one hard stop, the approval packet.
+
+### Approvals and operator decisions
+
+| When | What | How |
+|---|---|---|
+| 2026-11-03 | E2C plan approved. It includes the Big Tex downloads, the staging push of migrations 0040 and 0041, and the Production DB-URL guard | Plan mode, ExitPlanMode |
+| 2026-11-03 | TRAILER-2041's page is "Dump Trailer 2041" (the card's title line says "UTILITY TRAILER 204"; its code line matches) | Operator answer |
+| 2026-11-03 | Present with the existing private Northridge demo login | Operator answer |
+| 2026-11-03 | Keep the support phone as it is | Operator answer |
+
+### Evidence (before any Production write)
+
+| What | Result |
+|---|---|
+| Business cards | Printer's proof #000115318 (four backs) decoded locally: the four protected routes, V4-H, matrices identical to the website register ([PROTECTED_DEMO_ROUTES.md](PROTECTED_DEMO_ROUTES.md)) |
+| Printed sheets | The 2026-07-20 sheet was used only by the operator for testing; nothing else was printed |
+| Second archive copy | The E1 package `northridge-production-20261017T003411Z` copied to `D:\Mulemark-Ops-Archive\` and verified: `OK (manifest b1c781684c736465…)`, matching the recorded hash |
+| Time zone | `America/Vancouver` stays on UTC-7 in tz data 2026b, so the anchor is 13:00 UTC |
+
+### Built (stage 1)
+
+**Content:**
+- **Packs** (schema 1.3.0):
+  - the operator's page-text approval;
+  - parked Start-Up Guides (`release: parked`, never imported);
+  - the E20 handover wording (`pol-e20-handover`);
+  - approved blanks for E20 fuel and Cat safety;
+  - an `approval` record whose content version the import manifests check.
+  All four import manifests are `apply.allowed`.
+- **Big Tex photos:** 10 downloaded into the vault, hashed, with the reply text saved.
+  - **Covers:** both trailers, on a white 16:9 canvas with the credit baked in (`photo-derivatives.mjs`, recipes `35sa-bigtex` and `14lp-bigtex`).
+  - **Evidence:** four photos replace the trailer hitch and deck drawings (`make-media.mjs`), tagged "Illustrative photo · Photo: Big Tex Trailer Manufacturing, LLC".
+- **History:** rebuilt for the 2026-11-03 anchor; the scenario's anchor moved with it.
+
+**Reset tool:**
+- **Production apply path** (`showcase-target.mjs` `productionDbConfig`, `assertProductionDatabase`): the hosted apply kinds are showcase, presenter, refresh and restore, always with `--approved-plan`.
+  - The cutover and a rollback need Northridge suspended.
+  - The cutover needs approved E2A content.
+  - `--fail-at` is refused on Production.
+- **Organization settings at the cutover:** logo cleared; the stored "Powered by" label corrected.
+- **Rollback reinstatement:** a rollback now puts back the old scans a cutover removed (`reinstate`). The first local rehearsal of scan removal found that the rollback did not.
+
+**App:**
+- **Demo notice:** on the scan page and the forms, decided by the Demo plan (`plan_key = 'demo'`, owner-only) through `is_demo_organization` (0041). No organization id appears in any component; `DEMO_ORGANIZATION_IDS` is retired.
+- **QR guard:** owner-only disable of a production-primary QR link (0040), with the action's message and the button hidden.
+- **Release check:** `/api/version` returns the deployment's commit and environment.
+- **Pre-call tool:** `phase-e:precall:{production,staging}`.
+- **Housekeeping:** `*.crt` is now gitignored.
+
+### Gates (local)
+
+| Gate | Result |
+|---|---|
+| Lint, typecheck | Pass |
+| `npm test` | 213 files, 2,448 tests passed |
+| `test:security` (local stack, 0001–0041) | 11 files, 132 tests passed. The new persona tests: admin and staff refused 42501, owner and server allowed; `is_demo_organization` for anon follows the Demo plan of an active organization only; only the owner can set the plan |
+| `test:phase-e-showcase-local` | 13/13: stand-in old scans removed by exact id, the organization's 2 settings, guides not imported, the rollback restores the scans and the settings |
+| `test:phase-e-local` (E1) | 34/34 |
+| Walkthrough | 7/7. The owner sets the Demo plan in the owner UI; the four scan pages and three forms show the demo notice and no guide; axe (WCAG 2.1 A/AA) found **no violations** on those seven pages |

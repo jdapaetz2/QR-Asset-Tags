@@ -111,7 +111,7 @@ export default async function EditAssetPage({
 
   const { data: qrData } = await supabase
     .from("qr_links")
-    .select("id, short_code, status, last_scanned_at, created_at")
+    .select("id, short_code, status, last_scanned_at, created_at, is_production_primary")
     .eq("asset_id", assetId)
     .order("created_at", { ascending: true });
 

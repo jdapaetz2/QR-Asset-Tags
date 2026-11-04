@@ -28,6 +28,11 @@ This contract is shared by the showcase content packs (E2A) and the 25–250-ass
 
 Drawings carry numbers, units and symbols only; the tests check that every drawn number appears in the step, spec or policy it comes from.
 
+**Schema 1.3.0 (E2C release, 2026-11-03):** additive; every earlier manifest still validates.
+- **New field:** a planned document's `release` is `publish` (the default) or `parked`. A parked document stays in the pack, rebuilt with it, and is never imported. E2C parks the three Start-Up Guides until their drawings are reviewed.
+- **Approval:** the pack's `approval` record is used for the first time. Status `approved` names the content version, the asset, the approver's role, the date and the record. An import manifest allows applying only when every included operation is READY **and** the approval names that exact content version, so a later edit voids it.
+- **Approved blanks:** a page field may be READY with no text, recorded with its reason (E20 fuel, Cat safety).
+
 Steps may cite a customer policy as `{ "source_id": "pol-…" }`; it must exist in `organization.policies`. The E2A pack tests (`scripts/phase-e/packs/packs.test.mjs`) validate the four showcase packs with the same transitive ajv 6.15.0.
 
 **Division of labour:**

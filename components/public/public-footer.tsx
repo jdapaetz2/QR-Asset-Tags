@@ -1,4 +1,4 @@
-import { PLATFORM_NAME, PUBLIC_DISCLAIMER } from "@/lib/constants";
+import { DEMO_PUBLIC_NOTICE, PLATFORM_NAME, PUBLIC_DISCLAIMER } from "@/lib/constants";
 import { BrandGlyph, BrandWordmark } from "@/components/brand/brand";
 
 /**
@@ -9,8 +9,11 @@ import { BrandGlyph, BrandWordmark } from "@/components/brand/brand";
  * quiet "Powered by Mulemark" descriptor, then the standard disclaimer. It is a fixed
  * platform mark, not a tenant-overridable string, and stays secondary to the rental
  * company's brand at the top of the page. Plain text, not a link.
+ *
+ * `demoNotice` (Engineering Phase E2C): a demo organization's pages say, just as
+ * quietly, that the company, equipment and history are fictional.
  */
-export function PublicFooter() {
+export function PublicFooter({ demoNotice = false }: { demoNotice?: boolean } = {}) {
   return (
     <footer className="mt-auto border-t pt-5 text-center text-xs text-iron-600">
       <div className="flex items-center justify-center gap-2">
@@ -22,6 +25,7 @@ export function PublicFooter() {
         <BrandWordmark title={PLATFORM_NAME} className="h-3.5 w-auto" />
       </div>
       <p className="mt-1.5">Powered by {PLATFORM_NAME}</p>
+      {demoNotice ? <p className="mt-2" data-demo-notice>{DEMO_PUBLIC_NOTICE}</p> : null}
       <p className="mt-2 text-iron-600/90">{PUBLIC_DISCLAIMER}</p>
     </footer>
   );

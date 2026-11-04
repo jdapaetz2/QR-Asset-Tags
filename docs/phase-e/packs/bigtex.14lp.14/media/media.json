@@ -1,0 +1,66 @@
+{
+  "generated_by": "scripts/phase-e/packs/photo-derivatives.mjs",
+  "budget_bytes": 300000,
+  "items": [
+    {
+      "id": "14lp-bigtex",
+      "status": "approved",
+      "model_key": "bigtex.14lp.14",
+      "source_id": "src-photo-14lp-bigtex",
+      "alt": "Big Tex 14LP tandem-axle dump trailer with its body partly raised, seen from the front left",
+      "original": {
+        "file": "14LP-Commercial-Grade-Dump-Trailer.png",
+        "sha256": "89cb636cb65f0a59e47bec2b980a7383d7843c164eac0fc533657ab762cdcfb6",
+        "width": 685,
+        "height": 300
+      },
+      "credit": {
+        "author": "Big Tex Trailer Manufacturing, LLC",
+        "license": "Used with Big Tex's permission (reply to the operator, 2026-11-03)",
+        "baked": "Photo: Big Tex Trailer Manufacturing, LLC",
+        "source_url": "https://www.bigtextrailers.com/wp-content/uploads/2023/07/14LP-Commercial-Grade-Dump-Trailer.png",
+        "modified": true
+      },
+      "modifications": [
+        "Placed whole on a #FFFFFF 1280x720 canvas: resized to 1178x516 and centred.",
+        "Added the credit label \"Photo: Big Tex Trailer Manufacturing, LLC\" in the top-right corner.",
+        "Dropped the original's camera and location metadata."
+      ],
+      "retouch": [],
+      "crop": null,
+      "canvas": {
+        "background": "#FFFFFF",
+        "placed": {
+          "left": 51,
+          "top": 102,
+          "width": 1178,
+          "height": 516
+        }
+      },
+      "credit_box": {
+        "left": 851,
+        "top": 14,
+        "width": 415,
+        "height": 29
+      },
+      "outputs": [
+        {
+          "file": "14lp-hero.webp",
+          "width": 1280,
+          "height": 720,
+          "bytes": 38998,
+          "sha256": "58d6bf66bbe547b7943d251180019e0360b58baa06c362d984770b542552c3a7",
+          "quality": 84
+        },
+        {
+          "file": "14lp-hero.jpg",
+          "width": 1280,
+          "height": 720,
+          "bytes": 53706,
+          "sha256": "e0a289cc66a99dffc8fe3e65b82fa41279a99b9c28ad5c6a7bd175e91a557579",
+          "quality": 84
+        }
+      ]
+    }
+  ]
+}

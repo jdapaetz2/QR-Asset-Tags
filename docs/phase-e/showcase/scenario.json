@@ -9,7 +9,7 @@
     "The tracked dataset uses the rehearsal anchor below. A new anchor (E2C cutover, an owner-run refresh) is an explicit rebuild: npm run phase-e:showcase:build -- --anchor=YYYY-MM-DD (docs/phase-e/DEMO_REFRESH_POLICY.md)."
   ],
   "time_zone": "America/Vancouver",
-  "anchor": { "date": "2026-10-20", "local_hour": 6, "purpose": "E2B rehearsal anchor (local and staging). E2C rebuilds for the cutover date." },
+  "anchor": { "date": "2026-11-03", "local_hour": 6, "purpose": "E2C cutover anchor (operator, 2026-11-03). E2B rehearsed with 2026-10-20; a refresh moves it again (DEMO_REFRESH_POLICY.md)." },
   "history_days": 105,
   "event_hours": { "earliest": "06:00", "latest": "21:00" },
   "organization_id": "11111111-1111-4111-8111-111111111111",
@@ -194,7 +194,7 @@
       "start_weekday_weight": { "mon": 6, "tue": 6, "wed": 6, "thu": 7, "fri": 10, "sat": 13, "sun": 5 },
       "rates": { "outbound": 0.6, "acknowledgement": 0.55, "staff_return": 0.85, "renter_return": 0.15 },
       "meter": null,
-      "photos": { "front_hitch_photo": "35sa-hitch-illustration", "deck_photo": "35sa-deck-illustration" },
+      "photos": { "front_hitch_photo": "35sa-front-illustrative-photo", "deck_photo": "35sa-deck-illustrative-photo" },
       "photo_rates": {
         "outbound": { "front_hitch_photo": 0.7, "deck_photo": 0.7 },
         "staff_return": { "front_hitch_photo": 0.75, "deck_photo": 0.75 },
@@ -249,7 +249,7 @@
       "start_weekday_weight": { "mon": 7, "tue": 6, "wed": 6, "thu": 8, "fri": 11, "sat": 12, "sun": 3 },
       "rates": { "outbound": 0.65, "acknowledgement": 0.6, "staff_return": 0.75, "renter_return": 0.25 },
       "meter": null,
-      "photos": { "front_hitch_photo": "14lp-hitch-illustration", "deck_photo": "14lp-body-illustration" },
+      "photos": { "front_hitch_photo": "14lp-hitch-illustrative-photo", "deck_photo": "14lp-body-illustrative-photo" },
       "photo_rates": {
         "outbound": { "front_hitch_photo": 0.7, "deck_photo": 0.7 },
         "staff_return": { "front_hitch_photo": 0.7, "deck_photo": 0.75 },
@@ -291,7 +291,7 @@
       "triage": { "issue_type": "operating_question", "response_need": "routine", "preferred_contact_method": "text" },
       "description": "Second operator on the crew wants to go over the start-up steps again. Is there a copy we can look at on a phone?",
       "status": "reviewed",
-      "story": "Useful support on the active rental: the answer is the Start-Up Guide linked on the scan page."
+      "story": "Useful support on the active rental: the answer is Northridge's walk-through at handover, which the scan page promises, plus the manual link."
     },
     {
       "key": "017-slew-lock",

@@ -137,6 +137,8 @@ async function main() {
       }
       if (model.signs) model.signs = model.signs.map((s) => Object.fromEntries(SIGN_KEYS.filter((k) => s[k] !== undefined).map((k) => [k, s[k]])));
 
+      // A guide the operator parked (release: "parked", E2C) stays parked across rebuilds.
+      const previousRelease = (asset.documents ?? []).find((d) => d.document_type === "startup_guide")?.release;
       const documents = (asset.documents ?? []).filter((d) => d.document_type !== "startup_guide");
       if (panelSvgs.size > 0) {
         const countPages = (buffer) => (buffer.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).length;
@@ -164,6 +166,7 @@ async function main() {
           file: fileRecord(pdfName, pdf, { pages }),
           status: draft ? "REVIEW_REQUIRED" : "READY",
           ...(draft ? { status_reason: "Carries the review-draft badge until every panel and sign is approved." } : {}),
+          ...(previousRelease ? { release: previousRelease } : {}),
         });
         console.log(`${asset.asset_code}: ${panelSvgs.size} panels, ${signSvgs.size} signs; ${pdfName} ${pdf.length} bytes, ${pages} pages`);
       } else {

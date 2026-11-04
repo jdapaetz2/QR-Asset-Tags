@@ -1,5 +1,6 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import { resolvePublicEquipment } from "@/lib/public/resolve";
+import { isDemoOrganization } from "@/lib/public/demo";
 import { DamageForm } from "@/components/public/damage-form";
 import { PublicFormLayout } from "@/components/public/public-form-layout";
 import { UnavailableNotice } from "@/components/public/unavailable-notice";
@@ -31,6 +32,7 @@ export default async function DamageReportPage({
 
   const resolved = await resolvePublicEquipment(supabase, shortCode);
   if (!resolved) return <UnavailableNotice />;
+  const demoNotice = await isDemoOrganization(supabase, resolved.organizationId);
 
   return (
     <PublicFormLayout
@@ -39,6 +41,7 @@ export default async function DamageReportPage({
       orgName={resolved.org.name ?? "Rental Equipment"}
       assetName={resolved.asset.asset_name}
       assetCode={resolved.asset.asset_code}
+      demoNotice={demoNotice}
     >
       <DamageForm shortCode={shortCode} />
     </PublicFormLayout>

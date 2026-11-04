@@ -1,0 +1,66 @@
+{
+  "generated_by": "scripts/phase-e/packs/photo-derivatives.mjs",
+  "budget_bytes": 300000,
+  "items": [
+    {
+      "id": "35sa-bigtex",
+      "status": "approved",
+      "model_key": "bigtex.35sa.12",
+      "source_id": "src-photo-35sa-bigtex",
+      "alt": "Big Tex 35SA single-axle utility trailer with a mesh ramp gate, seen from the front left",
+      "original": {
+        "file": "BT-35SA-Main-685x300-042925.png",
+        "sha256": "5f260a1e074a2ce932c0f230229fa2d6338dca34a6f017605b3f5fb62ec7121a",
+        "width": 685,
+        "height": 300
+      },
+      "credit": {
+        "author": "Big Tex Trailer Manufacturing, LLC",
+        "license": "Used with Big Tex's permission (reply to the operator, 2026-11-03)",
+        "baked": "Photo: Big Tex Trailer Manufacturing, LLC",
+        "source_url": "https://www.bigtextrailers.com/wp-content/uploads/2025/04/BT-35SA-Main-685x300-042925.png",
+        "modified": true
+      },
+      "modifications": [
+        "Placed whole on a #FFFFFF 1280x720 canvas: resized to 1178x516 and centred.",
+        "Added the credit label \"Photo: Big Tex Trailer Manufacturing, LLC\" in the top-right corner.",
+        "Dropped the original's camera and location metadata."
+      ],
+      "retouch": [],
+      "crop": null,
+      "canvas": {
+        "background": "#FFFFFF",
+        "placed": {
+          "left": 51,
+          "top": 102,
+          "width": 1178,
+          "height": 516
+        }
+      },
+      "credit_box": {
+        "left": 851,
+        "top": 14,
+        "width": 415,
+        "height": 29
+      },
+      "outputs": [
+        {
+          "file": "35sa-hero.webp",
+          "width": 1280,
+          "height": 720,
+          "bytes": 28026,
+          "sha256": "4e19af78f93fb080462d40fa7d088d3c6fe3606427507af67047e2a743034094",
+          "quality": 84
+        },
+        {
+          "file": "35sa-hero.jpg",
+          "width": 1280,
+          "height": 720,
+          "bytes": 35295,
+          "sha256": "da3cab99316a84274afaaebfdb81ff0e8c616c23c4278afe0dd76066effb00da",
+          "quality": 84
+        }
+      ]
+    }
+  ]
+}

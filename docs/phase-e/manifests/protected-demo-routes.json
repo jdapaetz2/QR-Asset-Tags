@@ -296,17 +296,20 @@
     }
   ],
   "business_cards": {
-    "status": "UNVERIFIED",
-    "location": "ChatGPT Mulemark project only (not on this machine, not in the marketing repo)",
-    "files_reported": ["Mulemark_Metal_Card_Deliverables_v1.zip", "01_black_MMBC_submission_CMYK.pdf", "02_bone_MMBC_submission_CMYK.pdf", "03_stainless_MMBC_submission_CMYK.pdf"],
+    "status": "VERIFIED",
+    "verified_at": "2026-11-03",
+    "evidence": "printer's final proof #000115318 (MyMetalBusinessCard.com), sent by the operator 2026-11-03; each QR decoded locally from the raster proof with scripts/lib/qr-decode.mjs, Reed-Solomon verified; no URL requested",
+    "order": "one card surface, four back designs, 25 each (gold ink on the finished cards); the physical cards have arrived",
+    "earlier_candidates": ["Mulemark_Metal_Card_Deliverables_v1.zip", "01_black_MMBC_submission_CMYK.pdf", "02_bone_MMBC_submission_CMYK.pdf", "03_stainless_MMBC_submission_CMYK.pdf"],
     "submission_date": "2026-09-11",
     "variants": [
-      { "variant": "01_black", "evidence": null, "decoded_url": null, "status": "UNVERIFIED" },
-      { "variant": "02_bone", "evidence": null, "decoded_url": null, "status": "UNVERIFIED" },
-      { "variant": "03_stainless", "evidence": null, "decoded_url": null, "status": "UNVERIFIED" }
+      { "back": "EXCAVATOR 017 / EXCAVATOR-017", "decoded_url": "https://mulemark.io/t/demo-ex017", "version": 4, "ecc": "H", "mask": 1, "matrix_matches_register": true, "status": "VERIFIED" },
+      { "back": "MINI EXCAVATOR 301.5 / EXCAVATOR-3015", "decoded_url": "https://mulemark.io/t/ezzs9ueg", "version": 4, "ecc": "H", "mask": 6, "matrix_matches_register": true, "status": "VERIFIED" },
+      { "back": "TRAILER 014 / TRAILER-014", "decoded_url": "https://mulemark.io/t/demo-tr014", "version": 4, "ecc": "H", "mask": 6, "matrix_matches_register": true, "status": "VERIFIED" },
+      { "back": "UTILITY TRAILER 204 / TRAILER-2041", "decoded_url": "https://mulemark.io/t/67uqc3q7", "version": 4, "ecc": "H", "mask": 6, "matrix_matches_register": true, "status": "VERIFIED", "note": "the title is the asset's old name; E2C names the page Dump Trailer 2041 (operator, 2026-11-03)" }
     ],
-    "evidence_needed": "printer's final proof (vector preferred) or a phone scan of each ordered card, URL read without opening it",
-    "blocks": ["E2C cutover"]
+    "still_to_do": "phone scans of the physical cards in the E2C live review (manufactured-card acceptance)",
+    "blocks": []
   },
   "conditional_routes": [
     {
@@ -314,7 +317,7 @@
       "source_date": "2026-07-20",
       "file_sha256": "939964821850636443ebf050325fb5cfc514ea440d3906239d735125aab0bb88",
       "bytes": 23086,
-      "condition": "protected if printed (operator to confirm)",
+      "condition": "not protected: the operator used and scanned it for testing only, and nothing else was printed (2026-11-03)",
       "symbols": [
         { "label": "COMPACTOR-003", "decoded_url": "https://qr-asset-tags.vercel.app/t/demo-comp004", "version": 6, "ecc": "H", "mask": 6, "matrix_sha256": "45e376ab4178f524e4f86124c82802900ba49d6a64a50721a7c4adb55ab6298d", "qr_link_id": "1b6d6a44-f2c6-4f9e-8a8f-1b4a35074b10", "asset_id": "21111111-1111-4111-8111-111111111104" },
         { "label": "EXCAVATOR-017", "decoded_url": "https://qr-asset-tags.vercel.app/t/demo-ex017", "version": 6, "ecc": "H", "mask": 3, "matrix_sha256": "18dd0cb001f97dd0778424eb8d1396d8c1b19bb7588ce140bfbd12ebff9f89ef", "qr_link_id": "41111111-1111-4111-8111-111111111101", "asset_id": "21111111-1111-4111-8111-111111111101" },

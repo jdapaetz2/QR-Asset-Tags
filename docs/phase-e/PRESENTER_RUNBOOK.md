@@ -1,9 +1,20 @@
-# Presenter runbook (Engineering Phase E2B)
+# Presenter runbook (Engineering Phase E2B, updated in E2C)
 
-How to run a Northridge demo on the synthetic showcase history ([SHOWCASE_STORIES.md](SHOWCASE_STORIES.md)), what not to do live, and how to put the demo state back afterwards. It uses the existing organization and role model: there is no demo platform, no public admin login and no reset button in the app.
+How to run a Northridge demo on the synthetic showcase history ([SHOWCASE_STORIES.md](SHOWCASE_STORIES.md)), what not to do live, and how to put the demo state back afterwards. It uses the existing organization and role model: there is no demo platform, no public admin login and no reset button in the app. The short version for a call is [PRESENTER_CHEAT_SHEET.md](PRESENTER_CHEAT_SHEET.md).
 
 ## Before a demo
 
+- **Run the pre-call check** (read-only, scan-free) from the project folder:
+  ```
+  npm.cmd run phase-e:precall:production
+  ```
+  It reports what you need before a call:
+  - the organization is on the Demo plan, and each machine's cover, page and manual link is there;
+  - the four protected codes resolve with the demo notice;
+  - the curated items, how old the history is, and any visitor rows since the anchor.
+
+  `npm.cmd run phase-e:health:production` checks the protected codes alone.
+- **Sign in with your Northridge demo login,** your private `customer_admin` account. Never share it. Keep the **Users** and **Settings** pages closed while presenting: they show your address and the notification settings.
 - **Check the starting state.** The dashboard should show the four queue items listed in SHOWCASE_STORIES.md. If an earlier demo changed them, run the presenter reset (below).
 - **Your phone is a real renter.** The acknowledgement prompt appears once per phone per rental. If you have already acknowledged on that phone during this rental, use another phone or a private browser window.
 - **Live actions are real app actions.** They write rows and send the notifications Northridge's settings ask for, to the owner-controlled addresses on the organization. Never type a fictional customer's email or phone into a form, and never call a number from the history. The 555-01XX numbers are fictional.
@@ -11,7 +22,7 @@ How to run a Northridge demo on the synthetic showcase history ([SHOWCASE_STORIE
 ## During: what you can do live
 
 On the four showcase assets:
-- scan a tag; open the guide, manual and safety sections;
+- scan a tag; open the quick start, the manual and the safety sections;
 - acknowledge;
 - send a support request, a damage report or a return checklist from the scan page;
 - in the dashboard: open records and evidence, mark items reviewed or resolved, and use **Mark returned & resolve**.
@@ -31,7 +42,13 @@ Staff outbound and staff return:
 
 The reset puts every **dataset** row (rentals, submissions, acknowledgements and scans of the synthetic history) back to its authored values, and the four rental pointers back to the dataset's. Every other row stays exactly as it is, including a real visitor's report or scan. It deletes only the exact ids you name.
 
-Commands. Put the files in a folder outside the repository and outside OneDrive. Use `local` or `staging` as the target; Production comes after E2C.
+Commands. Put the files in a folder outside the repository and outside OneDrive. The target is `production`, `staging` or `local`.
+
+On Production the apply runs through the guarded database URL, and you hold it only while you run the reset:
+1. Add `PHASE_E_PRODUCTION_DB_URL=` with the Production session-pooler string, and `PHASE_E_PRODUCTION_DB_CA_FILE=` with the Supabase certificate's path, to `.env.production-db.local` in the project folder.
+2. Delete that file afterwards.
+
+The tool proves it is Production before writing: no staging probe row, and the four protected QR rows exactly as tracked. Northridge does not need to be suspended for a presenter reset. The examples use `staging`; replace it with `production` for the live showcase.
 
 1. Write the reset:
    ```
@@ -74,6 +91,25 @@ Files that live actions uploaded stay in storage until the retention decision. T
 | The 7-day analytics are empty weeks later | Ranges count back from today; refresh the history ([DEMO_REFRESH_POLICY.md](DEMO_REFRESH_POLICY.md)) |
 | Staff names (Dana Whitfield, Luis Ferreira) have no accounts | Fictional staff are recorded by name only |
 | Acknowledgement names end in "(demo)" | They are labelled demo records, not proof of training or consent |
+| Every public page ends with a demo notice | Northridge is on the Demo plan: real models and reference documents, fictional company, equipment and history (E2C) |
+| No page offers a Start-Up Guide | The picture guides are parked until their drawings are reviewed (operator, 2026-11-02) |
+| The E20's Manual link opens Bobcat's store; its quick start is the handover line and Fuel is blank | Bobcat's manual is sold and not bought yet; Northridge walks renters through start-up at handover |
+| The Cat 301.5 page has no Safety section | Cat's safety rules come from its manual, which was not bought |
+| The trailer covers are Big Tex's own product images, with a small credit | Used with Big Tex's permission (2026-11-03); higher-resolution copies can be requested |
+| The support phone can't be dialled | Kept as it is by the operator's choice (2026-11-03); `support@mulemark.io` and Request Support work |
+| The TRAILER-2041 card says "Utility Trailer 204"; the page says "Dump Trailer 2041" | The page names the real model (a Big Tex 14LP dump trailer); the card's code line, TRAILER-2041, matches |
+
+## Trying a public form safely
+
+A visitor's (or your own) support request, damage report or return checklist on a showcase machine is a real record:
+- **Where its confirmation appears:** the thanks page on the phone, with its `SUB-` reference. Nothing is sent to the visitor.
+- **Who sees it:**
+  - the Northridge dashboard queue (your demo login);
+  - the notification email Northridge's settings send to `support@mulemark.io`: damage and support reports at once, and a renter's return checklist at once under `instant_renter`.
+- **What is kept:** the record, and any photos in Storage. The record stays until a presenter reset names it in `--remove`; the photos stay until the retention decision.
+- **What to type:** your own name and an address you control, never a fictional customer's details.
+
+Afterwards, if the record should not stay in the curated views, run the presenter reset (above) with its id in `--remove`. The pre-call check lists visitor rows since the anchor, so nothing is removed by surprise.
 
 ## Notifications
 

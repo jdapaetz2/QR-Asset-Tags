@@ -5,16 +5,33 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { LOCAL_ADMIN, LOCAL_OWNER, LOCAL_PASSWORD } from "../../scripts/lib/showcase-local-login.mjs";
 import { answerConditionStage } from "../e2e/support/actions";
-import { REPO, db } from "./support";
+import { NORTHRIDGE, REPO, db } from "./support";
 
 /**
- * Engineering Phase E2B — the four showcase stories in the real app (local stack, synthetic dataset). Each story walks
- * the public scan page (identity, guide, manual, support / damage / return) and the admin side (queue, submissions,
- * rental evidence), takes screenshots into qa-artifacts/phase-e-showcase/ and records the routes it visited in
- * walkthrough-routes.json for the rehearsal report. Staff outbound and return run on a disposable seed asset, so the
- * curated history of the four showcase assets is not changed by them.
+ * Engineering Phase E2B / E2C — the four showcase stories in the real app (local stack, synthetic dataset). Each story
+ * walks the public scan page (identity, manual, demo notice, support / damage / return) and the admin side (queue,
+ * submissions, rental evidence), takes screenshots into qa-artifacts/phase-e-showcase/ and records the routes it visited
+ * in walkthrough-routes.json for the rehearsal report. Staff outbound and return run on a disposable seed asset, so the
+ * curated history of the four showcase assets is not changed by them. E2C adds the operator's Demo-plan step in the owner
+ * UI, the check that no page offers the parked Start-Up Guides, and an axe accessibility scan of the public pages.
  */
 test.describe.configure({ mode: "serial" });
+
+const AXE = path.join(REPO, "node_modules", "axe-core", "axe.min.js");
+const accessibility: { route: string; violations: { id: string; impact: string; nodes: number }[] }[] = [];
+
+/** axe-core on the current page (WCAG 2.1 A/AA rules); serious or critical findings fail the walkthrough. */
+async function axeCheck(page: Page) {
+  await page.addScriptTag({ path: AXE });
+  const result = await page.evaluate(async () => {
+    const run = (window as unknown as { axe: { run: (ctx: Document, opts: unknown) => Promise<{ violations: { id: string; impact: string | null; nodes: unknown[] }[] }> } }).axe.run;
+    const r = await run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] } });
+    return r.violations.map((v) => ({ id: v.id, impact: v.impact ?? "minor", nodes: v.nodes.length }));
+  });
+  accessibility.push({ route: new URL(page.url()).pathname, violations: result });
+  const blocking = result.filter((v) => v.impact === "serious" || v.impact === "critical");
+  expect(blocking, `${new URL(page.url()).pathname}: ${JSON.stringify(blocking)}`).toEqual([]);
+}
 
 type Dataset = {
   assets: { asset_code: string; asset_id: string; short_code: string; active_rental_session_id: string | null }[];
@@ -55,19 +72,50 @@ async function login(page: Page, email: string, landing: string) {
 test.afterAll(() => {
   mkdirSync(OUT, { recursive: true });
   writeFileSync(path.join(OUT, "walkthrough-routes.json"), `${JSON.stringify(visited, null, 2)}\n`);
+  writeFileSync(path.join(OUT, "accessibility.json"), `${JSON.stringify(accessibility, null, 2)}\n`);
 });
 
-test("story 1 — EXCAVATOR-017: pictographic handoff, the manual, live acknowledgement and support", async ({ browser }) => {
+test("the operator's step — the owner puts Northridge on the Demo plan, and every showcase page says so", async ({ browser }) => {
+  const owner = await browser.newPage();
+  await login(owner, LOCAL_OWNER.email, "/owner");
+  await owner.goto(`/owner/organizations/${NORTHRIDGE}/settings`);
+  await owner.getByLabel("Preset").selectOption("demo");
+  await owner.getByRole("button", { name: "Save plan settings" }).click();
+  await expect(owner.getByLabel("Preset")).toHaveValue("demo");
+  await shot(owner, "e2c", "1-owner-demo-plan", "the owner sets Northridge's plan to Demo (not billed)");
+  await owner.close();
+  const renter = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  for (const a of DATASET.assets) {
+    await renter.goto(`/t/${a.short_code}`);
+    await expect(renter.getByText(a.asset_code)).toBeVisible();
+    await expect(renter.locator("[data-demo-notice]")).toContainText("fictional");
+    // The Start-Up Guides are parked (operator, 2026-11-02): no page offers one.
+    await expect(renter.getByRole("link", { name: "Start-Up Guide" })).toHaveCount(0);
+    const prompt = renter.getByRole("dialog", { name: "Before you use this equipment" });
+    if (await prompt.isVisible().catch(() => false)) await prompt.getByRole("button", { name: "Dismiss for now" }).click();
+    await axeCheck(renter);
+  }
+  const ex017 = asset("EXCAVATOR-017");
+  for (const form of ["support", "damage", "return"]) {
+    await renter.goto(`/forms/${ex017.short_code}/${form}`);
+    await expect(renter.locator("[data-demo-notice]")).toBeVisible();
+    await axeCheck(renter);
+  }
+  await renter.close();
+});
+
+test("story 1 — EXCAVATOR-017: the handoff, the manual, live acknowledgement and support", async ({ browser }) => {
   const ex017 = asset("EXCAVATOR-017");
   const renter = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await renter.goto(`/t/${ex017.short_code}`);
   await expect(renter.getByText("EXCAVATOR-017")).toBeVisible();
   await expect(renter.getByText("Bobcat E20", { exact: false }).first()).toBeVisible();
-  await expect(renter.getByRole("link", { name: "Start-Up Guide" })).toBeVisible();
-  await expect(renter.getByRole("link", { name: "Manual" })).toBeVisible();
+  await expect(renter.locator("body")).toContainText("Northridge walks you through start-up and the controls at handover");
+  // Without a guide, the Manual is both the page's action and the sticky bar's cell.
+  await expect(renter.getByRole("link", { name: "Manual" }).first()).toBeVisible();
   const prompt = renter.getByRole("dialog", { name: "Before you use this equipment" });
   await expect(prompt).toBeVisible({ timeout: 10_000 });
-  await shot(renter, "017", "1-scan-acknowledgement-prompt", "public scan page: identity, Start-Up Guide, Manual, the active-rental acknowledgement prompt");
+  await shot(renter, "017", "1-scan-acknowledgement-prompt", "public scan page: identity, the handover wording, Manual, the active-rental acknowledgement prompt");
   await prompt.getByLabel("Your name").fill("Walkthrough renter (local)");
   await prompt.getByRole("checkbox").check();
   await prompt.getByRole("button", { name: "Acknowledge" }).click();
@@ -75,7 +123,7 @@ test("story 1 — EXCAVATOR-017: pictographic handoff, the manual, live acknowle
   await renter.goto(`/forms/${ex017.short_code}/support`);
   await renter.getByLabel("Your name").fill("Walkthrough renter (local)");
   await renter.getByRole("textbox", { name: "Email" }).fill("walkthrough@phase-e-showcase.invalid");
-  await renter.getByLabel("Describe the problem").fill("Where is the start-up guide on the phone page?");
+  await renter.getByLabel("Describe the problem").fill("Can someone walk our second operator through start-up again at the yard?");
   await renter.getByRole("button", { name: "Send support request" }).click();
   await renter.waitForURL(/\/support\/thanks/);
   await expect(renter.getByText(/^SUB-\d{4}-[0-9A-F]{6}$/)).toBeVisible();
@@ -127,7 +175,8 @@ test("story 3 — TRAILER-014: accessory accountability, lights, coupler and gat
   const renter = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await renter.goto(`/t/${tr014.short_code}`);
   await expect(renter.getByText("TRAILER-014")).toBeVisible();
-  await shot(renter, "014", "1-scan-page", "public scan page: 35SA-12 identity, the Start-Up Guide and the owner's manual");
+  await expect(renter.locator("img[alt='Trailer 014']")).toBeVisible();
+  await shot(renter, "014", "1-scan-page", "public scan page: 35SA-12 identity, the Big Tex cover with its credit and the owner's manual");
   await renter.close();
   const page = await browser.newPage();
   await login(page, LOCAL_ADMIN.email, "/dashboard");

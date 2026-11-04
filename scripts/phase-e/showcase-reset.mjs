@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 /**
- * Engineering Phase E1 / E2B — the guarded showcase reset interface. Dry runs on any target; applies on loopback
- * targets, and on STAGING for the synthetic dataset kinds only. Production applies are refused before any connection.
+ * Engineering Phase E1 / E2B / E2C — the guarded showcase reset interface. Dry runs on any target; applies on loopback
+ * targets, and on STAGING and PRODUCTION for the synthetic dataset kinds and a rollback (restore) only, always against
+ * the reviewed dry-run plan. A Production apply exists for the E2C cutover the operator approved, the presenter reset
+ * and the refresh; the cutover and a rollback also need Northridge suspended, and the cutover approved E2A content.
  *
- *   npm.cmd run phase-e:reset:production -- manifest --kind=noop|draft-e2c|showcase --org=<Northridge id> --out=<abs file>
+ *   npm.cmd run phase-e:reset:production -- manifest --kind=noop|draft-e2c|showcase|presenter|refresh|restore … --out=<abs file>
  *   npm.cmd run phase-e:reset:production -- plan --manifest=<abs file>
- *   npm.cmd run phase-e:reset:staging -- manifest|plan|apply …        apply: dataset kinds, --approved-plan required
+ *   npm.cmd run phase-e:reset:production -- apply --manifest=<abs file> --approved-plan=<abs plan file>
+ *   npm.cmd run phase-e:reset:staging -- manifest|plan|apply …        apply: dataset kinds and restore, --approved-plan required
  *   npm.cmd run phase-e:reset:local -- manifest|plan|apply …          the repo's local stack (synthetic data)
  *   npm.cmd run phase-e:reset:standalone -- manifest|plan|apply …     the loopback-only restore container
  *   … manifest --kind=restore --archive=<abs package dir> [--cutover=<abs cutover manifest>]
@@ -15,10 +18,11 @@
  *
  * ONE ORGANIZATION: Northridge, by exact id (no wildcard, no other tenant, no public endpoint). Hosted targets are read
  * through the service role's PostgREST with a read-only client, after their live schema is matched against the tracked
- * dependency graph. A STAGING apply (E2B dataset kinds only) connects to the staging database through the guarded URL
- * in PHASE_E_STAGING_DB_URL (scripts/lib/showcase-target.mjs): the API URL must be staging, the live schema must match the
- * graph, the staging-only probe row must exist and the trigger / job catalog must be the reviewed one — all before the
- * transaction begins. The URL is never printed.
+ * dependency graph. A hosted apply connects to the target's database through the guarded URL in PHASE_E_STAGING_DB_URL
+ * or PHASE_E_PRODUCTION_DB_URL (scripts/lib/showcase-target.mjs): the API URL must be that target, the live schema must
+ * match the graph, the database must prove its identity (staging: the staging-only probe row; Production: no probe row
+ * and the four protected QR rows exactly as tracked) and the trigger / job catalog must be the reviewed one — all before
+ * the transaction begins. The URL is never printed.
  *
  * APPLY is one transaction with triggers ON: lock the organization row (new rows that reference it wait; other tenants
  * are unaffected) and its rows, compose the presenter / refresh manifest from those locked rows, plan, check the plan
@@ -39,7 +43,7 @@ import pg from "pg";
 import { assertTarget } from "../lib/env-target.mjs";
 import { STANDALONE_PASSWORD, assertLoopbackTargets, assertStandaloneLoopback, readLocalStackStatus, standaloneDbUrl } from "../lib/local-stack.mjs";
 import { archiveRootProblems, sha256, verifyArchiveDir } from "../lib/showcase-archive.mjs";
-import { composeDatasetReset, composeShowcase, datasetStage, e2aOverlay, rollbackScanRemovals } from "../lib/showcase-compose.mjs";
+import { composeDatasetReset, composeShowcase, datasetStage, e2aOverlay, rollbackScanReinstatements, rollbackScanRemovals } from "../lib/showcase-compose.mjs";
 import { DATASET_FILE, DATASET_TABLES, MEDIA_FILE, ownedIds, retiredIds } from "../lib/showcase-dataset.mjs";
 import { redactionProblems } from "../lib/showcase-inventory.mjs";
 import {
@@ -54,7 +58,7 @@ import {
   planSummary,
   restoreDesired,
 } from "../lib/showcase-reset.mjs";
-import { STAGING_REF, assertStagingDatabase, stagingDbConfig } from "../lib/showcase-target.mjs";
+import { STAGING_REF, assertProductionDatabase, assertStagingDatabase, productionDbConfig, stagingDbConfig } from "../lib/showcase-target.mjs";
 import { compareWithOpenApi, openApiTables } from "../lib/tenant-graph.mjs";
 import { fetchOpenApi, pgIdentity, pgTables, postgrestIdentity, postgrestTables, readOnlyClient } from "../lib/tenant-snapshot.mjs";
 
@@ -134,7 +138,7 @@ async function hostedApi(target) {
   return { supabaseUrl, serviceRoleKey, resolved };
 }
 
-async function connect(target, { forApply = false } = {}) {
+async function connect(target, { forApply = false, requireSuspended = false } = {}) {
   if (target === "local") {
     const status = readLocalStackStatus(REPO);
     const client = new pg.Client({ connectionString: status.dbUrl });
@@ -153,24 +157,27 @@ async function connect(target, { forApply = false } = {}) {
   }
   const { supabaseUrl, serviceRoleKey, resolved } = await hostedApi(target);
   if (forApply) {
-    if (target !== "staging") refuse("only the staging target takes a hosted apply");
+    const production = target === "production";
     let config;
     try {
-      config = stagingDbConfig(process.env);
+      config = production ? productionDbConfig(process.env) : stagingDbConfig(process.env);
     } catch (err) {
       refuse(err.message);
     }
     const { describe, ...pgConfig } = config;
     const client = new pg.Client({ ...pgConfig, statement_timeout: 120_000 });
+    const envName = production ? "PHASE_E_PRODUCTION_DB_URL" : "PHASE_E_STAGING_DB_URL";
     try {
       await client.connect();
     } catch (err) {
-      refuse(`could not connect to the staging database (${String(err.code ?? err.message).slice(0, 120)}); check PHASE_E_STAGING_DB_URL and, if TLS verification fails, PHASE_E_STAGING_DB_CA_FILE`);
+      refuse(`could not connect to the ${target} database (${String(err.code ?? err.message).slice(0, 120)}); check ${envName} and, if TLS verification fails, ${envName.replace(/_URL$/, "_CA_FILE")}`);
     }
     await client.query("set timezone = 'UTC'");
     let proof;
     try {
-      proof = await assertStagingDatabase(client);
+      proof = production
+        ? await assertProductionDatabase(client, { routes: PROTECTED.routes, organizationId: NORTHRIDGE, requireSuspended })
+        : await assertStagingDatabase(client);
     } catch (err) {
       await client.end().catch(() => {});
       refuse(err.message);
@@ -333,6 +340,7 @@ async function runManifest(args, conn) {
     );
     let cutoverInsertIds = {};
     let scanRemovals = [];
+    let scanReinstatements = [];
     if (args.cutover) {
       const cutover = readManifest(outsidePath(args.cutover, "--cutover"), args.target);
       if (cutover.recipe) refuse("--cutover must be the composed first-application manifest, not a presenter or refresh recipe");
@@ -340,6 +348,7 @@ async function runManifest(args, conn) {
         Object.entries(cutover.desired).map(([t, rows]) => [t, rows.map((r) => r.id).filter((id) => !(id in (cutover.expected[t] ?? {})))])
       );
       scanRemovals = rollbackScanRemovals(cutover, snap);
+      scanReinstatements = rollbackScanReinstatements(cutover, archiveRows.scan_events, snap);
       if (cutover.owned) {
         // After presenter resets or a refresh the target can hold dataset rows the cutover never inserted (a rebuilt
         // dataset with other keys): the rollback removes every row the current dataset owns or retired as well.
@@ -358,6 +367,7 @@ async function runManifest(args, conn) {
     const objects = JSON.parse(readFileSync(path.join(args.archive, "objects.json"), "utf8"));
     extra = {
       ...(scanRemovals.length ? { remove: { scan_events: scanRemovals } } : {}),
+      ...(scanReinstatements.length ? { reinstate: { scan_events: scanReinstatements } } : {}),
       storage: { stage: objects.map((o) => ({ bucket: o.bucket, path: o.path, sha256: o.sha256, mimetype: o.mimetype, cacheControl: o.cacheControl, source: path.join(args.archive, "objects", o.sha256) })) },
     };
     extra.source_archive = { archive_id: verified.manifest.archive_id, manifest_sha256: sha256(readFileSync(path.join(args.archive, "manifest.json"))) };
@@ -481,18 +491,30 @@ async function runApply(args, conn, read, approved) {
 }
 
 const args = parseArgs(process.argv.slice(2));
-if (args.command === "apply" && args.target === "production") refuse("Production never takes an apply from this tool (E2C runs its own approved cutover); plan it instead");
+// Hosted applies: the synthetic dataset kinds and a rollback (restore), only against the reviewed dry-run plan.
+const HOSTED_APPLY_KINDS = [...OWNED_KINDS, "restore"];
+// The cutover and a rollback rewrite the organization's showcase; nothing may write to it meanwhile.
+const SUSPENDED_KINDS = ["showcase", "restore"];
 let read = null;
 let approved = null;
 if (args.command === "apply") {
   read = readManifest(outsidePath(args.manifest, "--manifest"), args.target);
-  if (args.target === "staging" && !OWNED_KINDS.includes(read.kind)) refuse("on staging only the synthetic dataset kinds (showcase, presenter, refresh) are applied");
-  if (args.target === "staging" && !args.approvedPlan) refuse("a staging apply needs --approved-plan=<the reviewed dry-run plan file>");
+  if (!LOOPBACK.has(args.target)) {
+    if (!HOSTED_APPLY_KINDS.includes(read.kind)) refuse(`on ${args.target} only ${HOSTED_APPLY_KINDS.join(", ")} are applied`);
+    if (!args.approvedPlan) refuse(`a ${args.target} apply needs --approved-plan=<the reviewed dry-run plan file>`);
+  }
+  if (args.target === "production") {
+    if (args.failAt) refuse("--fail-at is a rehearsal: prove it on staging, never on Production");
+    if (read.kind === "showcase" && read.e2a?.apply_allowed !== true) refuse("the E2A content is not approved for Production: an import manifest is not apply.allowed");
+  }
   if (args.approvedPlan) approved = readApprovedPlan(outsidePath(args.approvedPlan, "--approved-plan"), read);
 }
 let conn = null;
 try {
-  conn = await connect(args.target, { forApply: args.command === "apply" });
+  conn = await connect(args.target, {
+    forApply: args.command === "apply",
+    requireSuspended: args.target === "production" && SUSPENDED_KINDS.includes(read?.kind),
+  });
   if (args.command === "manifest") await runManifest(args, conn);
   else if (args.command === "plan") await runPlan(args, conn);
   else await runApply(args, conn, read, approved);

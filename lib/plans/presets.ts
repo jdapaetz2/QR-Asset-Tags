@@ -54,7 +54,23 @@ export const PLAN_PRESETS: PlanPreset[] = [
     renewal_price_cents: null,
     tag_credit_cents: null,
   },
+  // Engineering Phase E2C: a showcase organization (real models, fictional company and history). Not billed; its public
+  // pages show the demo notice (is_demo_organization, migration 0041) and platform reports label its history.
+  {
+    key: "demo",
+    label: "Demo (not billed)",
+    covered_asset_limit: null,
+    intro_price_cents: null,
+    renewal_price_cents: null,
+    tag_credit_cents: null,
+  },
 ];
+
+export const DEMO_PLAN_KEY = "demo";
+
+export function isDemoPlan(planKey: string | null | undefined): boolean {
+  return planKey === DEMO_PLAN_KEY;
+}
 
 export const PLAN_KEYS = PLAN_PRESETS.map((p) => p.key);
 

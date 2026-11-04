@@ -6,6 +6,7 @@ Generated from [SOURCES_REGISTER.json](SOURCES_REGISTER.json) by `scripts/phase-
 - Original bytes live in the private source vault outside Git (<home>/Mulemark-Sources/e2a, listed with SHA-256 in its SHA256SUMS). vault_path is relative to it.
 - Rights: Big Tex, Bobcat and Caterpillar documents state no redistribution terms, so they are linked, never hosted, until written permission exists. Purchased manuals are private source material only.
 - shareable_across_orgs stays false until the operator expressly approves reuse in other organizations (ONBOARDING_DATA_CONTRACT.md, MODEL layer). Linking an official URL is not affected.
+- E2C (2026-11-03): Big Tex's reply to the operator allows the photos and materials on its website, credited to Big Tex Trailer Manufacturing, LLC where practical (vault: oem/bigtex/big-tex-permission-reply.txt). Its two product images are hosted as the trailer covers with that credit; its manuals stay linked.
 
 | Source | Kind | Edition | Rights | Use | Availability | Verified | Used by |
 |---|---|---|---|---|---|---|---|
@@ -26,6 +27,8 @@ Generated from [SOURCES_REGISTER.json](SOURCES_REGISTER.json) by `scripts/phase-
 | `src-photo-e20-taurusemerald`<br>[Bobcat E20 Mini Excavator.jpg](https://commons.wikimedia.org/wiki/File:Bobcat_E20_Mini_Excavator.jpg) | photo | Taken 2024-08-22; 3658 x 2686 | cc-by-sa | public-host | in-hand | read | EXCAVATOR-017 |
 | `src-photo-e20-housen`<br>[20150724 libramont095.JPG](https://commons.wikimedia.org/wiki/File:20150724_libramont095.JPG) | photo | Taken 2015-07-24 at the Libramont fair, Belgium; 3872 x 2592 | cc-by-sa | public-host | in-hand | read |  |
 | `src-photo-301-5-lostplanetkd73`<br>[A small Cat vehicle in Bay Shore, NY - July 2024.jpg](https://commons.wikimedia.org/wiki/File:A_small_Cat_vehicle_in_Bay_Shore,_NY_-_July_2024.jpg) | photo | Taken July 2024; 4032 x 3024 | cc0 | public-host | in-hand | read | EXCAVATOR-3015 |
+| `src-photo-35sa-bigtex`<br>[Big Tex 35SA product image](https://www.bigtextrailers.com/wp-content/uploads/2025/04/BT-35SA-Main-685x300-042925.png) | photo | 685 x 300 product image on a transparent background | oem-permission | public-host | in-hand | read | TRAILER-014 |
+| `src-photo-14lp-bigtex`<br>[Big Tex 14LP product image](https://www.bigtextrailers.com/wp-content/uploads/2023/07/14LP-Commercial-Grade-Dump-Trailer.png) | photo | 685 x 300 product image on a transparent background | oem-permission | public-host | in-hand | read | TRAILER-2041 |
 
 ## Applicability and integrity
 
@@ -139,3 +142,15 @@ Generated from [SOURCES_REGISTER.json](SOURCES_REGISTER.json) by `scripts/phase-
 - 2259364 bytes, SHA-256 `dd86f34d500d06b70b22519fa9bbe61337e44aad47cf149b4fe3de040f300292`, retrieved 2026-10-17
 - Attribution: LostplanetKD73 via Wikimedia Commons (CC0; credit given as a courtesy)
 - Licence: https://creativecommons.org/publicdomain/zero/1.0/
+
+### `src-photo-35sa-bigtex`
+
+- Applicability: Big Tex's own image of the model (not the showcase unit).
+- 24450 bytes, SHA-256 `5f260a1e074a2ce932c0f230229fa2d6338dca34a6f017605b3f5fb62ec7121a`, retrieved 2026-11-03
+- Attribution: Photo: Big Tex Trailer Manufacturing, LLC
+
+### `src-photo-14lp-bigtex`
+
+- Applicability: Big Tex's own image of the model (not the showcase unit).
+- 44942 bytes, SHA-256 `89cb636cb65f0a59e47bec2b980a7383d7843c164eac0fc533657ab762cdcfb6`, retrieved 2026-11-03
+- Attribution: Photo: Big Tex Trailer Manufacturing, LLC

@@ -194,13 +194,20 @@ Manifests contain row data, so they live in the archive folder.
 
 **Apply targets:**
 - **Loopback** (the local stack or the standalone container): every kind.
-- **Staging** (E2B): the three dataset kinds only, through the staging database URL in `PHASE_E_STAGING_DB_URL` (`.env.staging.local`, never printed). `scripts/lib/showcase-target.mjs` checks four things before the transaction:
+- **Staging** (E2B, rollback from E2C): the three dataset kinds and `restore`, through the staging database URL in `PHASE_E_STAGING_DB_URL` (`.env.staging.local`, never printed). `scripts/lib/showcase-target.mjs` checks four things before the transaction:
   1. the URL is the staging project's direct host or its session pooler on port 5432 (never 6543, never the Production ref), with TLS;
   2. the API URL is staging and its schema matches the graph;
   3. the staging-only probe row exists;
   4. the trigger and job catalog is the reviewed one (§6).
   A staging apply also needs `--approved-plan` (below).
-- **Production:** refused before any connection.
+- **Production** (E2C, under the operator's approved packet): the same kinds, through `PHASE_E_PRODUCTION_DB_URL`. It lives in `.env.production-db.local`, which the operator adds for the run and deletes after.
+  - **The URL:** the Production project's direct host or its session pooler, port 5432, TLS, never the staging ref.
+  - **Before the transaction, the database must prove it is Production:**
+    - the staging probe row is absent;
+    - the four protected QR rows match `manifests/protected-demo-routes.json` exactly (id, code, asset, organization, active, production-primary, no lineage);
+    - the catalog is the reviewed one.
+  - **The cutover (`showcase`) and a rollback (`restore`)** also need Northridge **suspended** in the owner UI. The cutover also needs approved E2A content (every import manifest `apply.allowed`).
+  - **Always** `--approved-plan`, and never `--fail-at` (that rehearsal belongs on staging).
 
 `--approved-plan=<the dry run's .plan.json>`: the change set computed on the locked rows must equal the reviewed one, or the apply stops without writing.
 
@@ -324,10 +331,15 @@ Staging Northridge is reserved for the E2B rehearsal. The read-only health check
 ## 8. E2C cutover checklist
 
 **Preconditions.** All must be true before asking for the Production approval:
-- [ ] E2A content approved, E2B dataset rehearsed on staging, business-card evidence verified, printed-sheet answers received, owner-only QR-disable guard migrated ([PHASE_E_PLAN.md](PHASE_E_PLAN.md)).
+- [ ] Content and evidence ([PHASE_E_PLAN.md](PHASE_E_PLAN.md)):
+  - [x] E2A content approved (2026-11-03; guides parked);
+  - [ ] E2B dataset rehearsed on staging (redone for the E2C shape);
+  - [x] business-card evidence verified (2026-11-03, [PROTECTED_DEMO_ROUTES.md](PROTECTED_DEMO_ROUTES.md));
+  - [x] printed-sheet answers received (2026-11-03);
+  - [ ] the owner-only QR-disable guard migrated (0040, packet item 1).
 - [ ] The cutover manifest is the E2B `showcase` kind ([E2C_CUTOVER_PACKAGE.md](E2C_CUTOVER_PACKAGE.md); its 2026-10-20 dry run was **ACCEPTED**). Rebuild the dataset for the cutover date, compose the manifest and dry-run it again: `npm.cmd run phase-e:reset:production -- plan --manifest=<file>`. The counts are recorded and the emitted SQL has been reviewed.
-- [ ] The execution mode is decided and approved: one SQL transaction in the SQL editor, or through the database URL. E1's `apply` refuses hosted targets, so E2C adds that path under its own approval.
-- [ ] The operator live checks in [§6](#6-seed-notification-suppression) are done and recorded.
+- [x] The execution mode is decided: through the guarded database URL (operator, 2026-11-03). The approval packet still approves the run itself.
+- [x] The operator live checks in [§6](#6-seed-notification-suppression) are done and recorded (2026-10-19).
 - [ ] A separate Production approval names the exact ids, taken from the plan file.
 - [ ] The time is outside 13:00–15:00 UTC.
 

@@ -20,9 +20,9 @@
         "BLOCKED": 9
       },
       "page_fields": {
-        "READY": 2,
-        "REVIEW_REQUIRED": 3,
-        "BLOCKED": 2
+        "READY": 7,
+        "REVIEW_REQUIRED": 0,
+        "BLOCKED": 0
       },
       "panels": {
         "total": 8,
@@ -78,9 +78,9 @@
         "BLOCKED": 16
       },
       "page_fields": {
-        "READY": 6,
+        "READY": 7,
         "REVIEW_REQUIRED": 0,
-        "BLOCKED": 1
+        "BLOCKED": 0
       },
       "panels": {
         "total": 8,
@@ -129,13 +129,13 @@
       "pack": "docs/phase-e/packs/bigtex.35sa.12/pack.json",
       "review_status": "MULEMARK_REVIEW",
       "items": {
-        "READY": 13,
+        "READY": 14,
         "REVIEW_REQUIRED": 28,
         "BLOCKED": 2
       },
       "page_fields": {
-        "READY": 3,
-        "REVIEW_REQUIRED": 4,
+        "READY": 7,
+        "REVIEW_REQUIRED": 0,
         "BLOCKED": 0
       },
       "panels": {
@@ -148,7 +148,7 @@
         "drawn": 5
       },
       "guide": "docs/phase-e/packs/bigtex.35sa.12/guide/bigtex.35sa.12-start-up-guide.pdf",
-      "photo": "BLOCKED",
+      "photo": "READY",
       "manual": {
         "source_id": "src-bigtex-owners-2020",
         "delivery": "link",
@@ -176,8 +176,7 @@
           "jack": "2,000 lb top-wind set-back jack with removable sand foot"
         },
         "blocked_by": [
-          "Exact-model photo: no licensed 35SA photo exists; waiting on Big Tex's reply to the operator's permission request (sent 2026-10-17).",
-          "Knowledgeable review of the finished guide and page text by the named reviewer (the operator).",
+          "Guide panels and signs: parked by the operator on 2026-11-02; their knowledgeable review is outstanding (the page text was approved on 2026-11-03).",
           "Lug-nut torque: Big Tex's manual leaves the value blank (p. 70); asked of Big Tex."
         ]
       }
@@ -191,13 +190,13 @@
       "pack": "docs/phase-e/packs/bigtex.14lp.14/pack.json",
       "review_status": "MULEMARK_REVIEW",
       "items": {
-        "READY": 12,
+        "READY": 13,
         "REVIEW_REQUIRED": 41,
         "BLOCKED": 5
       },
       "page_fields": {
-        "READY": 2,
-        "REVIEW_REQUIRED": 5,
+        "READY": 7,
+        "REVIEW_REQUIRED": 0,
         "BLOCKED": 0
       },
       "panels": {
@@ -210,7 +209,7 @@
         "drawn": 10
       },
       "guide": "docs/phase-e/packs/bigtex.14lp.14/guide/bigtex.14lp.14-start-up-guide.pdf",
-      "photo": "BLOCKED",
+      "photo": "READY",
       "manual": {
         "source_id": "src-bigtex-owners-2020-dump",
         "delivery": "link",
@@ -244,8 +243,7 @@
           "drop_axles": "not fitted"
         },
         "blocked_by": [
-          "Exact-model photo: no licensed 14LP photo exists; waiting on Big Tex's reply to the operator's permission request (sent 2026-10-17).",
-          "Knowledgeable review of the finished guide and page text by the named reviewer (the operator).",
+          "Guide panels and signs: parked by the operator on 2026-11-02; their knowledgeable review is outstanding (the page text was approved on 2026-11-03).",
           "Hoist Manual applicability to the 14LP: not listed on its cover; asked of Big Tex.",
           "Lug-nut torque: Big Tex's manual leaves the value blank (p. 80); asked of Big Tex.",
           "Hoist capacity: not published by Big Tex."

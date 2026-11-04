@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.2.0",
+  "schema_version": "1.3.0",
   "manifest_id": "showcase-cat-301-5-canopy",
   "kind": "showcase",
   "organization": {
@@ -822,7 +822,7 @@
         "asset_id": "7f7753d2-37f9-4e74-bbb2-90f048523f21",
         "qr_link_id": "07c8ca60-0102-48c6-ac96-a8cb4b27ca90"
       },
-      "publish_intent": false,
+      "publish_intent": true,
       "review": {
         "status": "MULEMARK_REVIEW",
         "blockers": [
@@ -851,8 +851,8 @@
         "safety_notes": {
           "text": null,
           "derived_from": [],
-          "status": "BLOCKED",
-          "status_reason": "Cat's safety rules come from OMM M0088895, not bought (operator decision, 2026-10-17)."
+          "status": "READY",
+          "status_reason": "Left blank for this release, as approved by the operator on 2026-11-03. Cat's safety rules come from OMM M0088895, not bought (operator decision, 2026-10-17)."
         },
         "fuel_power_notes": {
           "text": "Fuel tank: 22.0 L (5.8 gal).",
@@ -908,6 +908,13 @@
     }
   ],
   "approval": {
-    "status": "not_requested"
+    "status": "approved",
+    "content_version": "e2a-cb4f1858eba8",
+    "scope_asset_codes": [
+      "EXCAVATOR-3015"
+    ],
+    "approver_role": "Mulemark owner (operator): named reviewer with final approval authority",
+    "approved_at": "2026-11-03",
+    "record_ref": "docs/phase-e/E2C_PAGE_TEXT_REVIEW.md (page text approved as worded, 2026-11-03); Start-Up Guides parked (2026-11-02); WORK_LOG.md"
   }
 }

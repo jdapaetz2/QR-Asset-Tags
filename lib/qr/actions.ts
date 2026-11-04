@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth/session";
+import { ROLES } from "@/lib/auth/roles";
 import { publicEnv } from "@/lib/env";
 import {
   shortCodeFromBytes,
@@ -21,6 +22,11 @@ const OVER_LIMIT_MESSAGE =
 
 const QR_STATUSES = ["active", "disabled"] as const;
 const MAX_ATTEMPTS = 5;
+
+// Engineering Phase E2C (migration 0040): the production-primary link is the printed one; only the platform owner may
+// take it out of service.
+const PRIMARY_DISABLE_MESSAGE =
+  "This is the QR code printed for this asset, so it can't be deactivated here. Contact Mulemark if it must stop working.";
 
 /**
  * Create a QR link for an asset the caller owns. organization_id and asset_id
@@ -93,7 +99,10 @@ export async function createQrLink(
   return { error: "Could not generate a unique QR code. Please try again." };
 }
 
-/** Activate or deactivate a QR link the caller owns (RLS-scoped). */
+/**
+ * Activate or deactivate a QR link the caller owns (RLS-scoped). An active production-primary link (the printed one)
+ * can be deactivated only by the platform owner; the database enforces the same rule (migration 0040).
+ */
 export async function setQrLinkStatus(
   qrLinkId: string,
   status: string,
@@ -103,9 +112,17 @@ export async function setQrLinkStatus(
   if (!(QR_STATUSES as readonly string[]).includes(status)) {
     return { error: "Invalid status." };
   }
-  await requireProfile();
+  const profile = await requireProfile();
 
   const supabase = await createClient();
+  if (status !== "active" && profile.role !== ROLES.PLATFORM_OWNER) {
+    const { data: link } = await supabase
+      .from("qr_links")
+      .select("status, is_production_primary")
+      .eq("id", qrLinkId)
+      .maybeSingle();
+    if (link?.status === "active" && link.is_production_primary) return { error: PRIMARY_DISABLE_MESSAGE };
+  }
   const { data, error } = await supabase
     .from("qr_links")
     .update({ status })
@@ -113,7 +130,10 @@ export async function setQrLinkStatus(
     .select("asset_id")
     .maybeSingle();
 
-  if (error) return { error: "Could not update the QR link." };
+  if (error) {
+    const primary = error.code === "42501" || error.message?.includes("qr_primary_disable_forbidden");
+    return { error: primary ? PRIMARY_DISABLE_MESSAGE : "Could not update the QR link." };
+  }
   if (!data) return { error: "QR link not found." };
 
   redirect(`/dashboard/assets/${data.asset_id}`);

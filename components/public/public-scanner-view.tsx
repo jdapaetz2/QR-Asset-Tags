@@ -162,6 +162,7 @@ export function PublicScannerView({
   page,
   org,
   documents,
+  demoNotice = false,
 }: {
   mode: ScannerMode;
   shortCode: string;
@@ -173,6 +174,8 @@ export function PublicScannerView({
   page: PublicPage;
   org: PublicOrg;
   documents: PublicDocument[];
+  /** True for a demo organization (Demo plan): the footer adds the demo notice. */
+  demoNotice?: boolean;
 }) {
   const orgName = org?.name ?? "Rental Equipment";
   const brand = safeBrandColor(org?.primary_color);
@@ -373,7 +376,7 @@ export function PublicScannerView({
       </section>
 
       {/* Footer */}
-      <PublicFooter />
+      <PublicFooter demoNotice={demoNotice} />
     </div>
   );
 }

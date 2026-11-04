@@ -139,29 +139,21 @@ Credit: TaurusEmerald, CC BY-SA 4.0 (modified), [source](https://commons.wikimed
 
 ## Public page text
 
-The seven equipment-page fields in display order (2 READY · 3 REVIEW_REQUIRED · 2 BLOCKED). Citations stay here; the page shows plain text only.
+The seven equipment-page fields in display order (7 READY · 0 REVIEW_REQUIRED · 0 BLOCKED). Citations stay here; the page shows plain text only.
 
 ### Headline · READY
 
-> Bobcat E20 compact excavator with canopy. Read the Start-Up Guide before you start.
+> Bobcat E20 compact excavator with canopy. Northridge walks you through start-up and the controls at handover.
 
-From: `model`, `operator_protection`. Identity facts.
+From: `model`, `operator_protection`, `pol-e20-handover`. Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md). The Start-Up Guide is parked, so the headline points to the handover.
 
-### Quick start · BLOCKED
+### Quick start · READY
 
-> 1. Call 811 first. Watch for holes, drop-offs, soft ground.
-> 2. Walk around it: look for leaks and damaged parts.
-> 3. Belt on, controls in neutral; start only from the seat.
-> 4. Levers pushed away drive toward the blade. Check it first.
-> 5. Slopes: 15° across or up, 25° down or backing up.
-> 6. Keep people clear of the swing; never lift over anyone.
-> 7. Leaving: bucket down, engine off, key out, console up.
-> 8. Transport: heavy end uphill, slew lock on, chained down.
-> The Start-Up Guide shows each step.
+> Before operating, go through start-up and the controls with Northridge staff at handover. Bobcat's Operation and Maintenance Manual is linked under Manual.
 
-From: `e20-s1`, `e20-s2`, `pol-renter-walkaround`, `e20-s3`, `e20-s4`, `e20-s6`, `e20-s7`, `e20-s5`, `e20-s9`, `e20-s10`. Start-up and control steps come from Bobcat's E20 manual (7255004), not in hand yet. Publish after they are added and reviewed.
+From: `pol-e20-handover`. Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md). Northridge's handover policy, as on the Cat page; the steps from Bobcat's manual wait until it is bought.
 
-### Safety · REVIEW_REQUIRED
+### Safety · READY
 
 > Keep people out of the swing area; never lift over anyone.
 > Slopes: 15° across or up, 25° down or backing up. No swinging on a slope.
@@ -171,27 +163,27 @@ From: `e20-s1`, `e20-s2`, `pol-renter-walkaround`, `e20-s3`, `e20-s4`, `e20-s6`,
 > No smoking while fueling.
 > Stay within the lift chart on the machine.
 
-From: `e20-s5`, `e20-s7`, `e20-w1`, `e20-w2`, `e20-w3`, `e20-w4`, `e20-s8`. Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.
+From: `e20-s5`, `e20-s7`, `e20-w1`, `e20-w2`, `e20-w3`, `e20-w4`, `e20-s8`. Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md).
 
-### Fuel / power · BLOCKED
+### Fuel / power · READY
 
 *(empty)*
 
-From: none. Fuel type and tank capacity come from the E20 manual.
+From: none. Left blank for this release, as approved by the operator on 2026-11-03. Fuel type and tank capacity come from the E20 manual.
 
-### Troubleshooting · REVIEW_REQUIRED
+### Troubleshooting · READY
 
 > Something wrong (a warning light, leak or odd noise): stop, lower the bucket to the ground, shut down and use Request Support.
 
-From: `pol-stop-and-report`, `e20-s9`. Northridge policy plus Bobcat's leaving-the-machine sequence; awaiting the reviewer.
+From: `pol-stop-and-report`, `e20-s9`. Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md).
 
-### Return · REVIEW_REQUIRED
+### Return · READY
 
 > Return the keys and any attachments.
 > Leave it with the bucket on the ground, engine off, key out and console up.
 > Use Return checklist when you drop it off.
 
-From: `template:mini_excavator_skid_steer`, `e20-s9`. Accessories from the return checklist template; the parking line from Bobcat's sheet.
+From: `template:mini_excavator_skid_steer`, `e20-s9`. Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md).
 
 ### Emergency · READY
 
@@ -203,7 +195,7 @@ From: `mulemark-standard-emergency`. Mulemark's standard emergency wording (lib/
 
 | Title | Type | Delivery | Target | Status |
 |---|---|---|---|---|
-| Bobcat E20 Start-Up Guide | startup_guide | hosted | [guide/bobcat.e20.b3bl-canopy-start-up-guide.pdf](guide/bobcat.e20.b3bl-canopy-start-up-guide.pdf) (204287 bytes, 2 pages) | REVIEW_REQUIRED: Carries the review-draft badge until every panel and sign is approved. |
+| Bobcat E20 Start-Up Guide | startup_guide | hosted | [guide/bobcat.e20.b3bl-canopy-start-up-guide.pdf](guide/bobcat.e20.b3bl-canopy-start-up-guide.pdf) (204284 bytes, 2 pages) | REVIEW_REQUIRED: Carries the review-draft badge until every panel and sign is approved. |
 | Bobcat E20 Operation & Maintenance Manual (sold by Bobcat) | manual | link | [link](https://shop.bobcat.com/ca/e20-excavator-operation-and-maintenance-digital-manual-7255004enuspdf) | READY: Bobcat's official channel; the manual is sold, not free. |
 | Bobcat Rent It Safely: compact excavator safety rules | safety_sheet | link | [link](https://res.cloudinary.com/doosan-bobcat/image/upload/v1642696283/bobcat-assets/na-approved/products/excavators/multi-model/literature/b-1699-rentitsafely-excavator.pdf) | READY: Bobcat's free official rental safety sheet, linked. |
 
@@ -221,5 +213,6 @@ Accessory icons: Keys (`keys`, from `template:mini_excavator_skid_steer`, REVIEW
 
 - Northridge policy `pol-renter-walkaround`: Northridge does the daily service checks before each rental; renters walk around for leaks and damage before starting. (Fictional demo policy.)
 - Northridge policy `pol-stop-and-report`: If something seems wrong (a warning light, leak or unusual noise), stop safely and contact Northridge with Request Support. (Fictional demo policy.)
+- Northridge policy `pol-e20-handover`: Northridge staff walk every renter through start-up and the controls at handover. (Fictional demo policy.)
 
 Files: `docs/phase-e/packs/bobcat.e20.b3bl-canopy/`.

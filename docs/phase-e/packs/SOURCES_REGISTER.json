@@ -1,11 +1,12 @@
 {
   "register": "e2a-showcase-sources",
-  "updated": "2026-10-17",
+  "updated": "2026-11-03",
   "notes": [
     "Hand-maintained master list. Every entry validates against definitions/source in docs/phase-e/schema/equipment-content.schema.json (1.1.0); each pack.json embeds copies of the entries it cites, and the pack tests check the copies match.",
     "Original bytes live in the private source vault outside Git (<home>/Mulemark-Sources/e2a, listed with SHA-256 in its SHA256SUMS). vault_path is relative to it.",
     "Rights: Big Tex, Bobcat and Caterpillar documents state no redistribution terms, so they are linked, never hosted, until written permission exists. Purchased manuals are private source material only.",
-    "shareable_across_orgs stays false until the operator expressly approves reuse in other organizations (ONBOARDING_DATA_CONTRACT.md, MODEL layer). Linking an official URL is not affected."
+    "shareable_across_orgs stays false until the operator expressly approves reuse in other organizations (ONBOARDING_DATA_CONTRACT.md, MODEL layer). Linking an official URL is not affected.",
+    "E2C (2026-11-03): Big Tex's reply to the operator allows the photos and materials on its website, credited to Big Tex Trailer Manufacturing, LLC where practical (vault: oem/bigtex/big-tex-permission-reply.txt). Its two product images are hosted as the trailer covers with that credit; its manuals stay linked."
   ],
   "sources": [
     {
@@ -379,6 +380,50 @@
       "verification": "read",
       "availability": "in-hand",
       "vault_path": "photos/originals/A_small_Cat_vehicle_in_Bay_Shore_NY_-_July_2024.jpg"
+    },
+    {
+      "source_id": "src-photo-35sa-bigtex",
+      "kind": "photo",
+      "title": "Big Tex 35SA product image",
+      "publisher": "Big Tex Trailer Manufacturing, LLC",
+      "url": "https://www.bigtextrailers.com/wp-content/uploads/2025/04/BT-35SA-Main-685x300-042925.png",
+      "edition": "685 x 300 product image on a transparent background",
+      "bytes": 24450,
+      "sha256": "5f260a1e074a2ce932c0f230229fa2d6338dca34a6f017605b3f5fb62ec7121a",
+      "retrieved_at": "2026-11-03",
+      "applicability": "Big Tex's own image of the model (not the showcase unit).",
+      "rights": {
+        "status": "oem-permission",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false,
+        "attribution": "Photo: Big Tex Trailer Manufacturing, LLC",
+        "permission_ref": "Big Tex's reply to the operator, 2026-11-03 (vault: oem/bigtex/big-tex-permission-reply.txt)"
+      },
+      "verification": "read",
+      "availability": "in-hand",
+      "vault_path": "oem/bigtex/web/img/BT-35SA-Main-685x300-042925.png"
+    },
+    {
+      "source_id": "src-photo-14lp-bigtex",
+      "kind": "photo",
+      "title": "Big Tex 14LP product image",
+      "publisher": "Big Tex Trailer Manufacturing, LLC",
+      "url": "https://www.bigtextrailers.com/wp-content/uploads/2023/07/14LP-Commercial-Grade-Dump-Trailer.png",
+      "edition": "685 x 300 product image on a transparent background",
+      "bytes": 44942,
+      "sha256": "89cb636cb65f0a59e47bec2b980a7383d7843c164eac0fc533657ab762cdcfb6",
+      "retrieved_at": "2026-11-03",
+      "applicability": "Big Tex's own image of the model (not the showcase unit).",
+      "rights": {
+        "status": "oem-permission",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false,
+        "attribution": "Photo: Big Tex Trailer Manufacturing, LLC",
+        "permission_ref": "Big Tex's reply to the operator, 2026-11-03 (vault: oem/bigtex/big-tex-permission-reply.txt)"
+      },
+      "verification": "read",
+      "availability": "in-hand",
+      "vault_path": "oem/bigtex/web/img/14LP-Commercial-Grade-Dump-Trailer.png"
     }
   ]
 }

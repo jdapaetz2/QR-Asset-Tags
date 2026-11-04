@@ -30,6 +30,7 @@ export function PublicEquipmentPage({
   org,
   documents,
   isStaffViewer = false,
+  demoNotice = false,
 }: {
   shortCode: string;
   asset: PublicAsset;
@@ -40,6 +41,8 @@ export function PublicEquipmentPage({
   documents: PublicDocument[];
   /** True only for an authenticated member of this asset's org — shows the staff-workflow link. */
   isStaffViewer?: boolean;
+  /** True for a demo organization (Demo plan): the footer adds the demo notice. */
+  demoNotice?: boolean;
 }) {
   return (
     <main className="mx-auto min-h-dvh max-w-md px-4 pb-28 pt-6 sm:pb-6">
@@ -64,6 +67,7 @@ export function PublicEquipmentPage({
         page={page}
         org={org}
         documents={documents}
+        demoNotice={demoNotice}
       />
 
       {/* Cold-staff sign-in affordance (Wave 3N.3). A quiet, muted footer link for anyone who is not already an

@@ -3,7 +3,20 @@
   "format": 1,
   "generated_by": "scripts/phase-e/packs/import-manifests.mjs",
   "pack": "docs/phase-e/packs/bobcat.e20.b3bl-canopy/pack.json",
-  "content_version": "e2a-393912d2e86e",
+  "content_version": "e2a-153ef9c948a4",
+  "approval": {
+    "status": "approved",
+    "content_version": "e2a-153ef9c948a4",
+    "scope_asset_codes": [
+      "EXCAVATOR-017"
+    ],
+    "approver_role": "Mulemark owner (operator): named reviewer with final approval authority",
+    "approved_at": "2026-11-03",
+    "record_ref": "docs/phase-e/E2C_PAGE_TEXT_REVIEW.md (page text approved as worded, 2026-11-03); Start-Up Guides parked (2026-11-02); WORK_LOG.md"
+  },
+  "parked": [
+    "Bobcat E20 Start-Up Guide"
+  ],
   "target": {
     "environment": "production",
     "organization_id": "11111111-1111-4111-8111-111111111111",
@@ -13,27 +26,19 @@
     "short_code": "demo-ex017"
   },
   "apply": {
-    "allowed": false,
-    "blocked_by": [
-      "Start-up and control steps come from Bobcat's E20 manual (7255004), not in hand yet. Publish after they are added and reviewed.",
-      "Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.",
-      "Fuel type and tank capacity come from the E20 manual.",
-      "Northridge policy plus Bobcat's leaving-the-machine sequence; awaiting the reviewer.",
-      "Accessories from the return checklist template; the parking line from Bobcat's sheet.",
-      "Published only when every field above is READY and the operator approves.",
-      "Carries the review-draft badge until every panel and sign is approved."
-    ]
+    "allowed": true,
+    "blocked_by": []
   },
   "current_from": {
-    "artifact": "showcase-audit-production-northridge-20261017T003343Z.json",
-    "sha256": "7e246de6bffe3a82ffea27729fd1da68374896423ead69327bafa0fadce08ef7",
-    "generated_at": "2026-10-17T00:33:43.489Z",
+    "artifact": "showcase-audit-production-northridge-20261020T155009Z.json",
+    "sha256": "2d0e2144c9fd0c0c5d4e12ad62d7729662c91ed7e13085163353f58db7051bc4",
+    "generated_at": "2026-10-20T15:50:09.939Z",
     "note": "Read-only E1 audit of Production (gitignored artifact). Current values are informational; E2C re-audits before applying."
   },
   "summary": {
-    "READY": 15,
-    "REVIEW_REQUIRED": 5,
-    "BLOCKED": 3
+    "READY": 21,
+    "REVIEW_REQUIRED": 0,
+    "BLOCKED": 0
   },
   "operations": [
     {
@@ -113,37 +118,29 @@
       },
       "fields": {
         "headline": {
-          "to": "Bobcat E20 compact excavator with canopy. Read the Start-Up Guide before you start.",
+          "to": "Bobcat E20 compact excavator with canopy. Northridge walks you through start-up and the controls at handover.",
           "current": "25 characters",
           "status": "READY",
           "derived_from": [
             "model",
-            "operator_protection"
+            "operator_protection",
+            "pol-e20-handover"
           ],
-          "status_reason": "Identity facts."
+          "status_reason": "Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md). The Start-Up Guide is parked, so the headline points to the handover."
         },
         "quick_start_text": {
-          "to": "1. Call 811 first. Watch for holes, drop-offs, soft ground.\n2. Walk around it: look for leaks and damaged parts.\n3. Belt on, controls in neutral; start only from the seat.\n4. Levers pushed away drive toward the blade. Check it first.\n5. Slopes: 15° across or up, 25° down or backing up.\n6. Keep people clear of the swing; never lift over anyone.\n7. Leaving: bucket down, engine off, key out, console up.\n8. Transport: heavy end uphill, slew lock on, chained down.\nThe Start-Up Guide shows each step.",
+          "to": "Before operating, go through start-up and the controls with Northridge staff at handover. Bobcat's Operation and Maintenance Manual is linked under Manual.",
           "current": "85 characters",
-          "status": "BLOCKED",
+          "status": "READY",
           "derived_from": [
-            "e20-s1",
-            "e20-s2",
-            "pol-renter-walkaround",
-            "e20-s3",
-            "e20-s4",
-            "e20-s6",
-            "e20-s7",
-            "e20-s5",
-            "e20-s9",
-            "e20-s10"
+            "pol-e20-handover"
           ],
-          "status_reason": "Start-up and control steps come from Bobcat's E20 manual (7255004), not in hand yet. Publish after they are added and reviewed."
+          "status_reason": "Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md). Northridge's handover policy, as on the Cat page; the steps from Bobcat's manual wait until it is bought."
         },
         "safety_notes": {
           "to": "Keep people out of the swing area; never lift over anyone.\nSlopes: 15° across or up, 25° down or backing up. No swinging on a slope.\nNo riders.\nNever work the controls from the ground.\nKeep hands and feet inside while the machine is on.\nNo smoking while fueling.\nStay within the lift chart on the machine.",
           "current": "132 characters",
-          "status": "REVIEW_REQUIRED",
+          "status": "READY",
           "derived_from": [
             "e20-s5",
             "e20-s7",
@@ -153,34 +150,34 @@
             "e20-w4",
             "e20-s8"
           ],
-          "status_reason": "Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer."
+          "status_reason": "Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md)."
         },
         "fuel_power_notes": {
           "to": null,
           "current": "61 characters",
-          "status": "BLOCKED",
+          "status": "READY",
           "derived_from": [],
-          "status_reason": "Fuel type and tank capacity come from the E20 manual."
+          "status_reason": "Left blank for this release, as approved by the operator on 2026-11-03. Fuel type and tank capacity come from the E20 manual."
         },
         "troubleshooting_notes": {
           "to": "Something wrong (a warning light, leak or odd noise): stop, lower the bucket to the ground, shut down and use Request Support.",
           "current": "80 characters",
-          "status": "REVIEW_REQUIRED",
+          "status": "READY",
           "derived_from": [
             "pol-stop-and-report",
             "e20-s9"
           ],
-          "status_reason": "Northridge policy plus Bobcat's leaving-the-machine sequence; awaiting the reviewer."
+          "status_reason": "Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md)."
         },
         "return_notes": {
           "to": "Return the keys and any attachments.\nLeave it with the bucket on the ground, engine off, key out and console up.\nUse Return checklist when you drop it off.",
           "current": "76 characters",
-          "status": "REVIEW_REQUIRED",
+          "status": "READY",
           "derived_from": [
             "template:mini_excavator_skid_steer",
             "e20-s9"
           ],
-          "status_reason": "Accessories from the return checklist template; the parking line from Bobcat's sheet."
+          "status_reason": "Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md)."
         },
         "emergency_notes": {
           "to": "For emergencies call your local emergency number. For equipment issues, use the support contact on this page.",
@@ -194,39 +191,10 @@
         "is_published": {
           "to": true,
           "current": true,
-          "status": "BLOCKED",
+          "status": "READY",
           "status_reason": "Published only when every field above is READY and the operator approves."
         }
       }
-    },
-    {
-      "op": "upload",
-      "key": "document:startup_guide",
-      "bucket": "documents",
-      "path": "org/11111111-1111-4111-8111-111111111111/asset/21111111-1111-4111-8111-111111111101/documents/55721b22-f182-40b6-b53d-299d7c5a23e5/55721b22-f182-40b6-b53d-299d7c5a23e5.pdf",
-      "from": "docs/phase-e/packs/bobcat.e20.b3bl-canopy/guide/bobcat.e20.b3bl-canopy-start-up-guide.pdf",
-      "content_type": "application/pdf",
-      "bytes": 204287,
-      "sha256": "bc1e70a34b488db475f0ba52a5b6aa9430b1a73daf8eacd7960dcff385bf296d",
-      "status": "REVIEW_REQUIRED",
-      "status_reason": "Carries the review-draft badge until every panel and sign is approved."
-    },
-    {
-      "op": "insert",
-      "table": "documents",
-      "row": {
-        "id": "55721b22-f182-40b6-b53d-299d7c5a23e5",
-        "organization_id": "11111111-1111-4111-8111-111111111111",
-        "asset_id": "21111111-1111-4111-8111-111111111101",
-        "title": "Bobcat E20 Start-Up Guide",
-        "document_type": "startup_guide",
-        "url": null,
-        "storage_path": "org/11111111-1111-4111-8111-111111111111/asset/21111111-1111-4111-8111-111111111101/documents/55721b22-f182-40b6-b53d-299d7c5a23e5/55721b22-f182-40b6-b53d-299d7c5a23e5.pdf",
-        "visibility": "public",
-        "link_status": "unknown"
-      },
-      "status": "REVIEW_REQUIRED",
-      "status_reason": "Carries the review-draft badge until every panel and sign is approved."
     },
     {
       "op": "insert",
@@ -296,10 +264,6 @@
     {
       "key": "cover",
       "id": "4ce0dd36-8ee8-4ce0-b446-a81a37317668"
-    },
-    {
-      "key": "document:startup_guide:Bobcat E20 Start-Up Guide",
-      "id": "55721b22-f182-40b6-b53d-299d7c5a23e5"
     },
     {
       "key": "document:manual:Bobcat E20 Operation & Maintenance Manual (sold by Bobcat)",

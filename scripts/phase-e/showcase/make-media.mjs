@@ -5,16 +5,20 @@
  *   npm.cmd run phase-e:showcase:media -- --preview=<dir>   render everything into <dir> (outside Git); touch nothing tracked
  *   npm.cmd run phase-e:showcase:media -- --replace=<key>   re-render one image on purpose (its hash in media.json changes)
  *
- * Two rights-cleared photos (the E2A derivatives of the Bobcat E20, CC BY-SA 4.0, and the Cat 301.5, CC0) and the
- * original drawings of scripts/phase-e/showcase/evidence-drawings.mjs. Every image carries one small corner tag, and only
- * the tag: "Illustrative photo" (plus the licence credit the E20 photo's licence requires) or "Illustration". The tag
- * uses the machine's installed fonts, so a re-render can differ byte for byte: the images are written once, their
- * SHA-256 is recorded in docs/phase-e/showcase/media.json, and the dataset builder checks it. Existing files are never
- * overwritten without --replace.
+ * Rights-cleared photos and the original drawings of scripts/phase-e/showcase/evidence-drawings.mjs:
+ * - the E2A derivatives of the Bobcat E20 (CC BY-SA 4.0) and the Cat 301.5 (CC0);
+ * - from Engineering Phase E2C, four Big Tex Trailers website photos for the trailers' routine condition slots, used with
+ *   Big Tex's permission (reply to the operator, 2026-11-03). Their originals stay in the private source vault and are
+ *   checked by SHA-256 before use.
+ * Every image carries one small corner tag, and only the tag: "Illustrative photo" (plus the credit the licence or the
+ * permission asks for) or "Illustration". The tag uses the machine's installed fonts, so a re-render can differ byte for
+ * byte: the images are written once, their SHA-256 is recorded in docs/phase-e/showcase/media.json, and the dataset
+ * builder checks it. Existing files are never overwritten without --replace.
  */
 import { hash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,12 +30,42 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", ".
 const OUT = path.join(REPO, "docs", "phase-e", "showcase", "media");
 const MEDIA_JSON = path.join(REPO, "docs", "phase-e", "showcase", "media.json");
 
+const VAULT = path.join(os.homedir(), "Mulemark-Sources", "e2a");
+
 const DRAWING_RIGHTS = {
   author: "Mulemark (original drawing, Engineering Phase E2B)",
   license: "Mulemark original work",
   source_url: null,
   modified: false,
 };
+
+const BIG_TEX_TAG = { strong: "Illustrative photo", rest: " · Photo: Big Tex Trailer Manufacturing, LLC" };
+
+/** A Big Tex website photo, cropped to 16:9 from the given top row of the 1200x880 original. */
+function bigTexPhoto({ key, asset_code, upload, file, sha256, top, alt, used_for }) {
+  return {
+    key,
+    kind: "photo",
+    asset_code,
+    vault: { file: `oem/bigtex/web/img/${file}`, sha256 },
+    crop: { left: 0, top, width: 1200, height: 675 },
+    size: { width: 1024, height: 576 },
+    tag: BIG_TEX_TAG,
+    alt,
+    used_for,
+    rights: {
+      author: "Big Tex Trailer Manufacturing, LLC",
+      license: "Used with permission (Big Tex's reply to the operator, 2026-11-03: credit where practical)",
+      license_url: null,
+      source_url: `https://www.bigtextrailers.com/wp-content/uploads/${upload}/${file}`,
+      modified: true,
+      modifications: [
+        `Cropped to 16:9 (top ${top}, 1200x675) and resized to 1024x576.`,
+        `Added the corner tag "${BIG_TEX_TAG.strong}${BIG_TEX_TAG.rest}".`,
+      ],
+    },
+  };
+}
 
 /** Every evidence image: what it shows, which inspection slot uses it, and its rights. */
 export const MEDIA_ITEMS = [
@@ -78,10 +112,46 @@ export const MEDIA_ITEMS = [
   },
   { key: "e20-bucket-illustration", kind: "drawing", asset_code: "EXCAVATOR-017", alt: "Illustration: the E20's bucket on the end of its white arm, resting on dirt", used_for: ["attachment_photo"] },
   { key: "cat-301-5-bucket-illustration", kind: "drawing", asset_code: "EXCAVATOR-3015", alt: "Illustration: the 301.5's bucket on the end of its yellow arm, resting on dirt", used_for: ["attachment_photo"] },
-  { key: "35sa-hitch-illustration", kind: "drawing", asset_code: "TRAILER-014", alt: "Illustration: the 35SA-12 tongue with its ball coupler, jack down, crossed safety chains and 4-way plug", used_for: ["front_hitch_photo"] },
-  { key: "35sa-deck-illustration", kind: "drawing", asset_code: "TRAILER-014", alt: "Illustration: the 35SA-12 wood deck from behind, rails with tie-down loops, ramp gate lowered", used_for: ["deck_photo"] },
-  { key: "14lp-hitch-illustration", kind: "drawing", asset_code: "TRAILER-2041", alt: "Illustration: the 14LP-14 tongue with its adjustable coupler, drop-leg jack, breakaway switch, battery box and 7-way plug", used_for: ["front_hitch_photo"] },
-  { key: "14lp-body-illustration", kind: "drawing", asset_code: "TRAILER-2041", alt: "Illustration: the empty 14LP-14 dump body from behind, rear doors chained open", used_for: ["deck_photo"] },
+  bigTexPhoto({
+    key: "35sa-front-illustrative-photo",
+    asset_code: "TRAILER-014",
+    upload: "2023/06",
+    file: "SquareTubing2_1200x880.jpg",
+    sha256: "531bb8a0bc8591bff635694ae74b17e711d9f2fd20aaeaaa4d190b16ea349667",
+    top: 150,
+    alt: "Illustrative photo of a Big Tex single-axle utility trailer's front, hitched to a truck: tongue, jack, rails and wood deck (not this unit)",
+    used_for: ["front_hitch_photo"],
+  }),
+  bigTexPhoto({
+    key: "35sa-deck-illustrative-photo",
+    asset_code: "TRAILER-014",
+    upload: "2023/06",
+    file: "4ftRearRampGate_1200x880.jpg",
+    sha256: "e12c2ac5efec962a569a357f61fdb3454ef801ab427c4f01bc4b07fd30b6ec21",
+    top: 130,
+    alt: "Illustrative photo of a Big Tex utility trailer's wood deck and mesh ramp gate from the rear, with the tail lamp (not this unit)",
+    used_for: ["deck_photo"],
+  }),
+  bigTexPhoto({
+    key: "14lp-hitch-illustrative-photo",
+    asset_code: "TRAILER-2041",
+    upload: "2023/06",
+    file: "8I-BeamSeamlessTongue_1200x880.jpg",
+    sha256: "0111ca0a101c16ed22007ec4ac08b8278b0162c7cc203a7a772d8ec32ac8016e",
+    top: 120,
+    alt: "Illustrative photo of a Big Tex dump trailer's I-beam tongue hitched to a truck: coupler, safety chains, 7-way cable and jack (not this unit)",
+    used_for: ["front_hitch_photo"],
+  }),
+  bigTexPhoto({
+    key: "14lp-body-illustrative-photo",
+    asset_code: "TRAILER-2041",
+    upload: "2023/07",
+    file: "ComboGate_1200x880.jpg",
+    sha256: "af3ec150307fbef5c85157be9a9538ffc36ccd70ba2ca5eb06f7bff6482917c1",
+    top: 60,
+    alt: "Illustrative photo of a Big Tex dump trailer's box from the rear, with its combo gate (not this unit)",
+    used_for: ["deck_photo"],
+  }),
   { key: "35sa-tail-lamp-illustration", kind: "drawing", asset_code: "TRAILER-014", alt: "Illustration: a cracked lens on the 35SA-12's left tail lamp", used_for: ["damage_photos"] },
   { key: "cat-301-5-worn-tooth-illustration", kind: "drawing", asset_code: "EXCAVATOR-3015", alt: "Illustration: the 301.5's bucket edge with one tooth worn short and blunt", used_for: ["damage_photos"] },
   { key: "cat-301-5-weeping-fitting-illustration", kind: "drawing", asset_code: "EXCAVATOR-3015", alt: "Illustration: a hose fitting on the 301.5's boom with an oil film and a drip", used_for: ["damage_photos"] },
@@ -118,7 +188,15 @@ async function tagLayers({ strong, rest }, imageHeight) {
 async function render(item) {
   let base;
   if (item.kind === "photo") {
-    let image = sharp(await readFile(path.join(REPO, item.from))).rotate();
+    let bytes;
+    if (item.vault) {
+      bytes = await readFile(path.join(VAULT, ...item.vault.file.split("/")));
+      const sha256 = hash("sha256", bytes);
+      if (sha256 !== item.vault.sha256) throw new Error(`${item.key}: the vault original's SHA-256 is ${sha256}, not the recorded ${item.vault.sha256}.`);
+    } else {
+      bytes = await readFile(path.join(REPO, item.from));
+    }
+    let image = sharp(bytes).rotate();
     if (item.crop) image = image.extract(item.crop);
     base = await image.resize(item.size.width, item.size.height, { kernel: "lanczos3" }).png().toBuffer();
   } else {
@@ -198,8 +276,8 @@ async function main() {
     schema: "mulemark.phase-e.showcase-media/v1",
     generated_by: "scripts/phase-e/showcase/make-media.mjs",
     policy: [
-      "Rights-cleared evidence for the synthetic history only: two licensed photos of the right model (not of the showcase units) and original drawings.",
-      "Each image carries one small corner tag and nothing else: \"Illustrative photo\" (with the credit the CC BY-SA licence requires) or \"Illustration\".",
+      "Rights-cleared evidence for the synthetic history only: photos of the right model, not of the showcase units (two licensed excavator photos, and Big Tex website photos used with Big Tex's permission), and original drawings.",
+      "Each image carries one small corner tag and nothing else: \"Illustrative photo\" (with the credit the licence or the permission asks for) or \"Illustration\".",
       "Same-asset images show the same model and configuration. Each damage drawing is used for one incident only; routine condition photos reuse the asset's own image.",
       "Incidents without a fitting image are valid reports without photos. Written once; the dataset builder checks every SHA-256.",
     ],

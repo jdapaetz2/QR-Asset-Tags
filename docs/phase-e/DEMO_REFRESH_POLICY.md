@@ -11,10 +11,12 @@ The showcase history ([SHOWCASE_STORIES.md](SHOWCASE_STORIES.md)) is a fixed sna
 ## How
 
 1. **Choose the anchor date D.** It must be in the past, and on the target the 6 AM digest of D must have run successfully. Apply at or after 07:00 Pacific on D; the planner refuses earlier, because that morning's run may still be in progress.
-2. **Build the new snapshot:**
+2. **Build the new snapshot.** Set `anchor.date` in `docs/phase-e/showcase/scenario.json` to D (the dataset test rebuilds from the scenario's anchor), then run:
    ```
-   npm run phase-e:showcase:build -- --anchor=D
+   npm run phase-e:showcase:build
    ```
+   `-- --anchor=D` builds another anchor without editing the scenario, for a trial only. The tracked dataset always follows the scenario's anchor (E2C: 2026-11-03).
+
    This rewrites `docs/phase-e/showcase/dataset.json`:
    - rentals and records keep their ids, and their dates move with the anchor;
    - rows only the old version had are listed under `retired_ids`, and the refresh deletes them.

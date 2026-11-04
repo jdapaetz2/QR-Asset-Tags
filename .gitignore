@@ -57,3 +57,6 @@ smoke-artifacts/
 /public/vendor/libheif/libheif.js
 /public/vendor/libheif/libheif.wasm
 /public/vendor/libheif/LICENSE
+
+# Engineering Phase E2C: the Supabase CA certificate used by the guarded database connections is never committed.
+*.crt

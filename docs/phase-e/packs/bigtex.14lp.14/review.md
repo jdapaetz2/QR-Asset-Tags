@@ -8,13 +8,12 @@ Generated from [pack.json](pack.json) by `scripts/phase-e/packs/pack-review.mjs`
 | Protected route | `67uqc3q7` (unchanged) |
 | Model key | `bigtex.14lp.14` · Dump Trailer |
 | Review status | **MULEMARK_REVIEW** |
-| Items | 12 READY · 41 REVIEW_REQUIRED · 5 BLOCKED |
+| Items | 13 READY · 41 REVIEW_REQUIRED · 5 BLOCKED |
 | Storyboard | [storyboard.md](storyboard.md) (8 panels) |
 
 ## Blockers
 
-- Exact-model photo: no licensed 14LP photo exists; waiting on Big Tex's reply to the operator's permission request (sent 2026-10-17).
-- Knowledgeable review of the finished guide and page text by the named reviewer (the operator).
+- Guide panels and signs: parked by the operator on 2026-11-02; their knowledgeable review is outstanding (the page text was approved on 2026-11-03).
 - Hoist Manual applicability to the 14LP: not listed on its cover; asked of Big Tex.
 - Lug-nut torque: Big Tex's manual leaves the value blank (p. 80); asked of Big Tex.
 - Hoist capacity: not published by Big Tex.
@@ -55,7 +54,18 @@ Applicability: Big Tex's dump-trailer Owners Manual (Rev. March 2020) covers its
 
 ## Photo
 
-**BLOCKED**: no licensed exact-model photo. No stand-in is used.
+**READY**: Big Tex's permission (reply to the operator, 2026-11-03), credited in the image as asked.
+
+Credit: Big Tex Trailer Manufacturing, LLC, Used with Big Tex's permission (reply to the operator, 2026-11-03) (modified), [source](https://www.bigtextrailers.com/wp-content/uploads/2023/07/14LP-Commercial-Grade-Dump-Trailer.png).
+
+- Placed whole on a #FFFFFF 1280x720 canvas: resized to 1178x516 and centred.
+- Added the credit label "Photo: Big Tex Trailer Manufacturing, LLC" in the top-right corner.
+- Dropped the original's camera and location metadata.
+
+| File | Size | Bytes | SHA-256 |
+|---|---|---|---|
+| [media/14lp-hero.webp](media/14lp-hero.webp) | 1280x720 | 38998 | `58d6bf66bbe547b7…` |
+| [media/14lp-hero.jpg](media/14lp-hero.jpg) | 1280x720 | 53706 | `e0a289cc66a99dff…` |
 
 ## Specifications
 
@@ -180,7 +190,7 @@ Applicability: Big Tex's dump-trailer Owners Manual (Rev. March 2020) covers its
 
 ## Public page text
 
-The seven equipment-page fields in display order (2 READY · 5 REVIEW_REQUIRED · 0 BLOCKED). Citations stay here; the page shows plain text only.
+The seven equipment-page fields in display order (7 READY · 0 REVIEW_REQUIRED · 0 BLOCKED). Citations stay here; the page shows plain text only.
 
 ### Headline · READY
 
@@ -188,7 +198,7 @@ The seven equipment-page fields in display order (2 READY · 5 REVIEW_REQUIRED �
 
 From: `bed`, `gawr`, `brakes`, `hoist-power`, `coupler`, `gvwr`, `14lp-s1`, `14lp-s5`. Facts from the OEM product page and the dump-trailer manual.
 
-### Quick start · REVIEW_REQUIRED
+### Quick start · READY
 
 > 1. 2-5/16 in ball, 14,000 lb or more. Seat, latch, pin, test.
 > 2. Cross the chains. Breakaway cable to the truck; pull-test it.
@@ -200,11 +210,10 @@ From: `bed`, `gawr`, `brakes`, `hoist-power`, `coupler`, `gvwr`, `14lp-s1`, `14l
 > 8. Body down, doors latched, controls locked. Then drive.
 > Tires: undamaged, cold pressure per VIN label, lug nuts tight.
 > Load hitched and level; spread loose material evenly.
-> The Start-Up Guide shows each step.
 
-From: `14lp-s1`, `14lp-s2`, `14lp-s3`, `14lp-s4`, `14lp-s5`, `14lp-s8`, `14lp-s9`, `14lp-s10`, `14lp-s11`, `14lp-s6`, `tire-pressure`, `14lp-s7`. Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.
+From: `14lp-s1`, `14lp-s2`, `14lp-s3`, `14lp-s4`, `14lp-s5`, `14lp-s8`, `14lp-s9`, `14lp-s10`, `14lp-s11`, `14lp-s6`, `tire-pressure`, `14lp-s7`. Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md).
 
-### Safety · REVIEW_REQUIRED
+### Safety · READY
 
 > Never go under a raised body.
 > Never push the hoist with a jack or machine; unload by hand.
@@ -216,32 +225,32 @@ From: `14lp-s1`, `14lp-s2`, `14lp-s3`, `14lp-s4`, `14lp-s5`, `14lp-s8`, `14lp-s9
 > Stay at the controls while the body is up.
 > Stay within the payload on the trailer's decal.
 
-From: `14lp-w1`, `14lp-w2`, `14lp-w3`, `14lp-w4`, `14lp-w5`, `14lp-w6`, `14lp-w7`, `14lp-s9`, `14lp-s7`. Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.
+From: `14lp-w1`, `14lp-w2`, `14lp-w3`, `14lp-w4`, `14lp-w5`, `14lp-w6`, `14lp-w7`, `14lp-s9`, `14lp-s7`. Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md).
 
-### Fuel / power · REVIEW_REQUIRED
+### Fuel / power · READY
 
 > Hoist: 12 V battery with an onboard 110 V charger and a 5 W solar charger.
 > The breakaway battery drains fast with its pin out: put the pin straight back.
 
-From: `hoist-power`, `solar_charger`, `14lp-n6`, `14lp-s4`. Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.
+From: `hoist-power`, `solar_charger`, `14lp-n6`, `14lp-s4`. Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md).
 
-### Troubleshooting · REVIEW_REQUIRED
+### Troubleshooting · READY
 
 > Hoist won't lift: unload some by hand, then use Request Support.
 > Load stuck: lower the body and free it by hand.
 > Lights or brakes dead: check the 7-way plug.
 > Breakaway test fails: don't tow. Use Request Support.
 
-From: `14lp-n4`, `14lp-s10`, `14lp-n5`, `14lp-n6`. Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.
+From: `14lp-n4`, `14lp-s10`, `14lp-n5`, `14lp-n6`. Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md).
 
-### Return · REVIEW_REQUIRED
+### Return · READY
 
 > Return the straps, chain pins, spare tire and hoist remote.
 > Body down, doors latched, controls locked.
 > Unhitch: block the tires, unplug, unclip the breakaway, unhook the chains, open the coupler, lower the jack on firm ground.
 > Use Return checklist when you drop it off.
 
-From: `pol-trailer-accessories`, `pol-dump-remote`, `14lp-s11`, `14lp-s13`. Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.
+From: `pol-trailer-accessories`, `pol-dump-remote`, `14lp-s11`, `14lp-s13`. Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md).
 
 ### Emergency · READY
 
@@ -253,7 +262,7 @@ From: `mulemark-standard-emergency`. Mulemark's standard emergency wording (lib/
 
 | Title | Type | Delivery | Target | Status |
 |---|---|---|---|---|
-| Big Tex Trailers 14LP-14 Start-Up Guide | startup_guide | hosted | [guide/bigtex.14lp.14-start-up-guide.pdf](guide/bigtex.14lp.14-start-up-guide.pdf) (417554 bytes, 2 pages) | REVIEW_REQUIRED: Carries the review-draft badge until every panel and sign is approved. |
+| Big Tex Trailers 14LP-14 Start-Up Guide | startup_guide | hosted | [guide/bigtex.14lp.14-start-up-guide.pdf](guide/bigtex.14lp.14-start-up-guide.pdf) (417552 bytes, 2 pages) | REVIEW_REQUIRED: Carries the review-draft badge until every panel and sign is approved. |
 | Big Tex Owners Manual (Dump Trailers) | manual | link | [link](https://www.bigtextrailers.com/wp-content/uploads/2023/11/Big-Tex-Trailers_Owners-Manual_2020-Dump-Trailers-2.pdf) | READY: Official free copy, linked (no hosting without Big Tex permission). |
 
 ## Showcase story: Operational support on simpler equipment

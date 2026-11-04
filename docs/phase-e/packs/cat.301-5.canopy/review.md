@@ -116,7 +116,7 @@ None.
 
 ## Public page text
 
-The seven equipment-page fields in display order (6 READY · 0 REVIEW_REQUIRED · 1 BLOCKED). Citations stay here; the page shows plain text only.
+The seven equipment-page fields in display order (7 READY · 0 REVIEW_REQUIRED · 0 BLOCKED). Citations stay here; the page shows plain text only.
 
 ### Headline · READY
 
@@ -130,11 +130,11 @@ From: `model`, `operator_protection`, `pol-cat-handover`. Identity facts and Nor
 
 From: `pol-cat-handover`. Northridge policy; no Cat operating steps are written without the manual.
 
-### Safety · BLOCKED
+### Safety · READY
 
 *(empty)*
 
-From: none. Cat's safety rules come from OMM M0088895, not bought (operator decision, 2026-10-17).
+From: none. Left blank for this release, as approved by the operator on 2026-11-03. Cat's safety rules come from OMM M0088895, not bought (operator decision, 2026-10-17).
 
 ### Fuel / power · READY
 

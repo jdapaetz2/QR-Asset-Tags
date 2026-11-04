@@ -8,13 +8,12 @@ Generated from [pack.json](pack.json) by `scripts/phase-e/packs/pack-review.mjs`
 | Protected route | `demo-tr014` (unchanged) |
 | Model key | `bigtex.35sa.12` · Utility Trailer |
 | Review status | **MULEMARK_REVIEW** |
-| Items | 13 READY · 28 REVIEW_REQUIRED · 2 BLOCKED |
+| Items | 14 READY · 28 REVIEW_REQUIRED · 2 BLOCKED |
 | Storyboard | [storyboard.md](storyboard.md) (8 panels) |
 
 ## Blockers
 
-- Exact-model photo: no licensed 35SA photo exists; waiting on Big Tex's reply to the operator's permission request (sent 2026-10-17).
-- Knowledgeable review of the finished guide and page text by the named reviewer (the operator).
+- Guide panels and signs: parked by the operator on 2026-11-02; their knowledgeable review is outstanding (the page text was approved on 2026-11-03).
 - Lug-nut torque: Big Tex's manual leaves the value blank (p. 70); asked of Big Tex.
 
 ## Warnings and missing facts
@@ -46,7 +45,18 @@ Applicability: Big Tex's Owners Manual (Rev. March 2020) is general, not model-s
 
 ## Photo
 
-**BLOCKED**: no licensed exact-model photo. No stand-in is used.
+**READY**: Big Tex's permission (reply to the operator, 2026-11-03), credited in the image as asked.
+
+Credit: Big Tex Trailer Manufacturing, LLC, Used with Big Tex's permission (reply to the operator, 2026-11-03) (modified), [source](https://www.bigtextrailers.com/wp-content/uploads/2025/04/BT-35SA-Main-685x300-042925.png).
+
+- Placed whole on a #FFFFFF 1280x720 canvas: resized to 1178x516 and centred.
+- Added the credit label "Photo: Big Tex Trailer Manufacturing, LLC" in the top-right corner.
+- Dropped the original's camera and location metadata.
+
+| File | Size | Bytes | SHA-256 |
+|---|---|---|---|
+| [media/35sa-hero.webp](media/35sa-hero.webp) | 1280x720 | 28026 | `4e19af78f93fb080…` |
+| [media/35sa-hero.jpg](media/35sa-hero.jpg) | 1280x720 | 35295 | `da3cab99316a8427…` |
 
 ## Specifications
 
@@ -136,7 +146,7 @@ Applicability: Big Tex's Owners Manual (Rev. March 2020) is general, not model-s
 
 ## Public page text
 
-The seven equipment-page fields in display order (3 READY · 4 REVIEW_REQUIRED · 0 BLOCKED). Citations stay here; the page shows plain text only.
+The seven equipment-page fields in display order (7 READY · 0 REVIEW_REQUIRED · 0 BLOCKED). Citations stay here; the page shows plain text only.
 
 ### Headline · READY
 
@@ -144,7 +154,7 @@ The seven equipment-page fields in display order (3 READY · 4 REVIEW_REQUIRED �
 
 From: `bed`, `rear-gate`, `coupler`, `gvwr`, `brakes`, `35sa-s1`. Facts from the OEM product page.
 
-### Quick start · REVIEW_REQUIRED
+### Quick start · READY
 
 > 1. 2 in ball, 2,995 lb or more. Not cracked, worn or loose.
 > 2. Seat, latch, pin. Lift-test ≤ 1 in, then jack fully up.
@@ -154,11 +164,10 @@ From: `bed`, `rear-gate`, `coupler`, `gvwr`, `brakes`, `35sa-s1`. Facts from the
 > 6. Load hitched, level: about 60% in front, heavy over axle.
 > 7. Strap to the tie-down loops. Gate latched, pin if fitted.
 > 8. Every 50 mi or hour: check coupler, chains, load, gate.
-> The Start-Up Guide shows each step.
 
-From: `35sa-s1`, `35sa-s3`, `35sa-s4`, `35sa-s5`, `35sa-s6`, `tire-pressure`, `35sa-s7`, `35sa-s8`, `35sa-s9`. Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.
+From: `35sa-s1`, `35sa-s3`, `35sa-s4`, `35sa-s5`, `35sa-s6`, `tire-pressure`, `35sa-s7`, `35sa-s8`, `35sa-s9`. Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md).
 
-### Safety · REVIEW_REQUIRED
+### Safety · READY
 
 > Don't move until the coupler is pinned, the chains are on and the jack is up.
 > No riders.
@@ -167,7 +176,7 @@ From: `35sa-s1`, `35sa-s3`, `35sa-s4`, `35sa-s5`, `35sa-s6`, `tire-pressure`, `3
 > If it sways: ease off the gas, steer as little as possible, don't brake.
 > Trailer and load together: 2,995 lb at most.
 
-From: `35sa-w1`, `35sa-w2`, `35sa-w3`, `35sa-w4`, `gvwr`, `35sa-s7`. Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.
+From: `35sa-w1`, `35sa-w2`, `35sa-w3`, `35sa-w4`, `gvwr`, `35sa-s7`. Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md).
 
 ### Fuel / power · READY
 
@@ -175,21 +184,21 @@ From: `35sa-w1`, `35sa-w2`, `35sa-w3`, `35sa-w4`, `gvwr`, `35sa-s7`. Shortened p
 
 From: none. No fuel or power system; the lights run from the tow vehicle, covered in the quick start.
 
-### Troubleshooting · REVIEW_REQUIRED
+### Troubleshooting · READY
 
 > Lights not working: check the 4-way plug is fully connected.
 > Coupler won't latch: check the ball is 2 inches. Don't tow until it locks.
 > Anything cracked, loose or damaged: don't tow. Use Request Support.
 
-From: `35sa-n1`, `35sa-s1`, `35sa-s3`, `35sa-s6`. Condensed from sourced steps; awaiting the reviewer.
+From: `35sa-n1`, `35sa-s1`, `35sa-s3`, `35sa-s6`. Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md).
 
-### Return · REVIEW_REQUIRED
+### Return · READY
 
 > Return the straps, chain pins and spare tire.
 > Unhitch: block the tires, unplug, unhook the chains, open the coupler, jack down on firm ground.
 > Use Return checklist when you drop it off.
 
-From: `pol-trailer-accessories`, `35sa-s10`. Shortened picture-first on 2026-10-17 (one line per panel or sign); awaiting the reviewer.
+From: `pol-trailer-accessories`, `35sa-s10`. Approved as worded by the operator (named reviewer) on 2026-11-03 (docs/phase-e/E2C_PAGE_TEXT_REVIEW.md).
 
 ### Emergency · READY
 

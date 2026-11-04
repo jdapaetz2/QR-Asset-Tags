@@ -19,7 +19,7 @@ E2C may change what a route **shows**: the asset's name, make and model, its pag
 - Never rotate, rename, deactivate or delete a protected `qr_links` row. Never "fix" a naming mismatch by issuing a new code.
 - No replacement QR artwork and no new domain (binding operator decision).
 - Never delete or recreate a protected asset or QR row. Both cascade into scan history (see Hazards).
-- **E2C cutover stays blocked** until the business-card evidence below is verified.
+- **E2C cutover stays blocked** until the business-card evidence below is verified. **Verified 2026-11-03** (below).
 
 ## How the evidence was gathered (no scan was recorded)
 
@@ -73,21 +73,31 @@ The tag artwork (`tag-{code}-{bone,iron}.svg`, eight files) reads "NORTHRIDGE RE
 - `lib/qr/svg.test.ts:70-72` labels `excavator-17` an alias and `67uqc3q7` a "generated replacement alias". Those are **unit-test fixtures**, not Production facts. No `excavator-17` row exists anywhere in Production.
 - Stored `qr_links.public_url` values are stale: `app.example.com` for the seed rows, `localhost` for codes created from a local session against Production. The app computes the encoded URL from `NEXT_PUBLIC_SITE_URL` and never from that column. **Do not regenerate or re-encode codes to tidy it.**
 
-## Business cards — UNVERIFIED (blocks the E2C cutover)
+## Business cards — VERIFIED 2026-11-03
 
-The card artwork is not on this machine and not in the marketing repository. It exists only in the ChatGPT Mulemark project: `Mulemark_Metal_Card_Deliverables_v1.zip` and `01_black` / `02_bone` / `03_stainless_MMBC_submission_CMYK.pdf`, dated 2026-09-11.
+**What was ordered.** The printer's final proof, MyMetalBusinessCard.com proof #000115318 (sent by the operator on 2026-11-03), is the order:
+- one card surface;
+- four back designs, 25 cards each;
+- gold ink on the finished cards where the proof shows bronze.
 
-The website registry is **not** evidence of what the cards encode. A card might encode one of the four routes, a root page (`https://mulemark.io`, `https://getmulemark.com`) or something else.
+The E0 variant names (`01_black`, `02_bone`, `03_stainless`) were artwork candidates, not separate orders. The physical cards have arrived.
 
-**Operator action:** for each variant actually ordered, send either the printer's final proof or a phone scan of a physical card.
-- Read the decoded URL without opening it; opening it writes a scan row. If it was opened, say so.
-- Vector proofs are decoded with the same tool. Raster proofs and physical cards need the phone scan.
+**How the codes were read.** Each back's QR code was decoded locally from the raster proof:
+- sampled into its 33 × 33 module grid and decoded by `scripts/lib/qr-decode.mjs`, with every Reed-Solomon block verified;
+- no request was made to any URL.
 
-| Variant | Evidence | Decoded destination | Status |
-|---|---|---|---|
-| 01_black | — | — | UNVERIFIED |
-| 02_bone | — | — | UNVERIFIED |
-| 03_stainless | — | — | UNVERIFIED |
+Each module matrix is **identical** to the website artwork register above (canonical matrix hash), so card, website file and registry carry the same symbol.
+
+| Card back (title · code line) | Decoded destination | Version · mask | Matrix (canonical) | Status |
+|---|---|---|---|---|
+| "EXCAVATOR 017" · EXCAVATOR-017 | `https://mulemark.io/t/demo-ex017` | V4-H · 1 | `30de7e0c…cbc343` = register | VERIFIED |
+| "MINI EXCAVATOR 301.5" · EXCAVATOR-3015 | `https://mulemark.io/t/ezzs9ueg` | V4-H · 6 | `946b900d…61b069` = register | VERIFIED |
+| "TRAILER 014" · TRAILER-014 | `https://mulemark.io/t/demo-tr014` | V4-H · 6 | `4e605343…a29feb` = register | VERIFIED |
+| "UTILITY TRAILER 204" · TRAILER-2041 | `https://mulemark.io/t/67uqc3q7` | V4-H · 6 | `144a2e65…39a03a` = register | VERIFIED |
+
+**Card 4's title.** It reads "UTILITY TRAILER 204", the asset's old name. E2C names the page "Dump Trailer 2041", the real model (operator decision, 2026-11-03), and the card's code line matches. The cards are not reprinted.
+
+**Still to do.** The live review scans each physical card with a phone (manufactured-card acceptance).
 
 If a card encodes a root or marketing URL, that page must keep offering a clear route to the showcase. Today `mulemark.io/` links `/t/demo-ex017`, and `getmulemark.com/demo` links all four routes.
 
@@ -99,6 +109,11 @@ If a card encodes a root or marketing URL, that page must keep offering a clear 
 | `Downloads/qr-sheet (7).svg` (2026-07-20) | `https://qr-asset-tags.vercel.app/t/{demo-comp004, demo-ex017, ezzs9ueg, demo-gen008, eb43bf3r, demo-tr014, 67uqc3q7, 7gzt4aqc}` | **Conditionally protected.** If anything from this sheet was printed, the host and all eight codes are in circulation. The host still serves the app (HTTP 200 at `/`, no redirect, 2026-10-14). **Correction (E1, 2026-10-17):** seven of the eight codes resolve. `7gzt4aqc` (WSHR-001) shows "This page isn't available", because that asset's equipment page has been unpublished since 2026-07-13. The scan-free health check found this, and the Production audit confirms it. Nothing was changed. **Operator decision (2026-10-17):** `7gzt4aqc` may stay unavailable even if the sheet was printed; it is not protected. The sheet labels COMPACTOR-003 with `demo-comp004`, its current primary after the July rotation. |
 
 **Operator question, same message as the cards:** was the July 20 sheet, or any other QR sheet or physical tag, ever printed?
+
+**Answer (operator, 2026-11-03):**
+- The July 20 codes were used and scanned by the operator for testing only, and nothing else was printed.
+- The sheet's codes are not in public circulation, and no tag was made from `da5fc3db` or `104b4d37`, so `4c4dy59n` (METER-204) is not protected.
+- Nothing changes: the twelve Northridge QR rows stay as they are, and the `qr-asset-tags.vercel.app` alias is kept.
 
 Two Northridge tag requests sit at `in_production` / `ready`:
 - `da5fc3db` covers METER-204 and TRAILER-2041;

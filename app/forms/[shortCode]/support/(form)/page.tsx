@@ -1,5 +1,6 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import { resolvePublicEquipment } from "@/lib/public/resolve";
+import { isDemoOrganization } from "@/lib/public/demo";
 import { SupportForm } from "@/components/public/support-form";
 import { PublicFormLayout } from "@/components/public/public-form-layout";
 import { UnavailableNotice } from "@/components/public/unavailable-notice";
@@ -30,6 +31,7 @@ export default async function SupportRequestPage({
 
   const resolved = await resolvePublicEquipment(supabase, shortCode);
   if (!resolved) return <UnavailableNotice />;
+  const demoNotice = await isDemoOrganization(supabase, resolved.organizationId);
 
   return (
     <PublicFormLayout
@@ -38,6 +40,7 @@ export default async function SupportRequestPage({
       orgName={resolved.org.name ?? "Rental Equipment"}
       assetName={resolved.asset.asset_name}
       assetCode={resolved.asset.asset_code}
+      demoNotice={demoNotice}
     >
       <SupportForm shortCode={shortCode} />
     </PublicFormLayout>

@@ -10,6 +10,8 @@ export type QrLinkRow = {
   status: string;
   last_scanned_at: string | null;
   created_at: string;
+  /** The printed link: only the platform owner can deactivate it (migration 0040). */
+  is_production_primary?: boolean;
 };
 
 function formatDate(value: string | null): string {
@@ -68,14 +70,20 @@ export function QrLinkSection({
                   Last scanned: {formatDate(link.last_scanned_at)} · Created:{" "}
                   {formatDate(link.created_at)}
                 </p>
-                <div>
-                  <ActionButton
-                    action={setQrLinkStatus.bind(null, link.id, nextStatus)}
-                    variant="outline"
-                  >
-                    {link.status === "active" ? "Deactivate" : "Activate"}
-                  </ActionButton>
-                </div>
+                {link.status === "active" && link.is_production_primary ? (
+                  <p className="text-xs text-muted-foreground">
+                    This is the code printed for this asset, so it can&apos;t be deactivated here.
+                  </p>
+                ) : (
+                  <div>
+                    <ActionButton
+                      action={setQrLinkStatus.bind(null, link.id, nextStatus)}
+                      variant="outline"
+                    >
+                      {link.status === "active" ? "Deactivate" : "Activate"}
+                    </ActionButton>
+                  </div>
+                )}
               </li>
             );
           })}

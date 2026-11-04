@@ -5,6 +5,7 @@ import { getAssetReturnTemplate } from "@/lib/inspections/org-templates-data";
 import { ReturnInspectionForm } from "@/components/public/return-inspection-form";
 import { ReturnChecklistNoScript } from "@/components/public/return-checklist-noscript";
 import { resolveSupportContact } from "@/lib/public/equipment";
+import { isDemoOrganization } from "@/lib/public/demo";
 import { PublicFormLayout } from "@/components/public/public-form-layout";
 import { UnavailableNotice } from "@/components/public/unavailable-notice";
 import { getProfile } from "@/lib/auth/session";
@@ -54,7 +55,7 @@ export default async function ReturnInspectionPage({
   // optional contact section (server-derived; no extra client request; fields stay editable). getProfile reads
   // the auth cookie via the RLS client and returns null for anonymous/cross-org renters, so nothing leaks. The
   // submission origin is unchanged — this remains a public/renter return even when a staff member is signed in.
-  const profile = await getProfile();
+  const [profile, demoNotice] = await Promise.all([getProfile(), isDemoOrganization(supabase, resolved.organizationId)]);
   const contactDefaults = resolveContactPrefill(profile, resolved.organizationId);
 
   return (
@@ -64,6 +65,7 @@ export default async function ReturnInspectionPage({
       orgName={resolved.org.name ?? "Rental Equipment"}
       assetName={resolved.asset.asset_name}
       assetCode={resolved.asset.asset_code}
+      demoNotice={demoNotice}
     >
       <ReturnChecklistNoScript
         shortCode={shortCode}

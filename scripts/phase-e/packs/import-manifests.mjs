@@ -7,8 +7,10 @@
  * manifests after the operator's approval. Every operation names its target (table and row, or bucket and object
  * path, following the app's own path rules), the value it sets, the current value when known, and a status
  * (READY / REVIEW_REQUIRED / BLOCKED) inherited from the pack. apply.allowed is true only when every operation is
- * READY. New row and object ids are random v4 values generated once and kept on later runs, so the manifest stays
- * stable. Current values come from the read-only E1 audit artifact (gitignored, never re-fetched here); E2C re-audits.
+ * READY and the pack carries the operator's approval of exactly this content version. Documents the operator parked
+ * (release: "parked", E2C) stay in the pack and are left out. New row and object ids are random v4 values generated
+ * once and kept on later runs, so the manifest stays stable. Current values come from the read-only E1 audit artifact
+ * (gitignored, never re-fetched here); E2C re-audits.
  */
 import { hash, randomUUID } from "node:crypto";
 import { existsSync, readdirSync } from "node:fs";
@@ -112,6 +114,7 @@ export function buildImportManifest({ pack, packDir, media, audit, auditInfo, pr
   operations.push({ op: "upsert", table: "equipment_pages", match: { asset_id: assetId }, fields: pageFields });
 
   for (const doc of asset.documents ?? []) {
+    if (doc.release === "parked") continue;
     const docId = ids.get(`document:${doc.document_type}:${doc.title}`);
     if (doc.delivery === "hosted") {
       const storagePath = `org/${org}/asset/${assetId}/documents/${docId}/${docId}.pdf`;
@@ -176,12 +179,25 @@ export function buildImportManifest({ pack, packDir, media, audit, auditInfo, pr
   const blockedBy = [...new Set(operations.flatMap((op) => (op.fields ? Object.values(op.fields) : [op])).filter((f) => f.status !== "READY").map((f) => f.status_reason).filter(Boolean))];
 
   const content = stableStringify({ model, asset });
+  const contentVersion = `e2a-${hash("sha256", content).slice(0, 12)}`;
+  const approval = pack.approval ?? { status: "not_requested" };
+  const approved = approval.status === "approved" && approval.content_version === contentVersion;
+  if (!approved) {
+    blockedBy.push(
+      approval.status === "approved"
+        ? `The operator approved content version ${approval.content_version}, not this one (${contentVersion}).`
+        : "Published only with the operator's affirmative approval of this content version."
+    );
+  }
+  const parked = (asset.documents ?? []).filter((d) => d.release === "parked").map((d) => d.title);
   return {
     manifest: "e2c-showcase-import",
     format: 1,
     generated_by: "scripts/phase-e/packs/import-manifests.mjs",
     pack: `docs/phase-e/packs/${packDir}/pack.json`,
-    content_version: `e2a-${hash("sha256", content).slice(0, 12)}`,
+    content_version: contentVersion,
+    approval,
+    ...(parked.length ? { parked } : {}),
     target: {
       environment: "production",
       organization_id: org,
@@ -190,7 +206,7 @@ export function buildImportManifest({ pack, packDir, media, audit, auditInfo, pr
       qr_link_id: asset.existing_ids.qr_link_id,
       short_code: asset.qr.existing_short_code,
     },
-    apply: { allowed: summary.REVIEW_REQUIRED === 0 && summary.BLOCKED === 0, blocked_by: blockedBy },
+    apply: { allowed: summary.REVIEW_REQUIRED === 0 && summary.BLOCKED === 0 && approved, blocked_by: blockedBy },
     current_from: auditInfo,
     summary,
     operations,

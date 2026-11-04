@@ -40,7 +40,9 @@
     "0036_notification_digest_runs",
     "0037_submissions_direct_upload",
     "0038_public_assets_limits",
-    "0039_documents_heic_images"
+    "0039_documents_heic_images",
+    "0040_qr_primary_disable_guard",
+    "0041_demo_organization_flag"
   ],
   "classes": {
     "activity_log": {
@@ -2921,5 +2923,5 @@
       ]
     }
   },
-  "graph_sha256": "f90f1d97894199a1dbc3535a231c6a35f25ba87736a3d2cf0f6763c98500e065"
+  "graph_sha256": "f4425744b6796f3d33c84e68faaf44428e231ce092a8ae5fd9106a08ce4639ff"
 }

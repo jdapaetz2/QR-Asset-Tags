@@ -31,6 +31,12 @@ export const BUDGET_BYTES = BUDGETS.heroBytes;
 
 const BY_SA = { license: "CC BY-SA 4.0", license_url: "https://creativecommons.org/licenses/by-sa/4.0/" };
 const CC0 = { license: "CC0 1.0", license_url: "https://creativecommons.org/publicdomain/zero/1.0/" };
+// E2C: Big Tex's reply to the operator (2026-11-03) allows the photos on its website, credited where practical.
+const BIG_TEX = {
+  author: "Big Tex Trailer Manufacturing, LLC",
+  license: "Used with Big Tex's permission (reply to the operator, 2026-11-03)",
+  baked: "Photo: Big Tex Trailer Manufacturing, LLC",
+};
 
 /** Coordinates are original-image pixels, read off gridded inspection crops. */
 export const RECIPES = [
@@ -135,7 +141,60 @@ export const RECIPES = [
     ],
     crop: { left: 0, top: 427, width: 4032, height: 2268 },
   },
+  // E2C: Big Tex's own product cut-outs. They are small (685x300) and transparent, so they are placed whole on a white
+  // 16:9 canvas instead of cropped.
+  {
+    id: "35sa-bigtex",
+    status: "approved",
+    model_key: "bigtex.35sa.12",
+    out_dir: "bigtex.35sa.12/media",
+    out_name: "35sa-hero",
+    source_id: "src-photo-35sa-bigtex",
+    original: {
+      file: "oem/bigtex/web/img/BT-35SA-Main-685x300-042925.png",
+      sha256: "5f260a1e074a2ce932c0f230229fa2d6338dca34a6f017605b3f5fb62ec7121a",
+      width: 685,
+      height: 300,
+    },
+    alt: "Big Tex 35SA single-axle utility trailer with a mesh ramp gate, seen from the front left",
+    credit: { ...BIG_TEX, source_url: "https://www.bigtextrailers.com/wp-content/uploads/2025/04/BT-35SA-Main-685x300-042925.png" },
+    retouch: [],
+    canvas: { background: "#FFFFFF", width_fraction: 0.92 },
+  },
+  {
+    id: "14lp-bigtex",
+    status: "approved",
+    model_key: "bigtex.14lp.14",
+    out_dir: "bigtex.14lp.14/media",
+    out_name: "14lp-hero",
+    source_id: "src-photo-14lp-bigtex",
+    original: {
+      file: "oem/bigtex/web/img/14LP-Commercial-Grade-Dump-Trailer.png",
+      sha256: "89cb636cb65f0a59e47bec2b980a7383d7843c164eac0fc533657ab762cdcfb6",
+      width: 685,
+      height: 300,
+    },
+    alt: "Big Tex 14LP tandem-axle dump trailer with its body partly raised, seen from the front left",
+    credit: { ...BIG_TEX, source_url: "https://www.bigtextrailers.com/wp-content/uploads/2023/07/14LP-Commercial-Grade-Dump-Trailer.png" },
+    retouch: [],
+    canvas: { background: "#FFFFFF", width_fraction: 0.92 },
+  },
 ];
+
+/** A whole cut-out, scaled to the given share of the hero width and centred on a plain hero-sized canvas. */
+async function placeOnCanvas(pixels, raw, canvas) {
+  const width = Math.round(HERO.width * canvas.width_fraction);
+  const height = Math.round((raw.height * width) / raw.width);
+  if (height > HERO.height) throw new Error(`a ${raw.width}x${raw.height} cut-out does not fit the hero at ${canvas.width_fraction} of its width`);
+  const left = Math.floor((HERO.width - width) / 2);
+  const top = Math.floor((HERO.height - height) / 2);
+  const png = await sharp(pixels, { raw })
+    .resize(width, height, { kernel: "lanczos3" })
+    .extend({ left, top, right: HERO.width - width - left, bottom: HERO.height - height - top, background: canvas.background })
+    .png()
+    .toBuffer();
+  return { png, placed: { left, top, width, height } };
+}
 
 function parseArgs(argv) {
   const args = { vault: path.join(os.homedir(), "Mulemark-Sources", "e2a"), only: null, inspectDir: null };
@@ -220,7 +279,9 @@ async function build(recipe, vault, inspectDir) {
   if (sha256 !== recipe.original.sha256) {
     throw new Error(`${recipe.id}: the original's SHA-256 is ${sha256}, not the recorded ${recipe.original.sha256}.`);
   }
-  const decoded = await sharp(bytes).rotate().removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const decoded = recipe.canvas
+    ? await sharp(bytes).rotate().flatten({ background: recipe.canvas.background }).raw().toBuffer({ resolveWithObject: true })
+    : await sharp(bytes).rotate().removeAlpha().raw().toBuffer({ resolveWithObject: true });
   const { width, height, channels } = decoded.info;
   if (width !== recipe.original.width || height !== recipe.original.height) {
     throw new Error(`${recipe.id}: decoded ${width}x${height}, expected ${recipe.original.width}x${recipe.original.height}.`);
@@ -244,18 +305,21 @@ async function build(recipe, vault, inspectDir) {
   const credit = recipe.credit.baked ? await creditLayers(recipe.credit.baked, HERO.width) : null;
   // A lossless PNG hop gives the composite a properly tagged sRGB base; compositing straight onto raw input shifted
   // the colours of the whole frame.
-  const resized = await sharp(pixels, { raw: { width, height, channels } })
-    .extract(recipe.crop)
-    .resize(HERO.width, HERO.height, { kernel: "lanczos3" })
-    .png()
-    .toBuffer();
+  const placement = recipe.canvas ? await placeOnCanvas(pixels, { width, height, channels }, recipe.canvas) : null;
+  const resized = placement
+    ? placement.png
+    : await sharp(pixels, { raw: { width, height, channels } })
+        .extract(recipe.crop)
+        .resize(HERO.width, HERO.height, { kernel: "lanczos3" })
+        .png()
+        .toBuffer();
   const finalRaw = await sharp(resized)
     .composite(credit ? credit.layers : [])
     .removeAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
 
-  const modified = recipe.retouch.length > 0;
+  const modified = recipe.retouch.length > 0 || Boolean(recipe.canvas);
   const exif = {
     IFD0: {
       Artist: recipe.credit.author,
@@ -286,7 +350,9 @@ async function build(recipe, vault, inspectDir) {
 
   const modifications = [
     ...retouch.map((step) => `Removed the ${step.what}.`),
-    `Cropped to 16:9 (left ${recipe.crop.left}, top ${recipe.crop.top}, ${recipe.crop.width}x${recipe.crop.height}) and resized to ${HERO.width}x${HERO.height}.`,
+    placement
+      ? `Placed whole on a ${recipe.canvas.background} ${HERO.width}x${HERO.height} canvas: resized to ${placement.placed.width}x${placement.placed.height} and centred.`
+      : `Cropped to 16:9 (left ${recipe.crop.left}, top ${recipe.crop.top}, ${recipe.crop.width}x${recipe.crop.height}) and resized to ${HERO.width}x${HERO.height}.`,
     ...(credit ? [`Added the credit label "${recipe.credit.baked}" in the top-right corner.`] : []),
     ...extras.map((e) => `${e.file}: the same edits on the full frame, resized to ${e.width}x${e.height}, no label (${e.purpose}).`),
     "Dropped the original's camera and location metadata.",
@@ -303,7 +369,8 @@ async function build(recipe, vault, inspectDir) {
       credit: { ...recipe.credit, modified },
       modifications,
       retouch,
-      crop: recipe.crop,
+      crop: recipe.crop ?? null,
+      ...(placement ? { canvas: { background: recipe.canvas.background, placed: placement.placed } } : {}),
       credit_box: credit ? credit.box : null,
       outputs,
       ...(extras.length ? { extras } : {}),

@@ -7,6 +7,7 @@ import { scheduleScanOnce } from "@/lib/scan/schedule";
 import { time } from "@/lib/diagnostics/server-timing";
 import { resolvePublicEquipment } from "@/lib/public/resolve";
 import { getPublicDocuments } from "@/lib/public/documents-server";
+import { isDemoOrganization } from "@/lib/public/demo";
 import { getProfile } from "@/lib/auth/session";
 import { PublicEquipmentPage } from "@/components/public/public-equipment-page";
 import { UnavailableNotice } from "@/components/public/unavailable-notice";
@@ -49,9 +50,9 @@ export async function PublicScanRoute({ shortCode, recordScan }: { shortCode: st
     );
   }
 
-  // Independent reads, started together. Documents come from the anon client, the staff-viewer check
-  // from the cookie-scoped one, and neither depends on the other.
-  const [documents, profile] = await time("scan", "page.secondary_queries", () =>
+  // Independent reads, started together. Documents and the demo flag come from the anon client, the
+  // staff-viewer check from the cookie-scoped one, and none depends on another.
+  const [documents, profile, demoNotice] = await time("scan", "page.secondary_queries", () =>
     Promise.all([
       // Public documents (RLS restricts to public docs of this public asset).
       getPublicDocuments(supabase, resolved.assetId),
@@ -59,6 +60,8 @@ export async function PublicScanRoute({ shortCode, recordScan }: { shortCode: st
       // getProfile() is C1's request-scoped read on the cookie-scoped client; anon visitors resolve to
       // null (no link, no leak), and no second Supabase client is created for it.
       getProfile(),
+      // A demo organization's page says so in the footer (yes/no only; never fails the page).
+      isDemoOrganization(supabase, resolved.organizationId),
     ])
   );
   const isStaffViewer = !!profile && profile.organization_id === resolved.organizationId;
@@ -73,6 +76,7 @@ export async function PublicScanRoute({ shortCode, recordScan }: { shortCode: st
       org={resolved.org}
       documents={documents}
       isStaffViewer={isStaffViewer}
+      demoNotice={demoNotice}
     />
   );
 }

@@ -112,8 +112,15 @@ function overlayDatasetRows(desired, expanded) {
 }
 
 /**
+ * E2C: the organization's settings at the cutover (operator, 2026-11-03). The hotlinked logo is a real dealer's, so it
+ * is cleared until owned artwork exists; the stored "Powered by" label (never displayed: the public footer prints the
+ * platform name) is corrected. Only these columns; commercial fields and notification routing are never touched.
+ */
+export const SHOWCASE_ORGANIZATION_SETTINGS = Object.freeze({ logo_url: null, powered_by_label: "Powered by Mulemark" });
+
+/**
  * The first application. `options.removeShowcaseScans` also removes every scan of the four showcase assets that the
- * snapshot holds (an E2C decision; off by default — scans stay append-only).
+ * snapshot holds (operator decision for E2C, 2026-11-02; off by default — scans stay append-only).
  */
 export function composeShowcase({ snapshot, dataset, datasetSha256, overlay, stage = [], options = {} }) {
   const expanded = expandDataset(dataset);
@@ -170,6 +177,15 @@ export function composeShowcase({ snapshot, dataset, datasetSha256, overlay, sta
   for (const d of inserts) if (liveDocs.has(d.id)) throw new Error(`E2A document ${d.id} already exists on the target`);
   desired.documents.push(...clone(inserts));
 
+  // E2C organization settings, only where they differ.
+  const organizationId = dataset.organization_id;
+  const liveOrganization = live.organizations.find((o) => o.id === organizationId);
+  const settingColumns = Object.keys(SHOWCASE_ORGANIZATION_SETTINGS).filter((c) => liveOrganization && liveOrganization[c] !== SHOWCASE_ORGANIZATION_SETTINGS[c]);
+  if (settingColumns.length) {
+    desired.organizations = desired.organizations.map((o) => (o.id === organizationId ? { ...o, ...SHOWCASE_ORGANIZATION_SETTINGS } : o));
+    allowUpdate.organizations = { [organizationId]: settingColumns };
+  }
+
   // The dataset, then the four pointers.
   overlayDatasetRows(desired, expanded);
   setPointers(desired, dataset);
@@ -186,7 +202,7 @@ export function composeShowcase({ snapshot, dataset, datasetSha256, overlay, sta
       append: { scan_events: clone(expanded.rows.scan_events) },
       dataset: datasetInfo(dataset, datasetSha256),
       storage: { stage: [...overlay.uploads, ...stage] },
-      e2a: { applied_as: "draft", apply_allowed: overlay.applyAllowed, statuses: summarizeStatuses(overlay.statuses) },
+      e2a: { applied_as: overlay.applyAllowed ? "approved" : "draft", apply_allowed: overlay.applyAllowed, statuses: summarizeStatuses(overlay.statuses) },
     },
   };
 }
@@ -250,4 +266,14 @@ export function composeDatasetReset({ live, dataset, datasetSha256, removeIds = 
 export function rollbackScanRemovals(cutover, live) {
   const ids = new Set((cutover?.append?.scan_events ?? []).map((r) => r.id));
   return (live.tables.scan_events ?? []).filter((r) => ids.has(r.id)).map((r) => r.id).sort();
+}
+
+/**
+ * E2C: the archived scans a cutover removed by exact id (`--scans=remove-showcase`) that the target no longer holds —
+ * a rollback puts exactly these back, with their archived values.
+ */
+export function rollbackScanReinstatements(cutover, archivedScans, live) {
+  const removed = new Set(cutover?.remove?.scan_events ?? []);
+  const present = new Set((live.tables.scan_events ?? []).map((r) => r.id));
+  return (archivedScans ?? []).filter((r) => removed.has(r.id) && !present.has(r.id)).sort((a, b) => a.id.localeCompare(b.id));
 }

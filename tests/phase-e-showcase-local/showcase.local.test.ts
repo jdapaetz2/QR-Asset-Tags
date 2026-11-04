@@ -56,6 +56,9 @@ let moved: Dataset;
 let qrBefore = "";
 let profilesBefore = "";
 let visitorReport = "";
+// E2C: stand-ins for Production's pre-cutover test scans on the four assets, and the organization settings before.
+let oldScans: string[] = [];
+let orgBefore: { logo_url: string | null; powered_by_label: string | null } = { logo_url: null, powered_by_label: null };
 
 const file = (name: string) => path.join(work, name);
 const reset = (...args: string[]) => runTool(RESET, ["--target=local", ...args]);
@@ -107,7 +110,19 @@ describe("bootstrap", () => {
     profilesBefore = await tableDigest("profiles");
   });
 
-  it("exports the pre-showcase state with the real archive tool (the rollback point)", () => {
+  it("exports the pre-showcase state with the real archive tool (the rollback point)", async () => {
+    // E2C: one old test scan per showcase asset (Production has 2,628 the cutover removes), and a hotlinked logo.
+    oldScans = (
+      await rows(
+        `insert into public.scan_events (organization_id, asset_id, qr_link_id, scanned_at, device_type)
+         select q.organization_id, q.asset_id, q.id, now() - interval '200 days', 'desktop' from public.qr_links q where q.asset_id = any($1::uuid[])
+         returning id`,
+        [SHOWCASE_IDS]
+      )
+    ).map((r) => r.id as string);
+    expect(oldScans).toHaveLength(4);
+    await client.query(`update public.organizations set logo_url = 'https://dealer.example/logo.png' where id = $1`, [NORTHRIDGE]);
+    orgBefore = (await rows(`select logo_url, powered_by_label from public.organizations where id = $1`, [NORTHRIDGE]))[0];
     const { status, out } = runTool(ARCHIVE, ["--target=local", `--org=${NORTHRIDGE}`, `--root=${tempRoot("showcase-archive")}`]);
     expect(out).toMatch(/local synthetic package/);
     expect(status).toBe(0);
@@ -116,10 +131,10 @@ describe("bootstrap", () => {
 });
 
 describe("showcase (first application)", () => {
-  it("plans ACCEPTED: the dataset in, the old test rows out by exact id, nothing on QR rows, profiles or the ledger", () => {
+  it("plans ACCEPTED: the dataset in, the old test rows and scans out by exact id, nothing on QR rows, profiles or the ledger", () => {
     showcaseFile = file("showcase.json");
-    const m = reset("manifest", "--kind=showcase", `--org=${NORTHRIDGE}`, `--out=${showcaseFile}`);
-    expect(m.out).toMatch(/E2A applied as draft/);
+    const m = reset("manifest", "--kind=showcase", `--org=${NORTHRIDGE}`, "--scans=remove-showcase", `--out=${showcaseFile}`);
+    expect(m.out).toMatch(/E2A applied as approved/);
     expect(m.status).toBe(0);
     const p = reset("plan", `--manifest=${showcaseFile}`);
     expect(p.out).toMatch(/ACCEPTED/);
@@ -129,9 +144,15 @@ describe("showcase (first application)", () => {
     expect(plan.counts.form_submissions.INSERT).toBe(DATASET.rows.form_submissions.length);
     expect(plan.counts.asset_acknowledgements.INSERT).toBe(DATASET.rows.asset_acknowledgements.length);
     expect(plan.counts.scan_events.INSERT).toBe(DATASET.rows.scan_events.length);
-    for (const t of ["qr_links", "profiles", "notification_digest_runs", "organizations"]) {
+    expect(plan.counts.scan_events.DELETE).toBe(oldScans.length);
+    expect(JSON.parse(readFileSync(showcaseFile, "utf8")).remove.scan_events).toEqual([...oldScans].sort());
+    for (const t of ["qr_links", "profiles", "notification_digest_runs"]) {
       expect(plan.counts[t].UPDATE + plan.counts[t].INSERT + plan.counts[t].DELETE, t).toBe(0);
     }
+    // E2C: only the logo (cleared) and the stored "Powered by" label change on the organization.
+    expect(plan.counts.organizations.INSERT + plan.counts.organizations.DELETE).toBe(0);
+    expect(plan.counts.organizations.UPDATE).toBe(1);
+    expect(["logo_url", "powered_by_label"]).toEqual(expect.arrayContaining(JSON.parse(readFileSync(showcaseFile, "utf8")).allow_update.organizations[NORTHRIDGE]));
   });
 
   it("rolls an interrupted apply back completely (after the writes, after the post-checks), then the retry succeeds", async () => {
@@ -145,6 +166,10 @@ describe("showcase (first application)", () => {
     const applied = reset("apply", `--manifest=${showcaseFile}`);
     expect(applied.out, applied.out.slice(-2500)).toMatch(/re-plan after commit: CONVERGED \(all KEEP\)/);
     expect(applied.status).toBe(0);
+    expect(await count(client, `select count(*)::int as n from public.scan_events where id = any($1::uuid[])`, [oldScans])).toBe(0);
+    expect((await rows(`select logo_url, powered_by_label from public.organizations where id = $1`, [NORTHRIDGE]))[0]).toEqual({ logo_url: null, powered_by_label: "Powered by Mulemark" });
+    // The parked Start-Up Guides were not imported.
+    expect(await count(client, `select count(*)::int as n from public.documents where organization_id = $1 and document_type = 'startup_guide' and visibility = 'public'`, [NORTHRIDGE])).toBe(0);
   });
 
   it("writes nothing when applied again, and refuses a second showcase build (duplicate seed)", () => {
@@ -414,6 +439,9 @@ describe("rollback", () => {
     expect(await count(client, `select count(*)::int as n from public.documents where id = any($1::uuid[])`, [inserted])).toBe(0);
     expect(await tableDigest("qr_links")).toBe(qrBefore);
     expect(await tableDigest("profiles")).toBe(profilesBefore);
+    // E2C: the removed old scans and the organization settings come back from the archive.
+    expect(await count(client, `select count(*)::int as n from public.scan_events where id = any($1::uuid[])`, [oldScans])).toBe(oldScans.length);
+    expect((await rows(`select logo_url, powered_by_label from public.organizations where id = $1`, [NORTHRIDGE]))[0]).toEqual(orgBefore);
   });
 });
 

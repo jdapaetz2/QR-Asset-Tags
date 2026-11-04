@@ -399,13 +399,28 @@ describe("E2A packs: panel and sign artwork", () => {
 });
 
 describe("E2A packs: E2C import manifests", () => {
-  it("are current with their packs and only allow applying when every operation is READY", () => {
+  it("are current with their packs and only allow applying when every operation is READY and this version is approved", () => {
     for (const { dirName, pack, media, manifest } of ENTRIES) {
       expect(manifest.content_version, dirName).toBe(`e2a-${hash("sha256", stableStringify({ model: pack.models[0], asset: pack.assets[0] })).slice(0, 12)}`);
       const rebuilt = buildImportManifest({ pack, packDir: dirName, media, audit: null, auditInfo: manifest.current_from, previous: manifest });
       expect(rebuilt.pinned_ids, dirName).toEqual(manifest.pinned_ids);
-      expect(manifest.apply.allowed, dirName).toBe(manifest.summary.REVIEW_REQUIRED === 0 && manifest.summary.BLOCKED === 0);
-      expect(manifest.apply.allowed, `${dirName}: nothing is approved yet`).toBe(false);
+      const approved = pack.approval?.status === "approved" && pack.approval.content_version === manifest.content_version;
+      expect(manifest.apply.allowed, dirName).toBe(manifest.summary.REVIEW_REQUIRED === 0 && manifest.summary.BLOCKED === 0 && approved);
+      // E2C: the operator approved all four (2026-11-03); a later edit of a pack voids its approval.
+      expect(manifest.apply.allowed, `${dirName}: approved for the E2C release`).toBe(true);
+      const edited = structuredClone(pack);
+      edited.assets[0].page.headline.text += " Edited.";
+      const unapproved = buildImportManifest({ pack: edited, packDir: dirName, media, audit: null, auditInfo: manifest.current_from, previous: manifest });
+      expect(unapproved.apply.allowed, `${dirName}: an edit after the approval`).toBe(false);
+    }
+  });
+
+  it("never import a document the operator parked", () => {
+    for (const { dirName, pack, manifest } of ENTRIES) {
+      for (const doc of pack.assets[0].documents.filter((d) => d.release === "parked")) {
+        expect(manifest.parked, dirName).toContain(doc.title);
+        expect(JSON.stringify(manifest.operations), `${dirName} ${doc.title}`).not.toContain(doc.title);
+      }
     }
   });
 
