@@ -34,19 +34,25 @@ async function axeCheck(page: Page) {
 }
 
 type Box = { x: number; y: number; width: number; height: number };
-const keyboard: { route: string; controls: number; stops: string[]; skipped: string[]; out_of_order: string[]; no_visible_focus: string[]; small_targets: string[] }[] = [];
+const keyboard: { route: string; controls: number; stops: string[]; skipped: string[]; out_of_order: string[]; no_visible_focus: string[]; focus_checked: string; small_targets: string[] }[] = [];
 
 /**
- * What axe cannot see (E2C Gate A): Tab reaches every control in DOM order, and each focused control visibly changes on
- * screen (compared pixel for pixel with the unfocused page). Both are asserted. Touch targets are measured against the
- * 44 x 44 px design rule (a checkbox, radio or file input by its label, which is what a finger presses; inline text
- * links exempt) and recorded in keyboard-targets.json, not asserted: the shared public components have known targets
- * under 44 px that predate Phase E (E2C Gate A finding, recorded in docs/phase-e/E2C_APPROVAL_PACKET.md).
+ * What axe cannot see (E2C Gate A), on the page as it is now: Tab reaches every control in DOM order; each focused control
+ * visibly changes on screen (compared pixel for pixel with the unfocused page); and every control meets the 44 x 44 px
+ * touch-target design rule (a checkbox, radio or file input by its label, which is what a finger presses; inline text
+ * links exempt). All three are asserted (soft, so one run reports every page) and recorded in keyboard-targets.json.
+ * `view` names a state of the page, such as an open prompt, in the report and the failure messages. `overlay` is the
+ * selector of an open non-modal overlay fixed to the viewport: visible focus is then checked for its own controls only,
+ * shot from the top of the page where they were measured. Page controls can sit behind it (the acknowledgement prompt
+ * covers Quick Start at 390 x 844, a separate issue); their focus is checked on the same page without the overlay.
  */
-async function keyboardAndTargets(page: Page) {
-  const route = new URL(page.url()).pathname;
+async function keyboardAndTargets(page: Page, { view, overlay }: { view?: string; overlay?: string } = {}) {
+  const pathname = new URL(page.url()).pathname;
+  const route = view ? `${pathname} (${view})` : pathname;
+  const toTop = () => page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: "instant" }));
+  if (overlay) await toTop();
   await page.mouse.move(0, 0);
-  const controls = await page.evaluate(() => {
+  const controls = await page.evaluate((overlaySelector) => {
     const selector = 'a[href], button, input:not([type="hidden"]), select, textarea, summary, [tabindex]:not([tabindex="-1"])';
     return [...document.querySelectorAll<HTMLElement>(selector)]
       .filter((el) => {
@@ -64,15 +70,16 @@ async function keyboardAndTargets(page: Page) {
           name: `${el.tagName.toLowerCase()}${el.getAttribute("type") ? `[${el.getAttribute("type")}]` : ""} "${text.slice(0, 48)}"`,
           radioGroup: el.matches('input[type="radio"]') ? (el as HTMLInputElement).name : null,
           inline: el.tagName === "A" && getComputedStyle(el).display === "inline",
+          focusChecked: overlaySelector === null || el.closest(overlaySelector) !== null,
           box: { x: r.left + window.scrollX, y: r.top + window.scrollY, width: r.width, height: r.height },
         };
       });
-  });
+  }, overlay ?? null);
   const clip = (b: Box) => ({ x: Math.max(0, b.x - 6), y: Math.max(0, b.y - 6), width: b.width + 12, height: b.height + 12 });
   const shotOf = (b: Box) => page.screenshot({ fullPage: true, clip: clip(b), animations: "disabled", caret: "hide" });
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   const before = new Map<number, Buffer>();
-  for (const c of controls) before.set(c.index, await shotOf(c.box));
+  for (const c of controls) if (c.focusChecked) before.set(c.index, await shotOf(c.box));
   // Start sequential navigation at the top of the document.
   await page.evaluate(() => {
     const start = document.createElement("span");
@@ -91,6 +98,9 @@ async function keyboardAndTargets(page: Page) {
     if (stops.includes(index)) break;
     stops.push(index);
     const control = controls[index];
+    if (!control.focusChecked) continue;
+    // The overlay is fixed to the viewport: shoot it from the top of the page, where its boxes were measured.
+    if (overlay) await toTop();
     if ((await shotOf(control.box)).equals(before.get(index) as Buffer)) noFocus.push(control.name);
   }
   await page.evaluate(() => document.getElementById("kbd-start")?.remove());
@@ -100,10 +110,11 @@ async function keyboardAndTargets(page: Page) {
   const small = controls
     .filter((c) => !c.inline && (c.box.width < 44 || c.box.height < 44))
     .map((c) => `${c.name} ${Math.round(c.box.width)}x${Math.round(c.box.height)}`);
-  keyboard.push({ route, controls: controls.length, stops: stops.map((s) => controls[s].name), skipped, out_of_order: outOfOrder, no_visible_focus: noFocus, small_targets: small });
+  keyboard.push({ route, controls: controls.length, stops: stops.map((s) => controls[s].name), skipped, out_of_order: outOfOrder, no_visible_focus: noFocus, focus_checked: overlay ? `inside ${overlay}` : "every control", small_targets: small });
   expect.soft(skipped, `${route}: controls Tab never reaches`).toEqual([]);
   expect.soft(outOfOrder, `${route}: Tab order differs from the page order`).toEqual([]);
   expect.soft(noFocus, `${route}: focused controls with no visible change`).toEqual([]);
+  expect.soft(small, `${route}: touch targets under 44 x 44 px`).toEqual([]);
 }
 
 type Dataset = {
@@ -192,6 +203,7 @@ test("story 1 — EXCAVATOR-017: the handoff, the manual, live acknowledgement a
   const prompt = renter.getByRole("dialog", { name: "Before you use this equipment" });
   await expect(prompt).toBeVisible({ timeout: 10_000 });
   await shot(renter, "017", "1-scan-acknowledgement-prompt", "public scan page: identity, the handover wording, Manual, the active-rental acknowledgement prompt");
+  await keyboardAndTargets(renter, { view: "acknowledgement prompt open", overlay: '[role="dialog"][aria-label="Before you use this equipment"]' });
   await prompt.getByLabel("Your name").fill("Walkthrough renter (local)");
   await prompt.getByRole("checkbox").check();
   await prompt.getByRole("button", { name: "Acknowledge" }).click();
@@ -204,6 +216,7 @@ test("story 1 — EXCAVATOR-017: the handoff, the manual, live acknowledgement a
   await renter.waitForURL(/\/support\/thanks/);
   await expect(renter.getByText(/^SUB-\d{4}-[0-9A-F]{6}$/)).toBeVisible();
   await shot(renter, "017", "2-support-sent", "support request sent: the renter sees the SUB reference");
+  await keyboardAndTargets(renter);
   await renter.close();
 
   const page = await browser.newPage();

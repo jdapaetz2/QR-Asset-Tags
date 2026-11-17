@@ -82,11 +82,12 @@ export function AckPrompt({
       >
         <div className="mb-2 flex items-start justify-between gap-3">
           <h2 className="text-sm font-semibold">Before you use this equipment</h2>
+          {/* A 44px touch target; the negative margins keep the glyph where it was, in the card corner. */}
           <button
             type="button"
             onClick={dismissForNow}
             aria-label="Dismiss"
-            className="text-muted-foreground hover:text-foreground"
+            className="-my-2.5 -mr-4 inline-flex size-11 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground"
           >
             ✕
           </button>
@@ -101,7 +102,7 @@ export function AckPrompt({
         <button
           type="button"
           onClick={dismissForNow}
-          className="mt-3 text-xs text-muted-foreground underline-offset-4 hover:underline"
+          className="inline-flex min-h-11 items-center text-xs text-muted-foreground underline-offset-4 hover:underline"
         >
           Dismiss for now
         </button>

@@ -47,7 +47,7 @@ export function FormThanks({
 
   const emailContact = support.email ? (
     emailHref ? (
-      <a href={emailHref} className="underline-offset-4 hover:underline">
+      <a href={emailHref} className="inline-flex min-h-11 items-center justify-center underline-offset-4 hover:underline">
         Email {support.email}
       </a>
     ) : (
@@ -122,7 +122,7 @@ export function FormThanks({
             <span className="text-sm text-muted-foreground">Need help now?</span>
             {support.phone ? (
               phone ? (
-                <a href={phone.href} className="underline-offset-4 hover:underline">
+                <a href={phone.href} className="inline-flex min-h-11 items-center justify-center underline-offset-4 hover:underline">
                   Call {phone.label}
                 </a>
               ) : (

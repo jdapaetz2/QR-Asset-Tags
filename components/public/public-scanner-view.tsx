@@ -72,6 +72,9 @@ const OUTLINE_CLS =
 const EYEBROW_CLS =
   "text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground";
 
+/** A support-contact row, link or plain text alike: at least the 44px touch target (preview rows match). */
+const CONTACT_ROW_CLS = "flex min-h-11 items-center";
+
 /** One action affordance, rendered live (public) or inert (preview). */
 function Action({
   mode,
@@ -301,13 +304,15 @@ export function PublicScannerView({
       {documents.length > 0 ? (
         <section className="rounded-lg border bg-card p-4">
           <p className={`mb-2 ${EYEBROW_CLS}`}>Documents</p>
+          {/* Each row, and its Open/Download link, is at least the 44px touch target (preview rows match). The link's
+              extra width reaches left into the row gap (-ml-3 pl-3), so titles keep their width and wrap as before. */}
           <ul className="flex flex-col gap-3 text-base">
             {documents.map((doc) => {
               const label =
                 DOCUMENT_TYPE_LABELS[doc.document_type as DocumentType] ?? doc.document_type;
               const openable = isDocumentOpenable(doc);
               return (
-                <li key={doc.id} className="flex items-center justify-between gap-3">
+                <li key={doc.id} className="flex min-h-11 items-center justify-between gap-3">
                   <span className="min-w-0">
                     <span className="font-medium">{doc.title}</span>{" "}
                     <span className="text-xs text-muted-foreground">{label}</span>
@@ -327,8 +332,8 @@ export function PublicScannerView({
                       rel="noopener noreferrer"
                       className={
                         doc.link_status === "needs_review"
-                          ? "shrink-0 text-sm text-muted-foreground underline-offset-4 hover:underline"
-                          : "shrink-0 text-sm font-medium underline-offset-4 hover:underline"
+                          ? "-ml-3 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-end pl-3 text-sm text-muted-foreground underline-offset-4 hover:underline"
+                          : "-ml-3 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-end pl-3 text-sm font-medium underline-offset-4 hover:underline"
                       }
                     >
                       {documentActionLabel(doc)}
@@ -350,18 +355,18 @@ export function PublicScannerView({
                 shown as plain text, never as a broken or smuggled tel:/mailto: URI. */}
             {support.phone ? (
               preview || !telHref(support.phone) ? (
-                <span>Call {support.phone}</span>
+                <span className={CONTACT_ROW_CLS}>Call {support.phone}</span>
               ) : (
-                <a href={telHref(support.phone) ?? undefined} className="font-medium underline-offset-4 hover:underline">
+                <a href={telHref(support.phone) ?? undefined} className={`${CONTACT_ROW_CLS} font-medium underline-offset-4 hover:underline`}>
                   Call {support.phone}
                 </a>
               )
             ) : null}
             {support.email ? (
               preview || !mailtoHref(support.email) ? (
-                <span>Email {support.email}</span>
+                <span className={CONTACT_ROW_CLS}>Email {support.email}</span>
               ) : (
-                <a href={mailtoHref(support.email) ?? undefined} className="underline-offset-4 hover:underline">
+                <a href={mailtoHref(support.email) ?? undefined} className={`${CONTACT_ROW_CLS} underline-offset-4 hover:underline`}>
                   Email {support.email}
                 </a>
               )
