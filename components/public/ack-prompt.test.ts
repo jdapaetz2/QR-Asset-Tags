@@ -35,3 +35,36 @@ describe("ack-prompt — staff-aware + non-persistent dismiss", () => {
     expect(src).toContain("if (!dismissedRef.current) setVisible(true)");
   });
 });
+
+// WCAG 2.2 SC 2.4.11 (Focus Not Obscured): keyboard focus scrolls clear of what is fixed to the bottom of a scan page —
+// the sticky action bar, and the open prompt — while the prompt stays non-blocking. Line endings normalized (Windows).
+describe("ack-prompt — keyboard focus is never hidden behind the prompt or the sticky bar", () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+  const read = (path: string) => readFileSync(resolve(root, path), "utf8").replace(/\r\n/g, "\n");
+  const css = read("app/globals.css");
+  const bar = read("components/public/public-scanner-view.tsx");
+
+  it("publishes how much of the viewport it covers while open, keeps it current, and removes it when it closes", () => {
+    expect(src).toContain('const COVER_PROPERTY = "--ack-prompt-cover";');
+    expect(src).toContain('data-ack-prompt=""');
+    expect(src).toContain("new ResizeObserver(publish)");
+    expect(src).toContain("root.style.removeProperty(COVER_PROPERTY)");
+  });
+
+  it("stays non-blocking: it never takes focus and never makes the page inert or modal", () => {
+    for (const blocking of [".focus(", "inert", "aria-modal", "showModal"]) expect(src).not.toContain(blocking);
+  });
+
+  it("scan pages keep focus clear of the sticky bar (phones) and of the open prompt, and reserve room for it", () => {
+    expect(css).toContain(
+      "@media (width < 40rem) {\n  html:has([data-sticky-actions]) {\n    scroll-padding-bottom: calc(1px + 4rem + max(0.5rem, env(safe-area-inset-bottom)));"
+    );
+    expect(css).toContain("html:has([data-ack-prompt]) {\n  scroll-padding-bottom: calc(var(--ack-prompt-cover, 0px) + 0.5rem);");
+    expect(css).toContain("main:has(> [data-ack-prompt]) {\n  padding-bottom: calc(var(--ack-prompt-cover, 0px) + 0.5rem);");
+    expect(css).toContain("html:has([data-ack-prompt]) [data-sticky-actions] {\n  visibility: hidden;");
+  });
+
+  it("marks only the public sticky bar, never the admin preview frame", () => {
+    expect(bar).toContain('data-sticky-actions={preview ? undefined : ""}');
+  });
+});

@@ -390,6 +390,10 @@ export function PublicScannerView({
  * Sticky bottom action bar (mobile). public → fixed to the viewport; preview → absolute inside
  * the phone frame. Report Damage is the primary (tenant color); a Call tel: cell appears when a
  * support phone exists. ≥48px targets, safe-area padding, no animation.
+ *
+ * Public mode marks it `data-sticky-actions`. app/globals.css then gives scan pages a scroll-padding of the bar's
+ * height, so keyboard focus never parks behind it (WCAG 2.2 SC 2.4.11), and hides it while the acknowledgement prompt
+ * covers it. That rule mirrors the bar's height (border, padding, h-12 cells, safe area): change the two together.
  */
 export function PublicScannerStickyActions({
   mode,
@@ -476,6 +480,7 @@ export function PublicScannerStickyActions({
 
   return (
     <div
+      data-sticky-actions={preview ? undefined : ""}
       className={`${position} border-t bg-background/95 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur`}
     >
       <nav className="mx-auto flex max-w-md items-stretch gap-2">{cells.map(renderCell)}</nav>
