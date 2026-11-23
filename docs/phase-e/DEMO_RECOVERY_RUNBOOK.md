@@ -331,17 +331,22 @@ Staging Northridge is reserved for the E2B rehearsal. The read-only health check
 ## 8. E2C cutover checklist
 
 **Preconditions.** All must be true before asking for the Production approval:
-- [ ] Content and evidence ([PHASE_E_PLAN.md](PHASE_E_PLAN.md)):
+**E2C ran this checklist on 2026-11-23** (16:26–16:53 UTC, converged). The record is [E2C_APPROVAL_PACKET.md](E2C_APPROVAL_PACKET.md) §13 and [WORK_LOG.md](WORK_LOG.md).
+
+- [x] Content and evidence ([PHASE_E_PLAN.md](PHASE_E_PLAN.md)):
   - [x] E2A content approved (2026-11-03; guides parked);
-  - [ ] E2B dataset rehearsed on staging (redone for the E2C shape);
+  - [x] E2B dataset rehearsed on staging, redone for the E2C shape (2026-11-04 UTC: rollback, cutover, `--fail-at`, apply, no-op);
   - [x] business-card evidence verified (2026-11-03, [PROTECTED_DEMO_ROUTES.md](PROTECTED_DEMO_ROUTES.md));
   - [x] printed-sheet answers received (2026-11-03);
-  - [ ] the owner-only QR-disable guard migrated (0040, packet item 1).
-- [ ] The cutover manifest is the E2B `showcase` kind ([E2C_CUTOVER_PACKAGE.md](E2C_CUTOVER_PACKAGE.md); its 2026-10-20 dry run was **ACCEPTED**). Rebuild the dataset for the cutover date, compose the manifest and dry-run it again: `npm.cmd run phase-e:reset:production -- plan --manifest=<file>`. The counts are recorded and the emitted SQL has been reviewed.
+  - [x] the owner-only QR-disable guard migrated (0040, packet item 1, 2026-11-21).
+- [x] The cutover manifest is the E2B `showcase` kind ([E2C_CUTOVER_PACKAGE.md](E2C_CUTOVER_PACKAGE.md)).
+  - The dataset was rebuilt for 2026-11-03, and the manifest dry-run on 2026-11-04: **ACCEPTED** (`showcase-production-20261104T011054Z`).
+  - It was rebuilt again for 2026-11-20 and dry-run that day: **ACCEPTED** (`showcase-production-20261120T223626Z`).
+  - The counts are recorded in [E2C_APPROVAL_PACKET.md](E2C_APPROVAL_PACKET.md).
 - [x] The execution mode is decided: through the guarded database URL (operator, 2026-11-03). The approval packet still approves the run itself.
 - [x] The operator live checks in [§6](#6-seed-notification-suppression) are done and recorded (2026-10-19).
-- [ ] A separate Production approval names the exact ids, taken from the plan file.
-- [ ] The time is outside 13:00–15:00 UTC.
+- [x] A separate Production approval names the exact ids, taken from the plan file (2026-11-20: items 1–6 as revised, including later scans).
+- [x] The time is outside 13:00–15:00 UTC (the apply ran 16:45–16:48 UTC).
 
 **Window.** Demo-only; no other tenant is touched.
 1. Baseline: `npm.cmd run phase-e:health:production` must show 5/5.

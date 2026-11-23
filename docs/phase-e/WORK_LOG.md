@@ -578,7 +578,7 @@ On 2026-11-03 a test build for the chosen anchor passed the same time rules. Its
 npm run phase-e:showcase:build -- --anchor=2026-11-03
 ```
 
-## E2C — release the curated Northridge showcase (2026-11-03, in progress)
+## E2C — release the curated Northridge showcase (2026-11-03 to 2026-11-23, done)
 
 The operator pasted Prompt E2C on 2026-11-03. Plan approved the same day in plan mode: four stages with one hard stop, the approval packet.
 
@@ -692,3 +692,236 @@ The walkthrough now measures what axe can't see on the four scan pages and three
 
   Not fixed in E2C, because the fix changes every customer's pages. A CSS-only follow-up is offered as a separate task; it is listed in the approval packet's known limitations.
 - **Run:** walkthrough 7/7 (2.1 min); axe found no violations on the 7 pages.
+
+### Staging migrations and verification (2026-11-04)
+
+The operator pushed 0040 and 0041 to staging with the CLI:
+- the link check passed (`kwserenxwjxozztyigmw`, non-production);
+- the dry run listed only those two;
+- `migration list` shows 0001–0041 on both sides.
+
+| Check (against `8f6c514`) | Result |
+|---|---|
+| Preview `/api/version` | `8f6c5147704c8fbd7bfb6a157821faaedd8d54a0`, environment `preview` |
+| Demo flag (0041), anon RPC | `is_demo_organization(Northridge)` = `true` |
+| `phase-e:precall:staging` | **Ready:** 42 PASS, 0 FAIL, 2 notes. The demo notice now shows on all four `/nojs/t/` pages. Note 1: Bobcat's store link refused the scripted HEAD request, but opens in a browser (checked by hand: the E20 manual's product page, 7255004ENUSPDF). Note 2: 0 visitor rows since the anchor |
+| `smoke:staging` | 29 checks: 28 pass, 0 fail, 1 skipped (the email dry-run log can't be seen from a browser) |
+
+- **Commits pushed:** `1a622b8` (stage 1b) and `8f6c514` (the walkthrough measurement). **`8f6c514` is the commit to promote.** Nothing is pushed after it until the promotion.
+- **Tap-target follow-up:** a separate session is working on it in this same checkout. Its edits to six public components and the walkthrough stay uncommitted until after the promotion. They are not part of this release.
+- **Stop:** the approval packet ([E2C_APPROVAL_PACKET.md](E2C_APPROVAL_PACKET.md)) went to the operator for item-by-item approval. Nothing has run on Production.
+
+### Status check (2026-11-18, read-only, before approval)
+
+Two weeks after the packet. Nothing has run on Production.
+- **Production app:**
+  - `mulemark.io/api/version` and `qr-asset-tags.vercel.app/api/version` both return 404. That route exists only from `8f6c514` on, so Production still serves the old app (`93fe39b`).
+  - A note from 2026-11-17 says `8f6c514` had been promoted. That promotion didn't take effect, so it is still item 2.
+- **Production health:** `phase-e:health:production` 5/5 (scan-free).
+- **Drift** (`phase-e:audit:production`, read-only): unchanged since 2026-11-04 except scans and digest runs.
+  - Scans on the four machines: 988 / 804 / 72 / 842 = **2,706**, 32 more than at the dry run.
+  - All scans: 3,280. Digest runs: 68.
+- **Staging Preview:** still serves `8f6c5147…`; the branch hasn't moved.
+- **Marketing:** `main` is still `57747c3`, so the patch applies as prepared.
+- **USB:** `D:\Mulemark-Ops-Archive` present.
+- **History anchor:** 2026-11-03 is now 15 days old, and the pre-call check flags anchors over 7 days old (DEMO_REFRESH_POLICY.md).
+  - Proposed to the operator with the packet refresher: rebuild the dataset on the cutover day, anchored at that day's 13:00 UTC, following the operator's "apply from today's date".
+  - Same records and counts; the dates and hashes change.
+
+### Approval (2026-11-20)
+
+The operator approved the packet item by item on 2026-11-20 (22:28 UTC): **"Approve 1–6 as revised, include later scans, caption OK"**. The revisions follow the operator's wish not to run pushes or deletions themselves unless necessary.
+
+| Item | Who | As revised |
+|---|---|---|
+| 1. Production migrations | Me | The project's CLI with `--db-url` from `.env.production-db.local`. No relink: the CLI stays linked to staging |
+| 2. Promotion | Operator | Vercel → Promote to Production, on the Preview of `8f6c514` |
+| 3. Deletions | Me | In the one transaction. **Include later scans:** scans on the four machines after the dry run, up to the suspension, are removed too. Any other difference stops the run |
+| 4. Publication | Me | The same transaction, after staging the files. The operator does the owner switches: suspend first; at the end, the Demo plan and reactivate |
+| 5. Marketing | Me | Apply the patch, commit as the operator, push `main`. The caption "On the tongue rail" is approved |
+| 6. Live-review email | Operator | The two test forms notify `support@mulemark.io`. Afterwards a presenter reset removes the two submissions by exact id |
+
+- **History anchor moved to 2026-11-20** 06:00 Vancouver (13:00 UTC), the planned cutover day, following "apply from today's date".
+  - The rebuilt dataset: SHA-256 `b8c7c60b…`, 983,866 bytes, with the same 92 / 179 / 55 / 700 rows.
+  - The curated straps case moved to `SUB-2026-66A6B7` ([SHOWCASE_STORIES.md](SHOWCASE_STORIES.md)).
+  - `npm test`: 213 files, 2,450 tests passed.
+- **Local suites not re-run:** the local database could not start.
+  - Windows reserves the port range 54318–54417, which includes the local Supabase database port 54322. Restarting the `winnat` service as administrator frees it.
+  - The local suites last passed on 2026-11-04 with the same tools. This change is data only, and its tests pass.
+
+### Production database URL (2026-11-20)
+
+- **The file:** `.env.production-db.local` in the project folder, gitignored by `.env*`. The operator pasted the session-pooler string into it.
+- **First string:** it did not parse.
+  - Special characters in the password broke the address, and the guard's error named the parsed "host", which was a few password characters.
+  - My check scripts now redact that echo. The operator percent-encoded the characters; the password itself was not changed.
+- **Follow-up:** redact the host in `productionDbConfig`'s error (`scripts/lib/showcase-target.mjs`).
+- **Read-only identity check:** session pooler on port 5432, TLS verified against `prod-ca-2021.crt`; the staging probe absent; the four protected QR rows exactly as tracked; the 21-trigger catalog.
+
+### Dry run (2026-11-20 22:36 UTC)
+
+`showcase-production-20261120T223626Z`: **ACCEPTED**. The same changes as on 2026-11-04 (packet §4), with three differences:
+- **Scans removed:** 2,710, because of visitor scans since 11-04.
+- **Files to stage:** 228, not 230. The re-anchored history has 224 evidence images.
+- **Digest ledger:** 70 rows, all kept.
+
+Watermark: the last digest success was 2026-11-20 13:00 UTC, equal to the new anchor.
+
+### Production migrations (item 1, 2026-11-21 06:34 UTC)
+
+- **How:** the project's own CLI, with the guarded URL passed as `--db-url` and redacted from all output. No relink.
+  - The dry run listed only `0040_qr_primary_disable_guard.sql` and `0041_demo_organization_flag.sql`, with the packet's hashes.
+  - Pushed. `migration list` shows 0001–0041 on both sides.
+- **Checks:**
+  - `is_demo_organization` is present; for Northridge, anon gets `false` (not on the Demo plan yet);
+  - still 21 triggers;
+  - the identity checks pass.
+
+### Promotion (item 2, 2026-11-21)
+
+The operator promoted the Preview of `8f6c514` (about 07:07 UTC).
+- **Version:** `mulemark.io/api/version` and `qr-asset-tags.vercel.app/api/version` both return `{"commit":"8f6c5147704c8fbd7bfb6a157821faaedd8d54a0","environment":"production"}`.
+- **`smoke:production`:** 14 checks, 13 pass, 0 fail, 1 skipped (the check that writes a scan, deliberately not run).
+- **`phase-e:health:production`:** 5/5.
+
+### Cutover (2026-11-23)
+
+| UTC | Step | Result |
+|---|---|---|
+| 16:26 | Operator suspends Northridge | |
+| 16:28 | **Fresh archive** (the rollback point) | `northridge-production-20261123T162851Z`, verified, manifest `4a11e57ad54a51af742ad95f3fa9582beb2572e8685cce14776d1cd88ca816ed`. 17 tables (3,289 scans, 49 submissions, 73 digest-ledger rows); 53 objects, 23,107,566 bytes; 7 missing references (the E0 seven) |
+| 16:30 | **Final delta** from the suspended snapshot | `showcase-production-20261123T163011Z`: **ACCEPTED**. Identical to the 11-20 dry run except **5 more scans** on the four machines (2,715 removed), which "include later scans" covers, and 73 digest-ledger rows kept. The SQL has the same shape as on 11-20: one transaction, triggers on, the organization row locked, 315 guards and post-checks, and no DDL except the 3 temporary snapshot tables |
+| 16:35 | Dataset committed | `eec17a3`. Its blob hashes to the approved `b8c7c60b…` |
+| 16:35 | **Finding, fixed:** the Production apply would not have staged the files | See below. Fixed in `1b394fb` |
+| 16:44 | **USB copy** | `D:\Mulemark Backup\`, on a different USB drive from the one holding `D:\Mulemark-Ops-Archive`. The package verified OK (same manifest). This run's manifest, plan and SQL were copied too, with equal hashes |
+| 16:45–16:48 | **Apply** | One transaction, 196 guarded statements, counts as planned. Storage: 228 files uploaded, 0 already present. Re-plan after commit: **CONVERGED** |
+| 16:53 | Operator: Demo plan, then reactivate | Northridge active, on `plan_key = demo`. **Offline 27 minutes** (16:26–16:53) |
+
+**The staging finding:**
+- **What was wrong:** the apply staged Storage objects only on the local stack and staging. That `canStage` check dates from E2B, when Production applies were refused.
+- **Effect if run as it was:** none of the 228 files were on Production, so the rows would have pointed at missing covers and evidence.
+- **Fix (`1b394fb`):** Production stages the files too, the same way as staging: only missing files are uploaded, nothing is overwritten, and each one is read back and checked by hash.
+- **Checks:** lint and the scripts' tests (325) pass.
+
+**Applied counts:**
+- **Updated:** the organization 1, assets 7, equipment pages 4, documents 5, rentals 3.
+- **Inserted:** documents 5, rentals 92, acknowledgements 55, submissions 179, scans 700.
+- **Deleted:** rentals 14, acknowledgements 10, submissions 49, scans 2,715.
+- **Untouched:** QR rows, profiles, tag requests, the page template and the digest ledger.
+
+| File (outside Git, `%USERPROFILE%\Mulemark-Ops-Archive\e2c\`) | SHA-256 |
+|---|---|
+| Manifest `showcase-production-e2c-20261123-final.json` | `ac21edfccead62b38f643399791891287740b5ed225a74726e3c481769adb166` |
+| Plan (the `--approved-plan`) | `3db652152cc8ed00281c06a61f01ddb8bf8f71506d6addedbb14436ee92d524e` |
+| SQL (2,258,948 bytes) | `d53699ce3299da42ef4786ec256b9c0cdccdea9447cf191f68974c5e537a241b` |
+
+### Verification (2026-11-23, after reactivation)
+
+| Check | Result |
+|---|---|
+| No-op plan | `noop-production-20261123T165444Z`: ACCEPTED, all KEEP. 1,274 scans: 574 kept and the 700 of the history |
+| QR rows | All 12 identical, column for column, to the pre-cutover archive, before and after the reactivation |
+| Demo flag | Anon `is_demo_organization(Northridge)` returns `true`. Northridge is `active` on the `demo` plan |
+| Identity | Staging probe absent; the 4 protected QR rows exactly as tracked; 21 triggers |
+| `phase-e:health:production` | 5/5 on `mulemark.io` and on `qr-asset-tags.vercel.app`. On the alias host, the conditional `7gzt4aqc` (WSHR-001) still shows the unavailable notice: unchanged since 2026-07-13, and closed on 2026-10-17 |
+| `phase-e:precall:production` | **Ready**, with 2 notes. The four pages resolve and show the demo notice; the covers answer 200; the manual links answer, except that Bobcat's store refuses the scripted request (known). All 92 / 55 / 179 / 700 history rows are present; the curated rentals are on rent; 3 new and 2 reviewed items; anchor 3 days old; 0 visitor rows since the anchor |
+| Audit | Matches the showcase: logo none; support phone not dialable. Scans on the four machines 225 / 195 / 160 / 120; rentals 25 / 20 / 30 / 17. Artifact `qa-artifacts/phase-e/showcase-audit-production-northridge-20261123T165513Z.json` (not committed) |
+
+### Marketing (item 5, 2026-11-23)
+
+| UTC | Step | Result |
+|---|---|---|
+| 16:56 | Pushed the approved patch to `jdapaetz2/Getmulemark.com` `main` as `5e9e068` | Vercel **blocked** the deployment. The commit's author email (the app repository's identity) isn't the email of the GitHub account the Vercel project is linked to ("GitHub user not found"). The operator found it in Vercel |
+| 19:07 | Re-authored the same commit with the account's email (`--amend --reset-author`, the same tree) and pushed with a lease on `5e9e068` | `main` = **`0a4fcae`** |
+| 19:08 | Vercel deployed it | Live on getmulemark.com about 40 s after the push |
+| 19:13 | Live check, scan-free (no `/t/` request) | **24 of 24 pass** |
+
+- **What the live check covers:**
+  - `/demo` names the four models;
+  - `/equipment-tags` card 02 shows the Big Tex 35SA photo with "On the tongue rail", and no Twister photo or landing-leg caption;
+  - `/credits` credits Big Tex Trailer Manufacturing, LLC and no longer credits the replaced photos;
+  - the home page's E20 scene renders `assets/photos/bobcat-e20.jpg`. The build publishes the retouched source under that stable name: the live file is byte-identical to `artwork/photos/bobcat-e20-modified.jpg` (SHA-256 `3aa71945…`). The home page has no Wikimedia link left.
+- **Unchanged:**
+  - the QR and tag artwork (empty diff);
+  - every link and `/t/` target on `/` and `/demo`.
+
+  On `/equipment-tags` the only link change is the trailer photo's source: Twister on Wikimedia became Big Tex's own image.
+- **Timing:** the site trailed the app by 2 h 15 min (16:53 → 19:08 UTC) instead of minutes, because of the blocked deployment.
+- **Line endings (open):** `0a4fcae` is the approved patch `1145a511…`, except that 13 of its text files were committed with CRLF line endings, while the repository uses LF.
+  - The site is unaffected (the checks pass), but the commit shows 1,130 changed lines; the patch itself adds 100 and removes 89.
+  - The patch applied to `57747c3` gives the clean tree `3b7233c5…`. Replacing the commit needs another force push, so it waits for the operator's decision.
+- **Identity:** commits in the marketing repository use the email of the GitHub account linked to Vercel. The app repository keeps its own identity; its deployments build.
+
+### Live review (2026-11-23)
+
+The operator, on a phone with the printed cards, after the reactivation:
+- **Cards:** all four scanned, and each scan resolved to its machine.
+  - 10 scans, all through the QR codes on a mobile device, 17:02–18:41 UTC: EXCAVATOR-017 ×3, EXCAVATOR-3015 ×2, TRAILER-014 ×3, TRAILER-2041 ×2.
+  - They are kept, as checks rather than adoption:
+
+  | UTC | Machine | Scan id |
+  |---|---|---|
+  | 17:02:29 | EXCAVATOR-017 | `9a44f2bd-b18e-47b6-8de5-7144fd82a928` |
+  | 17:15:00 | TRAILER-2041 | `31d86d61-97ef-4ab7-abf0-d37031fedf82` |
+  | 17:24:05 | EXCAVATOR-3015 | `72773b28-dda4-4470-9e3d-5ca64fc05446` |
+  | 17:32:01 | TRAILER-014 | `20292ac3-22a5-4aba-b2f6-c4f403e1de2a` |
+  | 18:38:03 | TRAILER-2041 | `f3ff50b9-1b83-4672-bd3b-cd09f77741ca` |
+  | 18:38:27 | TRAILER-014 | `2a6a0c4d-c243-4a43-9142-4b8550504e6c` |
+  | 18:38:41 | EXCAVATOR-3015 | `d4578403-e948-4be7-9897-4b5b798e753e` |
+  | 18:38:55 | EXCAVATOR-017 | `15cddd84-72fa-4e7e-9ab2-1732f777b08e` |
+  | 18:39:37 | EXCAVATOR-017 | `315b1a67-c2d5-449a-9361-bea135543ebd` |
+  | 18:41:52 | TRAILER-014 | `8a8b92c4-927d-4695-9af8-4b5f518b7167` |
+- **Support request** on TRAILER-014: `SUB-2026-502416`, 18:42:35 UTC, no photo.
+  - Its notification went to `support@mulemark.io` (item 6).
+  - By the reset it was marked resolved, so it had been handled in the dashboard with the presenter login.
+- **Not done: the damage report with a photo.** The operator skipped it, judging that it runs on the same systems as the support request. So one of the two approved emails was sent.
+- **Acknowledgements and rentals:** none created.
+- **Desktop entry:** not clicked here, because each button opens `/t/`, which records a scan. The `/demo` link targets and QR images are unchanged since E0 (Marketing, above), and the page is in the review gallery.
+- **Review gallery:** [E2C_REVIEW_GALLERY.md](E2C_REVIEW_GALLERY.md), six phone-width screenshots taken scan-free at 19:15 UTC.
+
+### Presenter reset (2026-11-23 19:10 UTC)
+
+Removes the review's support request, so the curated views stay as authored (item 6 as revised).
+- **Manifest** `presenter-production-review-20261123` (kind `presenter`). `--remove` names one row: `form_submissions` `502416be-a69a-481b-b894-941c6c5ef56e`.
+- **Dry run (19:09 UTC): ACCEPTED,** with one change, that submission's DELETE. Everything else is KEEP, including:
+  - all 1,284 scans: 574 older ones, the 700 of the history and the review's 10;
+  - the 73 digest-ledger rows.
+- **Apply (19:09:55–19:11:15 UTC):**
+  - one transaction, 1 guarded statement;
+  - Storage: 224 objects present, 0 uploaded;
+  - re-plan after commit **CONVERGED**;
+  - outside the 13:00–15:00 UTC digest window.
+- **After:**
+  - `phase-e:precall:production` **ready**: 0 reports, 0 acknowledgements and 10 scans since the anchor; curated items 3 new and 2 reviewed; the usual Bobcat HEAD note;
+  - `phase-e:health:production` 5/5 on both hosts.
+
+| File (outside Git, `%USERPROFILE%\Mulemark-Ops-Archive\e2c\`) | SHA-256 |
+|---|---|
+| Removal list `presenter-review-20261123.remove.json` | `b6f06581b026c4cec648234da64ddcc20a712f67fe65d23ca99b18d0de918ac1` |
+| Manifest `presenter-review-20261123.json` | `7a69f50ab3a50b60325c949dd44aeb3fed64e9c17f68e9cab1750cd0d5bbb7a7` |
+| Plan (the `--approved-plan`) | `baf57f3a4a4fb614092f784a11ce75295018099ba134a3aee853d4141bfbe1b1` |
+| SQL (101,561 bytes) | `b54e68965aafa98f989e3a84c2bb676bdcd530cf10f24e619e28e4404f4ccb84` |
+| Composed in the lock (2,421,446 bytes) | `247081fbf012ac4b014eb77d96bc030e9c7f96285cb52f096b2c2debe82b4eeb` |
+| Apply report | `e4a4b875023797a0f904252488000711c81bcdfebf34ad7e708771bcd28d0d65` |
+
+The counts-only summary is `docs/phase-e/archives/presenter-production-review-20261123.plan.json`.
+
+### Close-out (2026-11-23)
+
+- **`.env.production-db.local` deleted** at 19:13 UTC, after the presenter reset, which needed it. No other env file was touched.
+- **Production database password:** the operator resets it in Supabase → Project Settings → Database. The app doesn't use it, and the URL passed through files and tools during E2C.
+- **Records:**
+  - approval packet §13 (as run);
+  - this log;
+  - [E2C_REVIEW_GALLERY.md](E2C_REVIEW_GALLERY.md) and [PRESENTER_CHEAT_SHEET.md](PRESENTER_CHEAT_SHEET.md);
+  - the marketing report's release note;
+  - the counts-only summaries in `archives/`.
+- **Open items** (none blocks the showcase):
+  1. Reset the Production database password (above).
+  2. The marketing commit's line endings (Marketing, above): leave them, or replace the commit with the clean tree (a force push).
+  3. Optional: try a damage report with a photo on one card, then run a presenter reset.
+  4. Separate follow-ups, unchanged:
+     - the `winnat` port fix for the local suites;
+     - redacting the host echo in `productionDbConfig`;
+     - releasing the tap-target (`fix/public-touch-targets`) and focus (`fix/public-focus-not-obscured`) branches on their own.
+- **Stop:** E2C is complete. E3 has not started.

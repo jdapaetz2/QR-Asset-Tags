@@ -20,6 +20,10 @@ E2C may change what a route **shows**: the asset's name, make and model, its pag
 - No replacement QR artwork and no new domain (binding operator decision).
 - Never delete or recreate a protected asset or QR row. Both cascade into scan history (see Hazards).
 - **E2C cutover stays blocked** until the business-card evidence below is verified. **Verified 2026-11-03** (below).
+- **E2C ran on 2026-11-23 and kept every route.**
+  - All 12 of Northridge's QR rows are identical, column for column, to the pre-cutover archive.
+  - `phase-e:health:production` shows 5/5 on both hosts afterwards ([WORK_LOG.md](WORK_LOG.md)).
+  - The operator then scanned all four printed cards on a phone: 10 scans, 17:02–18:41 UTC, each resolving to its machine.
 
 ## How the evidence was gathered (no scan was recorded)
 

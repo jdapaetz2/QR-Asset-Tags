@@ -13,6 +13,15 @@ Every place `getmulemark.com` shows a showcase machine, before and after the pre
 
   Run it in a clone without line-ending conversion (`git clone -c core.autocrlf=false`): on Windows, the default conversion makes the check report the untouched brand SVGs as changed.
 
+**Released on 2026-11-23** ([WORK_LOG.md](WORK_LOG.md), "Marketing"):
+- **Live:** `main` = `0a4fcae`, on getmulemark.com since 19:08 UTC.
+  - The first push, `5e9e068` at 16:56 UTC, was blocked by Vercel because its author email isn't the GitHub account's.
+  - `0a4fcae` is the same commit, re-authored.
+- **Check:** the live pages match the "After" column below; 24 scan-free checks pass.
+- **Open:** the commit carries CRLF line endings in 13 of its text files, where the repository uses LF.
+  - The site is unaffected, but the commit shows 1,130 changed lines; the patch itself adds 100 and removes 89.
+  - The patch applied cleanly to `57747c3` gives the tree `3b7233c5…`.
+
 ## Where the machines appear
 
 | Place | Before (`57747c3`) | After | Matches |

@@ -1,35 +1,48 @@
-# E2C cutover package (prepared in E2B)
+# E2C cutover package (prepared in E2B, as built in E2C)
 
-What E2C applies to Production Northridge, how, and what its approval must name. E2B built and rehearsed everything here on the local stack and on staging. On Production it only read and dry-ran ([E2B_REHEARSAL_REPORT.md](E2B_REHEARSAL_REPORT.md)). Nothing in this package has been applied to Production.
+What E2C applies to Production Northridge, how, and what its approval must name. E2B prepared it; E2C rebuilt it for the operator's decisions below and rehearsed it again on the local stack and on staging (2026-11-03/04). **Applied to Production on 2026-11-23** in one transaction, converged. The as-run record is in [E2C_APPROVAL_PACKET.md](E2C_APPROVAL_PACKET.md) §13 and [WORK_LOG.md](WORK_LOG.md). The numbers to approve, the exact order and the numbered approval items are in [E2C_APPROVAL_PACKET.md](E2C_APPROVAL_PACKET.md).
 
-## What the cutover does
+## What the cutover does (as built in E2C)
 
-E2C applies one `showcase` reset manifest, composed from a fresh Production snapshot at cutover time. The table shows the counts from the 2026-10-20 dry run.
+E2C applies one `showcase` reset manifest (`--scans=remove-showcase`), composed again from a fresh Production snapshot after Northridge is suspended. The counts below are from the 2026-11-04 dry run.
 
 | Part | Effect (dry run) |
 |---|---|
 | draft-e2c shape (the approved archive boundary) | Open rentals on other assets cancelled (**3**) and their pointers cleared. The access-restricted submissions (**49**) and acknowledgements (**10**) removed, by exact id, after the archive. Hosted documents of unknown rights made private |
-| The four showcase assets | Their old test rentals removed by exact id (**14**) |
-| E2A content | Asset fields on the 4 (name, category, make, model, `DEMO-` serial, year cleared, cover, return template). The 4 pages, and the documents: **8** new, the older ones on the 4 made private. **5** files uploaded: 2 covers and 3 guide PDFs |
-| E2B dataset | **92** rentals, **179** submissions, **55** acknowledgements, **700** scans, **226** evidence files. Pointers set for 017 and 2041 |
-| Never | QR rows, profiles, the digest ledger, organization settings, any other tenant |
+| The four showcase assets | Their old test rentals (**14**) and old test scans (**2,674**) removed by exact id |
+| E2A content | Asset fields on the 4 (name, category, make, model, `DEMO-` serial, year cleared, cover, return template). The 4 pages, and the documents: **5** new, the older ones on the 4 made private. **4** covers uploaded. The Start-Up Guides are parked, so no guide PDF is uploaded |
+| E2B dataset (anchor 2026-11-03) | **92** rentals, **179** submissions, **55** acknowledgements, **700** scans, **226** evidence files. Pointers set for 017 and 2041 |
+| Organization | Logo cleared and the stored "Powered by" label corrected: one row, two columns, by exact allowlist. Status and plan are never written (owner-only; the operator sets the Demo plan in the owner UI) |
+| Never | QR rows, profiles, the digest ledger, any other tenant |
 
-**Dry run:** `showcase-production-e2b-dryrun-20261020`, **ACCEPTED** with no refusals. The counts-only summary is `docs/phase-e/archives/showcase-production-e2b-dryrun-20261020.plan.json`; the manifest, full plan and SQL are in `%USERPROFILE%\Mulemark-Ops-Archive\e2b\`.
+**Dry run:** `showcase-production-20261104T011054Z`, **ACCEPTED** with no refusals. The counts-only summary is `docs/phase-e/archives/showcase-production-20261104T011054Z.plan.json`; the manifest, full plan and SQL are in `%USERPROFILE%\Mulemark-Ops-Archive\e2c\`.
 
 | Table | KEEP | UPDATE | INSERT | DELETE |
 |---|---|---|---|---|
+| organizations | 0 | 1 | 0 | 0 |
 | assets | 4 | 7 | 0 | 0 |
 | asset_rental_sessions | 1 | 3 | 92 | 14 |
-| documents | 1 | 5 | 8 | 0 |
+| documents | 1 | 5 | 5 | 0 |
 | equipment_pages | 7 | 4 | 0 | 0 |
 | asset_acknowledgements | 0 | 0 | 55 | 10 |
 | form_submissions | 0 | 0 | 179 | 49 |
-| scan_events | 3202 | 0 | 700 | 0 |
-| qr_links, profiles, notification_digest_runs, organizations | all KEEP | 0 | 0 | 0 |
+| scan_events | 574 | 0 | 700 | 2,674 |
+| qr_links (12), profiles, tag requests, page template, notification_digest_runs (53) | all KEEP | 0 | 0 | 0 |
 
-**Watermark:** Production's last digest window ended **2026-10-20 13:00 UTC**, exactly at the dataset's anchor. Every synthetic return is at or before it, so no digest summarizes them.
+**Watermark:** Production's last digest window ended **2026-11-03 13:00 UTC**, exactly at the dataset's anchor. Every synthetic return is at or before it, so no digest summarizes them.
+
+**As applied (2026-11-23):** `showcase-production-20261123T163011Z`, composed after the suspension, with the history re-anchored to 2026-11-20. The counts are the same except:
+- **2,715** old scans removed (visitor scans since 2026-11-04);
+- **224** evidence files, so **228** files staged in all;
+- **73** digest-ledger rows kept.
+
+Watermark at the apply: the last digest success was 2026-11-23 13:00 UTC, after the anchor.
+
+**Earlier E2B dry run** (2026-10-20, `showcase-production-e2b-dryrun-20261020`, ACCEPTED): 8 documents and 5 files including 3 guide PDFs, no scan removal, no organization change, anchor 2026-10-20.
 
 ## Exact order (E2C)
+
+As built, the order the approval packet names is in [E2C_APPROVAL_PACKET.md](E2C_APPROVAL_PACKET.md). The list below is the E2B preparation it came from.
 
 1. **Preconditions**, from runbook §8 plus these:
    - each asset's E2A content is approved;
@@ -75,11 +88,11 @@ It restores the archived rows and removes every dataset row and scan. It keeps e
 
 ## Decisions for E2C
 
-Answers from the operator on 2026-11-02 and 2026-11-03 are marked **decided**. The counts above come from the 2026-10-20 dry run, before these answers. The next dry run should show about 2,628 scan deletes, 5 new documents instead of 8, and 4 covers with no guide PDFs.
+Answers from the operator on 2026-11-02 and 2026-11-03 are marked **decided**. The 2026-11-04 dry run above reflects all of them: 2,674 scan deletes, 5 new documents instead of 8, 4 covers and no guide PDF.
 
 1. **Pre-cutover test scans on the four assets: remove (decided).**
-   - Use `--scans=remove-showcase`, which deletes them by exact id after the archive. The latest audit counts 2,628: 017 948, 3015 792, 014 60, 2041 828. Most date from June and July testing. The rollback restores them.
-   - The option has only a unit test so far, so E2C rehearses it on staging first.
+   - Use `--scans=remove-showcase`, which deletes them by exact id after the archive. The 2026-11-04 audit counts 2,674: 017 974, 3015 797, 014 66, 2041 837. Most date from June and July testing. The rollback restores them.
+   - Rehearsed on the local stack and on staging (2026-11-03/04), including a rollback that puts them back (`reinstate`).
 2. **Redrawn imagery: parked as an open item (decided).** The panels, signs and three Start-Up Guide PDFs stay off Production until the operator comes back to them. They can be added later without touching the history.
    - **E2C changes for this:**
      - drop the 3 guide documents and uploads from the overlay;
@@ -114,6 +127,5 @@ Answers from the operator on 2026-11-02 and 2026-11-03 are marked **decided**. T
 6. **Known app behaviour** ([PRESENTER_RUNBOOK.md](PRESENTER_RUNBOOK.md)). "Repeated reports" on every showcase machine: note it, fix separately (decided 2026-10-20). The rest of the runbook's list is treated the same unless the operator asks for a fix first.
 7. **Organization settings (missing from this package until 2026-11-02).** The cutover never changes them, but three need fixing ([CANONICAL_SHOWCASE_FLEET.md](CANONICAL_SHOWCASE_FLEET.md)). E2C decides how they are changed and records it.
    - **Logo: cleared at the cutover (decided 2026-11-03).** It is a real dealer's logo, hotlinked from that dealer's site. Until the operator has owned artwork, the scan page shows its built-in placeholder: Northridge's first letter on the brand colour.
-   - **Support phone (open):** `+1-555-1122` cannot be dialled. Recommended: clear it, which leaves `support@mulemark.io` as the contact.
-   - **"Powered by" label (open):** still the old product name. Recommended: change it to Mulemark.
-   - The E2C plan carries the two open recommendations for the operator to approve or strike.
+   - **Support phone: kept (decided 2026-11-03).** `+1-555-1122` cannot be dialled; the presenter runbook lists it under known limitations.
+   - **"Powered by" label: corrected to "Powered by Mulemark" (approved E2C plan, 2026-11-03).** The public footer prints its own constant, so nobody sees a difference; only the stored record is corrected.
