@@ -4,7 +4,9 @@ Northridge Rentals is the fictional showcase tenant. E2B gives its four canonica
 
 - **Source:** `docs/phase-e/showcase/scenario.json` (authored) → `docs/phase-e/showcase/dataset.json` (built by `npm run phase-e:showcase:build`, using the app's own inspection, triage and scan code).
 - **As of:** 06:00 Vancouver time on the anchor date. That is a daily-digest cutoff, and nothing in the history is later than it.
-- **The anchor:** **2026-11-03 06:00 Vancouver time** (13:00 UTC), the E2C cutover anchor. E2B rehearsed with 2026-10-20. A refresh moves it ([DEMO_REFRESH_POLICY.md](DEMO_REFRESH_POLICY.md)); rental and submission ids stay the same, while dates and the year in a reference follow the new anchor.
+- **The anchor:** **2026-11-20 06:00 Vancouver time** (13:00 UTC), the E2C cutover anchor, set for the planned cutover day (first set to 2026-11-03). E2B rehearsed with 2026-10-20.
+  - A refresh moves it ([DEMO_REFRESH_POLICY.md](DEMO_REFRESH_POLICY.md)). Pinned ids keep most rental and submission ids the same, while dates and the year in a reference follow the new anchor.
+  - A move can also give a curated incident to a neighbouring record with a new reference. On 2026-11-20 the straps case moved to `SUB-2026-66A6B7`.
 - **What the pages show (E2C):**
   - each machine's identity, cover, manual link and quick-start text;
   - a demo notice in the footer.
@@ -103,7 +105,7 @@ At the anchor, 3 items are `new` and 2 `reviewed`; everything else is resolved o
 **5 minutes:**
 1. Show the scan page: the Big Tex cover, the quick start (coupler, chains, lights, load), and the 2-inch ball and towing facts from Big Tex's page.
 2. Open the clean rental `RNT-2026-B3F1B8`: every accessory issued and returned, with the hitch and deck photos (Big Tex photos, tagged "Illustrative photo").
-3. Open the resolved missing-item case `SUB-2026-357550` (straps), resolved after the renter brought them back.
+3. Open the resolved missing-item case `SUB-2026-66A6B7` (straps), resolved after the renter brought them back.
 4. Show `SUB-2026-1B8D14`: a cracked tail-lamp lens the staff found at return, with an illustration, resolved.
 5. Show a late report, `SUB-2026-2D2ED3`: a fender dent mentioned the morning after the return.
 
@@ -111,7 +113,7 @@ At the anchor, 3 items are `new` and 2 `reviewed`; everything else is resolved o
 |---|---|
 | `RNT-2026-AC3506` | Current follow-up: Rob Sinclair, `DEMO-41298`, same day Mon. Staff return `SUB-2026-64979D` (**new**): pins missing |
 | `RNT-2026-B3F1B8` | Current clean result: outbound `SUB-2026-E2671D`, staff return `SUB-2026-FE1B2C` |
-| `SUB-2026-357550` | The resolved missing-item example (straps) |
+| `SUB-2026-66A6B7` | The resolved missing-item example (straps) |
 | `SUB-2026-1B8D14` | Tail-lamp lens, illustration, resolved |
 | `SUB-2026-2D2ED3` | A late report, resolved |
 

@@ -15,7 +15,7 @@ The showcase history ([SHOWCASE_STORIES.md](SHOWCASE_STORIES.md)) is a fixed sna
    ```
    npm run phase-e:showcase:build
    ```
-   `-- --anchor=D` builds another anchor without editing the scenario, for a trial only. The tracked dataset always follows the scenario's anchor (E2C: 2026-11-03).
+   `-- --anchor=D` builds another anchor without editing the scenario, for a trial only. The tracked dataset always follows the scenario's anchor (E2C: 2026-11-20, the planned cutover day).
 
    This rewrites `docs/phase-e/showcase/dataset.json`:
    - rentals and records keep their ids, and their dates move with the anchor;
