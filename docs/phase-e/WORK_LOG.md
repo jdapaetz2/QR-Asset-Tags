@@ -835,6 +835,9 @@ The operator promoted the Preview of `8f6c514` (about 07:07 UTC).
 | 19:07 | Re-authored the same commit with the account's email (`--amend --reset-author`, the same tree) and pushed with a lease on `5e9e068` | `main` = **`0a4fcae`** |
 | 19:08 | Vercel deployed it | Live on getmulemark.com about 40 s after the push |
 | 19:13 | Live check, scan-free (no `/t/` request) | **24 of 24 pass** |
+| 20:59 | On the operator's "replace it", replaced `0a4fcae` with the same commit in LF line endings (Line endings, below), pushed with a lease on `0a4fcae` | `main` = **`2c54323`** |
+| 21:00 | Vercel deployed it | Live about 30 s after the push. The five served files that had carried CR bytes now carry none, each smaller by exactly its CR count |
+| 21:00 | Live check, scan-free | **24 of 24 pass** |
 
 - **What the live check covers:**
   - `/demo` names the four models;
@@ -847,9 +850,9 @@ The operator promoted the Preview of `8f6c514` (about 07:07 UTC).
 
   On `/equipment-tags` the only link change is the trailer photo's source: Twister on Wikimedia became Big Tex's own image.
 - **Timing:** the site trailed the app by 2 h 15 min (16:53 → 19:08 UTC) instead of minutes, because of the blocked deployment.
-- **Line endings (open):** `0a4fcae` is the approved patch `1145a511…`, except that 13 of its text files were committed with CRLF line endings, while the repository uses LF.
-  - The site is unaffected (the checks pass), but the commit shows 1,130 changed lines; the patch itself adds 100 and removes 89.
-  - The patch applied to `57747c3` gives the clean tree `3b7233c5…`. Replacing the commit needs another force push, so it waits for the operator's decision.
+- **Line endings (fixed at 20:59):** `0a4fcae` was the approved patch `1145a511…`, except that 13 of its text files were committed with CRLF line endings, while the repository uses LF. The commit showed 1,130 changed lines; the patch adds 100 and removes 89.
+  - The operator approved replacing it ("replace it").
+  - **`2c54323`:** the tree `3b7233c5…`, re-checked by applying the patch file to `57747c3` again. It has the same parent, message, author and author date, and no CR bytes. Against `0a4fcae`, only those 13 files differ, and only by CR bytes.
 - **Identity:** commits in the marketing repository use the email of the GitHub account linked to Vercel. The app repository keeps its own identity; its deployments build.
 
 ### Live review (2026-11-23)
@@ -916,11 +919,11 @@ The counts-only summary is `docs/phase-e/archives/presenter-production-review-20
   - [E2C_REVIEW_GALLERY.md](E2C_REVIEW_GALLERY.md) and [PRESENTER_CHEAT_SHEET.md](PRESENTER_CHEAT_SHEET.md);
   - the marketing report's release note;
   - the counts-only summaries in `archives/`.
+- **Marketing line endings:** fixed after close-out, at 20:59 UTC: `2c54323` replaced `0a4fcae` (Marketing, above).
 - **Open items** (none blocks the showcase):
   1. Reset the Production database password (above).
-  2. The marketing commit's line endings (Marketing, above): leave them, or replace the commit with the clean tree (a force push).
-  3. Optional: try a damage report with a photo on one card, then run a presenter reset.
-  4. Separate follow-ups, unchanged:
+  2. Optional: try a damage report with a photo on one card, then run a presenter reset.
+  3. Separate follow-ups, unchanged:
      - the `winnat` port fix for the local suites;
      - redacting the host echo in `productionDbConfig`;
      - releasing the tap-target (`fix/public-touch-targets`) and focus (`fix/public-focus-not-obscured`) branches on their own.

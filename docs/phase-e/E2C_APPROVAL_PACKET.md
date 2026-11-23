@@ -227,6 +227,7 @@ Approved on 2026-11-20 at 22:28 UTC: "Approve 1–6 as revised, include later sc
 | 17:02–18:42 | 12. Live review (item 6) | Operator | 4 cards, 10 scans; one support request, so one email |
 | 19:10 | 12. Presenter reset | Me | The review's request removed by id; CONVERGED |
 | 19:13 | 11. Delete the env file | Me | Deleted |
+| 20:59 | 10. Marketing line endings | Me | On the operator's "replace it", `2c54323` (the same commit, LF) replaced `0a4fcae`; live at 21:00; 24/24 pass |
 
 **Differences from sections 1–12:**
 - **History anchor:** 2026-11-20 13:00 UTC instead of 2026-11-03, following the operator's "apply from today's date". The dataset is `b8c7c60b…`, committed in `eec17a3`, with the same 92 / 179 / 55 / 700 rows.
@@ -237,7 +238,7 @@ Approved on 2026-11-20 at 22:28 UTC: "Approve 1–6 as revised, include later sc
 - **A fix before the apply:** the Production apply would not have staged the files. Fixed in `1b394fb` and checked before the apply.
 - **Order:** the env file was deleted after the live review, because the presenter reset needs it.
 - **Live review:** the support request only. The operator skipped the damage report with a photo, so one email went out, not two.
-- **Marketing:** the site trailed the app by 2 h 15 min (16:53 → 19:08), not minutes. The commit is the approved patch, but with CRLF line endings in 13 text files (see Open, below).
+- **Marketing:** the site trailed the app by 2 h 15 min (16:53 → 19:08), not minutes. That commit, `0a4fcae`, carried CRLF line endings in 13 text files; `2c54323`, the approved patch's exact tree, replaced it at 20:59.
 
 **Results:**
 - The four printed routes are unchanged (all 12 QR rows identical to the archive). They open the four showcase machines, each with its cover and credit, its manual links and the demo notice.
@@ -247,5 +248,4 @@ Approved on 2026-11-20 at 22:28 UTC: "Approve 1–6 as revised, include later sc
 
 **Open** (none blocks the showcase):
 - Reset the Production database password (Supabase → Project Settings → Database).
-- The marketing commit `0a4fcae` carries CRLF line endings in 13 text files; the clean tree is `3b7233c5…`. Replacing the commit needs a force push, so the operator decides.
 - A damage report with a photo hasn't been tried on Production since the release.
