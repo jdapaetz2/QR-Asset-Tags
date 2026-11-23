@@ -14,7 +14,7 @@ Edge runtime, or a self-hosted server).
 |---|---|
 | Branch | `fix/next-security-16-4-5`, cut from the Production commit `8f6c514` (`/api/version` and the GitHub deployments API both reported it live on 2026-11-23) |
 | Change | `package.json` (`next` and `eslint-config-next` pinned to `16.4.5`) and `package-lock.json` |
-| Status | Pushed. The Preview built and passed the staging smoke. Waiting on the `after()` check below, then operator review and promotion (Vercel → the Preview → **Promote to Production**), then `npm run smoke:production` |
+| Status | Pushed. The Preview built and passed the staging smoke and the `after()` scan-logging check. Next: operator review and promotion (Vercel → the branch-tip Preview → **Promote to Production**), then `npm run smoke:production` |
 
 ### Why
 
@@ -185,7 +185,9 @@ the worktree holds no `.env*` file.
 
 **Vercel Preview.** The upgrade commit `352ea6e` built as GitHub deployment `8013779169`: environment **Preview**,
 state **success**, 2026-11-23 23:21 UTC, host `qr-asset-tags-o160jrl35-jdapaetz2-s-projects.vercel.app`. Vercel
-builds with the project's Node 22.x setting. Pushing the branch deployed nothing to Production.
+builds with the project's Node 22.x setting. The docs commit `d340893` built as deployment `8013854013`
+(`qr-asset-tags-lvldwde0h-jdapaetz2-s-projects.vercel.app`), also **success**. Every later docs-only commit on the branch
+builds its own Preview with identical application code. Pushing the branch deployed nothing to Production.
 
 **Staging smoke.** `scripts/smoke/staging.mjs` ran with `QA_BASE_URL` set to that deployment; a value set in the shell
 overrides the env file's own URL, so the `phase-e/showcase-onboarding` alias was not used. Result: **29 checks, 28
@@ -198,13 +200,17 @@ pass, 0 fail, 1 skipped**. It covered:
 
 The skipped check is the notification `dry_run` line, which only the Vercel runtime log shows.
 
-**Not verified here: work deferred with `after()`.** Scan logging and submission notifications both run in `after()`,
-and the smoke cannot observe either. Confirm it on this Preview before promoting, with either:
-- the deployment's runtime log: the `dry_run` / `preview_environment` notification line (Hobby keeps runtime logs for
-  one hour);
-- `npm run staging:scan-reliability -- --confirm` with `QA_BASE_URL` set to the Preview. It creates its own disposable
-  asset and deletes it afterwards. An attempt to run it from this session was stopped by the agent's permission
-  guard, because it writes to staging with the service-role key.
+**Work deferred with `after()`.** Scan logging and submission notifications both run in `after()`, which the smoke
+cannot observe. On the operator's go-ahead, `scripts/staging/scan-reliability.mjs --confirm` (the
+`staging:scan-reliability` script) ran with `QA_BASE_URL` set to the branch-tip Preview (`…-lvldwde0h-…`, `d340893`).
+It verified the staging target first. **All checks passed:**
+- 20 of 20 scans returned a rendered equipment page;
+- exactly 20 `scan_events` rows landed, with no loss and no duplicates, all present 414 ms after the last scan;
+- every row is distinct and attributed to the probe asset, QR and organization;
+- no row stores anything but a hashed IP.
+
+The script created its own disposable organization and deleted it afterwards. Submission notifications use the same
+`after()` mechanism; their `dry_run` log line was not observed separately.
 
 ### Not changed here (follow-ups)
 
