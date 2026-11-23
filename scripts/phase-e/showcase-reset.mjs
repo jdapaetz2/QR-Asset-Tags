@@ -412,7 +412,7 @@ async function runPlan(args, conn) {
   process.exitCode = plan.ok ? 0 : 1;
 }
 
-/** Upload staged objects that are missing (local stack and staging). Never overwrites, never deletes. */
+/** Upload staged objects that are missing (local stack, staging and Production). Never overwrites, never deletes. */
 async function stageObjects(apiUrl, serviceRoleKey, stage) {
   const admin = createClient(apiUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
   let present = 0;
@@ -445,7 +445,8 @@ async function runApply(args, conn, read, approved) {
   let manifest = read.recipe ? null : read;
   // Objects first (only missing ones): rows that point at them are written afterwards.
   const preStage = read.recipe ? null : (manifest.storage?.stage ?? []);
-  const canStage = args.target === "local" || args.target === "staging";
+  // Production too (E2C): the cutover's covers and evidence are not on Production until this apply stages them.
+  const canStage = args.target === "local" || args.target === "staging" || args.target === "production";
   let staged = preStage && canStage && preStage.length > 0 ? await stageObjects(conn.apiUrl, conn.serviceRoleKey, preStage) : { present: 0, uploaded: 0, verifiedFromPackage: preStage?.length ?? 0 };
   if (read.recipe) {
     const { dataset } = loadDataset(read.dataset_file);
