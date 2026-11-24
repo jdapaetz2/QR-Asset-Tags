@@ -1,0 +1,18 @@
+Subject: Northridge Rentals is live on Mulemark
+
+Hi Dana,
+
+Your equipment pages are live. Scanning a tag opens the page for that machine.
+
+- Live now: 42 machines
+- Tags: {{tag_status}}
+- Your team: each person gets their own sign-in link, sent separately. Links are personal; please don't forward them.
+- Renter reports go to rentals@example.com.
+- Photos: add one any time from your phone. Sign in, open the machine under Assets, choose Upload an image under Cover image, then Save changes.
+
+Not live yet: E20-03, C301-1, C301-2, PC-07, 00112. We'll add them as soon as they're ready.
+
+If anything looks wrong, reply here or write to support@mulemark.io.
+
+{{sender_name}}
+Mulemark

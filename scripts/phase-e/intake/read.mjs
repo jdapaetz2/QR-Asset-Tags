@@ -1,16 +1,16 @@
 /**
- * Engineering Phase E3 — reads a filled intake workbook, its CSV set, or a customer's own fleet export into one
+ * Engineering Phase E3 — reads a setup workbook, or a customer's own equipment list (fleet export), into one
  * normalized intake: { meta, company, people, assets, models, files, notes, issues }.
  *
- * Untrusted input rules:
+ * Untrusted input rules (the customer's list is untrusted; so is anything pasted from it into the workbook):
  *  - The .xlsx is checked from its ZIP directory before parsing (zip.mjs inspectWorkbookZip): macros refuse the file,
  *    size and unpack caps apply, external links are noted and never opened.
- *  - Formulas are never evaluated. A formula in an input cell is flagged and its value held back; error cells and
- *    dates are flagged. Hyperlinks keep only http(s) targets.
+ *  - Formulas are never evaluated. A formula in an input cell is flagged and its value held back; error cells are
+ *    flagged, and so are dates outside the CALL SHEET's date fields. Hyperlinks keep only http(s) targets.
  *  - A value that would run as a formula when opened in a spreadsheet (= + - @ ...) is held back, except phone-shaped
  *    phone values. Card-like numbers and password text in free-text fields are held back too.
- * Headers are matched by label through the versioned mapping (and by stable key in CSVs), so rows can be inserted or
- * columns reordered without breaking the read.
+ * Headers are matched by label through the versioned mapping (and through the alias list for a customer's list), so
+ * rows can be inserted or columns reordered without breaking the read.
  */
 import { createRequire } from "node:module";
 
@@ -130,7 +130,7 @@ function admit(intake, { tab, row, ref, field, text, numeric, issue }) {
     record("error", "The cell shows a spreadsheet error.");
     return null;
   }
-  if (issue === "date") record("date", "The cell holds a date; check it is what you meant.");
+  if (issue === "date" && field.type !== "date") record("date", "The cell holds a date; check it is what you meant.");
   if (issue === "link-ignored") record("link-ignored", "A link that is not a web address was ignored.");
   if (text === null) return null;
   if (looksLikeFormula(text) && !(PHONE_KEYS.has(field.key) && isPhoneShaped(text))) {
@@ -241,7 +241,7 @@ export async function readWorkbook(buffer, { file = "workbook.xlsx" } = {}) {
   if (company) {
     readCompanyForm(intake, company);
     readTable(intake, company, PEOPLE_COLUMNS, intake.people, { tab: TABS.company, minCol: 5 });
-  } else intake.issues.push({ tab: TABS.company, kind: "missing-tab", detail: "The COMPANY & PEOPLE tab is missing." });
+  } else intake.issues.push({ tab: TABS.company, kind: "missing-tab", detail: `The ${TABS.company} tab is missing.` });
   for (const [name, fields, target] of [
     [TABS.assets, ASSET_COLUMNS, intake.assets],
     [TABS.models, MODEL_COLUMNS, intake.models],
@@ -260,21 +260,7 @@ export async function readWorkbook(buffer, { file = "workbook.xlsx" } = {}) {
 
 // ------------------------------------------------------------------------------------------------ csv
 
-export const CSV_FILES = {
-  company: "company.csv",
-  people: "people.csv",
-  assets: "assets.csv",
-  models: "models.csv",
-  files: "files.csv",
-  notes: "notes.csv",
-};
-
-const CSV_FIELDS = { people: PEOPLE_COLUMNS, assets: ASSET_COLUMNS, models: MODEL_COLUMNS, files: FILE_COLUMNS, notes: NOTE_COLUMNS };
-const CSV_TAB = { people: TABS.company, assets: TABS.assets, models: TABS.models, files: TABS.files, notes: TABS.files };
-
-function csvTable(intake, text, fields, target, tab, aliases = null) {
-  const rows = parseCsv(text);
-  if (rows.length === 0) return [];
+function headerLookup(fields, aliases) {
   const lookup = new Map();
   for (const f of fields) {
     lookup.set(normalizeHeader(f.label), f);
@@ -282,15 +268,25 @@ function csvTable(intake, text, fields, target, tab, aliases = null) {
     lookup.set(normalizeHeader(f.key.split(".").pop()), f);
     for (const a of aliases?.[f.key] ?? []) if (!lookup.has(normalizeHeader(a))) lookup.set(normalizeHeader(a), f);
   }
-  const header = rows[0].map((h) => normalizeHeader(h));
+  return lookup;
+}
+
+/**
+ * Read one CSV table whose headers are labels, stable keys or (for a customer's list) aliases, starting at row `skip`
+ * (lines above it, such as a report title, are ignored). Returns the unmapped headers.
+ */
+function csvTable(intake, rows, fields, target, tab, aliases = null, skip = 0) {
+  if (rows.length <= skip) return [];
+  const lookup = headerLookup(fields, aliases);
+  const header = rows[skip].map((h) => normalizeHeader(h));
   const columns = new Map();
   const unmapped = [];
   header.forEach((h, i) => {
     const f = lookup.get(h);
     if (f && ![...columns.values()].includes(f)) columns.set(i, f);
-    else if (h) unmapped.push(rows[0][i].replace(/^﻿/, "").trim());
+    else if (h) unmapped.push(rows[skip][i].replace(/^﻿/, "").trim());
   });
-  for (let r = 1; r < rows.length; r++) {
+  for (let r = skip + 1; r < rows.length; r++) {
     const values = {};
     const cells = {};
     let any = false;
@@ -305,38 +301,40 @@ function csvTable(intake, text, fields, target, tab, aliases = null) {
   return unmapped;
 }
 
-/** Read the CSV set: { "assets.csv": Buffer, ... } (any subset). */
-export function readCsvSet(files) {
-  const intake = newIntake({ source: "csv", file: Object.keys(files).join(", "), workbook_version: null, mapping_version: KIT.mappingVersion, notes: [] });
-  const text = (name) => (files[name] ? decodeCsv(files[name]) : null);
-  const company = text(CSV_FILES.company);
-  if (company) {
-    const byLabel = new Map(COMPANY_FIELDS.flatMap((f) => [[normalizeHeader(f.label), f], [normalizeHeader(f.key), f]]));
-    parseCsv(company).slice(1).forEach((row, i) => {
-      const field = byLabel.get(normalizeHeader(row[0]));
-      if (field) {
-        intake.company.values[field.key] = admit(intake, { tab: TABS.company, row: i + 2, ref: `company.csv row ${i + 2}`, field, text: clean(row[1]) });
-        intake.company.cells[field.key] = `company.csv row ${i + 2}`;
-      }
-    });
-  }
-  for (const key of ["people", "assets", "models", "files", "notes"]) {
-    const t = text(CSV_FILES[key]);
-    if (t) csvTable(intake, t, CSV_FIELDS[key], intake[key], CSV_TAB[key]);
-  }
-  return intake;
-}
-
 // ------------------------------------------------------------------------------------------------ fleet export
 
+/** How many lines at the top of a list may sit above its header row (report titles, dates, blank lines). */
+export const HEADER_SEARCH_ROWS = 10;
+
+/** A rental-software code rather than a plain label: no spaces, no lower case, and a digit or a separator (TRL-UTIL). */
+export const looksLikeCode = (text) => typeof text === "string" && !/\s/.test(text) && !/[a-z]/.test(text) && /[\d\-_/.]/.test(text);
+
+/** Model key for grouping: same make (any case) and the same model once spaces and punctuation are ignored (30SA-12 = 30SA12). */
+const modelKey = (make, model) => `${String(make ?? "").trim().toLowerCase()}|${String(model ?? "").toLowerCase().replace(/[\s\-_./]+/g, "")}`;
+
+/** The most common value in a list (first seen wins a tie), or null. */
+function mostCommon(values) {
+  const counts = new Map();
+  for (const v of values) if (v) counts.set(v, (counts.get(v) ?? 0) + 1);
+  let best = null;
+  for (const [v, n] of counts) if (!best || n > best.n) best = { v, n };
+  return best?.v ?? null;
+}
+
 /**
- * A customer's own fleet export (CSV bytes, or .xlsx bytes: first sheet). Columns are matched through the alias list;
- * nothing is guessed: unmapped columns are reported. Make and model become MODELS rows (one per distinct pair).
+ * A customer's own equipment list (CSV bytes, or .xlsx bytes: first sheet). Columns are matched through the alias list,
+ * and the header row may sit below a few title lines; nothing is guessed: unmapped columns are reported.
+ *
+ * Machines are grouped into MODELS rows by make and model, ignoring case, spaces and punctuation in the model (the most
+ * common spelling names the row). A machine with a make but no model gets no model (it becomes a question), with the
+ * make kept in its notes; a category that looks like a rental-software code (TRL-UTIL) isn't used. The merges and the
+ * codes left out are reported in meta, for the fill's report.
  */
 export async function readFleetExport(buffer, { file = "fleet.csv" } = {}) {
   const intake = newIntake({ source: "fleet", file, workbook_version: null, mapping_version: KIT.mappingVersion, notes: [] });
   const fields = [...ASSET_COLUMNS, ...MODEL_COLUMNS.filter((f) => f.key === "model.make" || f.key === "model.model")];
-  let text;
+  let rows;
+  let numericCells = new Set();
   if (/\.xlsx$/i.test(file)) {
     const check = inspectWorkbookZip(buffer);
     if (!check.ok) throw new Error(`${file} was not read: ${check.problems.join(" ")}`);
@@ -344,39 +342,80 @@ export async function readFleetExport(buffer, { file = "fleet.csv" } = {}) {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(buffer);
     const ws = wb.worksheets[0];
-    const lines = [];
+    rows = [];
     for (let r = 1; r <= ws.rowCount; r++) {
       const cells = rowCells(ws, r);
       const width = Math.max(0, cells.length - 1);
       const row = [];
       for (let c = 1; c <= width; c++) {
         const t = cellText(cells[c]);
-        if (t.numeric && r > 1) intake.issues.push({ tab: "fleet export", row: r, cell: cells[c]?.address, kind: "number", detail: "Stored as a number; leading zeros may already be lost." });
+        if (t.numeric) numericCells.add(`${r}:${c}`);
         row.push(t.issue === "formula" ? "" : (t.text ?? ""));
       }
-      lines.push(row);
+      rows.push(row);
     }
-    text = lines.map((row) => row.map((v) => (/["\n\r,]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)).join(",")).join("\r\n");
   } else {
-    text = decodeCsv(buffer);
+    rows = parseCsv(decodeCsv(buffer));
   }
-  const rows = [];
-  const unmapped = csvTable(intake, text, fields, rows, "fleet export", FLEET_ALIASES);
-  intake.meta.unmapped_columns = unmapped;
-  const models = new Map();
-  for (const r of rows) {
+
+  // The header row: the first of the top lines with a unit-number column.
+  const codeHeaders = new Set([...FLEET_ALIASES["asset.code"], ...ASSET_COLUMNS.filter((f) => f.key === "asset.code").flatMap((f) => [f.label, f.key, "code"])].map(normalizeHeader));
+  const skip = rows.slice(0, HEADER_SEARCH_ROWS).findIndex((row) => row.some((h) => codeHeaders.has(normalizeHeader(h))));
+  if (skip < 0) throw new Error(`${file}: no header row with a unit number column (like "Unit #" or "Equipment ID") in its first ${HEADER_SEARCH_ROWS} lines.`);
+  if (skip > 0) intake.meta.notes.push(`Skipped ${skip} line${skip === 1 ? "" : "s"} above the header row.`);
+  const codeCol = rows[skip].findIndex((h) => codeHeaders.has(normalizeHeader(h)));
+
+  const read = [];
+  intake.meta.unmapped_columns = csvTable(intake, rows, fields, read, "fleet export", FLEET_ALIASES, skip);
+  for (const r of read) {
+    // An .xlsx stored the code as a number: its zeros may already be gone.
+    if (numericCells.has(`${r.row}:${codeCol + 1}`)) {
+      r.numeric["asset.code"] = true;
+      intake.issues.push({ tab: "fleet export", row: r.row, cell: r.cells["asset.code"], key: "asset.code", kind: "number", detail: "Stored as a number; leading zeros may already be lost." });
+    }
+  }
+
+  // Group by make and model; name each group by its most common spelling.
+  const groups = new Map();
+  for (const r of read) {
     const make = r.values["model.make"];
     const model = r.values["model.model"];
-    const name = make || model ? [make, model].filter(Boolean).join(" ") : null;
-    if (name && !models.has(name.toLowerCase())) {
-      models.set(name.toLowerCase(), { row: null, values: { "model.name": name, "model.make": make, "model.model": model, "model.category": r.values["asset.category"] ?? null }, cells: {}, numeric: {} });
-    }
+    if (!model) continue;
+    const k = modelKey(make, model);
+    if (!groups.has(k)) groups.set(k, { rows: [], makes: [], models: [], names: [], categories: [] });
+    const g = groups.get(k);
+    g.rows.push(r);
+    g.makes.push(make ?? null);
+    g.models.push(model);
+    g.names.push([make, model].filter(Boolean).join(" "));
+    g.categories.push(r.values["asset.category"] ?? null);
+  }
+  const merged = [];
+  const codes = new Set();
+  const nameOf = new Map();
+  intake.models = [...groups.values()].map((g) => {
+    const name = mostCommon(g.names);
+    const variants = [...new Set(g.names)].filter((n) => n.toLowerCase() !== name.toLowerCase());
+    if (variants.length) merged.push({ kept: name, merged: variants });
+    const plain = g.categories.filter((c) => c && !looksLikeCode(c));
+    for (const c of g.categories) if (c && looksLikeCode(c)) codes.add(c);
+    for (const r of g.rows) nameOf.set(r, name);
+    return { row: null, values: { "model.name": name, "model.make": mostCommon(g.makes), "model.model": mostCommon(g.models), "model.category": mostCommon(plain) }, cells: {}, numeric: {} };
+  });
+  for (const r of read) {
     const asset = { ...r, values: { ...r.values } };
+    const make = asset.values["model.make"];
     delete asset.values["model.make"];
     delete asset.values["model.model"];
-    asset.values["asset.model"] = name;
+    // The category lives on MODELS; a code from their software is left out (reported).
+    delete asset.values["asset.category"];
+    const category = r.values["asset.category"];
+    if (category && looksLikeCode(category)) codes.add(category);
+    asset.values["asset.model"] = nameOf.get(r) ?? null;
+    if (!asset.values["asset.model"] && make) asset.values["asset.notes"] = `Make on their list: ${make}`;
     intake.assets.push(asset);
   }
-  intake.models = [...models.values()];
+  intake.meta.merged_model_spellings = merged;
+  intake.meta.category_codes = [...codes];
   return intake;
 }

@@ -15,10 +15,9 @@
   - Rehearsed on the local stack (suite and real-app walkthrough) and on staging.
   - Dry-run only against Production ([E2B_REHEARSAL_REPORT.md](E2B_REHEARSAL_REPORT.md), [E2C_CUTOVER_PACKAGE.md](E2C_CUTOVER_PACKAGE.md)).
 - **E2C complete (2026-11-23):** the curated Northridge showcase behind the four unchanged printed routes, with getmulemark.com aligned ([WORK_LOG.md](WORK_LOG.md), E2C).
-- **E3 complete (2026-11-23):** the customer intake kit in [intake/](intake/README.md).
-  - **Customer packet:** the onboarding guide, the intake workbook, a completed example and CSV templates.
-  - **Tools:** check and prefill, which map onto today's importer and the E4 contract.
-  - **Internal:** email templates, the onboarding tracker, the approval wording (DRAFT) and the tag-production handoff.
+- **E3 complete (2026-11-23), reworked to kit 2.0 on 2026-11-24 at the operator's request:** the onboarding kit in [intake/](intake/README.md).
+  - **The customer:** a 30-minute call, their own equipment list, and a phone check of the preview. They get one page ("what to expect") and, if they have no rental software, a list template.
+  - **Mulemark:** `onboard:start` and `onboard:check` keep a setup workbook (with a CALL SHEET), fill it from the customer's list, and write the to-do list, the one questions email, the preview and go-live drafts, the tag order, the import CSV and the E4 contract manifest.
   - No app or Production change.
 - E4A is next. It starts only when the operator runs it, **never** automatically.
 

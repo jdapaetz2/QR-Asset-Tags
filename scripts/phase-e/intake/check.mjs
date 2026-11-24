@@ -1,39 +1,48 @@
 /**
- * Engineering Phase E3 — the intake check (the "one consolidated request" tool).
+ * Engineering Phase E3 — the check behind `onboard:check` (kit 2.0): reads a setup workbook, assesses it under the
+ * content contract's rules and writes into the batch's check\ folder:
  *
- *   npm.cmd run phase-e:intake:check -- --workbook <file.xlsx> [--files <upload folder>] [--prepared <prepared.json>]
- *                                       [--batch <id>] --out <private folder>
- *   npm.cmd run phase-e:intake:check -- --csv-dir <folder with the CSV set> ...
+ *   to-do.md                   what to ask the customer, Mulemark's own work, warnings, then the details
+ *   questions-email.txt        the one consolidated questions email (customer items only; removed when there are none)
+ *   email-3-preview-ready.txt  the preview email with the approval wording, names, counts and unit numbers filled in
+ *   email-4-live.txt           the go-live email, filled in
+ *   tag-order.xlsx             the tag order, with the CALL SHEET's ship-to, contact and tag style (written once:
+ *                              never over a copy you've started filling)
+ *   current-import.csv         today's importer (private drafts, flags off); manifest.json (content contract 1.3.0,
+ *                              validated); readiness.xlsx; run.json
+ * The email drafts are plain text, ready to paste. Before any machine is on ASSETS, only the to-do list and the
+ * records are written.
  *
- * Reads a filled workbook (or the CSV set), assesses it under the content contract's rules and writes, to --out:
- * readiness.md and readiness.xlsx, missing-information-email.md (customer items only, one list), current-import.csv
- * (private drafts, flags off), manifest.json (content contract 1.3.0, validated), interchange/*.csv and run.json.
- *
- * Customer data never goes into Git: --out must be outside this repository (normally
- * %USERPROFILE%\Mulemark-Customer-Intake\<company>\<batch>\). The synthetic example is the one exception, and only its
- * own folder (docs/phase-e/intake/example-run), written by the kit build.
+ * Customer data never goes into Git: the output folder must be outside this repository (normally
+ * %USERPROFILE%\Mulemark-Customer-Intake\<company>\<batch>\check\). The synthetic example is the one exception, and
+ * only its own folder (docs/phase-e/intake/example-run), written by the kit build. The command itself is onboard.mjs.
  */
-import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { constants } from "node:fs";
+import { access, mkdir, open, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { EMAILS } from "./documents.mjs";
 import { KIT, PATHS, REPO } from "./kit-config.mjs";
 import {
   buildManifest,
   currentImportCsv,
+  emailValues,
   fillTemplate,
-  interchangeCsvs,
   missingItems,
   missingItemsMarkdown,
-  reportMarkdown,
   reportWorkbook,
   sha256,
+  todoMarkdown,
   validateManifest,
+  wantsNewTag,
 } from "./outputs.mjs";
-import { CSV_FILES, readCsvSet, readWorkbook } from "./read.mjs";
+import { readWorkbook } from "./read.mjs";
 import { allReasons, assessIntake } from "./readiness.mjs";
-import { emailDraftMarkdown } from "./render-docx.mjs";
+import { emailDraftText, plainText } from "./render-docx.mjs";
+import { tagHandoffXlsx } from "./trackers.mjs";
+
+/** The email drafts the check writes, by template. */
+export const DRAFTS = { questions: "questions-email.txt", preview: "email-3-preview-ready.txt", live: "email-4-live.txt" };
 
 /** Refuse to write customer outputs inside the repository (the example's own folder excepted). */
 export function assertPrivateOut(outDir, { allowInside = null } = {}) {
@@ -41,19 +50,51 @@ export function assertPrivateOut(outDir, { allowInside = null } = {}) {
   const rel = path.relative(REPO, out);
   const inside = rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
   if (inside && !(allowInside && path.resolve(allowInside) === out)) {
-    throw new Error(`Refusing to write intake outputs inside the repository (${out}). Use private storage, e.g. ${path.join(PATHS.privateRoot, "<company>", "<batch>")}.`);
+    throw new Error(`Refusing to write customer files inside the repository (${out}). Use private storage, e.g. ${path.join(PATHS.privateRoot, "<company>", "<batch>")}.`);
   }
   return out;
 }
 
-/** List an upload folder as [{ path, bytes }] with forward-slash relative paths. */
+const exists = async (p) => {
+  try {
+    await access(p, constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/** Fail early, with a plain message, when Excel (or anything else) has a file open that's about to be written. */
+export async function assertWritable(file) {
+  if (!(await exists(file))) return;
+  let handle;
+  try {
+    handle = await open(file, "r+");
+  } catch (error) {
+    if (error.code === "EBUSY" || error.code === "EPERM" || error.code === "EACCES") throw new Error(`${path.basename(file)} is open in another program. Close it in Excel, then run this again.`);
+    throw error;
+  } finally {
+    await handle?.close();
+  }
+}
+
+/** A spreadsheet at the top of inbox\ is the customer's own equipment list, not a file for their pages. */
+export const isListFile = (relPath) => !/[\\/]/.test(relPath) && /\.(csv|xlsx)$/i.test(relPath);
+/** An equipment list in a format the check can't read (old Excel, text, other spreadsheet apps). */
+export const isUnreadableList = (relPath) => !/[\\/]/.test(relPath) && /\.(xls|xlsm|xlsb|txt|tsv|ods|numbers)$/i.test(relPath);
+
+/** List inbox\ as [{ path, bytes, list? }] with forward-slash relative paths. */
 export async function listUpload(dir) {
   const out = [];
   async function walk(d) {
     for (const entry of await readdir(d, { withFileTypes: true })) {
       const full = path.join(d, entry.name);
       if (entry.isDirectory()) await walk(full);
-      else if (entry.isFile()) out.push({ path: path.relative(dir, full).split(path.sep).join("/"), bytes: (await stat(full)).size });
+      else if (entry.isFile()) {
+        const rel = path.relative(dir, full).split(path.sep).join("/");
+        const list = isListFile(rel) ? { list: true } : isUnreadableList(rel) ? { list: "unreadable" } : {};
+        out.push({ path: rel, bytes: (await stat(full)).size, ...list });
+      }
     }
   }
   await walk(dir);
@@ -61,16 +102,19 @@ export async function listUpload(dir) {
 }
 
 /**
- * Run the check. input: { workbook: Buffer, file } or { csv: { "assets.csv": Buffer, ... } }.
- * Writes into outDir (already vetted by the caller) and returns { intake, result, run }.
+ * Run the check on setup-workbook bytes. Writes into outDir (already vetted by the caller) and returns
+ * { intake, result, run }. sender fills {{sender_name}} in the drafts. The kit build sets freshTagOrder, since its
+ * example's tag order is generated, not filled in by hand.
  */
-export async function runCheck({ input, upload = null, prepared = [], batchId, outDir, checkedAt = new Date().toISOString(), fictional = false }) {
-  const intake = input.workbook ? await readWorkbook(input.workbook, { file: input.file }) : readCsvSet(input.csv);
+export async function runCheck({ input, upload = null, prepared = [], batchId, outDir, checkedAt = new Date().toISOString(), fictional = false, sender = null, freshTagOrder = false }) {
+  const intake = await readWorkbook(input.workbook, { file: input.file });
   const result = assessIntake(intake, { upload, prepared });
-  await mkdir(path.join(outDir, "interchange"), { recursive: true });
-  const write = (name, data) => writeFile(path.join(outDir, name), data);
+  await mkdir(outDir, { recursive: true });
+  const at = (name) => path.join(outDir, name);
+  // Nothing is written while one of the outputs is open in Excel, so check\ is never left half-rewritten.
+  await assertWritable(at("readiness.xlsx"));
+  const write = (name, data) => writeFile(at(name), data);
 
-  for (const [name, text] of Object.entries(interchangeCsvs(intake))) await write(path.join("interchange", name), text);
   await write("current-import.csv", currentImportCsv(result));
 
   const schema = JSON.parse(await readFile(PATHS.schema, "utf8"));
@@ -81,97 +125,66 @@ export async function runCheck({ input, upload = null, prepared = [], batchId, o
     await write("manifest.json", `${JSON.stringify(manifest, null, 2)}\n`);
   }
 
-  await write("readiness.md", reportMarkdown(intake, result, { batchId, checkedAt, sourceSha256: input.workbook ? sha256(input.workbook) : null }));
+  const sourceSha256 = sha256(input.workbook);
+  await write("to-do.md", todoMarkdown(intake, result, { batchId, checkedAt, sourceSha256 }));
   await write("readiness.xlsx", await reportWorkbook(intake, result, { batchId, checkedAt }));
 
-  const groups = missingItems(result);
-  const { text, count } = missingItemsMarkdown(groups);
-  if (count > 0) {
-    const approver = intake.company.values["approver.name"] ?? "";
-    const email = fillTemplate(emailDraftMarkdown(EMAILS.find((e) => e.file === "02-missing-information")), {
-      company_name: intake.company.values["company.name"] ?? "your company",
-      contact_first_name: approver.split(/\s+/)[0] || null,
-      missing_count: count,
-      missing_items: text,
-    });
-    await write("missing-information-email.md", email);
+  // The drafts, once there are machines; a stale draft never outlives the reason for it.
+  const machines = result.summary.total;
+  const values = { ...emailValues(intake, result), ...(sender ? { sender_name: sender } : {}) };
+  const draft = (file, extra = {}) => plainText(fillTemplate(emailDraftText(EMAILS.find((e) => e.file === file)), { ...values, ...extra }));
+  const { text, count } = missingItemsMarkdown(missingItems(result, "customer"));
+  if (count > 0) await write(DRAFTS.questions, draft("02-questions", { missing_count: count, missing_items: text }));
+  else await rm(at(DRAFTS.questions), { force: true });
+  if (machines > 0) {
+    await write(DRAFTS.preview, draft("03-preview-ready"));
+    await write(DRAFTS.live, draft("04-live"));
+  } else {
+    await rm(at(DRAFTS.preview), { force: true });
+    await rm(at(DRAFTS.live), { force: true });
+  }
+
+  const cv = intake.company.values;
+  const tagOrder = at("tag-order.xlsx");
+  if (machines > 0 && (freshTagOrder || !(await exists(tagOrder)))) {
+    await write(
+      "tag-order.xlsx",
+      await tagHandoffXlsx({
+        company: cv["company.name"],
+        batch: batchId,
+        newTags: result.assets.filter((a) => wantsNewTag(a.values)).length,
+        shipTo: cv["tags.ship_to"],
+        contact: cv["tags.contact"],
+        size: cv["tags.size"],
+        material: cv["tags.material"],
+        mounting: cv["tags.mounting"],
+      }),
+    );
   }
 
   const reasons = allReasons(result);
+  const warnings = reasons.filter((r) => r.severity === "warning");
   const run = {
-    tool: "phase-e:intake:check",
+    tool: "onboard:check",
     kit: KIT.workbookVersion,
     mapping_version: KIT.mappingVersion,
     workbook_version: intake.meta.workbook_version,
-    source: { kind: intake.meta.source, file: intake.meta.file, ...(input.workbook ? { sha256: sha256(input.workbook) } : {}) },
+    source: { kind: intake.meta.source, file: intake.meta.file, sha256: sourceSha256 },
     batch_id: batchId,
     checked_at: checkedAt,
-    upload: { checked: result.upload.checked, files: result.upload.count },
+    inbox: { checked: result.upload.checked, files: result.upload.count },
     prepared_models: prepared.map((p) => p.model_name),
     summary: result.summary,
     items: {
-      customer: reasons.filter((r) => r.severity === "blocker" && r.who === "customer").length,
+      customer: count,
       mulemark: reasons.filter((r) => r.severity === "blocker" && r.who === "mulemark").length,
-      warnings: reasons.filter((r) => r.severity === "warning").length,
+      warnings: warnings.length,
+      warning_kinds: new Set(warnings.map((r) => r.code)).size,
     },
-    missing_information_email: count > 0 ? "missing-information-email.md" : "not needed: no customer items",
+    questions_email: count > 0 ? DRAFTS.questions : "not needed: nothing to ask the customer",
     manifest: { written: Boolean(manifest), valid: validation.ok, errors: validation.errors, assets: manifest?.assets.length ?? 0, models: manifest?.models.length ?? 0, excluded_from_manifest: excluded },
     reader_notes: intake.meta.notes ?? [],
   };
   await write("run.json", `${JSON.stringify(run, null, 2)}\n`);
   return { intake, result, run };
-}
-
-function args(argv) {
-  const out = {};
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (!a.startsWith("--")) continue;
-    const [k, v] = a.includes("=") ? a.slice(2).split(/=(.*)/s) : [a.slice(2), argv[i + 1]?.startsWith("--") ? "true" : argv[++i]];
-    out[k] = v ?? "true";
-  }
-  return out;
-}
-
-async function main() {
-  const a = args(process.argv.slice(2));
-  if (!a.out || (!a.workbook && !a["csv-dir"])) {
-    console.error("Usage: phase-e:intake:check -- --workbook <file.xlsx> | --csv-dir <folder>  [--files <upload folder>] [--files-list <listing.json>] [--prepared <prepared.json>] [--batch <id>] --out <private folder>");
-    process.exit(2);
-  }
-  const outDir = assertPrivateOut(a.out);
-  let input;
-  if (a.workbook) {
-    if (!/\.xlsx$/i.test(a.workbook)) throw new Error("Send the workbook as .xlsx (macro workbooks and old .xls files are refused).");
-    input = { workbook: await readFile(a.workbook), file: path.basename(a.workbook) };
-  } else {
-    const csv = {};
-    for (const name of Object.values(CSV_FILES)) {
-      try {
-        csv[name] = await readFile(path.join(a["csv-dir"], name));
-      } catch {
-        // A missing CSV is simply not part of the set.
-      }
-    }
-    input = { csv };
-  }
-  const upload = a.files ? await listUpload(a.files) : a["files-list"] ? JSON.parse(await readFile(a["files-list"], "utf8")) : null;
-  const prepared = a.prepared ? JSON.parse(await readFile(a.prepared, "utf8")) : [];
-  const batchId = a.batch ?? `batch-${new Date().toISOString().slice(0, 10)}`;
-  const { result, run } = await runCheck({ input, upload, prepared, batchId, outDir });
-  console.log(`Checked ${result.summary.total} assets (${result.summary.draftImportable} ready for draft import).`);
-  console.log(`Assets: ${Object.entries(result.summary.assets).map(([k, v]) => `${k} ${v}`).join(", ")}`);
-  console.log(`Customer items: ${run.items.customer}; Mulemark items: ${run.items.mulemark}; warnings: ${run.items.warnings}.`);
-  console.log(`Manifest: ${run.manifest.written ? (run.manifest.valid ? "valid" : `INVALID: ${run.manifest.errors.join("; ")}`) : run.manifest.errors.join(" ")}`);
-  console.log(`Outputs in ${outDir}`);
-  if (run.manifest.written && !run.manifest.valid) process.exitCode = 1;
-}
-
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  try {
-    await main();
-  } catch (error) {
-    console.error(error.message);
-    process.exitCode = 1;
-  }
 }

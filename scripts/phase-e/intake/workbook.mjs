@@ -1,18 +1,17 @@
 /**
- * Engineering Phase E3 — writes the intake workbook: blank, the completed fictional example, or pre-filled from a
- * customer's own fleet export.
+ * Engineering Phase E3 — writes Mulemark's setup workbook (kit 2.0): blank, the completed fictional example, or filled
+ * from a customer's own equipment list; and the customer's one-sheet equipment-list template.
  *
- * Every data tab has the same shape (LAYOUT): title, note, a band row (TO START / BEFORE GO-LIVE / OPTIONAL), the
- * labels, a grey hint row with a format example, then input rows. Input columns are unlocked and text-formatted (so
- * 00412 stays 00412 and nothing typed becomes a formula); headings, hints and the Check columns are protected with no
- * password, and START HERE says how to unprotect, so customer input is never trapped. Dropdowns come from the LISTS tab
- * through defined names. The Check formulas use Excel-2007 functions only, and their cached results are computed here
- * (mirrored in assetCheckValue / modelCheckValue) so previews show them before Excel recalculates.
+ * The CALL SHEET is a form in the order of the work (from their website, ask on the call, defaults, dates and time)
+ * with the people table on the right. Every data tab has the same shape (LAYOUT): title, note, a band row (TO START /
+ * BEFORE GO-LIVE / OPTIONAL), the labels, a grey hint row with a format example, then input rows. Input columns are
+ * unlocked and text-formatted (so 00412 stays 00412 and nothing typed becomes a formula); headings, hints and the Check
+ * columns are protected with no password (Review › Unprotect Sheet), so input is never trapped. Dropdowns come from the
+ * LISTS tab through defined names. The Check formulas use Excel-2007 functions only, and their cached results are
+ * computed here (mirrored in assetCheckValue / modelCheckValue) so previews show them before Excel recalculates.
  */
-import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 
-import { artPng, lockupPng } from "./art.mjs";
 import {
   ASSET_COLUMNS,
   COMPANY_SECTIONS,
@@ -25,7 +24,7 @@ import {
   TABS,
   TIER_LABEL,
 } from "./field-mapping.mjs";
-import { BRAND, KIT, LISTS, OFFICE_FONT, PATHS, UNKNOWN } from "./kit-config.mjs";
+import { BRAND, KIT, LISTS, OFFICE_FONT, UNKNOWN } from "./kit-config.mjs";
 import { normalizeOoxml } from "./zip.mjs";
 
 const require = createRequire(import.meta.url);
@@ -102,7 +101,7 @@ export function modelCheckFormula(r) {
     `IF(A${r}="","",` +
     `IF(${sameText(`$A$${LAYOUT.firstDataRow}:$A$${MODEL_LAST_ROW}`, `A${r}`)}>1,"Name used twice",` +
     `IF(OR(B${r}="",C${r}=""),"Add make and model",` +
-    `IF(${used}=1,"1 asset",${used}&" assets"))))`
+    `IF(${used}=1,"1 machine",${used}&" machines"))))`
   );
 }
 
@@ -133,7 +132,7 @@ export function modelCheckValue(models, i, assets) {
   if (models.filter((x) => excelKey(x?.["model.name"]) === excelKey(name)).length > 1) return "Name used twice";
   if (!m["model.make"] || !m["model.model"]) return "Add make and model";
   const used = assets.filter((a) => excelKey(a?.["asset.model"]) === excelKey(name)).length;
-  return used === 1 ? "1 asset" : `${used} assets`;
+  return used === 1 ? "1 machine" : `${used} machines`;
 }
 
 // ------------------------------------------------------------------------------------------------ validations
@@ -141,6 +140,12 @@ export function modelCheckValue(models, i, assets) {
 function validationFor(field) {
   if (field.type === "year") {
     return { type: "whole", operator: "between", allowBlank: true, formulae: [1900, 2100], showErrorMessage: true, errorStyle: "warning", errorTitle: "Year", error: "Use a 4-digit year, like 2022." };
+  }
+  if (field.type === "date") {
+    return { type: "date", operator: "between", allowBlank: true, formulae: [new Date("2020-01-01T00:00:00Z"), new Date("2100-12-31T00:00:00Z")], showErrorMessage: true, errorStyle: "warning", errorTitle: "Date", error: "Type a date, like 2026-11-24." };
+  }
+  if (field.type === "number") {
+    return { type: "decimal", operator: "greaterThanOrEqual", allowBlank: true, formulae: [0], showErrorMessage: true, errorStyle: "warning", errorTitle: "Number", error: "Type a number, like 90." };
   }
   if (!field.list) return null;
   const list = `L_${field.list}`;
@@ -175,7 +180,7 @@ function title(ws, text, lastCol) {
   cell.value = text;
   cell.font = font({ size: 14, bold: true });
   const stamp = ws.getCell(LAYOUT.titleRow, lastCol);
-  stamp.value = `Intake workbook ${KIT.workbookVersion}`;
+  stamp.value = `Setup workbook ${KIT.workbookVersion}`;
   stamp.font = font({ size: 8, color: { argb: argb(BRAND.iron600) } });
   stamp.alignment = { horizontal: "right" };
   ws.getRow(LAYOUT.titleRow).height = 24;
@@ -267,8 +272,13 @@ function inputColumn(ws, colNumber, field) {
 function cellValue(field, value) {
   if (value === undefined || value === null || value === "") return null;
   if (field.type === "year" && /^\d{4}$/.test(String(value))) return Number(value);
+  if (field.type === "date" && /^\d{4}-\d{2}-\d{2}$/.test(String(value))) return new Date(`${value}T00:00:00Z`);
+  if (field.type === "number" && /^\d+(?:\.\d+)?$/.test(String(value))) return Number(value);
   return value;
 }
+
+/** Number format of a CALL SHEET answer cell: text, except dates and numbers (so Excel parses what's typed). */
+const answerFormat = (field) => (field.type === "date" ? "yyyy-mm-dd" : field.type === "number" ? "0" : "@");
 
 function lockHeaderCells(ws, fromCol, toCol) {
   for (let r = 1; r < LAYOUT.firstDataRow; r++) {
@@ -333,7 +343,7 @@ function addTable(ws, { tabTitle, note, banner, columns, rows, data, check, star
         {
           type: "expression",
           priority: 1,
-          formulae: [`AND(${first}<>"",${first}<>"OK",RIGHT(${first},5)<>"asset",RIGHT(${first},6)<>"assets")`],
+          formulae: [`AND(${first}<>"",${first}<>"OK",RIGHT(${first},7)<>"machine",RIGHT(${first},8)<>"machines")`],
           style: { fill: { type: "pattern", pattern: "solid", bgColor: { argb: argb(BRAND.amberChipBg) } }, font: { color: { argb: argb(BRAND.amberChipText) }, bold: true } },
         },
       ],
@@ -374,9 +384,9 @@ function addCompany(ws, { data, people, banner }) {
   // Column styles first: setting them later would restyle the merged title and banner cells.
   PEOPLE_COLUMNS.forEach((field, i) => inputColumn(ws, peopleStart + i, field));
   title(ws, TABS.company, peopleStart + PEOPLE_COLUMNS.length - 1);
-  noteRow(ws, "Answer on the left. List your team on the right.", peopleStart + PEOPLE_COLUMNS.length - 1, banner);
+  noteRow(ws, "Copy what their website says before the call, then go down the list on the call. People go in the table on the right.", peopleStart + PEOPLE_COLUMNS.length - 1, banner);
 
-  ["Needed", "Question", "Your answer", "Help"].forEach((text, i) => {
+  ["Needed", "Question", "Answer", "Help"].forEach((text, i) => {
     const cell = ws.getCell(LAYOUT.labelRow, i + 1);
     cell.value = text;
     cell.font = font({ bold: true });
@@ -407,6 +417,7 @@ function addCompany(ws, { data, people, banner }) {
       q.font = font({ bold: true });
       q.alignment = { vertical: "top", wrapText: true };
       const answer = ws.getCell(r, C);
+      answer.numFmt = answerFormat(field);
       const v = cellValue(field, data[field.key]);
       if (v !== null) answer.value = v;
       answer.protection = { locked: false };
@@ -444,97 +455,9 @@ function addCompany(ws, { data, people, banner }) {
     if (row < LAYOUT.firstDataRow) for (let c = peopleStart; c < peopleStart + PEOPLE_COLUMNS.length; c++) ws.getCell(row, c).protection = { locked: true };
   }
   ws.views = [{ state: "frozen", xSplit: 0, ySplit: LAYOUT.labelRow, topLeftCell: `A${LAYOUT.hintRow}`, activeCell: `C${LAYOUT.hintRow + 1}` }];
-}
-
-async function addStartHere(wb, ws, { banner }) {
-  [2, 26, 22, 22, 22, 2].forEach((w, i) => (ws.getColumn(i + 1).width = w));
-  const lockup = await lockupPng(await readFile(PATHS.lockupSvg, "utf8"), 560);
-  const lockupId = wb.addImage({ buffer: lockup, extension: "png" });
-  ws.addImage(lockupId, { tl: { col: 1, row: 1 }, ext: { width: 280, height: 30 }, editAs: "oneCell" });
-  ws.getRow(2).height = 26;
-
-  const put = (r, text, opts = {}) => {
-    ws.mergeCells(r, opts.from ?? 2, r, 5);
-    const cell = ws.getCell(r, opts.from ?? 2);
-    cell.value = text;
-    cell.font = font(opts.font ?? {});
-    cell.alignment = { vertical: "middle", wrapText: true };
-    if (opts.fill) cell.fill = solid(opts.fill);
-    if (opts.height) ws.getRow(r).height = opts.height;
-    return cell;
-  };
-  put(4, "Equipment intake workbook", { font: { size: 18, bold: true }, height: 28 });
-  put(5, "Fill the numbered tabs in order. Blank is fine wherever you don't know.", { font: { color: { argb: argb(BRAND.iron600) } } });
-  if (banner) put(6, banner, { font: { bold: true, color: { argb: argb(BRAND.amberChipText) } }, fill: BRAND.amberChipBg, height: 30 });
-
-  const map = await artPng("tabs-map", 2);
-  const mapId = wb.addImage({ buffer: map, extension: "png" });
-  ws.addImage(mapId, { tl: { col: 1, row: 7 }, ext: { width: 420, height: 245 }, editAs: "oneCell" });
-  for (let r = 8; r <= 20; r++) ws.getRow(r).height = 15;
-
-  const steps = [
-    [`1  ${TABS.company}`, "Support contacts, who approves, email alerts, your team."],
-    [`2  ${TABS.models}`, "One row per model. Identical machines share one row."],
-    [`3  ${TABS.assets}`, "One row per machine, with its model name from MODELS."],
-    [`4  ${TABS.files}`, "Only unusual files, and anything missing or unclear."],
-  ];
-  steps.forEach(([tab, text], i) => {
-    const r = 22 + i;
-    const a = ws.getCell(r, 2);
-    a.value = tab;
-    a.font = font({ bold: true });
-    a.alignment = { vertical: "middle" };
-    put(r, text, { from: 3 });
-    ws.getRow(r).height = 20;
-  });
-  put(26, "Have a fleet list already? Send it as it is and skip MODELS and ASSETS. We'll fill them from your list and send the workbook back for you to check.", {
-    font: { bold: true },
-    height: 30,
-  });
-
-  const legend = [
-    ["start", "Needed to set up your equipment as private drafts."],
-    ["golive", "Needed before your pages go live. If it's blank, we'll ask once."],
-    ["optional", "Helps, but blank is fine."],
-  ];
-  legend.forEach(([tier, text], i) => {
-    const r = 28 + i;
-    const a = ws.getCell(r, 2);
-    a.value = TIER_LABEL[tier];
-    a.font = font({ size: 9, bold: true, color: { argb: argb(TIER_TEXT[tier]) } });
-    a.fill = solid(TIER_FILL[tier]);
-    a.alignment = { horizontal: "center", vertical: "middle" };
-    put(r, text, { from: 3 });
-    ws.getRow(r).height = 18;
-  });
-
-  // The three answers that say why something is missing, defined once (the dropdowns offer them).
-  put(32, "Don't know? Leave it blank, or tell us why with one of these:", { font: { bold: true }, height: 18 });
-  const unknowns = [
-    ["Not available", "It doesn't exist, or you can't get it."],
-    ["Not sure", "You'll check. We'll ask again once if it's needed."],
-    ["Please review", "We'll take a short look, and ask you if we can't settle it."],
-  ];
-  unknowns.forEach(([answer, text], i) => {
-    const r = 33 + i;
-    const a = ws.getCell(r, 2);
-    a.value = answer;
-    a.font = font({ bold: true });
-    a.alignment = { vertical: "middle", indent: 1 };
-    put(r, text, { from: 3 });
-    ws.getRow(r).height = 18;
-  });
-
-  const lines = [
-    "Photos and files: one folder per asset code. The guide shows how.",
-    "Don't include passwords, card numbers, ID documents or renter details.",
-    "Excel blocked a cell? Review › Unprotect Sheet. There's no password.",
-    "The LISTS tab holds the dropdown choices.",
-    `Questions: ${KIT.contactEmail}`,
-  ];
-  lines.forEach((text, i) => put(37 + i, text, { height: 18 }));
-  put(43, `Intake workbook, version ${KIT.workbookVersion}`, { font: { size: 8, color: { argb: argb(BRAND.iron600) } } });
-  ws.views = [{ showGridLines: false, activeCell: "B4" }];
+  // Printed for the call, the form and the people table fit one landscape page.
+  ws.pageSetup.fitToHeight = 1;
+  ws.pageSetup.printArea = `A1:${colLetter(peopleStart + PEOPLE_COLUMNS.length - 1)}${r - 1}`;
 }
 
 function addLists(wb, ws, modelNames) {
@@ -580,8 +503,8 @@ function addLists(wb, ws, modelNames) {
 }
 
 /**
- * Build the workbook. variant: "blank" | "example" | "prefill". data: { company, people, assets, models, files, notes }
- * keyed by field key. Returns reproducible .xlsx bytes.
+ * Build the setup workbook. variant: "blank" | "example" | "prefill". data: { company, people, assets, models, files,
+ * notes } keyed by field key. Returns reproducible .xlsx bytes.
  */
 export async function buildIntakeWorkbook({ variant = "blank", data = {}, banner = null } = {}) {
   const company = data.company ?? {};
@@ -599,41 +522,38 @@ export async function buildIntakeWorkbook({ variant = "blank", data = {}, banner
   wb.lastModifiedBy = "Mulemark";
   wb.created = KIT.fixedDate;
   wb.modified = KIT.fixedDate;
-  wb.title = variant === "example" ? "EXAMPLE intake workbook (fictional)" : "Equipment intake workbook";
-  wb.subject = `Mulemark intake workbook ${KIT.workbookVersion}`;
+  wb.title = variant === "example" ? "EXAMPLE setup workbook (fictional)" : "Setup workbook";
+  wb.subject = `Mulemark setup workbook ${KIT.workbookVersion}`;
   wb.company = "Mulemark";
   wb.calcProperties.fullCalcOnLoad = true;
 
   const tabColor = variant === "example" ? { argb: argb("F2C200") } : undefined;
   const sheet = (name, color = tabColor) => wb.addWorksheet(name, { properties: color ? { tabColor: color } : {}, pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 1 } });
 
-  // Tab order: MODELS before ASSETS, because each asset picks its model name from MODELS.
-  const start = sheet(TABS.start, tabColor ?? { argb: argb(BRAND.brass) });
-  // START HERE is a tall, narrow page: printed, it fits one portrait sheet.
-  start.pageSetup.orientation = "portrait";
-  start.pageSetup.fitToHeight = 1;
-  const companyWs = sheet(TABS.company);
+  // Tab order: the CALL SHEET first; MODELS before ASSETS, because each machine uses its model's name from MODELS.
+  const companyWs = sheet(TABS.company, tabColor ?? { argb: argb(BRAND.brass) });
   const modelsWs = sheet(TABS.models);
   const assetsWs = sheet(TABS.assets);
   const filesWs = sheet(TABS.files);
   const listsWs = sheet(TABS.lists, { argb: argb(BRAND.iron200) });
 
-  await addStartHere(wb, start, { banner });
-  addCompany(companyWs, { data: company, people, banner });
+  // A list-filled workbook carries its banner on MODELS and ASSETS only; the EXAMPLE stamp goes on every tab.
+  const otherBanner = variant === "prefill" ? null : banner;
+  addCompany(companyWs, { data: company, people, banner: otherBanner });
 
   const modelNames = models.map((m) => m["model.name"] ?? "");
   addTable(modelsWs, {
     tabTitle: TABS.models,
-    note: "One row per model. Every asset of that model shares this row, so 40 identical trailers need one row.",
+    note: "One row per model. Every machine of that model shares this row, so 40 identical trailers need one row.",
     banner,
     columns: MODEL_COLUMNS,
     rows: ROWS.models,
     data: models,
-    check: { width: 18, hint: "Assets using it", formula: modelCheckFormula, value: (i) => modelCheckValue(models, i, assets) },
+    check: { width: 18, hint: "Machines using it", formula: modelCheckFormula, value: (i) => modelCheckValue(models, i, assets) },
   });
   addTable(assetsWs, {
     tabTitle: TABS.assets,
-    note: "One row per machine. Fill MODELS first, then give each machine its model name. Blank is fine where you don't know.",
+    note: "One row per machine, filled from their list by onboard:check. Each machine's model name must match a MODELS row.",
     banner,
     columns: ASSET_COLUMNS,
     rows: ROWS.assets,
@@ -642,8 +562,8 @@ export async function buildIntakeWorkbook({ variant = "blank", data = {}, banner
   });
   const lastFileCol = addTable(filesWs, {
     tabTitle: TABS.files,
-    note: "Only files outside the standard folders, from the maker, or not for renters. Then anything missing, different or unclear.",
-    banner,
+    note: "Only files outside inbox's standard folders, from the maker, or not for renters. Then anything missing, different or unclear.",
+    banner: otherBanner,
     columns: FILE_COLUMNS,
     rows: ROWS.files,
     data: files,
@@ -654,10 +574,56 @@ export async function buildIntakeWorkbook({ variant = "blank", data = {}, banner
   filesWs.views = [{ state: "frozen", xSplit: 0, ySplit: LAYOUT.hintRow, topLeftCell: `A${LAYOUT.firstDataRow}`, activeCell: `A${LAYOUT.firstDataRow}` }];
   addLists(wb, listsWs, modelNames);
 
-  for (const ws of [start, companyWs, modelsWs, assetsWs, filesWs, listsWs]) await ws.protect("", PROTECT);
-  start.state = "visible";
+  for (const ws of [companyWs, modelsWs, assetsWs, filesWs, listsWs]) await ws.protect("", PROTECT);
   wb.views = [{ activeTab: 0, firstSheet: 0, visibility: "visible" }];
 
+  const raw = Buffer.from(await wb.xlsx.writeBuffer());
+  return normalizeOoxml(raw, { date: KIT.fixedDate });
+}
+
+// ------------------------------------------------------------------------------------------------ list template
+
+/**
+ * The customer's equipment-list template, only for customers without rental software to export from: one sheet, the
+ * six headers in row 1 (each one an alias the reader already maps), unit numbers as text so zeros stay. No protection,
+ * no formulas: it's the customer's own file.
+ */
+export const LIST_TEMPLATE_COLUMNS = [
+  { header: "Unit number", width: 16, text: true, prompt: "Exactly as on the machine, e.g. 00412. Leading zeros are kept." },
+  { header: "Description", width: 34, prompt: "What renters call it, e.g. Dump trailer 14 ft" },
+  { header: "Make", width: 18, prompt: "e.g. Big Tex" },
+  { header: "Model", width: 16, prompt: "e.g. 14LP" },
+  { header: "Year", width: 10, prompt: "If you know it" },
+  { header: "Serial number", width: 22, text: true, prompt: "If you know it" },
+];
+
+export async function buildListTemplate() {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "Mulemark";
+  wb.lastModifiedBy = "Mulemark";
+  wb.created = KIT.fixedDate;
+  wb.modified = KIT.fixedDate;
+  wb.title = "Equipment list";
+  wb.subject = `Mulemark equipment list template ${KIT.workbookVersion}`;
+  wb.company = "Mulemark";
+  const ws = wb.addWorksheet("Equipment list", { pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 1 } });
+  const lastRow = 1 + ROWS.assets;
+  LIST_TEMPLATE_COLUMNS.forEach((c, i) => {
+    const col = ws.getColumn(i + 1);
+    col.width = c.width;
+    col.font = font();
+    if (c.text) col.numFmt = "@";
+    const head = ws.getCell(1, i + 1);
+    head.value = c.header;
+    head.font = font({ bold: true });
+    head.fill = solid(BRAND.bone);
+    head.border = BOTTOM;
+    head.alignment = { vertical: "middle" };
+    const L = colLetter(i + 1);
+    ws.dataValidations.add(`${L}2:${L}${lastRow}`, { type: "textLength", operator: "lessThanOrEqual", allowBlank: true, formulae: [255], showErrorMessage: false, showInputMessage: true, promptTitle: c.header, prompt: c.prompt });
+  });
+  ws.getRow(1).height = 20;
+  ws.views = [{ state: "frozen", ySplit: 1, topLeftCell: "A2", activeCell: "A2" }];
   const raw = Buffer.from(await wb.xlsx.writeBuffer());
   return normalizeOoxml(raw, { date: KIT.fixedDate });
 }

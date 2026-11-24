@@ -56,6 +56,21 @@ td.lead { font-weight: 700; white-space: nowrap; }
 .quote { border-left: 3px solid #A87B22; padding: 4px 12px; background: #FAF9F6; margin: 8px 0; }
 .quote p { margin: 5px 0; }
 .pb { break-before: page; height: 0; }
+.icons { display: grid; gap: 8px 18px; margin: 4px 0 8px; }
+.icon { display: flex; align-items: center; gap: 10px; font-size: 9.5pt; }
+.icon svg { width: 72px; height: auto; flex: none; }
+body.compact { font-size: 10pt; line-height: 1.32; }
+body.compact .cover { padding-bottom: 8px; margin-bottom: 10px; }
+body.compact .cover .title { font-size: 19pt; margin: 8px 0 0; }
+body.compact .cover .subtitle { font-size: 11pt; }
+body.compact h2 { font-size: 11.5pt; margin: 10px 0 4px; }
+body.compact p { margin: 3px 0 5px; }
+body.compact ul { margin: 2px 0 4px 18px; }
+body.compact .steps { margin: 4px 0 6px; gap: 6px; }
+body.compact .step { padding: 6px 6px 7px; }
+body.compact .step svg { height: 90px; width: auto; margin: 0 auto; }
+body.compact .frames { margin: 4px 0 6px; gap: 6px 10px; }
+body.compact .frames.small .frame svg { width: 76px; margin: 0 auto 2px; }
 `;
 
 function block(b, lockupSvg) {
@@ -84,6 +99,8 @@ function block(b, lockupSvg) {
       return `<figure>${artSvg(b.art).replace("<svg ", `<svg style="width:${b.width}px" `)}</figure>`;
     case "frames":
       return `<div class="frames${b.small ? " small" : ""}" style="grid-template-columns:repeat(${b.columns ?? b.items.length},1fr)">${b.items.map((f) => `<div class="frame">${artSvg(f.art)}${esc(f.caption)}</div>`).join("")}</div>`;
+    case "icons":
+      return `<div class="icons" style="grid-template-columns:repeat(${b.columns ?? b.items.length},1fr)">${b.items.map((f) => `<div class="icon">${artSvg(f.art)}<span>${inline(f.caption)}</span></div>`).join("")}</div>`;
     case "folder":
       return `<div class="folder">${b.lines.map(([p, note]) => `<div class="row"><span>${esc(p)}</span><span class="note">${esc(note)}</span></div>`).join("")}</div>`;
     case "legend":
@@ -106,11 +123,11 @@ function block(b, lockupSvg) {
   }
 }
 
-/** A complete HTML document for one kit document (GUIDE, SCOPE, APPROVAL_FORM). */
+/** A complete HTML document for one kit document (WHAT_TO_EXPECT, SCOPE). */
 export function documentHtml(doc) {
   const lockup = readFileSync(PATHS.lockupSvg, "utf8").replace(/<\?xml[^>]*>/, "").trim();
   for (const b of doc.blocks) for (const item of [b, ...(b.items ?? [])]) if (item.art && !ART[item.art]) throw new Error(`Unknown drawing ${item.art}`);
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(doc.title)}</title><style>${CSS}</style></head><body>${doc.blocks.map((b) => block(b, lockup)).join("\n")}</body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(doc.title)}</title><style>${CSS}</style></head><body${doc.compact ? ' class="compact"' : ""}>${doc.blocks.map((b) => block(b, lockup)).join("\n")}</body></html>`;
 }
 
 /** Chromium footer: the document's name and page numbers. */

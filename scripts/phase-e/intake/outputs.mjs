@@ -1,21 +1,23 @@
 /**
- * Engineering Phase E3 — everything the check tool writes from an assessed intake:
+ * Engineering Phase E3 — everything `onboard:check` writes from an assessed intake (kit 2.0):
  *
- *  - the interchange CSVs (one per tab, the workbook's own labels; machine quoting, UTF-8 BOM, CRLF);
  *  - the current-import CSV for lib/onboarding/import.ts (draft-importable assets only; publish and QR flags off; no
  *    template key, so no category text is ever seeded as page content);
  *  - the content-contract manifest (schema 1.3.0, kind customer-onboarding) for E4: one model per MODELS row, assets
- *    pointing at it, sources with conservative rights, never shareable across organizations, no real names;
- *  - the readiness report (Markdown and a formula-guarded XLSX) and the one consolidated missing-information email.
+ *    pointing at it, sources with conservative rights, never shareable across organizations, no real names, and the
+ *    batch's measurements from the CALL SHEET's dates and time;
+ *  - the to-do list (Markdown: what to ask the customer, Mulemark's own work, warnings, then the details), a
+ *    formula-guarded readiness XLSX, and the one consolidated questions email (customer items only).
  */
 import { hash } from "node:crypto";
 import { createRequire } from "node:module";
 
+import { codeSummary } from "./codes.mjs";
 import { toCsv } from "./csv.mjs";
-import { ASSET_COLUMNS, COMPANY_SECTIONS, FILE_COLUMNS, MODEL_COLUMNS, NOTE_COLUMNS, PEOPLE_COLUMNS } from "./field-mapping.mjs";
+import { COMPANY_SECTIONS } from "./field-mapping.mjs";
 import { BRAND, KIT, OFFICE_FONT, RETURN_MODE_BY_LABEL, isEmail, returnTemplateForCategory, yearProblem } from "./kit-config.mjs";
 import { isUnknown } from "./read.mjs";
-import { STATUSES, allReasons, statusOf } from "./readiness.mjs";
+import { STATUSES, allReasons, isoDate, nonNegative, statusOf } from "./readiness.mjs";
 import { normalizeOoxml } from "./zip.mjs";
 
 const require = createRequire(import.meta.url);
@@ -53,22 +55,10 @@ export function slug(text, max = 40) {
 const known = (v) => (v && !isUnknown(v) ? v : null);
 const norm = (s) => String(s ?? "").normalize("NFC").trim().toLowerCase().replace(/\s+/g, " ");
 
-// ------------------------------------------------------------------------------------------------ CSVs
+// ------------------------------------------------------------------------------------------------ CSV
 
-const COMPANY_FIELDS = COMPANY_SECTIONS.flatMap((s) => s.fields);
-
-/** The CSV set: blank templates when intake is null. */
-export function interchangeCsvs(intake = null) {
-  const table = (fields, records) => toCsv(fields.map((f) => f.label), (records ?? []).map((r) => fields.map((f) => r.values[f.key] ?? "")), { mode: "machine", bom: true });
-  return {
-    "company.csv": toCsv(["Field", "Answer"], COMPANY_FIELDS.map((f) => [f.label, intake?.company.values[f.key] ?? ""]), { mode: "machine", bom: true }),
-    "people.csv": table(PEOPLE_COLUMNS, intake?.people),
-    "assets.csv": table(ASSET_COLUMNS, intake?.assets),
-    "models.csv": table(MODEL_COLUMNS, intake?.models),
-    "files.csv": table(FILE_COLUMNS, intake?.files),
-    "notes.csv": table(NOTE_COLUMNS, intake?.notes),
-  };
-}
+/** A blank tag answer means New tag (kit 2.0). */
+export const wantsNewTag = (values) => !values["asset.tag"] || values["asset.tag"] === "New tag";
 
 function splitSupport(value) {
   const v = known(value);
@@ -121,12 +111,13 @@ function review(reasons) {
   };
 }
 
+/** Rights of a manual given by web link. Blank or Not sure means the default: renters get the maker's official link. */
 const MANUAL_RIGHTS = {
   "Link to the maker's copy": { status: "unknown", redistribution: "link-only" },
   "Show our copy": { status: "customer-supplied", redistribution: "private-only" },
   "Staff only": { status: "customer-supplied", redistribution: "private-only" },
-  "Not sure": { status: "unknown", redistribution: "private-only" },
 };
+const manualRights = (share) => MANUAL_RIGHTS[share] ?? MANUAL_RIGHTS["Link to the maker's copy"];
 const PHOTO_RIGHTS = {
   "We took it": { status: "customer-supplied", redistribution: "public-host" },
   "Maker's photo, permitted": { status: "oem-permission", redistribution: "private-only" },
@@ -144,6 +135,20 @@ export function fileRowRights(values) {
   if (values["file.audience"] !== "Renters, on our pages") return { status, redistribution: "private-only" };
   if (source === "We made it or took it") return { status, redistribution: "public-host" };
   return { status, redistribution: source === "From the maker" ? "link-only" : "private-only" };
+}
+
+/** The CALL SHEET's dates and time as contract batch.measurements (valid values only; nothing when none). */
+export function batchMeasurements(cv) {
+  const m = {};
+  const complete = isoDate(cv["batch.complete_on"]);
+  const ready = isoDate(cv["batch.preview_sent_on"]);
+  const minutes = nonNegative(cv["batch.hands_on_minutes"]);
+  const wait = nonNegative(cv["batch.customer_wait_hours"]);
+  if (complete) m.batch_complete_at = complete;
+  if (ready) m.review_ready_at = ready;
+  if (wait !== null) m.customer_wait_hours = wait;
+  if (minutes !== null) m.hands_on_minutes = minutes;
+  return Object.keys(m).length ? { measurements: m } : {};
 }
 
 /**
@@ -176,7 +181,7 @@ export function buildManifest(intake, result, { batchId, fictional = false } = {
   };
 
   const policies = [];
-  for (const f of COMPANY_SECTIONS.find((s) => s.title.startsWith("Your rental rules")).fields) {
+  for (const f of COMPANY_SECTIONS.flatMap((s) => s.fields).filter((x) => x.key.startsWith("rules."))) {
     const text = known(cv[f.key]);
     if (text) policies.push({ policy_id: `pol-${slug(f.key.split(".")[1])}`, text, owner: "customer" });
   }
@@ -190,10 +195,10 @@ export function buildManifest(intake, result, { batchId, fictional = false } = {
     },
     notifications: {
       ...(RETURN_MODE_BY_LABEL[cv["alerts.return_mode"]] ? { return_mode: RETURN_MODE_BY_LABEL[cv["alerts.return_mode"]] } : {}),
-      address_role: "the notification email on COMPANY & PEOPLE",
+      address_role: "the notification email on the CALL SHEET",
     },
     policies,
-    approver: { ...(known(cv["approver.title"]) ? { role: cv["approver.title"] } : {}), name_ref: "intake workbook, COMPANY & PEOPLE, Approver's name (private storage)" },
+    approver: { ...(known(cv["approver.title"]) ? { role: cv["approver.title"] } : {}), name_ref: "setup workbook, CALL SHEET, approver's name (private storage)" },
   };
   if (/^#[0-9A-Fa-f]{6}$/.test(cv["company.brand_color"] ?? "")) organization.primary_color = cv["company.brand_color"];
   if (known(cv["company.logo_file"])) organization.logo = { source_id: addSource(`logo-${cv["company.logo_file"]}`, { kind: "customer-file", title: cv["company.logo_file"], rights: { status: "customer-supplied", redistribution: "public-host" }, verification: "unverified" }) };
@@ -209,11 +214,16 @@ export function buildManifest(intake, result, { batchId, fictional = false } = {
     const make = known(v["model.make"]) ?? "Unknown make";
     const model = known(v["model.model"]) ?? "Unknown model";
     const manual = v["model.manual"];
+    const share = v["model.manual_share"];
     let manualRef;
     if (manual && /^https?:\/\//i.test(manual)) {
-      manualRef = { source_id: addSource(`${key}-manual`, { kind: "oem-manual", title: `${make} ${model} manual`, url: manual, rights: MANUAL_RIGHTS[v["model.manual_share"]] ?? { status: "unknown", redistribution: "link-only" }, verification: "unverified" }), delivery: "link" };
+      manualRef = { source_id: addSource(`${key}-manual`, { kind: "oem-manual", title: `${make} ${model} manual`, url: manual, rights: manualRights(share), verification: "unverified" }), delivery: "link" };
     } else if (manual && !isUnknown(manual)) {
-      manualRef = { source_id: addSource(`${key}-manual`, { kind: "oem-manual", title: manual, rights: MANUAL_RIGHTS[v["model.manual_share"]] ?? { status: "unknown", redistribution: "private-only" }, verification: "unverified", availability: "in-hand" }), delivery: "hosted" };
+      // A file the customer sent. Hosted only for "Show our copy" (once permission is on record) or "Staff only";
+      // otherwise renters get the maker's official link and the file itself stays private.
+      const hosted = share === "Show our copy" || share === "Staff only";
+      const rights = hosted ? MANUAL_RIGHTS[share] : { status: "unknown", redistribution: "private-only" };
+      manualRef = { source_id: addSource(`${key}-manual`, { kind: "oem-manual", title: manual, rights, verification: "unverified", availability: "in-hand" }), delivery: hosted ? "hosted" : "link" };
     } else {
       manualRef = { source_id: addSource(`${key}-manual`, { kind: "oem-manual", title: `${make} ${model} manual (not established)`, rights: { status: "unknown", redistribution: "blocked" }, verification: "unverified", ...(manual === "Not available" ? { availability: "unavailable" } : {}) }), delivery: "link" };
     }
@@ -259,12 +269,14 @@ export function buildManifest(intake, result, { batchId, fictional = false } = {
       year: year && !yearProblem(year) ? Number(year) : null,
       serial_number: known(v["asset.serial"]),
       fitted_options: (known(v["asset.fitted"]) ?? "").split(/[,;\n]+/).map((s) => s.trim()).filter(Boolean),
-      qr: { create: v["asset.tag"] === "New tag" },
+      qr: { create: wantsNewTag(v) },
       publish_intent: false,
       review: review(a.reasons),
     };
-    if (v["asset.photo"] === "In Photos folder") out.photo = { source_id: addSource(`photos-${v["asset.code"]}`, { kind: "photo", title: `Photos/${v["asset.code"]}/`, rights: { status: "customer-supplied", redistribution: "public-host" }, verification: "unverified" }) };
-    else if (v["asset.photo"] === "Use model photo" && key && models.find((m) => m.model_key === key)?.photo) out.photo = { source_id: models.find((m) => m.model_key === key).photo.source_id };
+    // The photo as the check sees it: a blank answer with photos saved in inbox\Photos\<code>\ counts as that folder.
+    const photo = a.photo ?? v["asset.photo"];
+    if (photo === "In Photos folder") out.photo = { source_id: addSource(`photos-${v["asset.code"]}`, { kind: "photo", title: `Photos/${v["asset.code"]}/`, rights: { status: "customer-supplied", redistribution: "public-host" }, verification: "unverified" }) };
+    else if (photo === "Use model photo" && key && models.find((m) => m.model_key === key)?.photo) out.photo = { source_id: models.find((m) => m.model_key === key).photo.source_id };
     if (support.phone || support.email) out.support_overrides = { ...(support.phone ? { phone: support.phone } : {}), ...(support.email ? { email: support.email } : {}) };
     const diff = known(v["asset.differences"]);
     if (diff) {
@@ -285,11 +297,14 @@ export function buildManifest(intake, result, { batchId, fictional = false } = {
   }
 
   const companySlug = slug(cv["company.name"], 28) || "company";
+  // The batch id usually starts with the company's slug (onboard.mjs); drop the repeat so the batch number survives.
+  const fullSlug = slug(cv["company.name"], 60);
+  const batchPart = slug(fullSlug && String(batchId).startsWith(`${fullSlug}-`) ? String(batchId).slice(fullSlug.length + 1) : batchId, 28) || "batch";
   const manifest = {
     schema_version: "1.3.0",
-    manifest_id: `intake-${companySlug}-${slug(batchId, 28) || "batch"}`.slice(0, 64).replace(/-+$/, ""),
+    manifest_id: `intake-${companySlug}-${batchPart}`.slice(0, 64).replace(/-+$/, ""),
     kind: "customer-onboarding",
-    batch: { batch_id: batchId, launch_scope: "all", research_minutes_per_model_cap: KIT.researchMinutesPerModel },
+    batch: { batch_id: batchId, launch_scope: "all", research_minutes_per_model_cap: KIT.researchMinutesPerModel, ...batchMeasurements(cv) },
     organization,
     sources: [...sources.values()],
     models,
@@ -313,38 +328,73 @@ const WHO = { customer: "Customer", mulemark: "Mulemark", null: "Warning" };
 const where = (r) => [r.tab, r.cell ?? (r.row ? `row ${r.row}` : null), r.field].filter(Boolean).join(" · ");
 const md = (s) => String(s ?? "").replace(/\|/g, "\\|").replace(/\n+/g, " ");
 
-export function reportMarkdown(intake, result, { batchId, checkedAt, sourceSha256 }) {
+/** Warnings grouped by what they say (e.g. "no photo yet" on 40 machines is one line), with a few examples each. */
+export function warningSummary(reasons) {
+  const groups = new Map();
+  for (const r of reasons.filter((x) => x.severity === "warning")) {
+    if (!groups.has(r.code)) groups.set(r.code, { code: r.code, example: r.message, refs: [] });
+    const g = groups.get(r.code);
+    if (!g.refs.includes(r.ref)) g.refs.push(r.ref);
+  }
+  return [...groups.values()].map((g) => {
+    if (g.refs.length === 1) return g.example;
+    const shown = g.refs.slice(0, 4).join(", ");
+    const generic = g.example.replace(/^[^:]+:\s*/, "");
+    return `${generic.charAt(0).toUpperCase()}${generic.slice(1)} (${g.refs.length}: ${shown}${g.refs.length > 4 ? ", …" : ""})`;
+  });
+}
+
+/**
+ * The to-do list for Mulemark: what to ask the customer (on the call, or once by email), Mulemark's own work, the
+ * warnings in one line each, then the details by company, model and machine.
+ */
+export function todoMarkdown(intake, result, { batchId, checkedAt, sourceSha256 }) {
   const lines = [];
   const company = intake.company.values["company.name"] ?? "(company name missing)";
-  lines.push(`# Readiness report: ${md(company)}`, "");
-  lines.push(`Batch \`${batchId}\` · checked ${checkedAt} · intake workbook ${intake.meta.workbook_version ?? "unknown"} · field mapping ${KIT.mappingVersion}`);
-  lines.push(`Source: \`${md(intake.meta.file)}\`${sourceSha256 ? ` (SHA-256 \`${sourceSha256.slice(0, 16)}…\`)` : ""} · upload ${result.upload.checked ? `${result.upload.count} files checked` : "not checked"}`, "");
-  lines.push("## Summary", "", `| | ${STATUSES.join(" | ")} |`, `|---|${STATUSES.map(() => "---").join("|")}|`);
-  lines.push(`| Assets | ${STATUSES.map((s) => result.summary.assets[s]).join(" | ")} |`);
-  lines.push(`| Models | ${STATUSES.map((s) => result.summary.models[s]).join(" | ")} |`, "");
   const reasons = allReasons(result);
-  const c = reasons.filter((r) => r.severity === "blocker" && r.who === "customer").length;
-  const m = reasons.filter((r) => r.severity === "blocker" && r.who === "mulemark").length;
-  const w = reasons.filter((r) => r.severity === "warning").length;
-  lines.push(`- **Draft import:** ${result.summary.draftImportable} of ${result.summary.total} assets can be imported now as private drafts.`);
-  lines.push(`- **Customer items:** ${c}, all in the one missing-information email. **Mulemark items:** ${c === 0 && m === 0 ? "none" : m}. **Warnings:** ${w}.`, "");
+  const ask = missingItemsMarkdown(missingItems(result, "customer"), { refs: true });
+  const mine = missingItemsMarkdown(missingItems(result, "mulemark"), { refs: true });
+  const warnings = warningSummary(reasons);
+  const s = result.summary.assets;
+  const checked = /T\d\d:\d\d/.test(checkedAt) ? `${checkedAt.slice(0, 10)} ${checkedAt.slice(11, 16)} UTC` : checkedAt;
+  lines.push(`# To do: ${md(company)}`, "");
+  lines.push(`Batch \`${batchId}\` · checked ${checked} · setup workbook ${intake.meta.workbook_version ?? "unknown"} · field mapping ${KIT.mappingVersion}`);
+  lines.push(`Source: \`${md(intake.meta.file)}\`${sourceSha256 ? ` (SHA-256 \`${sourceSha256.slice(0, 16)}…\`)` : ""} · inbox ${result.upload.checked ? `${result.upload.count} files checked` : "not checked"}`, "");
+  const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  if (result.summary.total === 0) lines.push("**No machines yet.** Save the customer's equipment list in `inbox\\` and run the check again; it fills MODELS and ASSETS from it.", "");
+  else
+    lines.push(
+      `**${plural(result.summary.total, "machine")}, ${plural(result.models.length, "model")}.** To ask the customer: ${plural(ask.count, "item")}. Your work: ${plural(mine.count, "item")}. ` +
+        `Ready for the preview: ${plural(s.READY + s.READY_WITH_WARNINGS, "machine")}. ${result.summary.draftImportable} can be imported now as private drafts.`,
+      "",
+    );
+  lines.push(`## Ask the customer (${ask.count})`, "");
+  lines.push(ask.count ? "Ask on the call. Anything still open afterwards is in `questions-email.md`, the one email of questions." : "Nothing to ask.", "");
+  if (ask.count) lines.push(ask.text, "");
+  lines.push(`## Your work (${mine.count})`, "");
+  if (mine.count) lines.push(mine.text, "");
+  else lines.push("Nothing.", "");
+  lines.push(`## Warnings (${warnings.length})`, "", ...(warnings.length ? warnings.map((w) => `- ${md(w)}`) : ["None."]), "");
+
   const list = (rs) => rs.map((r) => `- **${WHO[r.severity === "warning" ? null : r.who]}** · ${md(where(r))}: ${md(r.message)}`);
-  lines.push(`## Company and people: ${result.company.status}`, "", ...(result.company.reasons.length ? list(result.company.reasons) : ["- Nothing to do."]), "");
-  if (result.general.length) lines.push("## Workbook", "", ...list(result.general), "");
-  lines.push("## Models", "");
+  lines.push("## Details", "", `| | ${STATUSES.join(" | ")} |`, `|---|${STATUSES.map(() => "---").join("|")}|`);
+  lines.push(`| Machines | ${STATUSES.map((x) => result.summary.assets[x]).join(" | ")} |`);
+  lines.push(`| Models | ${STATUSES.map((x) => result.summary.models[x]).join(" | ")} |`, "");
+  lines.push(`### Company and people: ${result.company.status}`, "", ...(result.company.reasons.length ? list(result.company.reasons) : ["- Nothing to do."]), "");
+  if (result.general.length) lines.push("### Workbook", "", ...list(result.general), "");
   for (const model of result.models) {
-    lines.push(`### ${md(model.name)}: ${model.status}`, "", `${model.assets.length} asset${model.assets.length === 1 ? "" : "s"}${model.prepared ? ` · prepared pack \`${model.prepared.model_key}\`${model.prepared.content_version ? ` (${model.prepared.content_version})` : ""}` : ""}`, "");
+    lines.push(`### ${md(model.name)}: ${model.status}`, "", `${model.assets.length} machine${model.assets.length === 1 ? "" : "s"}${model.prepared ? ` · prepared pack \`${model.prepared.model_key}\`${model.prepared.content_version ? ` (${model.prepared.content_version})` : ""}` : ""}`, "");
     lines.push(...(model.reasons.length ? list(model.reasons) : ["- Nothing to do."]), "");
   }
-  lines.push("## Assets", "", "Each asset also carries its model's items. Own items only below.", "", "| Code | Row | Model | Status | Draft import | Own items |", "|---|---|---|---|---|---|");
+  lines.push("### Machines", "", "Each machine also carries its model's items. Own items only below.", "", "| Code | Row | Model | Status | Draft import | Own items |", "|---|---|---|---|---|---|");
   for (const a of result.assets) {
     const items = a.own.map((r) => `${WHO[r.severity === "warning" ? null : r.who]}: ${r.message}`).join(" ") || "—";
     lines.push(`| ${md(a.code ?? "(none)")} | ${a.row} | ${md(a.modelName ?? a.values["asset.model"] ?? "")} | ${a.status} | ${a.draftImport ? "yes" : "no"} | ${md(items)} |`);
   }
   lines.push("");
-  if (result.files.length || result.upload.reasons.length) lines.push("## Files and upload", "", ...list([...result.files, ...result.upload.reasons]), "");
-  if (intake.notes.length) lines.push("## Notes from the customer", "", ...intake.notes.map((n) => `- **${md(n.values["note.about"] ?? "General")}:** ${md(n.values["note.text"] ?? "")}`), "");
-  if (intake.meta.notes?.length) lines.push("## Reader notes", "", ...intake.meta.notes.map((n) => `- ${md(n)}`), "");
+  if (result.files.length || result.upload.reasons.length) lines.push("### Files and inbox", "", ...list([...result.files, ...result.upload.reasons]), "");
+  if (intake.notes.length) lines.push("### Notes", "", ...intake.notes.map((n) => `- **${md(n.values["note.about"] ?? "General")}:** ${md(n.values["note.text"] ?? "")}`), "");
+  if (intake.meta.notes?.length) lines.push("### Reader notes", "", ...intake.meta.notes.map((n) => `- ${md(n)}`), "");
   return `${lines.join("\n")}\n`;
 }
 
@@ -390,32 +440,69 @@ export async function reportWorkbook(intake, result, { batchId, checkedAt }) {
 
 // ------------------------------------------------------------------------------------------------ the one request
 
-/** The consolidated list: customer blockers only, numbered, grouped company → each model → its assets → files. */
-export function missingItems(result) {
+/**
+ * Blockers for one party ("customer": the one consolidated request; "mulemark": the to-do list's own work), numbered,
+ * grouped company → each model with its machines → machines without a model → files. Never warnings.
+ */
+export function missingItems(result, who = "customer") {
+  const mine = (r) => r.severity === "blocker" && r.who === who;
   const groups = [];
-  const companyItems = [...result.general, ...result.company.reasons].filter((r) => r.severity === "blocker" && r.who === "customer");
-  if (companyItems.length) groups.push({ title: "Company, people and the workbook", items: companyItems });
+  const companyItems = [...result.general, ...result.company.reasons].filter(mine);
+  if (companyItems.length) groups.push({ title: who === "customer" ? "Your company and team" : "Company, people and the workbook", items: companyItems });
   for (const model of result.models) {
-    const own = model.reasons.filter((r) => r.severity === "blocker" && r.who === "customer");
-    const assetItems = result.assets.filter((a) => a.modelName === model.name).flatMap((a) => a.own.filter((r) => r.severity === "blocker" && r.who === "customer"));
-    if (own.length || assetItems.length) groups.push({ title: `${model.name} (${model.assets.length} asset${model.assets.length === 1 ? "" : "s"})`, items: [...own, ...assetItems] });
+    const own = model.reasons.filter(mine);
+    const assetItems = result.assets.filter((a) => a.modelName === model.name).flatMap((a) => a.own.filter(mine));
+    if (own.length || assetItems.length) groups.push({ title: `${model.name} (${model.assets.length} machine${model.assets.length === 1 ? "" : "s"})`, items: [...own, ...assetItems] });
   }
-  const loose = result.assets.filter((a) => !a.modelName).flatMap((a) => a.own.filter((r) => r.severity === "blocker" && r.who === "customer"));
-  if (loose.length) groups.push({ title: "Assets without a model yet", items: loose });
-  const files = [...result.files, ...result.upload.reasons].filter((r) => r.severity === "blocker" && r.who === "customer");
+  const loose = result.assets.filter((a) => !a.modelName).flatMap((a) => a.own.filter(mine));
+  if (loose.length) groups.push({ title: "Machines without a model yet", items: loose });
+  const files = [...result.files, ...result.upload.reasons].filter(mine);
   if (files.length) groups.push({ title: "Files", items: files });
   return groups;
 }
 
-export function missingItemsMarkdown(groups) {
+/** Numbered Markdown. refs adds the workbook location (for Mulemark only: the customer never sees the workbook). */
+export function missingItemsMarkdown(groups, { refs = false } = {}) {
   let n = 0;
   const out = [];
   for (const g of groups) {
     out.push(`**${g.title}**`, "");
-    for (const r of g.items) out.push(`${++n}. ${r.message}${r.tab && r.tab !== "Upload" ? ` _(${[r.tab, r.cell ?? (r.row ? `row ${r.row}` : null)].filter(Boolean).join(", ")})_` : ""}`);
+    for (const r of g.items) {
+      const at = refs && r.tab && r.tab !== "inbox" ? ` _(${[r.tab, r.cell ?? (r.row ? `row ${r.row}` : null)].filter(Boolean).join(", ")})_` : "";
+      out.push(`${++n}. ${r.message}${at}`);
+    }
     out.push("");
   }
   return { text: out.join("\n").trim(), count: n };
+}
+
+export { codeSummary };
+
+/** Values the email drafts can fill from the setup workbook. The sender fills the rest ({{…}} stays in place). */
+export function emailValues(intake, result) {
+  const cv = intake.company.values;
+  const first = (name) => (known(name) ? String(name).trim().split(/\s+/)[0] : null);
+  // An approval only ever covers machines with nothing outstanding; the rest are named, with the reason.
+  const ready = (a) => a.draftImport && (a.status === "READY" || a.status === "READY_WITH_WARNINGS");
+  const included = result.assets.filter(ready).map((a) => a.code);
+  const notReady = result.assets.filter((a) => !ready(a));
+  const label = (a) => a.code ?? `row ${a.row}`;
+  const waiting = notReady.filter((a) => a.status === "CUSTOMER_INPUT_REQUIRED" || !a.draftImport).map(label);
+  const finishing = notReady.filter((a) => a.status === "MULEMARK_REVIEW" && a.draftImport).map(label);
+  const reasons = [...(waiting.length ? [`${codeSummary(waiting)} (waiting on your answers)`] : []), ...(finishing.length ? [`${codeSummary(finishing)} (we're still finishing ${finishing.length === 1 ? "it" : "them"})`] : [])];
+  const admin = intake.people.find((p) => p.values["people.role"] === "Administrator");
+  return {
+    company_name: known(cv["company.name"]) ?? null,
+    approver_first_name: first(cv["approver.name"]),
+    approver_title: known(cv["approver.title"]) ?? null,
+    contact_first_name: first(admin?.values["people.name"]) ?? first(cv["approver.name"]),
+    asset_count: included.length,
+    included_codes_summary: codeSummary(included),
+    excluded_note: reasons.length ? ` Not included yet: ${reasons.join("; ")}.` : "",
+    live_count: included.length,
+    not_live_note: notReady.length ? `Not live yet: ${codeSummary(notReady.map(label))}. We'll add them as soon as they're ready.` : "",
+    notification_email: known(cv["alerts.notification_email"]) ?? null,
+  };
 }
 
 /** Fill {{placeholders}}; unknown ones are left in place for the sender. */

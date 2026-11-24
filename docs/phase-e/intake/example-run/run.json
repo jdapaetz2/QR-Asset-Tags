@@ -1,18 +1,18 @@
 {
-  "tool": "phase-e:intake:check",
-  "kit": "1.0",
-  "mapping_version": "1.0.0",
-  "workbook_version": "1.0",
+  "tool": "onboard:check",
+  "kit": "2.0",
+  "mapping_version": "1.1.0",
+  "workbook_version": "2.0",
   "source": {
     "kind": "xlsx",
-    "file": "EXAMPLE-mulemark-intake-workbook-v1.0.xlsx",
-    "sha256": "d3b81c411847b98492075d0b6d198aecb05f86b3dd9f709fb03dc041081a8552"
+    "file": "EXAMPLE-setup-workbook-v2.0.xlsx",
+    "sha256": "f329a3bc8bcb14475fc190cb76985a46b735b1e89eeeb32442a39cced23faffe"
   },
   "batch_id": "northridge-example-1",
-  "checked_at": "2026-11-23",
-  "upload": {
+  "checked_at": "2026-11-24",
+  "inbox": {
     "checked": true,
-    "files": 18
+    "files": 19
   },
   "prepared_models": [
     "Big Tex 35SA utility 12 ft",
@@ -38,9 +38,10 @@
   "items": {
     "customer": 2,
     "mulemark": 6,
-    "warnings": 46
+    "warnings": 46,
+    "warning_kinds": 3
   },
-  "missing_information_email": "missing-information-email.md",
+  "questions_email": "questions-email.txt",
   "manifest": {
     "written": true,
     "valid": true,

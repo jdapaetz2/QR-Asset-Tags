@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://mulemark.io/schemas/phase-e/intake-1.0.0.json",
+  "$id": "https://mulemark.io/schemas/phase-e/intake-1.1.0.json",
   "title": "Mulemark normalized intake",
-  "description": "What the intake reader produces from the workbook, its CSV set or a fleet export: values keyed by the field mapping's stable keys (field-mapping JSON). Formulas are never evaluated; held-back values are null and listed in issues.",
+  "description": "What the intake reader produces from the setup workbook or a customer's own equipment list: values keyed by the field mapping's stable keys (field-mapping JSON). Formulas are never evaluated; held-back values are null and listed in issues.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -38,40 +38,12 @@
               ],
               "description": "Company name (as renters see it)"
             },
-            "company.support_phone": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "description": "Support phone"
-            },
-            "company.support_email": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "description": "Support email"
-            },
-            "company.support_hours": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "description": "Support hours"
-            },
             "company.website": {
               "type": [
                 "string",
                 "null"
               ],
               "description": "Website"
-            },
-            "company.brand_color": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "description": "Brand color"
             },
             "company.logo_file": {
               "type": [
@@ -80,12 +52,75 @@
               ],
               "description": "Logo file"
             },
+            "company.brand_color": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Brand color"
+            },
+            "company.support_phone": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Support phone renters see"
+            },
+            "company.support_email": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Support email renters see"
+            },
+            "rules.fuel": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Their rule: fuel or charge on return"
+            },
+            "rules.cleaning": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Their rule: cleaning"
+            },
+            "rules.accessories": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Their rule: accessories"
+            },
+            "rules.damage_late": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Their rule: damage and late returns"
+            },
+            "rules.other": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Other rules renters must know"
+            },
+            "company.support_hours": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Support hours"
+            },
             "approver.name": {
               "type": [
                 "string",
                 "null"
               ],
-              "description": "Approver's name"
+              "description": "Who approves the pages: name"
             },
             "approver.title": {
               "type": [
@@ -106,7 +141,28 @@
                 "string",
                 "null"
               ],
-              "description": "Notification email (one address)"
+              "description": "Where renter reports go (one email)"
+            },
+            "alerts.urgent_email": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Urgent reports also to (one email)"
+            },
+            "tags.ship_to": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Ship tags to"
+            },
+            "tags.contact": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Tag delivery contact"
             },
             "alerts.damage": {
               "type": [
@@ -121,13 +177,6 @@
                 "null"
               ],
               "description": "Email support requests"
-            },
-            "alerts.urgent_email": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "description": "Urgent reports also to (one address)"
             },
             "alerts.return_mode": {
               "type": [
@@ -150,20 +199,6 @@
               ],
               "description": "Photo previews in emails"
             },
-            "tags.ship_to": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "description": "Ship tags to"
-            },
-            "tags.contact": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "description": "Delivery contact"
-            },
             "tags.mounting": {
               "type": [
                 "string",
@@ -185,40 +220,47 @@
               ],
               "description": "Tag material"
             },
-            "rules.fuel": {
+            "batch.complete_on": {
               "type": [
                 "string",
                 "null"
               ],
-              "description": "Fuel or charge on return"
+              "description": "Everything in (list and call answers)"
             },
-            "rules.cleaning": {
+            "batch.preview_sent_on": {
               "type": [
                 "string",
                 "null"
               ],
-              "description": "Cleaning"
+              "description": "Preview sent"
             },
-            "rules.accessories": {
+            "batch.approved_on": {
               "type": [
                 "string",
                 "null"
               ],
-              "description": "Accessories"
+              "description": "Approved"
             },
-            "rules.damage_late": {
+            "batch.live_on": {
               "type": [
                 "string",
                 "null"
               ],
-              "description": "Damage and late returns"
+              "description": "Live"
             },
-            "rules.other": {
+            "batch.hands_on_minutes": {
               "type": [
                 "string",
                 "null"
               ],
-              "description": "Other rules renters must know"
+              "description": "Hands-on minutes (Mulemark)"
+            },
+            "batch.customer_wait_hours": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Hours waiting on the customer"
             }
           }
         },
@@ -388,7 +430,7 @@
                   "string",
                   "null"
                 ],
-                "description": "Notes for Mulemark"
+                "description": "Notes"
               }
             }
           },
@@ -426,7 +468,7 @@
                   "string",
                   "null"
                 ],
-                "description": "Model name (your short name)"
+                "description": "Model name (short)"
               },
               "model.make": {
                 "type": [
@@ -482,7 +524,7 @@
                   "string",
                   "null"
                 ],
-                "description": "Your instructions for renters"
+                "description": "Customer's instructions for renters"
               },
               "model.photo": {
                 "type": [
@@ -517,7 +559,7 @@
                   "string",
                   "null"
                 ],
-                "description": "Your return rules"
+                "description": "Return rules for this model"
               },
               "model.questions": {
                 "type": [
@@ -531,7 +573,7 @@
                   "string",
                   "null"
                 ],
-                "description": "Notes for Mulemark"
+                "description": "Notes"
               }
             }
           },

@@ -1,5 +1,5 @@
 /**
- * Engineering Phase E3 — original drawings for the intake guide and the workbook's START HERE tab.
+ * Engineering Phase E3 — original drawings for the customer's one-page "what to expect" sheet (kit 2.0).
  *
  * Drawn from the E2A drawing kit (scripts/phase-e/packs/pictogram-kit.mjs), so they share its look and its text rule:
  * numbers and symbols only, never words (the kit refuses anything else at draw time). The words that go with each
@@ -7,40 +7,7 @@
  */
 import sharp from "sharp";
 
-import {
-  C,
-  arrow,
-  book,
-  camera,
-  circle,
-  coupler,
-  cross,
-  excavator,
-  eye,
-  label,
-  keyGlyph,
-  labelPlate,
-  line,
-  magnifier,
-  padlock,
-  path,
-  poly,
-  rect,
-  svgDocument,
-  tick,
-  truckRear,
-} from "../packs/pictogram-kit.mjs";
-
-/** Viewfinder corner brackets around a photo subject. */
-function viewfinder(x, y, w, h, color = C.ink) {
-  const k = 22;
-  return [
-    path(`M${x} ${y + k} L${x} ${y} L${x + k} ${y}`, { stroke: color, sw: 5 }),
-    path(`M${x + w - k} ${y} L${x + w} ${y} L${x + w} ${y + k}`, { stroke: color, sw: 5 }),
-    path(`M${x} ${y + h - k} L${x} ${y + h} L${x + k} ${y + h}`, { stroke: color, sw: 5 }),
-    path(`M${x + w - k} ${y + h} L${x + w} ${y + h} L${x + w} ${y + h - k}`, { stroke: color, sw: 5 }),
-  ].join("");
-}
+import { C, arrow, book, camera, circle, cross, eye, keyGlyph, line, padlock, path, rect, svgDocument, tick } from "../packs/pictogram-kit.mjs";
 
 /** A spreadsheet page with a dark header band and grid lines. */
 function sheet(x, y, w, h) {
@@ -48,14 +15,6 @@ function sheet(x, y, w, h) {
   for (let i = 1; i <= 4; i++) parts.push(line(x + 4, y + h * 0.16 + (i * h * 0.84) / 5, x + w - 4, y + h * 0.16 + (i * h * 0.84) / 5, { stroke: C.steel, sw: 2.5 }));
   parts.push(line(x + w * 0.38, y + h * 0.16, x + w * 0.38, y + h - 3, { stroke: C.steel, sw: 2.5 }));
   return parts.join("");
-}
-
-/** A folder with an optional glyph inside. */
-function folder(cx, cy, w = 110, h = 80, inner = "") {
-  const x = cx - w / 2;
-  const y = cy - h / 2;
-  const tab = path(`M${x} ${y + 10} L${x} ${y - 4} Q${x} ${y - 10} ${x + 6} ${y - 10} L${x + w * 0.34} ${y - 10} L${x + w * 0.42} ${y} L${x + w} ${y} L${x + w} ${y + 10}`, { fill: C.body2, sw: 4 });
-  return tab + rect(x, y + 6, w, h - 6, { fill: "#F3D98B", sw: 4, rx: 6 }) + inner;
 }
 
 /** A metal asset tag: rounded plate, a ring hole and QR-like modules. */
@@ -75,21 +34,44 @@ function assetTag(cx, cy, s = 1) {
   return parts.join("");
 }
 
-/** A phone showing an equipment page: photo block, text lines and a button. */
-function phonePage(cx, cy, s = 1) {
+/** A phone body with its screen; returns the screen box too, for whatever is drawn on it. */
+function phone(cx, cy, s = 1) {
   const w = 76 * s;
   const h = 136 * s;
   const x = cx - w / 2;
   const y = cy - h / 2;
+  const screen = { x: x + 7 * s, y: y + 14 * s, w: w - 14 * s, h: h - 28 * s };
+  return { svg: rect(x, y, w, h, { fill: C.dark, sw: 4 * s, rx: 12 * s }) + rect(screen.x, screen.y, screen.w, screen.h, { fill: C.paper, sw: 2.5 * s, rx: 4 * s }), screen };
+}
+
+/** A phone showing an equipment page: photo block, text lines and a button. */
+function phonePage(cx, cy, s = 1) {
+  const { svg } = phone(cx, cy, s);
+  const x = cx - 38 * s;
+  const y = cy - 68 * s;
+  const w = 76 * s;
   return [
-    rect(x, y, w, h, { fill: C.dark, sw: 4 * s, rx: 12 * s }),
-    rect(x + 7 * s, y + 14 * s, w - 14 * s, h - 28 * s, { fill: C.paper, sw: 2.5 * s, rx: 4 * s }),
+    svg,
     rect(x + 13 * s, y + 21 * s, w - 26 * s, 30 * s, { fill: C.body2, stroke: "none", rx: 3 * s }),
     line(x + 14 * s, y + 63 * s, x + w - 14 * s, y + 63 * s, { stroke: C.steel, sw: 4 * s }),
     line(x + 14 * s, y + 75 * s, x + w - 24 * s, y + 75 * s, { stroke: C.steel, sw: 4 * s }),
     line(x + 14 * s, y + 87 * s, x + w - 18 * s, y + 87 * s, { stroke: C.steel, sw: 4 * s }),
     rect(x + 14 * s, y + 97 * s, w - 28 * s, 12 * s, { fill: C.action, stroke: "none", rx: 4 * s }),
   ].join("");
+}
+
+/** Sound waves: two arcs opening to the upper right of (cx, cy), for "a call". */
+function waves(cx, cy, s = 1) {
+  return [16, 28].map((r) => path(`M${cx + r * s * 0.2} ${cy - r * s} A${r * s} ${r * s} 0 0 1 ${cx + r * s} ${cy - r * s * 0.2}`, { stroke: C.action, sw: 5 * s })).join("");
+}
+
+/** An envelope: body and flap. */
+function envelope(cx, cy, s = 1) {
+  const w = 96 * s;
+  const h = 64 * s;
+  const x = cx - w / 2;
+  const y = cy - h / 2;
+  return rect(x, y, w, h, { fill: C.paper, sw: 4 * s, rx: 5 * s }) + path(`M${x + 4 * s} ${y + 6 * s} L${cx} ${cy + 6 * s} L${x + w - 4 * s} ${y + 6 * s}`, { stroke: C.ink, sw: 4 * s });
 }
 
 /** A document page with text lines. */
@@ -99,12 +81,12 @@ function page(x, y, w, h, lines = 4) {
   return parts.join("");
 }
 
-/** Head and shoulders, for "no faces". */
+/** Head and shoulders, for "no renter details". */
 function headAndShoulders(cx, cy) {
   return circle(cx, cy - 26, 24, { fill: C.body2, sw: 4 }) + path(`M${cx - 52} ${cy + 46} Q${cx - 48} ${cy + 4} ${cx} ${cy + 4} Q${cx + 48} ${cy + 4} ${cx + 52} ${cy + 46} Z`, { fill: C.body2, sw: 4 });
 }
 
-/** An ID-style card: photo box and lines, for "no paperwork or personal documents". */
+/** An ID-style card: photo box and lines, for "no ID documents". */
 function idCard(cx, cy) {
   return [
     rect(cx - 70, cy - 44, 140, 88, { fill: C.paper, sw: 4, rx: 8 }),
@@ -116,29 +98,23 @@ function idCard(cx, cy) {
   ].join("");
 }
 
-/** A small building, for the company folder. */
-function building(cx, cy, s = 1) {
-  return poly([[cx - 26 * s, cy - 4 * s], [cx, cy - 24 * s], [cx + 26 * s, cy - 4 * s]], { fill: C.dark, sw: 3 * s }) +
-    rect(cx - 21 * s, cy - 4 * s, 42 * s, 30 * s, { fill: C.paper, sw: 3 * s }) + rect(cx - 6 * s, cy + 8 * s, 12 * s, 18 * s, { fill: C.dark, sw: 2 * s });
-}
-
 export const ART = {
-  "step-send": {
-    title: "Send",
-    desc: "A spreadsheet and a folder, with an arrow going up: you upload the workbook and your files.",
+  "step-call": {
+    title: "Call and list",
+    desc: "A phone with sound waves next to a spreadsheet: a short call, and your equipment list as your software exports it.",
     width: 240,
     height: 200,
-    body: () => sheet(22, 56, 92, 116) + folder(170, 140, 104, 70) + camera(170, 146, 0.8) + `<g>${line(170, 92, 170, 54, { stroke: C.action, sw: 7 })}${poly([[170, 30], [156, 54], [184, 54]], { fill: C.action, stroke: C.action, sw: 2 })}</g>`,
+    body: () => sheet(18, 50, 96, 118) + phone(168, 110, 0.95).svg + waves(206, 46, 1),
   },
   "step-prepare": {
-    title: "We prepare",
-    desc: "A manual, an arrow and a phone page: Mulemark turns your facts and the maker's manual into your equipment page.",
+    title: "We build",
+    desc: "A manual, an arrow and a phone page: Mulemark turns your rules and the maker's manual into your equipment pages.",
     width: 240,
     height: 200,
     body: () => book(52, 104, 1.5) + arrow(84, 104, 128, 104, { sw: 7, head: 16 }) + phonePage(178, 104, 1),
   },
   "step-preview": {
-    title: "Preview",
+    title: "Check",
     desc: "A phone showing an equipment page, and an eye: you check every page on your phone.",
     width: 240,
     height: 200,
@@ -146,7 +122,7 @@ export const ART = {
   },
   "step-approve": {
     title: "Approve",
-    desc: "A page with a large green tick: you approve the exact version.",
+    desc: "A page with a large green tick: you approve the exact version you saw.",
     width: 240,
     height: 200,
     body: () => page(46, 34, 118, 140, 5) + tick(166, 146, 34),
@@ -158,73 +134,22 @@ export const ART = {
     height: 200,
     body: () => assetTag(120, 100, 1.2),
   },
-  "tabs-map": {
-    title: "Workbook tabs",
-    desc: "A workbook window with tabs along the bottom: START HERE, then tabs 1 to 4 in the order to fill them.",
-    width: 480,
-    height: 280,
+  "photo-phone": {
+    title: "Photos from a phone",
+    desc: "A phone with a camera on its screen: add photos of your machines from your phone, any time.",
+    width: 160,
+    height: 130,
     body: () => {
-      const parts = [sheet(24, 18, 432, 196)];
-      const tabs = [
-        { x: 30, w: 70, n: null },
-        { x: 106, w: 82, n: 1 },
-        { x: 194, w: 82, n: 2 },
-        { x: 282, w: 82, n: 3 },
-        { x: 370, w: 82, n: 4 },
-      ];
-      for (const t of tabs) {
-        parts.push(path(`M${t.x} 214 L${t.x + 6} 246 L${t.x + t.w - 6} 246 L${t.x + t.w} 214`, { fill: t.n ? C.paper : C.body2, sw: 4 }));
-        if (t.n) {
-          parts.push(circle(t.x + t.w / 2, 262, 15, { fill: C.ink, stroke: "none" }));
-          parts.push(label(t.x + t.w / 2, 270, String(t.n), { size: 20, fill: C.paper, halo: false, seq: true }));
-        } else {
-          parts.push(poly([[t.x + t.w / 2, 222], [t.x + t.w / 2 + 9, 238], [t.x + t.w / 2 - 9, 238]], { fill: C.action, stroke: C.action, sw: 2 }));
-        }
-      }
-      return parts.join("");
+      const p = phone(80, 66, 0.82);
+      return p.svg + camera(80, 68, 0.95);
     },
   },
-  folders: {
-    title: "Folders",
-    desc: "Three folders: one with a camera for photos, one with a book for model documents, one with a building for company files such as your logo.",
-    width: 480,
-    height: 190,
-    body: () => folder(88, 100, 132, 104, camera(88, 108, 1.2)) + folder(240, 100, 132, 104, book(240, 108, 1)) + folder(392, 100, 132, 104, building(392, 108, 1.1)),
-  },
-  "photo-whole": {
-    title: "Whole machine",
-    desc: "A camera frame around a whole excavator, with a green tick: photograph the whole machine.",
-    width: 240,
-    height: 190,
-    body: () => viewfinder(14, 14, 212, 162) + excavator(92, 150, { scale: 0.68 }) + tick(204, 150, 18),
-  },
-  "photo-plate": {
-    title: "Model plate",
-    desc: "A magnifier over a model plate, with a green tick: a readable photo of the model plate when the manual depends on the serial.",
-    width: 240,
-    height: 190,
-    body: () => viewfinder(14, 14, 212, 162) + labelPlate(104, 92, 2.4) + magnifier(116, 98, 40) + tick(204, 150, 18),
-  },
-  "photo-detail": {
-    title: "Key detail",
-    desc: "A camera frame around a trailer coupler sitting on a truck's hitch ball, with a green tick: a close-up of the part renters use, such as the hitch or controls.",
-    width: 240,
-    height: 190,
-    body: () => viewfinder(14, 14, 212, 162) + truckRear(122, 98, { scale: 0.5 }) + line(150, 100, 224, 114, { sw: 8 }) + coupler(122, 98, { scale: 1.1 }) + tick(204, 150, 18),
-  },
-  "photo-face": {
-    title: "No faces",
-    desc: "A camera frame around a person's head and shoulders, with a red cross: leave people out of the photos.",
-    width: 240,
-    height: 190,
-    body: () => viewfinder(14, 14, 212, 162) + headAndShoulders(116, 100) + cross(204, 150, 18),
-  },
-  "photo-paper": {
-    title: "No documents",
-    desc: "A camera frame around an ID-style card, with a red cross: no licenses, plates, paperwork or personal documents.",
-    width: 240,
-    height: 190,
-    body: () => viewfinder(14, 14, 212, 162) + idCard(116, 96) + cross(204, 150, 18),
+  "manual-email": {
+    title: "Manuals by email",
+    desc: "A manual and an envelope with an arrow between them: email us any manuals or instructions of your own.",
+    width: 160,
+    height: 130,
+    body: () => book(38, 66, 1.2) + arrow(62, 66, 84, 66, { sw: 5, head: 11 }) + envelope(120, 66, 0.62),
   },
   "no-password": {
     title: "No passwords",

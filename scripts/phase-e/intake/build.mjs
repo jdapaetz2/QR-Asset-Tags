@@ -1,5 +1,6 @@
 /**
- * Engineering Phase E3 — build the intake kit: the customer packet, the internal packet and the synthetic example run.
+ * Engineering Phase E3 — build the onboarding kit (2.0): the customer's two files, Mulemark's internal files and the
+ * synthetic example run.
  *
  *   npm.cmd run phase-e:intake:build              write into docs/phase-e/intake/
  *   npm.cmd run phase-e:intake:build -- --check   rebuild in a temporary folder and compare with the committed files
@@ -19,32 +20,27 @@ import { chromium } from "@playwright/test";
 
 import { normalizePdf } from "../packs/guide-build.mjs";
 import { runCheck } from "./check.mjs";
-import { APPROVAL_FORM, CHECKLIST, CSV_NOTE, EMAILS, GUIDE, PLACEHOLDERS, RESPONSIBILITIES, REVIEWED, SCOPE } from "./documents.mjs";
+import { EMAILS, PLACEHOLDERS, REVIEWED, SCOPE, WHAT_TO_EXPECT } from "./documents.mjs";
 import { EXAMPLE, EXAMPLE_BANNER, EXAMPLE_BATCH_ID, EXAMPLE_PREPARED, EXAMPLE_UPLOAD } from "./example-data.mjs";
 import { ASSET_COLUMNS, COMPANY_SECTIONS, FILE_COLUMNS, MODEL_COLUMNS, NOTE_COLUMNS, PEOPLE_COLUMNS, mappingDocument } from "./field-mapping.mjs";
 import { KIT, PATHS, REPO } from "./kit-config.mjs";
-import { interchangeCsvs } from "./outputs.mjs";
 import { documentHtml, footerTemplate } from "./render-html.mjs";
 import { documentDocx, emailDocx, emailMarkdown } from "./render-docx.mjs";
-import { onboardingTrackerXlsx, tagHandoffCsv, tagHandoffXlsx } from "./trackers.mjs";
-import { buildIntakeWorkbook } from "./workbook.mjs";
+import { tagHandoffCsv, tagHandoffXlsx } from "./trackers.mjs";
+import { buildIntakeWorkbook, buildListTemplate } from "./workbook.mjs";
 
 const V = KIT.workbookVersion;
 const draftSuffix = REVIEWED.commercial && REVIEWED.legal ? "" : "-DRAFT";
 
 export const FILES = {
-  guidePdf: `customer/${GUIDE.file}.pdf`,
-  guideDocx: `customer/${GUIDE.file}.docx`,
-  workbook: `customer/mulemark-intake-workbook-v${V}.xlsx`,
-  example: `customer/EXAMPLE-mulemark-intake-workbook-v${V}.xlsx`,
-  scopePdf: `customer/${SCOPE.file}${draftSuffix}.pdf`,
-  scopeDocx: `customer/${SCOPE.file}${draftSuffix}.docx`,
-  csvDir: "customer/csv",
-  procedure: "internal/onboarding-procedure.md",
-  tracker: `internal/mulemark-onboarding-tracker-v${V}.xlsx`,
+  onePagerPdf: `customer/${WHAT_TO_EXPECT.file}.pdf`,
+  listTemplate: "customer/equipment-list-template.xlsx",
+  onePagerDocx: `internal/${WHAT_TO_EXPECT.file}.docx`,
+  scopePdf: `internal/${SCOPE.file}${draftSuffix}.pdf`,
+  scopeDocx: `internal/${SCOPE.file}${draftSuffix}.docx`,
+  workbook: `internal/mulemark-setup-workbook-v${V}.xlsx`,
+  example: `internal/EXAMPLE-setup-workbook-v${V}.xlsx`,
   emails: "internal/emails",
-  approvalMd: `internal/${APPROVAL_FORM.file}.md`,
-  approvalDocx: `internal/${APPROVAL_FORM.file}.docx`,
   handoffXlsx: `internal/tag-production-handoff-v${V}.xlsx`,
   handoffCsv: "internal/tag-production-handoff.csv",
   mapping: `internal/field-mapping-${KIT.mappingVersion}.json`,
@@ -53,75 +49,23 @@ export const FILES = {
   manifest: "MANIFEST.json",
 };
 
+/** What the check writes into example-run/ (besides inputs/). */
+export const EXAMPLE_RUN_OUTPUTS = ["to-do.md", "questions-email.txt", "email-3-preview-ready.txt", "email-4-live.txt", "tag-order.xlsx", "current-import.csv", "manifest.json", "readiness.xlsx", "run.json"];
+
 // ------------------------------------------------------------------------------------------------ text outputs
 
 const mdCell = (s) => String(s).replace(/\|/g, "\\|");
-
-export function blocksMarkdown(doc) {
-  const out = [];
-  for (const b of doc.blocks) {
-    if (b.t === "cover") out.push(`# ${b.title}`, "", `_${b.subtitle}_`, "");
-    else if (b.t === "callout") out.push(`> **${b.text}**`, "");
-    else if (b.t === "draft") out.push(`**${b.text}**`, "");
-    else if (b.t === "h1") out.push(`# ${b.text}`, "");
-    else if (b.t === "h2") out.push(`## ${b.text}`, "");
-    else if (b.t === "p") out.push(b.text, "");
-    else if (b.t === "bullets") out.push(...b.items.map((i) => `- ${i}`), "");
-    else if (b.t === "quote") out.push(...b.lines.flatMap((l) => [`> ${l}`, ">"]).slice(0, -1), "");
-    else if (b.t === "pagebreak") continue;
-    else throw new Error(`blocksMarkdown: unsupported block ${b.t}`);
-  }
-  return `${out.join("\n").trim()}\n`;
-}
 
 export function placeholdersMarkdown() {
   return `${[
     "# Email template placeholders",
     "",
-    "Fill these before sending. The templates use no others (a test checks), and nothing in the customer packet uses them.",
+    "The onboard commands fill most of these from the setup workbook; fill the rest before sending. The templates use no others (a test checks), and the customer's files use none.",
     "",
     "| Placeholder | Meaning |",
     "|---|---|",
     ...PLACEHOLDERS.map(([k, v]) => `| \`{{${k}}}\` | ${mdCell(v)} |`),
   ].join("\n")}\n`;
-}
-
-export function procedureMarkdown() {
-  const lines = [
-    "# Onboarding procedure (internal)",
-    "",
-    `Mulemark intake kit ${V} (field mapping ${KIT.mappingVersion}). The customer packet is in \`../customer/\`; the tracker for each batch is \`${path.basename(FILES.tracker)}\`, copied into private storage.`,
-    "",
-    "## Rules that always apply",
-    "",
-    "- **One request.** Everything missing goes back to the customer once per batch, in the consolidated missing-information email the check tool drafts. Not a stream of questions.",
-    "- **No guessed values.** Unknowns stay unknown (Not available, Not sure, Please review) until someone who knows answers. Nothing guessed is ever published.",
-    `- **Bounded research.** Up to about ${KIT.researchMinutesPerModel} minutes per model and about two authoritative sources per fact; official sources only; no purchases without a cost decision; no logins; no invented links. Unresolved items join the one request.`,
-    "- **Categories are labels.** A category never supplies operating instructions. Guidance exists only for an identified model, cites the maker's manual or the customer's own rule, and is reviewed.",
-    `- **Private storage.** Filled workbooks, uploads and check outputs live in \`%USERPROFILE%\\Mulemark-Customer-Intake\\<company>\\<batch>\\\`, never in Git. The check and prefill tools refuse to write inside the repository.`,
-    "- **Permissions are per file and per customer.** A permission covers that customer's own pages. Nothing is shared with another company without its written permission. Folder defaults: the customer's photos, logo and instructions for renters show on their own pages; manuals follow the MODELS answer. A FILES & NOTES row (where it's from, who may see it) can only narrow that.",
-    "- **Approval before go-live.** An affirmative approval of an exact content version, recorded with the approver, time, included and excluded codes. Silence, a timeout or a closed preview is never approval, and approval is not a waiver.",
-    "- **Partial launch only on request.** Complete rows can go first when the customer explicitly agrees; the approval lists what's in and what's out.",
-    `- **Measure, don't promise.** About ${KIT.reviewReadyBusinessDays} business days from a complete batch to a review-ready preview is an internal target. Log hands-on minutes, customer wait and tag manufacturing separately (tracker, TOUCH TIME).`,
-    "",
-    "## Checklist",
-    "",
-    "Gates must be done before the next stage.",
-    "",
-    "| # | Stage | Step | Who | Gate |",
-    "|---|---|---|---|---|",
-    ...CHECKLIST.map((s, i) => `| ${i + 1} | ${s.stage} | ${mdCell(s.step)} | ${s.who} | ${s.gate ? "Gate" : ""} |`),
-    "",
-    "## Who does what",
-    "",
-    "D = does it · A = approves · I = kept informed.",
-    "",
-    `| Activity | ${RESPONSIBILITIES.columns.join(" | ")} |`,
-    `|---|${RESPONSIBILITIES.columns.map(() => "---").join("|")}|`,
-    ...RESPONSIBILITIES.rows.map((r) => `| ${r.map((c) => mdCell(c || " ")).join(" | ")} |`),
-    "",
-  ];
-  return `${lines.join("\n")}`;
 }
 
 /** JSON Schema of the normalized intake read.mjs produces (published for E4). */
@@ -137,7 +81,7 @@ export function intakeSchema() {
     $schema: "http://json-schema.org/draft-07/schema#",
     $id: `https://mulemark.io/schemas/phase-e/intake-${KIT.mappingVersion}.json`,
     title: "Mulemark normalized intake",
-    description: "What the intake reader produces from the workbook, its CSV set or a fleet export: values keyed by the field mapping's stable keys (field-mapping JSON). Formulas are never evaluated; held-back values are null and listed in issues.",
+    description: "What the intake reader produces from the setup workbook or a customer's own equipment list: values keyed by the field mapping's stable keys (field-mapping JSON). Formulas are never evaluated; held-back values are null and listed in issues.",
     type: "object",
     additionalProperties: false,
     required: ["meta", "company", "people", "assets", "models", "files", "notes", "issues"],
@@ -183,31 +127,27 @@ export async function buildKit(root) {
     written.push(rel.split(path.sep).join("/"));
   };
 
-  await put(FILES.workbook, await buildIntakeWorkbook({ variant: "blank" }));
-  const example = await buildIntakeWorkbook({ variant: "example", data: EXAMPLE, banner: EXAMPLE_BANNER });
-  await put(FILES.example, example);
-  for (const [name, text] of Object.entries(interchangeCsvs(null))) await put(path.join(FILES.csvDir, name), text);
-  await put(path.join(FILES.csvDir, "README.txt"), CSV_NOTE);
-
+  // The customer's two files: the one-pager and the list template (only for customers without rental software).
+  await put(FILES.listTemplate, await buildListTemplate());
   const browser = await chromium.launch();
   try {
-    await put(FILES.guidePdf, await pdf(browser, GUIDE));
+    await put(FILES.onePagerPdf, await pdf(browser, WHAT_TO_EXPECT));
     await put(FILES.scopePdf, await pdf(browser, SCOPE));
   } finally {
     await browser.close();
   }
-  await put(FILES.guideDocx, await documentDocx(GUIDE));
-  await put(FILES.scopeDocx, await documentDocx(SCOPE));
 
-  await put(FILES.procedure, procedureMarkdown());
-  await put(FILES.tracker, await onboardingTrackerXlsx());
+  // Mulemark's own: the one-pager's Word copy (for reviewers), the scope reference, the setup workbooks and emails.
+  await put(FILES.onePagerDocx, await documentDocx(WHAT_TO_EXPECT));
+  await put(FILES.scopeDocx, await documentDocx(SCOPE));
+  await put(FILES.workbook, await buildIntakeWorkbook({ variant: "blank" }));
+  const example = await buildIntakeWorkbook({ variant: "example", data: EXAMPLE, banner: EXAMPLE_BANNER });
+  await put(FILES.example, example);
   for (const email of EMAILS) {
     await put(path.join(FILES.emails, `${email.file}.md`), emailMarkdown(email));
     await put(path.join(FILES.emails, `${email.file}.docx`), await emailDocx(email));
   }
   await put(path.join(FILES.emails, "PLACEHOLDERS.md"), placeholdersMarkdown());
-  await put(FILES.approvalMd, blocksMarkdown(APPROVAL_FORM));
-  await put(FILES.approvalDocx, await documentDocx(APPROVAL_FORM));
   await put(FILES.handoffXlsx, await tagHandoffXlsx());
   await put(FILES.handoffCsv, tagHandoffCsv());
   await put(FILES.mapping, `${JSON.stringify(mappingDocument(), null, 2)}\n`);
@@ -218,8 +158,8 @@ export async function buildKit(root) {
   await put(path.join(FILES.exampleRun, "inputs", "prepared.json"), `${JSON.stringify(prepared, null, 2)}\n`);
   const runDir = path.join(root, FILES.exampleRun);
   const before = new Set(written);
-  await runCheck({ input: { workbook: example, file: path.basename(FILES.example) }, upload: EXAMPLE_UPLOAD, prepared, batchId: EXAMPLE_BATCH_ID, outDir: runDir, checkedAt: KIT.fixedDate.toISOString().slice(0, 10), fictional: true });
-  for (const name of ["current-import.csv", "manifest.json", "readiness.md", "readiness.xlsx", "missing-information-email.md", "run.json", ...Object.keys(interchangeCsvs(null)).map((n) => `interchange/${n}`)]) {
+  await runCheck({ input: { workbook: example, file: path.basename(FILES.example) }, upload: EXAMPLE_UPLOAD, prepared, batchId: EXAMPLE_BATCH_ID, outDir: runDir, checkedAt: KIT.fixedDate.toISOString().slice(0, 10), fictional: true, freshTagOrder: true });
+  for (const name of EXAMPLE_RUN_OUTPUTS) {
     const rel = `${FILES.exampleRun}/${name}`;
     if (existsSync(path.join(root, rel)) && !before.has(rel)) written.push(rel);
   }

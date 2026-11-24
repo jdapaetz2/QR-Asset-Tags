@@ -60,6 +60,3 @@ smoke-artifacts/
 
 # Engineering Phase E2C: the Supabase CA certificate used by the guarded database connections is never committed.
 *.crt
-
-# Engineering Phase E3: the intake kit's ZIP packets are rebuilt from the committed folders (npm run phase-e:intake:zip).
-/docs/phase-e/intake/packets/

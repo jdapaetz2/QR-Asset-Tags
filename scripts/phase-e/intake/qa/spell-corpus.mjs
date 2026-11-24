@@ -1,6 +1,6 @@
 /**
- * Engineering Phase E3 QA: collect every customer-visible string in an intake workbook (labels, hints, START HERE,
- * lists, banners) into a plain-text file, so Word's spelling check (qa/word-checks.ps1) can read it.
+ * Engineering Phase E3 QA: collect every visible string in a workbook (labels, hints, the CALL SHEET, lists, banners)
+ * into a plain-text file, so Word's spelling check (qa/word-checks.ps1) can read it.
  *
  *   node scripts/phase-e/intake/qa/spell-corpus.mjs <workbook.xlsx> <out.txt>
  */

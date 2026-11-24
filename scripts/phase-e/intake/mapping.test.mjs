@@ -32,7 +32,7 @@ function schemaHas(target) {
   const clean = target.split(" ")[0];
   const [root, ...rest] = clean.replace(/\[\]/g, "").split(".");
   const defs = SCHEMA.definitions;
-  const rootDef = { organization: defs.organization, assets: defs.asset, models: defs.model, sources: defs.source }[root];
+  const rootDef = { organization: defs.organization, assets: defs.asset, models: defs.model, sources: defs.source, batch: defs.batch }[root];
   if (!rootDef) return false;
   if (rest.length === 0) return true;
   const first = rootDef.properties[rest[0].replace(/\+.*/, "")];
@@ -88,6 +88,18 @@ describe("field mapping", () => {
   it("matches the published field-mapping JSON", () => {
     const committed = JSON.parse(readFileSync(path.join(PATHS.internal, `field-mapping-${KIT.mappingVersion}.json`), "utf8"));
     expect(committed).toEqual(JSON.parse(JSON.stringify(mappingDocument())));
+  });
+
+  it("keeps every 1.0.0 key (1.1.0 only adds the batch's dates and time) and documents the kit 2.0 defaults", () => {
+    const keys = new Set(fields.map((f) => f.key));
+    const added = [...keys].filter((k) => k.startsWith("batch."));
+    expect(added).toEqual(["batch.complete_on", "batch.preview_sent_on", "batch.approved_on", "batch.live_on", "batch.hands_on_minutes", "batch.customer_wait_hours"]);
+    // 1.0.0 had 67 fields (field-mapping-1.0.0.json at cf38abc); 1.1.0 keeps all of them and adds the six above.
+    expect(keys.size).toBe(67 + added.length);
+    const doc = mappingDocument();
+    expect(Object.keys(doc.defaults)).toEqual(["asset.tag", "asset.photo", "model.manual", "model.manual_share", "model.manual_depends", "tags.ship_to", "alerts.*"]);
+    for (const k of ["asset.photo", "asset.tag", "model.manual_share"]) expect(fields.find((f) => f.key === k).tier).toBe("optional");
+    expect(fields.find((f) => f.key === "tags.ship_to").tier).toBe("golive");
   });
 });
 

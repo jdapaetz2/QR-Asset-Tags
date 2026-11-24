@@ -1,5 +1,10 @@
 [
   {
+    "path": "Northridge fleet export.csv",
+    "bytes": 6214,
+    "list": true
+  },
+  {
     "path": "Company/northridge logo.png",
     "bytes": 48213
   },

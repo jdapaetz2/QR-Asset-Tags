@@ -5,7 +5,12 @@
   "batch": {
     "batch_id": "northridge-example-1",
     "launch_scope": "all",
-    "research_minutes_per_model_cap": 45
+    "research_minutes_per_model_cap": 45,
+    "measurements": {
+      "batch_complete_at": "2026-11-26",
+      "customer_wait_hours": 6,
+      "hands_on_minutes": 95
+    }
   },
   "organization": {
     "name": "Northridge Rentals",
@@ -17,7 +22,7 @@
     },
     "notifications": {
       "return_mode": "daily_exceptions",
-      "address_role": "the notification email on COMPANY & PEOPLE"
+      "address_role": "the notification email on the CALL SHEET"
     },
     "policies": [
       {
@@ -68,7 +73,7 @@
     ],
     "approver": {
       "role": "Operations manager",
-      "name_ref": "intake workbook, COMPANY & PEOPLE, Approver's name (private storage)"
+      "name_ref": "setup workbook, CALL SHEET, approver's name (private storage)"
     },
     "primary_color": "#1F5C3A",
     "logo": {
@@ -458,10 +463,10 @@
       "review": {
         "status": "MULEMARK_REVIEW",
         "blockers": [
-          "Cat 301.5: look for the maker's official manual (up to 45 minutes, no purchases); anything unresolved goes back in the one request.",
+          "Cat 301.5: find the maker's official manual (up to 45 minutes, official sources, no purchases). Not found? Set Manual to Not sure, and it's asked in the one request.",
           "Cat 301.5: check whether the manual changes by year or serial.",
           "Cat 301.5: look for a permitted photo of this exact model (bounded; no photo work is included).",
-          "Cat 301.5: prepare the equipment page from the manual and your rules, then review it."
+          "Cat 301.5: prepare the equipment page from the manual and their rules, then review it."
         ],
         "warnings": [],
         "missing_facts": []
@@ -531,13 +536,13 @@
       "review": {
         "status": "CUSTOMER_INPUT_REQUIRED",
         "blockers": [
-          "E20-03: the Bobcat E20 manual changes by year or serial. Add its serial number or year."
+          "E20-03: the Bobcat E20 manual changes by year or serial. What's its serial number or year? A photo of the model plate is enough."
         ],
         "warnings": [
           "Bobcat E20: manual by link only."
         ],
         "missing_facts": [
-          "E20-03: the Bobcat E20 manual changes by year or serial. Add its serial number or year."
+          "E20-03: the Bobcat E20 manual changes by year or serial. What's its serial number or year? A photo of the model plate is enough."
         ]
       },
       "photo": {
@@ -558,10 +563,10 @@
       "review": {
         "status": "MULEMARK_REVIEW",
         "blockers": [
-          "Cat 301.5: look for the maker's official manual (up to 45 minutes, no purchases); anything unresolved goes back in the one request.",
+          "Cat 301.5: find the maker's official manual (up to 45 minutes, official sources, no purchases). Not found? Set Manual to Not sure, and it's asked in the one request.",
           "Cat 301.5: check whether the manual changes by year or serial.",
           "Cat 301.5: look for a permitted photo of this exact model (bounded; no photo work is included).",
-          "Cat 301.5: prepare the equipment page from the manual and your rules, then review it."
+          "Cat 301.5: prepare the equipment page from the manual and their rules, then review it."
         ],
         "warnings": [],
         "missing_facts": []
@@ -584,10 +589,10 @@
       "review": {
         "status": "MULEMARK_REVIEW",
         "blockers": [
-          "Cat 301.5: look for the maker's official manual (up to 45 minutes, no purchases); anything unresolved goes back in the one request.",
+          "Cat 301.5: find the maker's official manual (up to 45 minutes, official sources, no purchases). Not found? Set Manual to Not sure, and it's asked in the one request.",
           "Cat 301.5: check whether the manual changes by year or serial.",
           "Cat 301.5: look for a permitted photo of this exact model (bounded; no photo work is included).",
-          "Cat 301.5: prepare the equipment page from the manual and your rules, then review it."
+          "Cat 301.5: prepare the equipment page from the manual and their rules, then review it."
         ],
         "warnings": [],
         "missing_facts": []
@@ -638,14 +643,14 @@
       "review": {
         "status": "CUSTOMER_INPUT_REQUIRED",
         "blockers": [
-          "PC-07: which model is it? A photo of the model plate is enough."
+          "PC-07 (Plate compactor): which model is it? A photo of the model plate is enough; if it's worn off, a photo of the whole machine helps."
         ],
         "warnings": [
           "PC-07: no serial number or year.",
           "PC-07: no photo yet."
         ],
         "missing_facts": [
-          "PC-07: which model is it? A photo of the model plate is enough."
+          "PC-07 (Plate compactor): which model is it? A photo of the model plate is enough; if it's worn off, a photo of the whole machine helps."
         ]
       }
     },

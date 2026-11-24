@@ -1,7 +1,7 @@
 {
-  "mapping_version": "1.0.0",
-  "workbook_version": "1.0",
-  "description": "Customer intake workbook to Mulemark: labels customers see, stable keys, tiers and targets. Labels can change between versions; keys do not. Tiers: start = needed for a private draft import; golive = needed before go-live (review-ready); optional.",
+  "mapping_version": "1.1.0",
+  "workbook_version": "2.0",
+  "description": "Mulemark's setup workbook (kit 2.0): filled by Mulemark from a call with the customer and the customer's own equipment list. Stable keys, tiers and targets. Labels can change between versions; keys do not. Tiers: start = needed for a private draft import; golive = needed before go-live (review-ready); optional.",
   "unknown_answers": [
     "Not available",
     "Not sure",
@@ -9,14 +9,24 @@
   ],
   "unknown_answer_meaning": {
     "Not available": "The fact or file does not exist or the customer cannot get it.",
-    "Not sure": "The customer will check; asked again once, in the one consolidated request, if still needed.",
+    "Not sure": "Still to confirm with the customer; asked once, in the one consolidated request, if still needed.",
     "Please review": "Mulemark looks into it within the bounded research limit; unresolved items go back to the customer once."
   },
-  "blank_answer": "Allowed anywhere. A blank optional answer stays blank; a blank answer needed before go-live is asked for once, in the one consolidated request.",
+  "blank_answer": "Allowed anywhere. A blank optional answer stays blank; a blank answer needed before go-live becomes one item: the customer's (asked once, in the one consolidated request) or Mulemark's (see defaults).",
+  "defaults": {
+    "asset.tag": "Blank means New tag.",
+    "asset.photo": "Optional everywhere: a missing photo is a warning, never a blocker. Blank counts the photos saved in inbox\\Photos\\<asset code>\\.",
+    "model.manual": "Blank or Please review: Mulemark searches for the maker's official manual first (bounded). Not sure: the search found none, so the customer is asked once. Not available: there is no manual; the pages have no manual button (a warning, not a blocker).",
+    "model.manual_share": "Blank or Not sure: renters get a link to the maker's official copy; a file the customer sent stays private. Showing a copy needs permission on record.",
+    "model.manual_depends": "Models filled from the customer's list start as Not sure, so checking it is on Mulemark's to-do list.",
+    "tags.ship_to": "Needed before tags are made: asked once if it's still blank.",
+    "alerts.*": "Blank keeps the app's own setting (damage Yes, support Yes, return emails Off, tag updates No, photo previews Yes)."
+  },
   "file_defaults": {
-    "Photos/<asset code>/": "The customer's own photos; shown on the customer's own pages.",
-    "Company/": "The logo; shown on the customer's own pages.",
-    "Model documents/<model name>/": "Manuals follow 'May renters see the manual?' on MODELS. 'Your instructions for renters' files are shown on the customer's own pages.",
+    "inbox\\": "Everything the customer emails is saved here as it came; their equipment list is the one .csv or .xlsx at the top.",
+    "inbox\\Photos\\<asset code>\\": "The customer's own photos; shown on the customer's own pages.",
+    "inbox\\Company\\": "The logo; shown on the customer's own pages.",
+    "inbox\\Model documents\\<model name>\\": "Manuals follow 'May renters see the manual?' on MODELS. Files of the customer's own instructions are shown on the customer's own pages.",
     "FILES & NOTES rows": "Only for files outside these folders, from the maker, or not for renters. A row can only restrict what a folder default allows.",
     "Never": "Shared with another company. Every source has shareable_across_orgs: false."
   },
@@ -30,7 +40,7 @@
     "company_form_columns": [
       "Needed",
       "Question",
-      "Your answer",
+      "Answer",
       "Help"
     ]
   },
@@ -163,10 +173,10 @@
   },
   "tabs": [
     {
-      "tab": "COMPANY & PEOPLE",
+      "tab": "CALL SHEET",
       "sections": [
         {
-          "title": "Your company",
+          "title": "Before the call: from their website (confirm on the call)",
           "fields": [
             {
               "key": "company.name",
@@ -177,39 +187,6 @@
               "targets": {
                 "contract": "organization.name",
                 "app": "organizations.name"
-              }
-            },
-            {
-              "key": "company.support_phone",
-              "label": "Support phone",
-              "tier": "golive",
-              "type": "phone",
-              "hint": "Phone, email or both: at least one. A normal phone number gets a Call button.",
-              "targets": {
-                "contract": "organization.support.phone",
-                "app": "organizations.support_phone"
-              }
-            },
-            {
-              "key": "company.support_email",
-              "label": "Support email",
-              "tier": "golive",
-              "type": "email",
-              "hint": "Phone, email or both: at least one.",
-              "targets": {
-                "contract": "organization.support.email",
-                "app": "organizations.support_email"
-              }
-            },
-            {
-              "key": "company.support_hours",
-              "label": "Support hours",
-              "tier": "optional",
-              "type": "text",
-              "hint": "e.g. Mon–Fri 7 am–5 pm. Shown in each page's support section.",
-              "targets": {
-                "contract": "organization.support.hours",
-                "app": "equipment_pages.emergency_notes (drafted by Mulemark; no hours column)"
               }
             },
             {
@@ -224,39 +201,127 @@
               }
             },
             {
+              "key": "company.logo_file",
+              "label": "Logo file",
+              "tier": "optional",
+              "type": "text",
+              "hint": "Saved in inbox\\Company\\. PNG or JPG; a design file (.ai, .eps, .svg) is fine, it gets converted.",
+              "targets": {
+                "contract": "organization.logo",
+                "app": "organizations.logo_url (uploaded by Mulemark)"
+              }
+            },
+            {
               "key": "company.brand_color",
               "label": "Brand color",
               "tier": "optional",
               "type": "choice+text",
               "list": "brandColor",
-              "hint": "A color like #1D4ED8, or pick Match our logo.",
+              "hint": "A color like #1D4ED8, or Match our logo.",
               "targets": {
                 "contract": "organization.primary_color",
                 "app": "organizations.primary_color"
               }
             },
             {
-              "key": "company.logo_file",
-              "label": "Logo file",
+              "key": "company.support_phone",
+              "label": "Support phone renters see",
+              "tier": "golive",
+              "type": "phone",
+              "hint": "Phone, email or both: at least one. A normal phone number gets a Call button.",
+              "targets": {
+                "contract": "organization.support.phone",
+                "app": "organizations.support_phone"
+              }
+            },
+            {
+              "key": "company.support_email",
+              "label": "Support email renters see",
+              "tier": "golive",
+              "type": "email",
+              "hint": "Phone, email or both: at least one.",
+              "targets": {
+                "contract": "organization.support.email",
+                "app": "organizations.support_email"
+              }
+            },
+            {
+              "key": "rules.fuel",
+              "label": "Their rule: fuel or charge on return",
               "tier": "optional",
               "type": "text",
-              "hint": "File name in your Company folder: PNG or JPG; a design file (.ai, .eps) is fine too.",
+              "hint": "From their website or the call. Short: what renters must do, e.g. Return with a full tank.",
               "targets": {
-                "contract": "organization.logo",
-                "app": "organizations.logo_url (uploaded by Mulemark)"
+                "contract": "organization.policies[] (customer-owned)",
+                "app": "equipment_pages.fuel_power_notes / return_notes (drafted, cited as their rule)"
+              }
+            },
+            {
+              "key": "rules.cleaning",
+              "label": "Their rule: cleaning",
+              "tier": "optional",
+              "type": "text",
+              "hint": "e.g. Return clean or a cleaning fee applies.",
+              "targets": {
+                "contract": "organization.policies[] (customer-owned)",
+                "app": "equipment_pages.return_notes (drafted)"
+              }
+            },
+            {
+              "key": "rules.accessories",
+              "label": "Their rule: accessories",
+              "tier": "optional",
+              "type": "text",
+              "hint": "e.g. Everything sent out comes back.",
+              "targets": {
+                "contract": "organization.policies[] (customer-owned)",
+                "app": "equipment_pages.return_notes (drafted)"
+              }
+            },
+            {
+              "key": "rules.damage_late",
+              "label": "Their rule: damage and late returns",
+              "tier": "optional",
+              "type": "text",
+              "hint": "e.g. Report damage right away with the Report button.",
+              "targets": {
+                "contract": "organization.policies[] (customer-owned)",
+                "app": "equipment_pages.return_notes (drafted)"
+              }
+            },
+            {
+              "key": "rules.other",
+              "label": "Other rules renters must know",
+              "tier": "optional",
+              "type": "text",
+              "hint": "Only what renters must do; never their rental agreement.",
+              "targets": {
+                "contract": "organization.policies[] (customer-owned)",
+                "app": "equipment_pages (drafted, cited as their rule)"
               }
             }
           ]
         },
         {
-          "title": "Who approves your pages",
+          "title": "Ask on the call (in this order; people go in the table on the right)",
           "fields": [
             {
+              "key": "company.support_hours",
+              "label": "Support hours",
+              "tier": "optional",
+              "type": "text",
+              "hint": "e.g. Mon–Fri 7 am–5 pm. Shown in each page's support section.",
+              "targets": {
+                "contract": "organization.support.hours",
+                "app": "equipment_pages.emergency_notes (drafted by Mulemark; no hours column)"
+              }
+            },
+            {
               "key": "approver.name",
-              "label": "Approver's name",
+              "label": "Who approves the pages: name",
               "tier": "golive",
               "type": "text",
-              "hint": "The person who approves your pages before they go live.",
+              "hint": "Gets the preview email and replies Approved.",
               "targets": {
                 "contract": "organization.approver.name_ref (reference only; the name stays in private storage)",
                 "app": "approval record (E5A)"
@@ -278,35 +343,66 @@
               "label": "Approver's email",
               "tier": "golive",
               "type": "email",
-              "hint": "We send the preview and approval request here.",
+              "hint": "The preview email goes here.",
               "targets": {
                 "app": "profiles.email (invited as Administrator)",
                 "kit_only": "Manifests never hold real names or addresses."
               }
-            }
-          ]
-        },
-        {
-          "title": "Email alerts",
-          "fields": [
+            },
             {
               "key": "alerts.notification_email",
-              "label": "Notification email (one address)",
+              "label": "Where renter reports go (one email)",
               "tier": "golive",
               "type": "email",
-              "hint": "Renter reports and daily summaries go here.",
+              "hint": "Damage and support reports and the daily summary.",
               "targets": {
                 "contract": "organization.notifications.address_role",
                 "app": "organizations.notification_email"
               }
             },
             {
+              "key": "alerts.urgent_email",
+              "label": "Urgent reports also to (one email)",
+              "tier": "optional",
+              "type": "email",
+              "hint": "Reports marked unsafe to use or can't move also go here. Blank: no copy.",
+              "targets": {
+                "app": "organizations.urgent_notification_email (+ notify_urgent_reports)",
+                "kit_only": "Not in the content contract."
+              }
+            },
+            {
+              "key": "tags.ship_to",
+              "label": "Ship tags to",
+              "tier": "golive",
+              "type": "text",
+              "hint": "Street, city, province or state, postal code. Needed before tags are made.",
+              "targets": {
+                "kit_only": "Tag requests have no shipping address; used on the tag order."
+              }
+            },
+            {
+              "key": "tags.contact",
+              "label": "Tag delivery contact",
+              "tier": "optional",
+              "type": "text",
+              "hint": "Name and phone for the courier.",
+              "targets": {
+                "kit_only": "Tag requests have no delivery contact; used on the tag order."
+              }
+            }
+          ]
+        },
+        {
+          "title": "Defaults: blank keeps the app's setting",
+          "fields": [
+            {
               "key": "alerts.damage",
               "label": "Email damage reports",
               "tier": "optional",
               "type": "choice",
               "list": "yesNo",
-              "hint": "Sent when a renter uses Report damage on a page. Yes unless you say otherwise.",
+              "hint": "Blank: Yes.",
               "targets": {
                 "app": "organizations.notify_damage_reports",
                 "kit_only": "Not in the content contract."
@@ -318,20 +414,9 @@
               "tier": "optional",
               "type": "choice",
               "list": "yesNo",
-              "hint": "Sent when a renter uses the Support button. Yes unless you say otherwise.",
+              "hint": "Blank: Yes.",
               "targets": {
                 "app": "organizations.notify_support_requests",
-                "kit_only": "Not in the content contract."
-              }
-            },
-            {
-              "key": "alerts.urgent_email",
-              "label": "Urgent reports also to (one address)",
-              "tier": "optional",
-              "type": "email",
-              "hint": "Reports a renter marks unsafe to use or can't move also go here.",
-              "targets": {
-                "app": "organizations.urgent_notification_email (+ notify_urgent_reports)",
                 "kit_only": "Not in the content contract."
               }
             },
@@ -341,7 +426,7 @@
               "tier": "optional",
               "type": "choice",
               "list": "returnEmails",
-              "hint": "Renters can fill a return checklist on the page. Pick one; Off unless you choose.",
+              "hint": "Blank: Off. Renters can fill a return checklist on the page.",
               "targets": {
                 "contract": "organization.notifications.return_mode",
                 "app": "organizations.return_notification_mode"
@@ -353,7 +438,7 @@
               "tier": "optional",
               "type": "choice",
               "list": "yesNo",
-              "hint": "When a tag order changes status. No unless you say yes.",
+              "hint": "Blank: No.",
               "targets": {
                 "app": "organizations.notify_tag_request_updates",
                 "kit_only": "Not in the content contract."
@@ -365,35 +450,10 @@
               "tier": "optional",
               "type": "choice",
               "list": "yesNo",
-              "hint": "Small copies of the renter's photos inside the email. Yes unless you say otherwise.",
+              "hint": "Blank: Yes. Small copies of the renter's photos inside the email.",
               "targets": {
                 "app": "organizations.notify_include_photo_previews",
                 "kit_only": "Not in the content contract."
-              }
-            }
-          ]
-        },
-        {
-          "title": "Tags",
-          "fields": [
-            {
-              "key": "tags.ship_to",
-              "label": "Ship tags to",
-              "tier": "optional",
-              "type": "text",
-              "hint": "Street, city, province or state, postal code.",
-              "targets": {
-                "kit_only": "Tag requests have no shipping address; used on the tag-production handoff."
-              }
-            },
-            {
-              "key": "tags.contact",
-              "label": "Delivery contact",
-              "tier": "optional",
-              "type": "text",
-              "hint": "Name and phone for the courier.",
-              "targets": {
-                "kit_only": "Tag requests have no delivery contact; used on the tag-production handoff."
               }
             },
             {
@@ -402,7 +462,7 @@
               "tier": "optional",
               "type": "choice",
               "list": "tagMounting",
-              "hint": "A preference only. Not sure is fine: we'll suggest one.",
+              "hint": "Blank or Not sure: recommend one.",
               "targets": {
                 "app": "tag_requests.mounting_method",
                 "kit_only": "Not in the content contract."
@@ -414,7 +474,7 @@
               "tier": "optional",
               "type": "choice",
               "list": "tagSize",
-              "hint": "A preference only; your agreement sets the options. Not sure is fine.",
+              "hint": "Blank or Not sure: as the agreement sets.",
               "targets": {
                 "app": "tag_requests.tag_size",
                 "kit_only": "Not in the content contract."
@@ -426,7 +486,7 @@
               "tier": "optional",
               "type": "choice",
               "list": "tagMaterial",
-              "hint": "A preference only; your agreement sets the options. Not sure is fine.",
+              "hint": "Blank or Not sure: as the agreement sets.",
               "targets": {
                 "app": "tag_requests.material",
                 "kit_only": "Not in the content contract."
@@ -435,61 +495,66 @@
           ]
         },
         {
-          "title": "Your rental rules (all equipment)",
+          "title": "Dates and time (this batch)",
           "fields": [
             {
-              "key": "rules.fuel",
-              "label": "Fuel or charge on return",
+              "key": "batch.complete_on",
+              "label": "Everything in (list and call answers)",
               "tier": "optional",
-              "type": "text",
-              "hint": "Short: what renters must do, e.g. Return with a full tank.",
+              "type": "date",
+              "hint": "The day the batch was complete: the 3-business-day target starts here.",
               "targets": {
-                "contract": "organization.policies[] (customer-owned)",
-                "app": "equipment_pages.fuel_power_notes / return_notes (drafted, cited as your rule)"
+                "contract": "batch.measurements.batch_complete_at"
               }
             },
             {
-              "key": "rules.cleaning",
-              "label": "Cleaning",
+              "key": "batch.preview_sent_on",
+              "label": "Preview sent",
               "tier": "optional",
-              "type": "text",
-              "hint": "e.g. Return clean or a cleaning fee applies.",
+              "type": "date",
+              "hint": "The day the preview email went out (review-ready).",
               "targets": {
-                "contract": "organization.policies[] (customer-owned)",
-                "app": "equipment_pages.return_notes (drafted)"
+                "contract": "batch.measurements.review_ready_at"
               }
             },
             {
-              "key": "rules.accessories",
-              "label": "Accessories",
+              "key": "batch.approved_on",
+              "label": "Approved",
               "tier": "optional",
-              "type": "text",
-              "hint": "e.g. Everything we send out comes back.",
+              "type": "date",
+              "hint": "The day of their Approved reply; save the reply in the batch folder.",
               "targets": {
-                "contract": "organization.policies[] (customer-owned)",
-                "app": "equipment_pages.return_notes (drafted)"
+                "kit_only": "The approval record itself is E5A's."
               }
             },
             {
-              "key": "rules.damage_late",
-              "label": "Damage and late returns",
+              "key": "batch.live_on",
+              "label": "Live",
               "tier": "optional",
-              "type": "text",
-              "hint": "e.g. Report damage right away with the Report button.",
+              "type": "date",
+              "hint": "The day the pages went live.",
               "targets": {
-                "contract": "organization.policies[] (customer-owned)",
-                "app": "equipment_pages.return_notes (drafted)"
+                "kit_only": "Recorded for the batch; not a contract field."
               }
             },
             {
-              "key": "rules.other",
-              "label": "Other rules renters must know",
+              "key": "batch.hands_on_minutes",
+              "label": "Hands-on minutes (Mulemark)",
               "tier": "optional",
-              "type": "text",
-              "hint": "Not your rental agreement: only what renters must do.",
+              "type": "number",
+              "hint": "Total for this batch: call, research, pages, emails.",
               "targets": {
-                "contract": "organization.policies[] (customer-owned)",
-                "app": "equipment_pages (drafted, cited as your rule)"
+                "contract": "batch.measurements.hands_on_minutes"
+              }
+            },
+            {
+              "key": "batch.customer_wait_hours",
+              "label": "Hours waiting on the customer",
+              "tier": "optional",
+              "type": "number",
+              "hint": "Optional: from a question to their answer.",
+              "targets": {
+                "contract": "batch.measurements.customer_wait_hours"
               }
             }
           ]
@@ -502,7 +567,7 @@
           "tier": "golive",
           "type": "text",
           "width": 24,
-          "hint": "e.g. Alex Chen",
+          "hint": "One Administrator is enough to start; they can add the rest.",
           "targets": {
             "app": "profiles.name"
           }
@@ -538,7 +603,7 @@
           "width": 26,
           "hint": "e.g. Yard lead",
           "targets": {
-            "kit_only": "Read by Mulemark."
+            "kit_only": "Never published."
           }
         }
       ]
@@ -549,11 +614,11 @@
       "columns": [
         {
           "key": "model.name",
-          "label": "Model name (your short name)",
+          "label": "Model name (short)",
           "tier": "golive",
           "type": "text",
           "width": 26,
-          "hint": "Each asset picks this name on ASSETS, e.g. Big Tex 14LP dump",
+          "hint": "Each machine on ASSETS uses this name, e.g. Big Tex 14LP dump",
           "targets": {
             "contract": "models[].model_key (derived from make, model and version)",
             "kit_only": "The join between ASSETS and MODELS."
@@ -592,7 +657,7 @@
           "type": "choice+text",
           "list": "manual",
           "width": 30,
-          "hint": "A file (a phone scan of a paper manual is fine), a web link, or pick an answer",
+          "hint": "Blank: search for the maker's manual first. Then its web link or a file they sent. Not found: Not sure (asked once). None: Not available",
           "targets": {
             "contract": "models[].manual + sources[]",
             "app": "documents (manual)"
@@ -601,11 +666,11 @@
         {
           "key": "model.manual_share",
           "label": "May renters see the manual?",
-          "tier": "golive",
+          "tier": "optional",
           "type": "choice",
           "list": "manualShare",
           "width": 28,
-          "hint": "Link: we link to the maker's site. Show our copy: we post your file. Staff only: not for renters.",
+          "hint": "Blank: link to the maker's official copy. Show our copy needs the maker's permission on record.",
           "targets": {
             "contract": "sources[].rights.redistribution",
             "app": "documents.visibility"
@@ -642,18 +707,18 @@
           "type": "choice",
           "list": "yesNoNotSure",
           "width": 16,
-          "hint": "Not sure is fine: we check the manual",
+          "hint": "Not sure: check the manual",
           "targets": {
             "contract": "models[].applicability.notes"
           }
         },
         {
           "key": "model.instructions",
-          "label": "Your instructions for renters",
+          "label": "Customer's instructions for renters",
           "tier": "optional",
           "type": "text",
           "width": 26,
-          "hint": "File name of anything you already hand out, or None",
+          "hint": "File name of anything they already hand out, or None",
           "targets": {
             "contract": "sources[] (customer-file)",
             "app": "equipment_pages (drafted, cited)"
@@ -679,7 +744,7 @@
           "type": "choice",
           "list": "photoPermission",
           "width": 20,
-          "hint": "Your own photo, or the maker's with their permission",
+          "hint": "The customer's own photo, or the maker's with permission",
           "targets": {
             "contract": "sources[].rights.status"
           }
@@ -711,11 +776,11 @@
         },
         {
           "key": "model.return_rules",
-          "label": "Your return rules",
+          "label": "Return rules for this model",
           "tier": "optional",
           "type": "text",
           "width": 26,
-          "hint": "Only what's special for this model; general rules go on COMPANY & PEOPLE",
+          "hint": "Only what's special for this model; general rules go on the CALL SHEET",
           "targets": {
             "contract": "organization.policies[] (customer-owned)",
             "app": "equipment_pages.return_notes (drafted)"
@@ -735,11 +800,11 @@
         },
         {
           "key": "model.notes",
-          "label": "Notes for Mulemark",
+          "label": "Notes",
           "tier": "optional",
           "type": "text",
           "width": 24,
-          "hint": "Anything we should know",
+          "hint": "Never published",
           "targets": {
             "kit_only": "Read by Mulemark; never published."
           }
@@ -756,7 +821,7 @@
           "tier": "start",
           "type": "code",
           "width": 14,
-          "hint": "Exactly as on your fleet list or tag, e.g. 00412",
+          "hint": "Exactly as on their list or tag, e.g. 00412",
           "targets": {
             "current_import": "asset_code",
             "contract": "assets[].asset_code",
@@ -783,7 +848,7 @@
           "type": "choice+text",
           "list": "modelChoices",
           "width": 26,
-          "hint": "The name you gave it on MODELS, e.g. Big Tex 14LP dump",
+          "hint": "As named on MODELS, e.g. Big Tex 14LP dump",
           "targets": {
             "current_import": "make, model (from the MODELS row)",
             "contract": "assets[].model_key (via MODELS)",
@@ -793,11 +858,11 @@
         {
           "key": "asset.photo",
           "label": "Photo",
-          "tier": "golive",
+          "tier": "optional",
           "type": "choice+text",
           "list": "assetPhoto",
           "width": 20,
-          "hint": "In Photos folder, Use model photo, No photo yet, or a file name",
+          "hint": "Optional. In Photos folder (inbox\\Photos\\<code>\\), Use model photo, or a file name. Blank: none yet",
           "targets": {
             "contract": "assets[].photo",
             "app": "assets.cover_image_url (uploaded by Mulemark)"
@@ -806,11 +871,11 @@
         {
           "key": "asset.tag",
           "label": "Tag",
-          "tier": "golive",
+          "tier": "optional",
           "type": "choice",
           "list": "tag",
           "width": 22,
-          "hint": "New tag, already has a Mulemark tag, or no tag for now",
+          "hint": "Blank: New tag. Or Already has a Mulemark tag, or No tag for now",
           "targets": {
             "contract": "assets[].qr.create",
             "app": "qr_links (created by Mulemark after approval)"
@@ -886,7 +951,7 @@
           "tier": "optional",
           "type": "text",
           "width": 22,
-          "hint": "Only if different from your main support: a phone or an email",
+          "hint": "Only if different from the main support: a phone or an email",
           "targets": {
             "current_import": "support_phone_override / support_email_override",
             "contract": "assets[].support_overrides",
@@ -895,11 +960,11 @@
         },
         {
           "key": "asset.notes",
-          "label": "Notes for Mulemark",
+          "label": "Notes",
           "tier": "optional",
           "type": "text",
           "width": 26,
-          "hint": "Anything we should know",
+          "hint": "Never published",
           "targets": {
             "kit_only": "Read by Mulemark; never published."
           }
@@ -916,10 +981,10 @@
           "tier": "golive",
           "type": "text",
           "width": 32,
-          "hint": "As uploaded, e.g. 35SA yard checklist.pdf",
+          "hint": "As saved in inbox\\, e.g. 35SA yard checklist.pdf",
           "targets": {
             "contract": "sources[].title / media.source_id",
-            "kit_only": "Only for files outside the standard folders, or not meant for renters."
+            "kit_only": "Only for files outside the inbox's standard folders, from the maker, or not meant for renters."
           }
         },
         {
@@ -952,7 +1017,7 @@
           "type": "choice",
           "list": "fileSource",
           "width": 22,
-          "hint": "Made or taken by you, or the maker's",
+          "hint": "As the customer told you: their own, or the maker's",
           "targets": {
             "contract": "sources[].rights.status"
           }
@@ -964,7 +1029,7 @@
           "type": "choice",
           "list": "fileAudience",
           "width": 22,
-          "hint": "Only ever on your own pages",
+          "hint": "Only ever on the customer's own pages",
           "targets": {
             "contract": "sources[].rights.redistribution"
           }
@@ -999,7 +1064,7 @@
           "tier": "optional",
           "type": "text",
           "width": 48,
-          "hint": "Missing, different or unclear: tell us here",
+          "hint": "Missing, different or unclear: note it here",
           "targets": {
             "kit_only": "Read by Mulemark; summarized in the readiness report."
           }
@@ -1089,12 +1154,12 @@
     {
       "tab": "MODELS",
       "label": "Check",
-      "note": "Workbook formula for the customer; ignored when reading."
+      "note": "Workbook formula; ignored when reading."
     },
     {
       "tab": "ASSETS",
       "label": "Check",
-      "note": "Workbook formula for the customer; ignored when reading."
+      "note": "Workbook formula; ignored when reading."
     }
   ]
 }

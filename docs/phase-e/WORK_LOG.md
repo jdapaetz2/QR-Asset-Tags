@@ -931,6 +931,8 @@ The counts-only summary is `docs/phase-e/archives/presenter-production-review-20
 
 ## E3 — customer intake package and operator templates (2026-11-23, done)
 
+> **Superseded on 2026-11-24 by kit 2.0** (see "E3 rework" below). This section records kit 1.0 as built and committed at `cf38abc`. Its files were removed from the working tree; Git history keeps them.
+
 The files to send right after a customer agrees to a pilot, and the procedure behind them. Index: [intake/README.md](intake/README.md). No app code, migrations, Production data or tags were touched.
 
 ### Approvals and operator decisions
@@ -1029,3 +1031,106 @@ The files to send right after a customer agrees to a pilot, and the procedure be
 ### Next command
 
 - **Stop:** E3 is complete. E4A starts only when the operator runs it, never automatically.
+
+## E3 rework — onboarding kit 2.0 (2026-11-24, done)
+
+Kit 1.0 asked too much of both sides. Kit 2.0 makes onboarding a 30-minute call plus the customer's own equipment list and a phone check of one page per model; Mulemark does the rest with two commands. Index: [intake/README.md](intake/README.md). No app code, migrations, Production data or tags were touched.
+
+### Decision and approval
+
+- **2026-11-24:** the operator reviewed kit 1.0. The scripts and procedure "seem to be more time consuming for both the customer and I than I would like… the user experience needs to be as painless as possible, as does the onboarding process." He also couldn't tell what the upload-channel step asked for.
+- **I recommended a lighter flow:**
+  - a call instead of a customer workbook;
+  - the customer's export as it is;
+  - photos optional;
+  - no upload link.
+- **The operator replied "yes, rework it in plan mode".** The plan was approved through the approval card.
+
+### What changed
+
+- **The customer gets two files** (`intake/customer/`):
+  - the one-page "what to expect" sheet (PDF; picture-first; at most 220 words, tested);
+  - an equipment-list template, only for customers without rental software.
+- **Removed for the customer:** the 4-page guide, the customer workbook, the folder conventions, the CSV templates and the upload link.
+- **Mulemark's setup workbook (2.0):**
+  - **CALL SHEET** replaces START HERE and COMPANY & PEOPLE. Its four sections are: from their website, ask on the call, defaults (blank keeps the app's setting), and dates and time (feeding `batch.measurements`).
+  - **Unchanged:** MODELS, ASSETS, FILES & NOTES and LISTS. Labels are reworded for Mulemark, and no key changed.
+- **Field mapping 1.1.0:**
+  - all 67 keys of 1.0.0 are kept, and six `batch.*` keys added;
+  - the defaults are documented: blank tag = New tag, photos optional, the manual states, ship-to before tags.
+- **Two commands replace check, prefill and zip:**
+  - **`onboard:start`:** the batch folder, its inbox folders, the files to send and the welcome email. Your name is remembered.
+  - **`onboard:check`:**
+    - fills MODELS and ASSETS from the list once, after a backup;
+    - writes `to-do.md` (ask the customer, your work, warnings);
+    - writes plain-text drafts: the questions email (only while something is left to ask), the preview email with the approval wording, and the go-live email;
+    - writes the tag order (once), the import CSV and the manifest.
+- **Emails:** four instead of five, and the tools fill nearly everything.
+- **The rules ask the customer less:**
+  - **Manuals:** Mulemark searches first. Not found means one customer question; Not available means no manual button.
+  - **Photos:** never block, and saved ones count automatically.
+  - **Your bookkeeping:** the inbox and the workbook are yours.
+- **Removed outright:** the tracker workbook, the exception log, the separate approval form, the procedure document and the ZIP packets. The scope sheet is now internal, as the commercial-review reference.
+
+### Walkthrough
+
+- **The run:** a separate agent played the customer, with only the welcome email and the one-pager, and the operator, with only `internal/README.md`. It ran the real commands on a messy 60-row export.
+- **It found 34 points:** 5 blockers, 19 confusing points and 10 minor ones.
+- **The blockers:**
+  - a stale questions email could be sent;
+  - a list re-saved in Excel lost its zeros silently;
+  - the manual search came after the one email and had no "not found" end state;
+  - "about an hour" was too low for 60 machines, and putting the tags on wasn't mentioned;
+  - the pre-E4B screen share wasn't in the routine.
+- **All were fixed** ([intake/WALKTHROUGH.md](intake/WALKTHROUGH.md)) except two left for the commercial review: who puts the tags on, and the approval wording's length.
+- **The customer's stated time is now "about 1–2 hours at your desk"**, with one page per model to check.
+
+### Gates (2026-11-24, final state)
+
+- **Code gates:**
+  - `npm run lint` and `npm run typecheck`: clean;
+  - `npm test`: 220 files, 2,594 tests (the kit's own: 7 files, 144);
+  - `npm run build`: passes.
+- **Kit:** `phase-e:intake:build -- --check` reports all 31 files matching.
+- **Real Excel** (on copies):
+  - no repairs; dropdowns, protection and the CALL SHEET's date cells as designed;
+  - the EXAMPLE Check results match the stored ones;
+  - the leading-zero, duplicate and paste tests pass;
+  - the list template keeps `00412`;
+  - a workbook open in Excel stops `onboard:check` with "close it in Excel".
+- **Real Word:** the one-pager is one page; no spelling errors beyond placeholders.
+- **Commands, end to end in a temporary folder:**
+  - the fixture list and a messy 40-machine list (title lines, plain-number codes, spelling variants, class codes, a make-only machine);
+  - refusals for an existing batch and for the repository.
+- **Sweep:** no local paths, usernames or secrets in any file going into Git, Office files included.
+
+### Key hashes (SHA-256; all 31 in `intake/MANIFEST.json`)
+
+| File | Bytes | SHA-256 |
+|---|---|---|
+| `customer/mulemark-what-to-expect.pdf` | 83,702 | `95e5b18b6ae9e236927f2d5d179ab0ab56afd57fa66ecd743e234760e583a743` |
+| `customer/equipment-list-template.xlsx` | 6,620 | `894921542042982cb8088aa01ed5121b87b7290ac6c1b23b027d7653f909d7de` |
+| `internal/mulemark-setup-workbook-v2.0.xlsx` | 67,823 | `c5116fd423408583048b5850b8143b22ffe496dc92c63671484801129f9e9095` |
+| `internal/EXAMPLE-setup-workbook-v2.0.xlsx` | 70,983 | `f329a3bc8bcb14475fc190cb76985a46b735b1e89eeeb32442a39cced23faffe` |
+| `internal/field-mapping-1.1.0.json` | 37,183 | `b4974ba819657e2e4bc4462463bbfaf0f4ed9afa132990756b6f3772bc87103f` |
+| `example-run/manifest.json` | 44,184 | `9ff30cdbcd88c84ddc0c09f319ceb81fcfb3cd9d4f864e92aa6d05ba34f8519b` |
+
+### Open, operator-pending
+
+1. **Commercial and legal review of three short texts:**
+   - the one-pager's "good to know" lines, including who puts the tags on;
+   - the approval wording in the preview email;
+   - the internal scope sheet.
+
+   Then set `REVIEWED` in `scripts/phase-e/intake/documents.mjs` and rebuild. Until then, `onboard:start` warns before the DRAFT one-pager is sent.
+2. **No upload channel is needed any more.** Item 1 of kit 1.0's open list is withdrawn.
+3. **The first real customer comes after E4B.** Until then, the import and the page review are a screen share with their Administrator.
+4. **Carried from E2C:**
+   - reset the Production database password;
+   - the `winnat` port fix;
+   - redacting the host echo;
+   - releasing the tap-target and focus branches on their own.
+
+### Next command
+
+- **Stop:** E3 (kit 2.0) is complete. E4A starts only when the operator runs it, never automatically.

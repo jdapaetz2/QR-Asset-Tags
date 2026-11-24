@@ -1,12 +1,14 @@
 /**
- * Engineering Phase E3 — the completed synthetic example: Northridge Rentals, the fictional showcase company.
+ * Engineering Phase E3 — the finished synthetic example: Mulemark's setup workbook for Northridge Rentals, the
+ * fictional showcase company, as it looks after the call and the customer's own list (kit 2.0).
  *
  * Fictional throughout: people and addresses use example.com and 555-01xx numbers, serials carry the DEMO- prefix
  * (contract hard rule 4), and the models are the four real showcase models with the official manual links from
  * docs/phase-e/packs/SOURCES_REGISTER.json. It is built to show the workbook's ideas, not to be perfect: 40 identical
  * trailers share one MODELS row, a code has leading zeros, a name carries quotes and a comma, an E20 is missing the
- * serial its manual depends on, a compactor's model is "Not sure", the Cat manual is "Please review", and FILES & NOTES
- * holds only two exceptions (a staff-only checklist and a maker's card meant for renters).
+ * serial its manual depends on, a compactor's model is "Not sure", the Cat manual is "Please review", the alert
+ * switches and most tag answers are blank (the app's defaults; New tag), and FILES & NOTES holds only two exceptions
+ * (a staff-only checklist and a maker's card meant for renters).
  */
 
 export const EXAMPLE = {
@@ -22,12 +24,12 @@ export const EXAMPLE = {
     "approver.title": "Operations manager",
     "approver.email": "dana.whitlock@example.com",
     "alerts.notification_email": "rentals@example.com",
-    "alerts.damage": "Yes",
-    "alerts.support": "Yes",
     "alerts.urgent_email": "yard.lead@example.com",
     "alerts.return_mode": "Daily exceptions summary",
     "alerts.tag_updates": "Yes",
-    "alerts.photo_previews": "Yes",
+    "batch.complete_on": "2026-11-26",
+    "batch.hands_on_minutes": "95",
+    "batch.customer_wait_hours": "6",
     "tags.ship_to": "100 Example Street, Example City, BC",
     "tags.contact": "Sam Ortega, 604-555-0177",
     "tags.mounting": "Rivet",
@@ -118,7 +120,6 @@ export const EXAMPLE = {
       "asset.name": "Compact excavator E20",
       "asset.model": "Bobcat E20",
       "asset.photo": "In Photos folder",
-      "asset.tag": "New tag",
       "asset.year": "2022",
       "asset.serial": "DEMO-B3BL11001",
     },
@@ -127,7 +128,6 @@ export const EXAMPLE = {
       "asset.name": "Compact excavator E20",
       "asset.model": "Bobcat E20",
       "asset.photo": "In Photos folder",
-      "asset.tag": "New tag",
       "asset.year": "2023",
       "asset.serial": "DEMO-B3BL11002",
       "asset.fitted": "Hydraulic thumb",
@@ -137,14 +137,12 @@ export const EXAMPLE = {
       "asset.name": "Compact excavator E20",
       "asset.model": "Bobcat E20",
       "asset.photo": "In Photos folder",
-      "asset.tag": "New tag",
     },
     {
       "asset.code": "C301-1",
       "asset.name": "Mini excavator 301.5",
       "asset.model": "Cat 301.5",
       "asset.photo": "In Photos folder",
-      "asset.tag": "New tag",
       "asset.year": "2021",
       "asset.serial": "DEMO-FH500101",
     },
@@ -153,7 +151,6 @@ export const EXAMPLE = {
       "asset.name": "Mini excavator 301.5",
       "asset.model": "Cat 301.5",
       "asset.photo": "In Photos folder",
-      "asset.tag": "New tag",
       "asset.year": "2021",
       "asset.serial": "DEMO-FH500102",
     },
@@ -162,7 +159,6 @@ export const EXAMPLE = {
       "asset.name": `Dump trailer 7' x 14' "HD", 14LP`,
       "asset.model": "Big Tex 14LP dump 14 ft",
       "asset.photo": "In Photos folder",
-      "asset.tag": "New tag",
       "asset.unit_support": "604-555-0199 ext 2",
     },
     {
@@ -181,14 +177,13 @@ export const EXAMPLE = {
         "asset.name": "Utility trailer 12 ft",
         "asset.model": "Big Tex 35SA utility 12 ft",
         "asset.photo": i < 5 ? "In Photos folder" : "Use model photo",
-        "asset.tag": "New tag",
       };
       if (code === "00107") row["asset.fitted"] = "Spare tire";
       if (code === "00112") row["asset.differences"] = "Ramp gate replaced with a 4 ft gate.";
       return row;
     }),
   ],
-  // Only exceptions: everything in the standard folders follows the folder defaults (the guide and START HERE say so).
+  // Only exceptions: everything in inbox's standard folders follows the folder defaults (field mapping file_defaults).
   files: [
     { "file.name": "35SA yard checklist.pdf", "file.kind": "Your instructions", "file.for": "Big Tex 35SA utility 12 ft", "file.source": "We made it or took it", "file.audience": "Staff only", "file.notes": "For our yard team, not renters" },
     { "file.name": "E20 quick reference card.pdf", "file.kind": "Manual", "file.for": "Bobcat E20", "file.source": "From the maker", "file.audience": "Renters, on our pages", "file.notes": "The dealer gave us this card" },
@@ -199,8 +194,12 @@ export const EXAMPLE = {
   ],
 };
 
-/** The upload that goes with the example: folder paths and sizes only (no real files). */
+/**
+ * The batch's inbox\ for the example: what the customer emailed, as Mulemark saved it (paths and sizes only, no real
+ * files). Their own equipment list sits at the top; the logo came from their website.
+ */
 export const EXAMPLE_UPLOAD = [
+  { path: "Northridge fleet export.csv", bytes: 6214, list: true },
   { path: "Company/northridge logo.png", bytes: 48213 },
   ...["00101", "00102", "00103", "00104", "00105"].map((code, i) => ({ path: `Photos/${code}/IMG_44${10 + i}.HEIC`, bytes: 2_310_000 + i * 1000 })),
   { path: "Photos/00103/Photo café.jpg", bytes: 1_204_331 },
@@ -226,4 +225,4 @@ export const EXAMPLE_PREPARED = [
 
 export const EXAMPLE_BATCH_ID = "northridge-example-1";
 
-export const EXAMPLE_BANNER = "EXAMPLE: a completed workbook for a fictional company (Northridge Rentals). Use the blank workbook for your own equipment.";
+export const EXAMPLE_BANNER = "EXAMPLE: a finished setup workbook for a fictional company (Northridge Rentals). Start each real customer with npm.cmd run onboard:start.";

@@ -1,6 +1,6 @@
 /**
- * Engineering Phase E3 — fixtures for the intake tests: small intakes built directly (the shape read.mjs produces), and
- * a helper to edit a generated workbook the way a customer would.
+ * Engineering Phase E3 — fixtures for the kit tests: small intakes built directly (the shape read.mjs produces), and a
+ * helper to edit a generated workbook the way someone typing in Excel would.
  */
 import { createRequire } from "node:module";
 
@@ -10,7 +10,7 @@ const record = (values, row, numeric = {}) => ({ row, values, cells: Object.from
 
 export function intakeOf({ company = {}, people = [], assets = [], models = [], files = [], notes = [], issues = [] } = {}) {
   return {
-    meta: { source: "test", file: "test.xlsx", workbook_version: "1.0", mapping_version: "1.0.0", notes: [] },
+    meta: { source: "test", file: "test.xlsx", workbook_version: "2.0", mapping_version: "1.1.0", notes: [] },
     company: { values: { ...company }, cells: {} },
     people: people.map((p, i) => record({ ...p }, 6 + i)),
     assets: assets.map((a, i) => (a.values ? record({ ...a.values }, 6 + i, a.numeric) : record({ ...a }, 6 + i))),
@@ -29,6 +29,7 @@ export const GOOD_COMPANY = {
   "approver.title": "Owner",
   "approver.email": "robin@example.com",
   "alerts.notification_email": "help@example.com",
+  "tags.ship_to": "100 Example Street, Example City",
 };
 export const GOOD_PEOPLE = [{ "people.name": "Robin Vale", "people.email": "robin@example.com", "people.role": "Administrator" }];
 export const GOOD_MODEL = {

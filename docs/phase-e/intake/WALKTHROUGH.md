@@ -1,119 +1,147 @@
-# Walkthrough: can a rental administrator fill this in? (E3, 2026-11-23)
+# Walkthrough (kit 2.0, 2026-11-24)
 
-Two passes over the customer packet, kit 1.0:
-1. **A second-person walkthrough** of the kit as it now stands.
-2. **An independent run.** A separate agent played a rental administrator with 60 machines and a messy fleet export. It knew nothing of Mulemark's schema and read only the customer packet. Its findings, and what changed, follow the walkthrough.
+Kit 2.0 replaced the 1.0 intake kit at the operator's request: onboarding had to be painless for the customer and for him, without being rushed. The 1.0 walkthrough found that the customer would spend 4–6 hours for 60 machines. That record is in Git history at `cf38abc`.
 
-**Verdict: yes.** Nothing asks for a Mulemark key, a database name or a schema decision. Every column is a plain question with a hint and an example. The two calls an administrator can't make, whether a manual changes by year or serial and copyright, are now either factual questions or "Not sure is fine". What still takes real effort is the equipment itself: reading worn plates, taking photos and finding manuals. The kit can't remove that work, but it keeps it to one model row and one photo per model where machines are identical.
+This file has two parts:
+- a second-person walkthrough of both sides, as the kit now stands;
+- the independent run by a separate agent playing the customer and the operator, with what was fixed.
 
-## 1. The walkthrough
+## 1. You, onboarding Ridgeway Equipment Rental (60 machines)
 
-You get the welcome email. It has three numbered steps and a link to a finished equipment page (getmulemark.com/demo). You read the four-page guide; it is mostly pictures. Then you open the workbook at START HERE.
+**Monday, 5 minutes.** Ridgeway agrees to a pilot.
+1. You run `npm.cmd run onboard:start -- "Ridgeway Equipment Rental"`. Your name is remembered from the first time.
+2. You open `email-1-welcome.txt`, add Pat's first name and two call times, and paste it into an email with the two files from `to-send\`.
 
-**Have a fleet list from your rental software?** START HERE, the guide and the email all say the same thing:
-- Send it as it is, and skip MODELS and ASSETS.
-- Mulemark fills those tabs from your list and sends the workbook back for you to check.
-- The returned workbook's banner reminds you that the Asset name is what renters see. Your export's "Description" may need tidying.
-- Columns Mulemark doesn't use, such as rates or yard locations, are listed as not mapped and are never published.
+Pat gets one email and one page: a call, their equipment list, a phone check, then approve.
 
-**Or type it yourself:**
-1. **COMPANY & PEOPLE.** Fill in:
-   - support contacts (phone, email or both: at least one);
-   - who approves your pages;
-   - the email alerts. Each hint says what triggers that alert.
-   - your team, as Administrator or Staff. The hint says what each role can do, and any email address works.
-2. **MODELS.** One row per model. Forty identical trailers share one row, one manual link and one photo. Fill these in for each model:
-   - **Manual:** a file (a phone scan of a paper manual is fine), a web link, or one of the three answers.
-   - **May renters see the manual?** The hint says what each choice does.
-   - **Manual changes by year or serial?** "Not sure is fine: we check the manual."
-3. **ASSETS.** One row per machine:
-   - Pick "Model name (from MODELS)" from the dropdown.
-   - Fill Category only if it differs from the model's.
-   - The Check column answers as you type: OK, Duplicate code, Code stored as a number, Model to confirm, or Add this model on MODELS.
-4. **FILES & NOTES.** Only exceptions: a file outside the standard folders, from the maker, or for staff only. Each gets two questions: "Where is it from?" and "Who may see it?".
+**Tuesday, about 45 minutes.**
+1. **From their website,** you fill in "Before the call" on the CALL SHEET:
+   - name, website, brand color;
+   - the logo, saved in `inbox\Company\`;
+   - the phone and email renters see;
+   - the rules they publish.
+2. **Pat emails the export.** You save it in `inbox\` and run `onboard:check`.
+   - MODELS and ASSETS fill from the list: 60 machines on 7 models.
+   - The report's title line is skipped, "30SA12" is merged into "30SA-12", and the "TRL-UTIL" class codes are left out.
+   - The unit numbers 401–440 came as plain numbers, so a note asks Pat whether the plates show leading zeros.
+3. **You spend 20 minutes on the filled list:** the names renters see, and plain categories on MODELS.
+4. **You start the manual search** for each model in "Your work":
+   - six official manuals are found and linked;
+   - one model's isn't, so you set it to "Not sure", which turns it into a question for the call.
 
-**Don't know something?** Leave it blank, or say why:
-- **Not available:** it doesn't exist.
-- **Not sure:** you'll check.
-- **Please review:** Mulemark takes a short look.
+**Wednesday, the 30–45-minute call.**
+- **You go down the CALL SHEET in order,** typing as Pat answers:
+  - the phone renters see;
+  - who approves (Pat), and where reports go;
+  - where tags ship, and who signs for them;
+  - one rule that isn't on their website;
+  - one Administrator for now.
+- **You ask the to-do's questions.**
+  - Pat confirms the plates say 00401, so you fix the codes and delete the note.
+  - Pat has the missing manual on paper and will send phone photos.
+  - Pat will check the worn compactor plate in the yard.
+- **Right after the call,** you invite Pat as Administrator.
+- **You run the check again.** One question is left, so `questions-email.txt` holds one item, and you send it. When the answer comes back, the check deletes the email, so it can't be sent twice.
 
-Anything needed before go-live comes back once, in one list.
+**The build: your work, not Pat's.**
+- You prepare the pages from approved templates and Pat's rules. A model with an approved reusable pack needs none written; `prepared.json` marks it.
+- You run the check after each change until "Your work" is empty.
 
-**Photos:**
-- One folder per asset code.
-- Or one model photo for identical machines, in the model's folder.
-- Shoot from the side, which keeps people and license plates out.
-- Upload the folders as they are, through the link in the welcome email.
+**The preview.**
+- **You fill the preview link and the content version** into `email-3-preview-ready.txt` and send it. It lists the machines with nothing outstanding, and names the compactor still waiting on its plate.
+- **Pat checks one page per model** on a phone (about 20 minutes) and replies "Approved". The reply quotes the approval wording, the version and the machines, and you save it in the batch folder.
 
-**Then:** you get one list of anything missing, a preview of every page, and your approval of that exact version.
+**Tags and live.**
+1. You paste the owner production CSV into `tag-order.xlsx`. Ship-to and tag style are already filled in.
+2. When the tags are on, you publish, send each person's sign-in link, and send `email-4-live.txt`. It names the compactor as not live yet.
 
-## 2. The independent run
+Pat can add photos from a phone at any time; the ones you saved in `inbox\Photos\<unit number>\` were picked up without typing anything.
 
-**Persona and inputs:**
-- A rental-yard administrator with 60 machines.
-- The fleet export `scripts/phase-e/intake/fixtures/fleet-export.csv`, with codes with leading zeros, quotes and commas in names, and a missing make.
-- The customer packet only.
+**Pat's total, at the desk:** about 1½ hours.
 
-**Method:** a read-only pass. The agent wrote nothing.
-
-**Its time estimate for 60 machines:**
-- **Export sent as is, one photo per model for identical trailers:** 4–6 hours of hands-on work. That is reading 45 minutes, company tab 30 minutes, about 8 models 2 hours, photos 1–2 hours, and answering the gaps and uploading 1 hour.
-- **Typing ASSETS by hand, one photo per machine:** 9–12 hours.
-- **Either way:** 1–2 weeks from start to finish, because machines are out on rent and the owner signs off.
-
-The first estimate is the case the kit is built for, and the fixes below aim at it.
-
-### Findings and what changed
-
-| # | Finding | Severity | Change |
-|---|---|---|---|
-| 1 | "Send your export as it is" never says whether to skip ASSETS, or when you'll see the gaps | Blocker | START HERE, guide p. 2 and the welcome email: "Send it as it is and skip MODELS and ASSETS. We'll fill them from your list and send the workbook back for you to check." The pre-filled workbook's banner says the Asset name is what renters see |
-| 2 | "Leave blank what you don't know" contradicts "Pick Not available, Not sure or Please review"; none of the three is defined | Confusing | Each answer defined in one line on START HERE and guide p. 2. Blank is fine; a blank answer needed before go-live is asked for once |
-| 3 | "Fill the tabs in order" clashes with ASSETS picking from MODELS (then tab 3); "Model" also means the maker's number | Confusing | MODELS is tab 2, ASSETS tab 3. The ASSETS column is "Model name (from MODELS)"; its Check says "Pick a model name" |
-| 4 | "One clear photo per asset" never mentions "Use model photo"; the folder chart has no place for a model photo | Confusing | The guide's folder chart and photo bullet both say one photo per model for identical machines, in the model's folder. The MODELS hint says the same |
-| 5 | What's the default for files in the standard folders? The permission list mixed who owns a file with who may see it, and the example's "counter handout" was Staff only while MODELS listed it for renters | Confusing | FILES & NOTES asks "Where is it from?" and "Who may see it?" separately. The guide states the folder defaults ("Who sees what"). A FILES row can only narrow a default, never widen it: enforced in the manifest and tested. The example lists two true exceptions: a staff-only checklist, and a maker's card meant for renters |
-| 6 | The EXAMPLE ASSETS printout stops at 00129, and no E20 row shows a year and serial | Confusing (QA print area) | The varied machines lead the example, so the first screen shows every model, the E20 years and serials, the "Not sure" compactor and the punctuated name. The QA export now prints 45 rows |
-| 7 | Email alerts unexplained: what can renters do on a page? | Confusing | Each alert's hint says what triggers it. The welcome email links getmulemark.com/demo to see a finished page |
-| 8 | "No license plates", but trailers carry them | Confusing | "Shoot from the side: it keeps people and license plates out." The crossed-out frame now reads "No paperwork or ID" |
-| 9 | Support phone and email both marked go-live, but only one is needed | Minor | Both hints: "Phone, email or both: at least one" |
-| 10 | Category on both ASSETS and MODELS; MODELS return rules overlap the company-wide rules | Minor | ASSETS › Category: "Only if different from its model's category" (the example now leaves it blank). MODELS › return rules: "Only what's special for this model; general rules go on COMPANY & PEOPLE" |
-| 11 | "May renters see the manual?" hint explained nothing | Minor | The hint now says what each choice does |
-| 12 | LISTS and MODELS print too small; both "Mini excavator" and "Compact excavator" offered | Minor, not changed | The workbook is filled in on screen, not printed. Both are common names, and both map to the same return checklist. START HERE now prints on one portrait page |
-
-### Things the administrator couldn't know, and how the kit handles them now
-
-- **Whether a manual changes by year or serial:** "Not sure is fine: we check the manual." It becomes a bounded Mulemark item, not a guess.
-- **Copyright calls** (the old "Maker allows public use" and "Link only"): gone. Two factual questions replace them.
-- **Smaller gaps:**
-  - Hex colors: "Match our logo" is a choice.
-  - "Vector file" now reads "a design file (.ai, .eps)".
-  - "Field mapping 1.0.0" is no longer on START HERE.
-  - Administrator vs Staff is explained in the Role hint.
-  - Excel's import wizard isn't needed: send the export as it is.
-
-### Commitment and privacy questions
-
-| Question | Answer in the kit |
+| What | Minutes |
 |---|---|
-| The guide and scope sheet carry DRAFT badges: what can I rely on? | Intentional until the commercial and legal reviews. They come off when `REVIEWED` is set in `documents.mjs`, which is an operator step before the first customer |
-| What's a batch? Does one missing serial stop the clock? | Scope sheet: a batch is the equipment sent together, named once everything has arrived. Complete machines can launch first, only with the customer's say-so |
-| Is anything billed by the hour? | Scope sheet: time is tracked to plan the work; what you pay is set by your agreement |
-| The workbook asks for tag size and material, but the agreement sets tag details | Hints: "A preference only; your agreement sets the options" |
-| Could our handover text become another company's template? | Scope sheet: reusable templates come from makers' manuals and never include your files, photos or rules. Every file stays on your own pages |
-| The export carries our rates and yard locations. Will serials or plate photos be public? | Scope sheet: unused export columns are left out and never published, and serials and years aren't shown on public pages (checked: no public route renders either). The photo guidance keeps plates out |
-| Who attaches the tags? Does stainless cost more? | **Open, commercial.** The kit doesn't answer; the agreement does. Raised for the commercial review |
+| Reading the email and the page | 5 |
+| Exporting and sending the list | 10 |
+| The call | 30–45 |
+| One questions email | 10 |
+| Checking the pages on a phone | 20 |
+| Approving | 5 |
 
-### The administrator's first questions, answered
+**Putting 60 tags on** is extra, and who does it is still a commercial decision. **Yours:** about 3–4 hours, plus up to 45 minutes per model finding manuals.
 
-1. **Skip ASSETS when sending the export? Will "Description" become the name renters see?** Yes, skip MODELS and ASSETS. The pre-filled workbook asks you to check each Asset name.
-2. **Is blank the same as Not sure?** Blank is fine; START HERE and the guide define the three answers.
-3. **Does the upload link take whole folders?** The guide says to upload your folders as they are, and the operator's upload-channel step requires a channel that accepts folders.
-4. **Can I see a sample renter page?** getmulemark.com/demo, linked in the welcome email.
-5. **What's the default for files in the standard folders?** Guide, "Who sees what".
-6. **Only paper manuals?** MODELS › Manual: a phone scan is fine.
-7. **Yard staff without a company email?** People › Email: any address they read works. The app's invite accepts any valid email.
-8. **Daily summaries in our time zone?** Not today: the scope sheet says they use Pacific Time. This is a product limit, unchanged by E3.
+**Not in the routine yet (E4B, E5A):**
+- the import you can run yourself, and pages written into the customer's account;
+- the in-app preview and the Approve button.
 
-## 3. Re-checked after the fixes
+Until then, the import and the page review are a short screen share with their Administrator.
 
-Every check in [QA.md](QA.md) was re-run on the final build: the gates, the reproducible rebuild, the visual review, real Excel, real Word and the command-line tools.
+## 2. Independent run (2026-11-24)
+
+**Setup:** a separate agent, with no part in the kit's design, played two roles.
+- **As the customer:** an office administrator with 60 machines. They had only the welcome email, the one-pager, the list template, and the later example emails.
+- **As the operator:** working only from `internal/README.md`. They ran the real commands, in a temporary folder, on a messy 60-row export of their own making:
+  - a report title line;
+  - codes re-saved without zeros;
+  - spelling variants;
+  - category codes;
+  - a compactor with only a make;
+  - an `.xls` file.
+
+**Verdict, before the fixes:**
+- **The customer:** desk work light and clearly worded, but "about an hour" wrong for 60 machines (about 2–2.5 h), and putting the tags on mentioned nowhere.
+- **The operator:** commands fast (1.3 s), safe and mostly well messaged, but far from "doing the paperwork". A messy list needed about 30 minutes of clean-up the README never mentioned, and there were traps.
+
+It found 34 points: 5 blockers, 19 confusing points and 10 minor ones. All were fixed, except the two in "Left open" below.
+
+| Finding | Fix |
+|---|---|
+| **Blocker:** the check wrote a questions email before the call and never removed it, so "send it if it exists" could send a stale one | The check deletes the questions email as soon as nothing is left to ask, and writes no drafts before there are machines |
+| **Blocker:** a list re-saved in Excel (00401 → 401) went through silently | Plain-number unit numbers get a FILES & NOTES note, so the customer is asked once whether the plates show zeros. Deleting the note clears it |
+| **Blocker:** the manual search came after the one email, and "not found" had no end state | The README moves the search to before the call. Manual states: blank means search; Not sure means not found, ask once; Not available means no manual button (a warning only) |
+| **Blocker:** "about an hour" was wrong, and putting the tags on was never mentioned | Everywhere now says "about 1–2 hours at your desk" and "who puts the tags on is set in your agreement". The preview asks for one page per model, not every page |
+| **Blocker:** the import screen share wasn't in any customer step, and the Administrator was invited only at go-live | The README invites the Administrator right after the call. It also says the import and the page review are a screen share until E4B and E5A, and to plan the first real customer after E4B |
+| A make with no model became a phantom model ("Wacker Neuson") with its own research and page work | No model is created from a make alone. The machine gets a question naming it and its make ("PC-4 (Plate compactor): which Wacker Neuson model is it?") |
+| Spelling variants (30SA12, 30SA-12) became separate models | The fill merges them (case, spaces and punctuation ignored) and reports the merge |
+| Rental-software class codes (TRL-UTIL) became categories, and every model got the generic return checklist | Code-like categories are left out and reported. The category moves to MODELS, and the warning says to set a plain category |
+| The README didn't say to check the filled list; its "15 minutes" before the call was 50–65 | The README has a step to check names, models and categories (20–30 min), and honest times for each step |
+| Photos and manuals saved in the inbox folders weren't picked up | Photos in `inbox\Photos\<code>\` count with a blank Photo answer. Files in a model's folder that MODELS doesn't name become a to-do item. `onboard:start` creates the folders |
+| A title line above the headers gave 0 machines | The header row is found in the first 10 lines. A list with no unit-number column, or no machines, stops with a plain message |
+| An `.xls` export got "ask for a JPG, PNG, HEIC or PDF" | "Open it in Excel, Save As .xlsx into inbox\, then run the check again". A Word file of rules gets "copy what renters need onto the CALL SHEET" |
+| No item asked whether a manual changes by year or serial | New models from the list start as Not sure, so checking it is on your list |
+| "Not available is a fine answer" was ambiguous | "Don't know an answer for a machine? Say so: if you'd like, we'll launch the others first and add it later." |
+| "Not included yet" gave no reasons, and the live email ignored those machines | Each one is named with its reason ("waiting on your answers" or "we're still finishing them"). The live email says which machines aren't live yet |
+| The approval email didn't allow for someone else approving | "If someone else approves, please forward this email to them." |
+| The one-pager in `to-send\` carries the DRAFT badge, and the research line read like a billing term | `onboard:start` warns before a real send. The line reads "We spend up to 45 minutes finding each manual." |
+| The welcome email didn't say what to include or which format | "The list of machines you want tags on (skip sold units and small tools) … CSV or Excel is fine. If you open it to look, close it without saving." |
+| The tag order was rewritten on every check; the ship-to was never asked | The tag order is written once. "Where should we ship the tags, and who will sign for them?" is asked when the ship-to is blank |
+| "Waiting on the customer: 60. Waiting on you: 0." sat above 20 items of your own work | The to-do summary counts items: "To ask the customer: 7 items. Your work: 6 items." |
+| A check output open in Excel gave a raw EBUSY and a half-rewritten folder | The check stops first: "readiness.xlsx is open in another program. Close it in Excel." The README says to save before each check |
+| Where the preview link comes from wasn't said | The README says there's no preview link until E5A, so the pages are reviewed together on the screen share |
+| Checking before the list arrived said "0 machines" and wrote an empty preview draft | It says "No equipment list in inbox\ yet" and writes no drafts |
+| `--list`, `--batch` and `--root` weren't documented | An "Options and files" section, which also covers a corrected list and what each file in `check\` is for |
+| "…, LLC" silently made a second customer folder | `onboard:start` warns about a similar folder |
+| The sender's name was left in every draft, and the Markdown pasted as asterisks | `--sender` is remembered and fills every draft. The drafts are plain text, ready to paste |
+| The console said "82 warnings", the to-do "Warnings (4)" | "Warnings: 82 (4 kinds)" |
+| The batch number was cut off the manifest id | The company isn't repeated, so the id keeps it (`intake-ridgeway-equipment-rental-batch-1`) |
+| `prepared.json` names never matched the fill's names | The README says to rename the model to the pack's `model_name` and copy its manual link, with `manual_cleared` only after review |
+| A QA render was older than the shipped PDF | Re-rendered and re-checked after the fixes |
+
+**Left open, for the commercial review:**
+- who puts the tags on;
+- the approval wording's length (it's the legal draft).
+
+**What worked well:**
+- **The commands:** fast and non-destructive.
+- **Messages:** clear for running out of order, two lists in the inbox, and a workbook open in Excel.
+- **The CSV reader:** handled BOM, CRLF, quotes and leading zeros, and left unused columns out.
+- **Nothing goes public early.**
+- **The welcome email:** short, with two actions.
+- **The don't-send pictures:** clear.
+- **The privacy line:** "Serial numbers and unused columns are never shown to renters."
+
+**Its estimates before the fixes:**
+- **The customer:** about 2–2.5 h at the desk, plus putting tags on.
+- **The operator:** about 4–4.5 h, plus 2.5–5 h of manual research for 7 models.
+
+The fixes take the clean-up and the second email out of the operator's time. The customer's estimate is now stated as 1–2 hours, with the page check cut to one page per model.
