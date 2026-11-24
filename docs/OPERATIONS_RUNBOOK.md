@@ -287,7 +287,8 @@ Formats, limits and the full decision table: [`STORAGE_MEDIA_LIFECYCLE.md`](STOR
   (`--delete --confirm=<target>:<count>`, plus `--acknowledge-production-deletion` on Production) and is never
   scheduled. Procedure: [`ORPHAN_MEDIA_CLEANUP.md`](ORPHAN_MEDIA_CLEANUP.md).
 - **After a dependency or build change:** `npm run build && npm run check:scan-bundle` confirms the scan page still
-  loads no photo-adapter code.
+  loads no photo-adapter code. Record any `npm audit` advisory review, including which advisories apply and why, in
+  [`DEPENDENCY_ADVISORIES.md`](DEPENDENCY_ADVISORIES.md).
 - **Updating libheif-js:** pin the exact version, review upstream advisories, update `THIRD_PARTY_NOTICES.md` and
   `public/vendor/libheif/NOTICE.md`, then re-run the photo-formats e2e spec and the staging `--samples` QA runs.
 

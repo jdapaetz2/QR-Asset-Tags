@@ -999,8 +999,11 @@ the values below are what shipped. Code: `lib/notifications/preview-limits.ts`, 
 
 ### 8.3 Dependency
 
-`sharp` is a **direct dependency pinned to 0.34.5**, the version Next 16.2.9 resolves as its optional dependency, so
-there is one native install rather than two. The lockfile carries `@img/sharp-linux-x64` and
+`sharp` is a **direct dependency pinned to 0.34.5**. Up to Next 16.2.9 that was also the version Next resolved as its
+optional dependency, so there was one native install. Since the Next 16.4.5 upgrade (2026-11-23,
+[`DEPENDENCY_ADVISORIES.md`](DEPENDENCY_ADVISORIES.md)) Next asks for `sharp ^0.35.5`, so npm nests a second copy at
+`node_modules/next/node_modules/sharp` for Next's image optimizer, which this app does not use; the preview transform
+still loads the app's 0.34.5. The lockfile carries `@img/sharp-linux-x64` and
 `@img/sharp-libvips-linux-x64`, which `npm ci` installs in the Vercel build; Sharp is on Next's default
 server-external list, so it is not bundled. It is imported lazily inside `preview-image.ts`: if the binary ever fails
 to load, previews report `transformer_unavailable` and the email still sends text-only.
