@@ -14,7 +14,7 @@ Edge runtime, or a self-hosted server).
 |---|---|
 | Branch | `fix/next-security-16-4-5`, cut from the Production commit `8f6c514` (`/api/version` and the GitHub deployments API both reported it live on 2026-11-23) |
 | Change | `package.json` (`next` and `eslint-config-next` pinned to `16.4.5`) and `package-lock.json` |
-| Status | Pushed. The Preview built and passed the staging smoke and the `after()` scan-logging check. Next: operator review and promotion (Vercel → the branch-tip Preview → **Promote to Production**), then `npm run smoke:production` |
+| Status | **In Production** since 2026-11-24 16:00 UTC (the `e4e7e01` Preview, promoted by the operator). The Preview passed the staging smoke and the `after()` scan-logging check, and Production passed `npm run smoke:production` (below). The follow-ups at the end remain open |
 
 ### Why
 
@@ -211,6 +211,27 @@ It verified the staging target first. **All checks passed:**
 
 The script created its own disposable organization and deleted it afterwards. Submission notifications use the same
 `after()` mechanism; their `dry_run` log line was not observed separately.
+
+**Production.** On 2026-11-24 the operator promoted the `e4e7e01` Preview (`…-5keqwt47i-…`). Vercel built it as
+**Production rebuild of FTkvSamdB** (Ready in 1 min 15 s) and reported it to GitHub as deployment `8033256682`:
+environment **Production**, state **success**, 16:00:16 UTC, host
+`qr-asset-tags-eqh56bdyh-jdapaetz2-s-projects.vercel.app`. From 16:00:21 UTC, `/api/version` on both `mulemark.io` and
+`qr-asset-tags.vercel.app` reported `e4e7e01` with environment `production`. Earlier attempts that day created no
+deployment at all. A promotion that registers shows in Vercel's Deployments list as a **Production rebuild of …** row,
+and `/api/version` switches once that build is Ready.
+
+**Production smoke.** `npm run smoke:production` ran from the worktree at 16:01 UTC, with no
+`.env.production-smoke.local` and `PRODUCTION_SMOKE_SHORT_CODE` unset. Result: **14 checks, 13 pass, 0 fail, 1
+skipped**, the same result as the Phase E release smoke. It covered:
+- serving: the landing page and login return 200, and the served HTML names no `vercel.app` or `localhost` host;
+- the `www` → apex redirect (308, path preserved);
+- the staging-only isolation probe, which does not resolve on Production;
+- the unknown-tag notice, which gives no reason;
+- the anonymous guards: the dashboard, owner console and submissions redirect to `/login`, and the customer export
+  download and the owner's production QR SVG and CSV are not served (307).
+
+The skipped check is the scan-page render. Loading a real tag writes a `scan_events` row, so that check runs only
+against an operator-designated test asset.
 
 ### Not changed here (follow-ups)
 
