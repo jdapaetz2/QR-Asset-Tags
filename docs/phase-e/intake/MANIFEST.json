@@ -1,0 +1,238 @@
+{
+  "kit": "Mulemark intake kit",
+  "workbook_version": "1.0",
+  "mapping_version": "1.0.0",
+  "generated_by": "scripts/phase-e/intake/build.mjs",
+  "files": [
+    {
+      "file": "customer/EXAMPLE-mulemark-intake-workbook-v1.0.xlsx",
+      "bytes": 84352,
+      "sha256": "d3b81c411847b98492075d0b6d198aecb05f86b3dd9f709fb03dc041081a8552"
+    },
+    {
+      "file": "customer/csv/README.txt",
+      "bytes": 565,
+      "sha256": "b88f29a9b639e94ab112c9bb24c4fa67b4081e29834ed188e49c853b057b36bd"
+    },
+    {
+      "file": "customer/csv/assets.csv",
+      "bytes": 200,
+      "sha256": "d2dac6fe9e6944393309b4bb49cd5c0ae2e5a5494e2d41361488dea792e343b5"
+    },
+    {
+      "file": "customer/csv/company.csv",
+      "bytes": 575,
+      "sha256": "e475740bce042db449f57a545f7518d4770d2d9cfd591ae85ed15e8ab0348870"
+    },
+    {
+      "file": "customer/csv/files.csv",
+      "bytes": 117,
+      "sha256": "7931cfb0abdbf0d79c74438387ef4fc82f9b0af70542641b3bb7b69c0c18be4d"
+    },
+    {
+      "file": "customer/csv/models.csv",
+      "bytes": 300,
+      "sha256": "89686e41d1968896c77fc47a5cf24f9bf853b1926570e885cfd984d7de1551e5"
+    },
+    {
+      "file": "customer/csv/notes.csv",
+      "bytes": 68,
+      "sha256": "153672e39c1f76168f0c10db90973b5989471004a08d5b0f80798dde2f4e8adf"
+    },
+    {
+      "file": "customer/csv/people.csv",
+      "bytes": 26,
+      "sha256": "4c66f32b4e399fd3d0734e45863056f631ea65c0fa23ccd0c5d28e5706f10d10"
+    },
+    {
+      "file": "customer/mulemark-intake-workbook-v1.0.xlsx",
+      "bytes": 80947,
+      "sha256": "5c0b19d01b227c3691e782c52718f5e8c871f912aa646d23e0d10936e2aa41b0"
+    },
+    {
+      "file": "customer/mulemark-onboarding-guide.docx",
+      "bytes": 92255,
+      "sha256": "311a0b24a6d94c39bb787ffe7ffda9629c672b48fe107bdd6d88cd792d6fe10f"
+    },
+    {
+      "file": "customer/mulemark-onboarding-guide.pdf",
+      "bytes": 141456,
+      "sha256": "86c97fa0099eb97824313e28fe1e6a0933ede7807a40a0578769f9cbed2879b3"
+    },
+    {
+      "file": "customer/mulemark-scope-and-assumptions-DRAFT.docx",
+      "bytes": 17030,
+      "sha256": "af7112b34a2fb6dbd1bf002190ec637606e5284716a6ced9924b662d8c712cbe"
+    },
+    {
+      "file": "customer/mulemark-scope-and-assumptions-DRAFT.pdf",
+      "bytes": 53010,
+      "sha256": "d1b3a2126fdfef13a4de92f6b5de6709264a8f7fe6ba0e42de37aa1e53e8b92e"
+    },
+    {
+      "file": "example-run/current-import.csv",
+      "bytes": 4215,
+      "sha256": "4839a65056b9d1454a5d90294b114f59030d09eac314d14900d4f9c5917a7a49"
+    },
+    {
+      "file": "example-run/inputs/prepared.json",
+      "bytes": 394,
+      "sha256": "3e2e03b3f2aa09e082f2447c7238de9a7a17c12f9d51acf8c02cf563a79a813f"
+    },
+    {
+      "file": "example-run/inputs/upload.json",
+      "bytes": 1472,
+      "sha256": "0b6dd993be82fe8b38d46afdf1aeca4590e99b86ce9378853db9e7062f0b7c33"
+    },
+    {
+      "file": "example-run/interchange/assets.csv",
+      "bytes": 4418,
+      "sha256": "bb21d15952ad04fdc460020a9802a969dd5b7b5b2165c3a59beb5719ba285f07"
+    },
+    {
+      "file": "example-run/interchange/company.csv",
+      "bytes": 1240,
+      "sha256": "d4d159b3c1596869a3d836870aae40423fb289d62ac2061831174306f9859a1c"
+    },
+    {
+      "file": "example-run/interchange/files.csv",
+      "bytes": 369,
+      "sha256": "cd23b513f5e422431daf45a771e05907f3d4b7e86b884eb9a6cc86c00563615e"
+    },
+    {
+      "file": "example-run/interchange/models.csv",
+      "bytes": 1538,
+      "sha256": "169b040dca4b80f6c3641c9c9bb85af7afd059ba8f4c9b61f98d206f4970b3ae"
+    },
+    {
+      "file": "example-run/interchange/notes.csv",
+      "bytes": 226,
+      "sha256": "23d8582c7aaa695d49285cedc863219df259d2cd2f5cd8425259838a69d4d500"
+    },
+    {
+      "file": "example-run/interchange/people.csv",
+      "bytes": 257,
+      "sha256": "71c2975c82df3754ded037ba130392f7976dd476c835b5044d3b0a73df5278a9"
+    },
+    {
+      "file": "example-run/manifest.json",
+      "bytes": 43731,
+      "sha256": "8b6e988faebe4519b3f169202da18b1414adbb68fc4a3034e3405d9118b7332c"
+    },
+    {
+      "file": "example-run/missing-information-email.md",
+      "bytes": 807,
+      "sha256": "41f79a0aa0b062cd714623dc8f0042ded3bb17cf24cfcd4e18a667bfcca324a2"
+    },
+    {
+      "file": "example-run/readiness.md",
+      "bytes": 7893,
+      "sha256": "ccaa4cd7a691aed12ee016f4bd1499853ae9414e5c3bdb87db8d3bb76b53b60c"
+    },
+    {
+      "file": "example-run/readiness.xlsx",
+      "bytes": 12711,
+      "sha256": "94b41b9449d3cfb06d98026b4ec83edffb9c5b58af3e5abea68c426fec78e0b6"
+    },
+    {
+      "file": "example-run/run.json",
+      "bytes": 1167,
+      "sha256": "8a14363177a9ab94c15a6af6c34c2ac8a2e05da7ec7678f7033c2cdc76c4d72c"
+    },
+    {
+      "file": "internal/content-approval-form-DRAFT.docx",
+      "bytes": 16529,
+      "sha256": "a5c1deb7a3da452d05c63029e74a59c1c6daf363336f2f9c1476777ad14277ff"
+    },
+    {
+      "file": "internal/content-approval-form-DRAFT.md",
+      "bytes": 1934,
+      "sha256": "1dcc30691294da1eb126e9480f6831bcfa2071caaed6a1999aa23fdb6d0be141"
+    },
+    {
+      "file": "internal/emails/01-welcome.docx",
+      "bytes": 11299,
+      "sha256": "def50ecb0cae0526ca966e095b44bb73a14dba5149e6f76d4627ee7718c81fa0"
+    },
+    {
+      "file": "internal/emails/01-welcome.md",
+      "bytes": 1229,
+      "sha256": "d95c0ab000b2104e96954b55937289a52ced102d429a6ac12c21b0f81c9fdca8"
+    },
+    {
+      "file": "internal/emails/02-missing-information.docx",
+      "bytes": 10992,
+      "sha256": "f1992cda028da629ed401a83aec5c804cf0e082b6e398792ca5b8abd1a8db876"
+    },
+    {
+      "file": "internal/emails/02-missing-information.md",
+      "bytes": 749,
+      "sha256": "4d4145f88c771bf87b77017944fbf8190dbf2beeea44a9de686ee26a42ee1436"
+    },
+    {
+      "file": "internal/emails/03-review-request.docx",
+      "bytes": 11001,
+      "sha256": "647b21a804f32cda96115a2910bd8de79150388be226002270bada4de6edab15"
+    },
+    {
+      "file": "internal/emails/03-review-request.md",
+      "bytes": 698,
+      "sha256": "464c12e8c9cbcdfce050c3e2c8bc91b14353471d66b4b36ecb0b2e7735a16c1c"
+    },
+    {
+      "file": "internal/emails/04-approval-acknowledgement.docx",
+      "bytes": 11006,
+      "sha256": "385a799c0762187634856410b77fa63db72e4388a1477bf58755a1a14fda6cec"
+    },
+    {
+      "file": "internal/emails/04-approval-acknowledgement.md",
+      "bytes": 746,
+      "sha256": "e1b158853a312506982f47076b1e65d18e78aa8d47a16565a241fda5e0b988a9"
+    },
+    {
+      "file": "internal/emails/05-go-live.docx",
+      "bytes": 10941,
+      "sha256": "099c1197dfc5093a3f92e00fa4b53ce49f7f8a438c12e8e5000678eb824a56a9"
+    },
+    {
+      "file": "internal/emails/05-go-live.md",
+      "bytes": 565,
+      "sha256": "c9adb2c9b2799242e6024fbd676ee2ca1e2cc1b92e0440d36de33df953e22952"
+    },
+    {
+      "file": "internal/emails/PLACEHOLDERS.md",
+      "bytes": 1980,
+      "sha256": "31f1073357c7ea8a34141235d59062573fffb00f71d4781a6a1daa4dcf66fbbc"
+    },
+    {
+      "file": "internal/field-mapping-1.0.0.json",
+      "bytes": 33669,
+      "sha256": "5d27187cb00d21993c3f4c8b598a8b8c1b98526de1973ace8b4332f51eb3f959"
+    },
+    {
+      "file": "internal/intake.schema.json",
+      "bytes": 17722,
+      "sha256": "ad5c97b298bd622fab6c0080d010983ede9991b354412a549ee11f61c2e9cc7d"
+    },
+    {
+      "file": "internal/mulemark-onboarding-tracker-v1.0.xlsx",
+      "bytes": 21149,
+      "sha256": "eb82e5bdcc94131524811cbbe01ebac601a1003dd0ea001a14b2de9b5b40dc86"
+    },
+    {
+      "file": "internal/onboarding-procedure.md",
+      "bytes": 5043,
+      "sha256": "486c21c13afd65d276ec804dcb9cbc5536ff4c8c9cd2d3c8326f9fa4315bd783"
+    },
+    {
+      "file": "internal/tag-production-handoff-v1.0.xlsx",
+      "bytes": 8065,
+      "sha256": "c8e93f208a5fb2774d545939e4e18c98618d0be78156e7b5d8fc536eef14bcfd"
+    },
+    {
+      "file": "internal/tag-production-handoff.csv",
+      "bytes": 340,
+      "sha256": "661789320526cdd4829c1bdbdb0c307b131349868fdadba624969c3040ab12e6"
+    }
+  ]
+}

@@ -928,3 +928,104 @@ The counts-only summary is `docs/phase-e/archives/presenter-production-review-20
      - redacting the host echo in `productionDbConfig`;
      - releasing the tap-target (`fix/public-touch-targets`) and focus (`fix/public-focus-not-obscured`) branches on their own.
 - **Stop:** E2C is complete. E3 has not started.
+
+## E3 — customer intake package and operator templates (2026-11-23, done)
+
+The files to send right after a customer agrees to a pilot, and the procedure behind them. Index: [intake/README.md](intake/README.md). No app code, migrations, Production data or tags were touched.
+
+### Approvals and operator decisions
+
+- **2026-11-23:** the operator pasted Prompt E3 after the marketing line-ending fix ("move to the next series once your work is complete").
+- **The plan (plan mode) was approved through the approval card.** It covered:
+  - public templates and generators in `docs/phase-e/intake/` and `scripts/phase-e/intake/`;
+  - filled customer workbooks only in `%USERPROFILE%\Mulemark-Customer-Intake\<company>\<batch>\`, outside Git;
+  - two pinned dev dependencies, `exceljs` 4.4.0 and `docx` 9.15.2;
+  - US spelling, to match the app.
+
+### What was built
+
+- **Customer packet** (`intake/customer/`, ZIP-ready, 13 files):
+  - the onboarding guide (DOCX and PDF, 4 picture-first pages);
+  - the blank intake workbook and a completed fictional EXAMPLE;
+  - the scope and assumptions sheet (DRAFT, DOCX and PDF);
+  - six CSV templates with a short note.
+- **Internal packet** (`intake/internal/`, ZIP-ready, 34 files):
+  - the operator README and the onboarding procedure (checklist and responsibility matrix);
+  - the tracker workbook (CHECKLIST, RESPONSIBILITIES, EXCEPTIONS, TOUCH TIME);
+  - five email templates (MD and DOCX) with `PLACEHOLDERS.md`;
+  - the content-approval wording (DRAFT, MD and DOCX);
+  - the tag-production handoff (XLSX and CSV);
+  - the field mapping 1.0.0 and the intake schema.
+- **Tools** (`npm.cmd run phase-e:intake:*`):
+  - `build`, with `--check`, rebuilds byte for byte;
+  - `check` writes the readiness report, the one missing-information email, the current-import CSV and the contract manifest (schema 1.3.0);
+  - `prefill` fills a workbook from a customer's own fleet export;
+  - `zip` builds the two packets.
+  - `check` and `prefill` refuse to write inside the repository.
+- **Example run** (`intake/example-run/`, fictional Northridge Rentals): 47 assets give 42 READY_WITH_WARNINGS, 2 CUSTOMER_INPUT_REQUIRED and 3 MULEMARK_REVIEW. The email holds 2 customer items, and the manifest is valid.
+- **Records:**
+  - [intake/QA.md](intake/QA.md): every check and its result;
+  - [intake/WALKTHROUGH.md](intake/WALKTHROUGH.md): the second-person walkthrough and the independent run.
+
+### Walkthrough
+
+- **The run:** a separate agent played a rental administrator with 60 machines and a messy fleet export, reading only the customer packet.
+- **Findings:** 1 blocker, 7 confusing points and 4 minor ones.
+- **Fixes:**
+  - the fleet-export path is now "skip MODELS and ASSETS";
+  - MODELS comes before ASSETS;
+  - the three unknown answers are defined, and blank is fine;
+  - file permission is split into "Where is it from?" and "Who may see it?", with stated folder defaults that a FILES row can only narrow;
+  - each alert hint says what triggers it, and the email links a demo page;
+  - one photo per model for identical machines, and shoot from the side;
+  - the example leads with the varied machines;
+  - the scope sheet answers the batch, billing, template and privacy questions.
+- **Left open:** who attaches tags, for the commercial review.
+- **Its estimate:** 4–6 hands-on hours for 60 machines with the export sent as is.
+
+### Gates (2026-11-23, final state)
+
+- **Code gates:**
+  - `npm run lint` and `npm run typecheck`: clean;
+  - `npm test`: 219 files, 2,553 tests (the kit's own: 6 files, 103);
+  - `npm run build`: passes.
+- **Kit:**
+  - `phase-e:intake:build -- --check`: 46 of 46 files match;
+  - `phase-e:intake:zip`: 13 and 34 files, extracted with Windows and byte-identical.
+- **Real Excel and Word:**
+  - no repairs; dropdowns and protection as designed;
+  - the EXAMPLE Check results calculate to the stored values;
+  - leading-zero, duplicate and paste tests pass;
+  - all 8 Word documents open, with no spelling errors beyond placeholders.
+- **Sweep:** no local paths, usernames or secrets in any file going into Git, binaries included.
+
+### Key hashes (SHA-256; all 46 in `intake/MANIFEST.json`)
+
+| File | Bytes | SHA-256 |
+|---|---|---|
+| `customer/mulemark-intake-workbook-v1.0.xlsx` | 80,947 | `5c0b19d01b227c3691e782c52718f5e8c871f912aa646d23e0d10936e2aa41b0` |
+| `customer/EXAMPLE-mulemark-intake-workbook-v1.0.xlsx` | 84,352 | `d3b81c411847b98492075d0b6d198aecb05f86b3dd9f709fb03dc041081a8552` |
+| `customer/mulemark-onboarding-guide.pdf` | 141,456 | `86c97fa0099eb97824313e28fe1e6a0933ede7807a40a0578769f9cbed2879b3` |
+| `customer/mulemark-scope-and-assumptions-DRAFT.pdf` | 53,010 | `d1b3a2126fdfef13a4de92f6b5de6709264a8f7fe6ba0e42de37aa1e53e8b92e` |
+| `internal/field-mapping-1.0.0.json` | 33,669 | `5d27187cb00d21993c3f4c8b598a8b8c1b98526de1973ace8b4332f51eb3f959` |
+| `example-run/manifest.json` | 43,731 | `8b6e988faebe4519b3f169202da18b1414adbb68fc4a3034e3405d9118b7332c` |
+
+### Environment notes
+
+- **Word's PDF/XPS export hangs in hidden sessions here.** The Acrobat add-in is loaded and the default printer is a network printer. Page images come from Word's own page metafiles (`qa/word-render.ps1`). The kit's PDFs are printed by Chromium.
+- **The operator's own Word and Excel windows were never touched.** Nor were their printers, add-ins or settings. Only Word and Excel processes started by the QA scripts were ended.
+- **Not available here:** LibreOffice, pandoc and Poppler. Google Sheets and Apple Numbers were not tested.
+
+### Open, operator-pending
+
+1. **Upload channel (setup step, before the first customer):** one upload-only link per customer that accepts whole folders. Never a public folder ([intake/internal/README.md](intake/internal/README.md), step 2).
+2. **Commercial and legal reviews of the DRAFT wording:** the scope sheet, the approval wording, and the guide's timing and "who does what" lines. Settle who attaches tags in the same review. Then set `REVIEWED` in `scripts/phase-e/intake/documents.mjs` and rebuild.
+3. **Carried from E2C:**
+   - reset the Production database password;
+   - the `winnat` port fix;
+   - redacting the host echo;
+   - releasing the tap-target and focus branches on their own.
+
+### Next command
+
+- **Stop:** E3 is complete. E4A starts only when the operator runs it, never automatically.

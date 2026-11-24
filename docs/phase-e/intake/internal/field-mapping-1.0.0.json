@@ -1,0 +1,1100 @@
+{
+  "mapping_version": "1.0.0",
+  "workbook_version": "1.0",
+  "description": "Customer intake workbook to Mulemark: labels customers see, stable keys, tiers and targets. Labels can change between versions; keys do not. Tiers: start = needed for a private draft import; golive = needed before go-live (review-ready); optional.",
+  "unknown_answers": [
+    "Not available",
+    "Not sure",
+    "Please review"
+  ],
+  "unknown_answer_meaning": {
+    "Not available": "The fact or file does not exist or the customer cannot get it.",
+    "Not sure": "The customer will check; asked again once, in the one consolidated request, if still needed.",
+    "Please review": "Mulemark looks into it within the bounded research limit; unresolved items go back to the customer once."
+  },
+  "blank_answer": "Allowed anywhere. A blank optional answer stays blank; a blank answer needed before go-live is asked for once, in the one consolidated request.",
+  "file_defaults": {
+    "Photos/<asset code>/": "The customer's own photos; shown on the customer's own pages.",
+    "Company/": "The logo; shown on the customer's own pages.",
+    "Model documents/<model name>/": "Manuals follow 'May renters see the manual?' on MODELS. 'Your instructions for renters' files are shown on the customer's own pages.",
+    "FILES & NOTES rows": "Only for files outside these folders, from the maker, or not for renters. A row can only restrict what a folder default allows.",
+    "Never": "Shared with another company. Every source has shareable_across_orgs: false."
+  },
+  "layout": {
+    "titleRow": 1,
+    "noteRow": 2,
+    "bandRow": 3,
+    "labelRow": 4,
+    "hintRow": 5,
+    "firstDataRow": 6,
+    "company_form_columns": [
+      "Needed",
+      "Question",
+      "Your answer",
+      "Help"
+    ]
+  },
+  "lists": {
+    "unknown": [
+      "Not available",
+      "Not sure",
+      "Please review"
+    ],
+    "yesNo": [
+      "Yes",
+      "No"
+    ],
+    "yesNoNotSure": [
+      "Yes",
+      "No",
+      "Not sure"
+    ],
+    "role": [
+      "Administrator",
+      "Staff"
+    ],
+    "returnEmails": [
+      "Each renter return + daily staff exceptions",
+      "Daily exceptions summary",
+      "Off"
+    ],
+    "tag": [
+      "New tag",
+      "Already has a Mulemark tag",
+      "No tag for now"
+    ],
+    "assetPhoto": [
+      "In Photos folder",
+      "Use model photo",
+      "No photo yet"
+    ],
+    "modelPhoto": [
+      "Use asset photos",
+      "Not available",
+      "Not sure",
+      "Please review"
+    ],
+    "model": [
+      "Not available",
+      "Not sure",
+      "Please review"
+    ],
+    "manual": [
+      "Not available",
+      "Not sure",
+      "Please review"
+    ],
+    "manualShare": [
+      "Link to the maker's copy",
+      "Show our copy",
+      "Staff only",
+      "Not sure"
+    ],
+    "photoPermission": [
+      "We took it",
+      "Maker's photo, permitted",
+      "Not sure"
+    ],
+    "fuel": [
+      "Diesel",
+      "Gasoline",
+      "Propane",
+      "Electric (plug-in)",
+      "Battery",
+      "None",
+      "Not sure"
+    ],
+    "fileKind": [
+      "Photo",
+      "Manual",
+      "Your instructions",
+      "Logo",
+      "Other"
+    ],
+    "fileSource": [
+      "We made it or took it",
+      "From the maker",
+      "Not sure"
+    ],
+    "fileAudience": [
+      "Renters, on our pages",
+      "Staff only",
+      "Not sure"
+    ],
+    "category": [
+      "Mini excavator",
+      "Compact excavator",
+      "Skid steer",
+      "Utility trailer",
+      "Equipment trailer",
+      "Dump trailer",
+      "Portable generator",
+      "Towable generator",
+      "Plate compactor",
+      "Scissor lift",
+      "Air compressor",
+      "Electrical test equipment"
+    ],
+    "tagMounting": [
+      "Adhesive",
+      "Rivet",
+      "Screw",
+      "Zip tie",
+      "Other",
+      "Not sure"
+    ],
+    "tagSize": [
+      "1.5in square",
+      "2in square",
+      "2in x 1in",
+      "Custom",
+      "Not sure"
+    ],
+    "tagMaterial": [
+      "Anodized aluminum",
+      "Stainless",
+      "Acrylic",
+      "Other",
+      "Not sure"
+    ],
+    "brandColor": [
+      "Match our logo"
+    ]
+  },
+  "tabs": [
+    {
+      "tab": "COMPANY & PEOPLE",
+      "sections": [
+        {
+          "title": "Your company",
+          "fields": [
+            {
+              "key": "company.name",
+              "label": "Company name (as renters see it)",
+              "tier": "start",
+              "type": "text",
+              "hint": "e.g. Northridge Rentals",
+              "targets": {
+                "contract": "organization.name",
+                "app": "organizations.name"
+              }
+            },
+            {
+              "key": "company.support_phone",
+              "label": "Support phone",
+              "tier": "golive",
+              "type": "phone",
+              "hint": "Phone, email or both: at least one. A normal phone number gets a Call button.",
+              "targets": {
+                "contract": "organization.support.phone",
+                "app": "organizations.support_phone"
+              }
+            },
+            {
+              "key": "company.support_email",
+              "label": "Support email",
+              "tier": "golive",
+              "type": "email",
+              "hint": "Phone, email or both: at least one.",
+              "targets": {
+                "contract": "organization.support.email",
+                "app": "organizations.support_email"
+              }
+            },
+            {
+              "key": "company.support_hours",
+              "label": "Support hours",
+              "tier": "optional",
+              "type": "text",
+              "hint": "e.g. Mon–Fri 7 am–5 pm. Shown in each page's support section.",
+              "targets": {
+                "contract": "organization.support.hours",
+                "app": "equipment_pages.emergency_notes (drafted by Mulemark; no hours column)"
+              }
+            },
+            {
+              "key": "company.website",
+              "label": "Website",
+              "tier": "optional",
+              "type": "url",
+              "hint": "https://…",
+              "targets": {
+                "app": "organizations.website_url",
+                "kit_only": "The content contract has no website field."
+              }
+            },
+            {
+              "key": "company.brand_color",
+              "label": "Brand color",
+              "tier": "optional",
+              "type": "choice+text",
+              "list": "brandColor",
+              "hint": "A color like #1D4ED8, or pick Match our logo.",
+              "targets": {
+                "contract": "organization.primary_color",
+                "app": "organizations.primary_color"
+              }
+            },
+            {
+              "key": "company.logo_file",
+              "label": "Logo file",
+              "tier": "optional",
+              "type": "text",
+              "hint": "File name in your Company folder: PNG or JPG; a design file (.ai, .eps) is fine too.",
+              "targets": {
+                "contract": "organization.logo",
+                "app": "organizations.logo_url (uploaded by Mulemark)"
+              }
+            }
+          ]
+        },
+        {
+          "title": "Who approves your pages",
+          "fields": [
+            {
+              "key": "approver.name",
+              "label": "Approver's name",
+              "tier": "golive",
+              "type": "text",
+              "hint": "The person who approves your pages before they go live.",
+              "targets": {
+                "contract": "organization.approver.name_ref (reference only; the name stays in private storage)",
+                "app": "approval record (E5A)"
+              }
+            },
+            {
+              "key": "approver.title",
+              "label": "Approver's job title",
+              "tier": "golive",
+              "type": "text",
+              "hint": "e.g. Operations manager",
+              "targets": {
+                "contract": "organization.approver.role",
+                "app": "approval record (E5A)"
+              }
+            },
+            {
+              "key": "approver.email",
+              "label": "Approver's email",
+              "tier": "golive",
+              "type": "email",
+              "hint": "We send the preview and approval request here.",
+              "targets": {
+                "app": "profiles.email (invited as Administrator)",
+                "kit_only": "Manifests never hold real names or addresses."
+              }
+            }
+          ]
+        },
+        {
+          "title": "Email alerts",
+          "fields": [
+            {
+              "key": "alerts.notification_email",
+              "label": "Notification email (one address)",
+              "tier": "golive",
+              "type": "email",
+              "hint": "Renter reports and daily summaries go here.",
+              "targets": {
+                "contract": "organization.notifications.address_role",
+                "app": "organizations.notification_email"
+              }
+            },
+            {
+              "key": "alerts.damage",
+              "label": "Email damage reports",
+              "tier": "optional",
+              "type": "choice",
+              "list": "yesNo",
+              "hint": "Sent when a renter uses Report damage on a page. Yes unless you say otherwise.",
+              "targets": {
+                "app": "organizations.notify_damage_reports",
+                "kit_only": "Not in the content contract."
+              }
+            },
+            {
+              "key": "alerts.support",
+              "label": "Email support requests",
+              "tier": "optional",
+              "type": "choice",
+              "list": "yesNo",
+              "hint": "Sent when a renter uses the Support button. Yes unless you say otherwise.",
+              "targets": {
+                "app": "organizations.notify_support_requests",
+                "kit_only": "Not in the content contract."
+              }
+            },
+            {
+              "key": "alerts.urgent_email",
+              "label": "Urgent reports also to (one address)",
+              "tier": "optional",
+              "type": "email",
+              "hint": "Reports a renter marks unsafe to use or can't move also go here.",
+              "targets": {
+                "app": "organizations.urgent_notification_email (+ notify_urgent_reports)",
+                "kit_only": "Not in the content contract."
+              }
+            },
+            {
+              "key": "alerts.return_mode",
+              "label": "Return emails",
+              "tier": "optional",
+              "type": "choice",
+              "list": "returnEmails",
+              "hint": "Renters can fill a return checklist on the page. Pick one; Off unless you choose.",
+              "targets": {
+                "contract": "organization.notifications.return_mode",
+                "app": "organizations.return_notification_mode"
+              }
+            },
+            {
+              "key": "alerts.tag_updates",
+              "label": "Email tag order updates",
+              "tier": "optional",
+              "type": "choice",
+              "list": "yesNo",
+              "hint": "When a tag order changes status. No unless you say yes.",
+              "targets": {
+                "app": "organizations.notify_tag_request_updates",
+                "kit_only": "Not in the content contract."
+              }
+            },
+            {
+              "key": "alerts.photo_previews",
+              "label": "Photo previews in emails",
+              "tier": "optional",
+              "type": "choice",
+              "list": "yesNo",
+              "hint": "Small copies of the renter's photos inside the email. Yes unless you say otherwise.",
+              "targets": {
+                "app": "organizations.notify_include_photo_previews",
+                "kit_only": "Not in the content contract."
+              }
+            }
+          ]
+        },
+        {
+          "title": "Tags",
+          "fields": [
+            {
+              "key": "tags.ship_to",
+              "label": "Ship tags to",
+              "tier": "optional",
+              "type": "text",
+              "hint": "Street, city, province or state, postal code.",
+              "targets": {
+                "kit_only": "Tag requests have no shipping address; used on the tag-production handoff."
+              }
+            },
+            {
+              "key": "tags.contact",
+              "label": "Delivery contact",
+              "tier": "optional",
+              "type": "text",
+              "hint": "Name and phone for the courier.",
+              "targets": {
+                "kit_only": "Tag requests have no delivery contact; used on the tag-production handoff."
+              }
+            },
+            {
+              "key": "tags.mounting",
+              "label": "How tags attach",
+              "tier": "optional",
+              "type": "choice",
+              "list": "tagMounting",
+              "hint": "A preference only. Not sure is fine: we'll suggest one.",
+              "targets": {
+                "app": "tag_requests.mounting_method",
+                "kit_only": "Not in the content contract."
+              }
+            },
+            {
+              "key": "tags.size",
+              "label": "Tag size",
+              "tier": "optional",
+              "type": "choice",
+              "list": "tagSize",
+              "hint": "A preference only; your agreement sets the options. Not sure is fine.",
+              "targets": {
+                "app": "tag_requests.tag_size",
+                "kit_only": "Not in the content contract."
+              }
+            },
+            {
+              "key": "tags.material",
+              "label": "Tag material",
+              "tier": "optional",
+              "type": "choice",
+              "list": "tagMaterial",
+              "hint": "A preference only; your agreement sets the options. Not sure is fine.",
+              "targets": {
+                "app": "tag_requests.material",
+                "kit_only": "Not in the content contract."
+              }
+            }
+          ]
+        },
+        {
+          "title": "Your rental rules (all equipment)",
+          "fields": [
+            {
+              "key": "rules.fuel",
+              "label": "Fuel or charge on return",
+              "tier": "optional",
+              "type": "text",
+              "hint": "Short: what renters must do, e.g. Return with a full tank.",
+              "targets": {
+                "contract": "organization.policies[] (customer-owned)",
+                "app": "equipment_pages.fuel_power_notes / return_notes (drafted, cited as your rule)"
+              }
+            },
+            {
+              "key": "rules.cleaning",
+              "label": "Cleaning",
+              "tier": "optional",
+              "type": "text",
+              "hint": "e.g. Return clean or a cleaning fee applies.",
+              "targets": {
+                "contract": "organization.policies[] (customer-owned)",
+                "app": "equipment_pages.return_notes (drafted)"
+              }
+            },
+            {
+              "key": "rules.accessories",
+              "label": "Accessories",
+              "tier": "optional",
+              "type": "text",
+              "hint": "e.g. Everything we send out comes back.",
+              "targets": {
+                "contract": "organization.policies[] (customer-owned)",
+                "app": "equipment_pages.return_notes (drafted)"
+              }
+            },
+            {
+              "key": "rules.damage_late",
+              "label": "Damage and late returns",
+              "tier": "optional",
+              "type": "text",
+              "hint": "e.g. Report damage right away with the Report button.",
+              "targets": {
+                "contract": "organization.policies[] (customer-owned)",
+                "app": "equipment_pages.return_notes (drafted)"
+              }
+            },
+            {
+              "key": "rules.other",
+              "label": "Other rules renters must know",
+              "tier": "optional",
+              "type": "text",
+              "hint": "Not your rental agreement: only what renters must do.",
+              "targets": {
+                "contract": "organization.policies[] (customer-owned)",
+                "app": "equipment_pages (drafted, cited as your rule)"
+              }
+            }
+          ]
+        }
+      ],
+      "people": [
+        {
+          "key": "people.name",
+          "label": "Name",
+          "tier": "golive",
+          "type": "text",
+          "width": 24,
+          "hint": "e.g. Alex Chen",
+          "targets": {
+            "app": "profiles.name"
+          }
+        },
+        {
+          "key": "people.email",
+          "label": "Email",
+          "tier": "golive",
+          "type": "email",
+          "width": 30,
+          "hint": "Each person signs in with their own. Any address they read works.",
+          "targets": {
+            "app": "profiles.email"
+          }
+        },
+        {
+          "key": "people.role",
+          "label": "Role",
+          "tier": "golive",
+          "type": "choice",
+          "list": "role",
+          "width": 24,
+          "hint": "Administrator: settings, team, approval. Staff: equipment, reports, rentals.",
+          "targets": {
+            "app": "profiles.role (customer_admin / customer_staff)"
+          }
+        },
+        {
+          "key": "people.notes",
+          "label": "Notes",
+          "tier": "optional",
+          "type": "text",
+          "width": 26,
+          "hint": "e.g. Yard lead",
+          "targets": {
+            "kit_only": "Read by Mulemark."
+          }
+        }
+      ]
+    },
+    {
+      "tab": "MODELS",
+      "rows": 200,
+      "columns": [
+        {
+          "key": "model.name",
+          "label": "Model name (your short name)",
+          "tier": "golive",
+          "type": "text",
+          "width": 26,
+          "hint": "Each asset picks this name on ASSETS, e.g. Big Tex 14LP dump",
+          "targets": {
+            "contract": "models[].model_key (derived from make, model and version)",
+            "kit_only": "The join between ASSETS and MODELS."
+          }
+        },
+        {
+          "key": "model.make",
+          "label": "Make",
+          "tier": "golive",
+          "type": "text",
+          "width": 16,
+          "hint": "e.g. Big Tex",
+          "targets": {
+            "current_import": "make",
+            "contract": "models[].manufacturer",
+            "app": "assets.make"
+          }
+        },
+        {
+          "key": "model.model",
+          "label": "Model",
+          "tier": "golive",
+          "type": "text",
+          "width": 14,
+          "hint": "e.g. 14LP",
+          "targets": {
+            "current_import": "model",
+            "contract": "models[].model",
+            "app": "assets.model"
+          }
+        },
+        {
+          "key": "model.manual",
+          "label": "Manual",
+          "tier": "golive",
+          "type": "choice+text",
+          "list": "manual",
+          "width": 30,
+          "hint": "A file (a phone scan of a paper manual is fine), a web link, or pick an answer",
+          "targets": {
+            "contract": "models[].manual + sources[]",
+            "app": "documents (manual)"
+          }
+        },
+        {
+          "key": "model.manual_share",
+          "label": "May renters see the manual?",
+          "tier": "golive",
+          "type": "choice",
+          "list": "manualShare",
+          "width": 28,
+          "hint": "Link: we link to the maker's site. Show our copy: we post your file. Staff only: not for renters.",
+          "targets": {
+            "contract": "sources[].rights.redistribution",
+            "app": "documents.visibility"
+          }
+        },
+        {
+          "key": "model.version",
+          "label": "Size or version",
+          "tier": "optional",
+          "type": "text",
+          "width": 18,
+          "hint": "e.g. 14 ft deck, canopy",
+          "targets": {
+            "contract": "models[].configuration.version"
+          }
+        },
+        {
+          "key": "model.category",
+          "label": "Category",
+          "tier": "optional",
+          "type": "choice+text",
+          "list": "category",
+          "width": 20,
+          "hint": "A label, e.g. Dump trailer",
+          "targets": {
+            "contract": "models[].category",
+            "app": "assets.category (when the asset row leaves it blank)"
+          }
+        },
+        {
+          "key": "model.manual_depends",
+          "label": "Manual changes by year or serial?",
+          "tier": "optional",
+          "type": "choice",
+          "list": "yesNoNotSure",
+          "width": 16,
+          "hint": "Not sure is fine: we check the manual",
+          "targets": {
+            "contract": "models[].applicability.notes"
+          }
+        },
+        {
+          "key": "model.instructions",
+          "label": "Your instructions for renters",
+          "tier": "optional",
+          "type": "text",
+          "width": 26,
+          "hint": "File name of anything you already hand out, or None",
+          "targets": {
+            "contract": "sources[] (customer-file)",
+            "app": "equipment_pages (drafted, cited)"
+          }
+        },
+        {
+          "key": "model.photo",
+          "label": "Model photo",
+          "tier": "optional",
+          "type": "choice+text",
+          "list": "modelPhoto",
+          "width": 20,
+          "hint": "One photo for identical machines: its file name in the model's folder",
+          "targets": {
+            "contract": "models[].photo",
+            "app": "assets.cover_image_url (assets without their own photo)"
+          }
+        },
+        {
+          "key": "model.photo_permission",
+          "label": "Who took the model photo?",
+          "tier": "optional",
+          "type": "choice",
+          "list": "photoPermission",
+          "width": 20,
+          "hint": "Your own photo, or the maker's with their permission",
+          "targets": {
+            "contract": "sources[].rights.status"
+          }
+        },
+        {
+          "key": "model.fuel",
+          "label": "Fuel or power",
+          "tier": "optional",
+          "type": "choice+text",
+          "list": "fuel",
+          "width": 16,
+          "hint": "e.g. Diesel, Battery, None",
+          "targets": {
+            "contract": "models[].configuration.fuel_or_power",
+            "app": "equipment_pages.fuel_power_notes (drafted)"
+          }
+        },
+        {
+          "key": "model.accessories",
+          "label": "Accessories sent out",
+          "tier": "optional",
+          "type": "text",
+          "width": 26,
+          "hint": "e.g. 2 straps, ramps, hoist remote",
+          "targets": {
+            "contract": "models[].common_accessories",
+            "app": "return checklist review"
+          }
+        },
+        {
+          "key": "model.return_rules",
+          "label": "Your return rules",
+          "tier": "optional",
+          "type": "text",
+          "width": 26,
+          "hint": "Only what's special for this model; general rules go on COMPANY & PEOPLE",
+          "targets": {
+            "contract": "organization.policies[] (customer-owned)",
+            "app": "equipment_pages.return_notes (drafted)"
+          }
+        },
+        {
+          "key": "model.questions",
+          "label": "Questions renters ask",
+          "tier": "optional",
+          "type": "text",
+          "width": 30,
+          "hint": "e.g. How do I lower the jack?",
+          "targets": {
+            "app": "equipment_pages.troubleshooting_notes (drafted from the manual)",
+            "kit_only": "Input for drafting; not a contract field."
+          }
+        },
+        {
+          "key": "model.notes",
+          "label": "Notes for Mulemark",
+          "tier": "optional",
+          "type": "text",
+          "width": 24,
+          "hint": "Anything we should know",
+          "targets": {
+            "kit_only": "Read by Mulemark; never published."
+          }
+        }
+      ]
+    },
+    {
+      "tab": "ASSETS",
+      "rows": 1000,
+      "columns": [
+        {
+          "key": "asset.code",
+          "label": "Asset code",
+          "tier": "start",
+          "type": "code",
+          "width": 14,
+          "hint": "Exactly as on your fleet list or tag, e.g. 00412",
+          "targets": {
+            "current_import": "asset_code",
+            "contract": "assets[].asset_code",
+            "app": "assets.asset_code"
+          }
+        },
+        {
+          "key": "asset.name",
+          "label": "Asset name",
+          "tier": "start",
+          "type": "text",
+          "width": 28,
+          "hint": "What renters see, e.g. Dump trailer 14 ft",
+          "targets": {
+            "current_import": "asset_name",
+            "contract": "assets[].asset_name",
+            "app": "assets.asset_name"
+          }
+        },
+        {
+          "key": "asset.model",
+          "label": "Model name (from MODELS)",
+          "tier": "golive",
+          "type": "choice+text",
+          "list": "modelChoices",
+          "width": 26,
+          "hint": "The name you gave it on MODELS, e.g. Big Tex 14LP dump",
+          "targets": {
+            "current_import": "make, model (from the MODELS row)",
+            "contract": "assets[].model_key (via MODELS)",
+            "app": "assets.make, assets.model"
+          }
+        },
+        {
+          "key": "asset.photo",
+          "label": "Photo",
+          "tier": "golive",
+          "type": "choice+text",
+          "list": "assetPhoto",
+          "width": 20,
+          "hint": "In Photos folder, Use model photo, No photo yet, or a file name",
+          "targets": {
+            "contract": "assets[].photo",
+            "app": "assets.cover_image_url (uploaded by Mulemark)"
+          }
+        },
+        {
+          "key": "asset.tag",
+          "label": "Tag",
+          "tier": "golive",
+          "type": "choice",
+          "list": "tag",
+          "width": 22,
+          "hint": "New tag, already has a Mulemark tag, or no tag for now",
+          "targets": {
+            "contract": "assets[].qr.create",
+            "app": "qr_links (created by Mulemark after approval)"
+          }
+        },
+        {
+          "key": "asset.category",
+          "label": "Category",
+          "tier": "optional",
+          "type": "choice+text",
+          "list": "category",
+          "width": 20,
+          "hint": "Only if different from its model's category",
+          "targets": {
+            "current_import": "category",
+            "contract": "assets[].category",
+            "app": "assets.category"
+          }
+        },
+        {
+          "key": "asset.year",
+          "label": "Year",
+          "tier": "optional",
+          "type": "year",
+          "width": 10,
+          "hint": "If the manual needs it",
+          "targets": {
+            "current_import": "year",
+            "contract": "assets[].year",
+            "app": "assets.year"
+          }
+        },
+        {
+          "key": "asset.serial",
+          "label": "Serial number",
+          "tier": "optional",
+          "type": "text",
+          "width": 18,
+          "hint": "If the manual needs it (see MODELS)",
+          "targets": {
+            "current_import": "serial_number",
+            "contract": "assets[].serial_number",
+            "app": "assets.serial_number"
+          }
+        },
+        {
+          "key": "asset.fitted",
+          "label": "Fitted options on this unit",
+          "tier": "optional",
+          "type": "text",
+          "width": 22,
+          "hint": "e.g. Thumb, spare tire",
+          "targets": {
+            "contract": "assets[].fitted_options",
+            "app": "equipment_pages (drafted)"
+          }
+        },
+        {
+          "key": "asset.differences",
+          "label": "What's different about this unit?",
+          "tier": "optional",
+          "type": "text",
+          "width": 26,
+          "hint": "Anything that differs from the model",
+          "targets": {
+            "contract": "assets[].exceptions (your statement, reviewed before use)",
+            "app": "equipment_pages (drafted)"
+          }
+        },
+        {
+          "key": "asset.unit_support",
+          "label": "Support contact for this unit",
+          "tier": "optional",
+          "type": "text",
+          "width": 22,
+          "hint": "Only if different from your main support: a phone or an email",
+          "targets": {
+            "current_import": "support_phone_override / support_email_override",
+            "contract": "assets[].support_overrides",
+            "app": "assets.support_phone_override / support_email_override"
+          }
+        },
+        {
+          "key": "asset.notes",
+          "label": "Notes for Mulemark",
+          "tier": "optional",
+          "type": "text",
+          "width": 26,
+          "hint": "Anything we should know",
+          "targets": {
+            "kit_only": "Read by Mulemark; never published."
+          }
+        }
+      ]
+    },
+    {
+      "tab": "FILES & NOTES",
+      "rows": 300,
+      "files": [
+        {
+          "key": "file.name",
+          "label": "File or folder name",
+          "tier": "golive",
+          "type": "text",
+          "width": 32,
+          "hint": "As uploaded, e.g. 35SA yard checklist.pdf",
+          "targets": {
+            "contract": "sources[].title / media.source_id",
+            "kit_only": "Only for files outside the standard folders, or not meant for renters."
+          }
+        },
+        {
+          "key": "file.kind",
+          "label": "What it is",
+          "tier": "golive",
+          "type": "choice",
+          "list": "fileKind",
+          "width": 18,
+          "hint": "Photo, Manual, Your instructions, Logo, Other",
+          "targets": {
+            "contract": "sources[].kind"
+          }
+        },
+        {
+          "key": "file.for",
+          "label": "For (asset code, model name or Company)",
+          "tier": "golive",
+          "type": "text",
+          "width": 26,
+          "hint": "e.g. 00412, Big Tex 14LP dump, Company",
+          "targets": {
+            "contract": "sources[].applicability"
+          }
+        },
+        {
+          "key": "file.source",
+          "label": "Where is it from?",
+          "tier": "golive",
+          "type": "choice",
+          "list": "fileSource",
+          "width": 22,
+          "hint": "Made or taken by you, or the maker's",
+          "targets": {
+            "contract": "sources[].rights.status"
+          }
+        },
+        {
+          "key": "file.audience",
+          "label": "Who may see it?",
+          "tier": "golive",
+          "type": "choice",
+          "list": "fileAudience",
+          "width": 22,
+          "hint": "Only ever on your own pages",
+          "targets": {
+            "contract": "sources[].rights.redistribution"
+          }
+        },
+        {
+          "key": "file.notes",
+          "label": "Notes",
+          "tier": "optional",
+          "type": "text",
+          "width": 24,
+          "hint": "Anything we should know",
+          "targets": {
+            "kit_only": "Read by Mulemark."
+          }
+        }
+      ],
+      "notes": [
+        {
+          "key": "note.about",
+          "label": "About (asset code, model name or Company)",
+          "tier": "optional",
+          "type": "text",
+          "width": 26,
+          "hint": "e.g. 00412",
+          "targets": {
+            "kit_only": "Read by Mulemark."
+          }
+        },
+        {
+          "key": "note.text",
+          "label": "What we should know",
+          "tier": "optional",
+          "type": "text",
+          "width": 48,
+          "hint": "Missing, different or unclear: tell us here",
+          "targets": {
+            "kit_only": "Read by Mulemark; summarized in the readiness report."
+          }
+        }
+      ]
+    }
+  ],
+  "fleet_export_aliases": {
+    "asset.code": [
+      "asset code",
+      "asset_code",
+      "asset id",
+      "asset #",
+      "asset no",
+      "asset number",
+      "unit",
+      "unit #",
+      "unit no",
+      "unit number",
+      "unit id",
+      "equipment #",
+      "equipment no",
+      "equipment number",
+      "equipment id",
+      "equip #",
+      "equip no",
+      "stock #",
+      "stock no",
+      "stock number",
+      "fleet #",
+      "fleet no",
+      "fleet number",
+      "item #",
+      "item number"
+    ],
+    "asset.name": [
+      "asset name",
+      "asset_name",
+      "name",
+      "description",
+      "desc",
+      "equipment name",
+      "item name",
+      "item description"
+    ],
+    "model.make": [
+      "make",
+      "manufacturer",
+      "mfr",
+      "mfg",
+      "brand"
+    ],
+    "model.model": [
+      "model",
+      "model #",
+      "model no",
+      "model number"
+    ],
+    "asset.category": [
+      "category",
+      "class",
+      "type",
+      "equipment type",
+      "group",
+      "category name",
+      "rental class"
+    ],
+    "asset.year": [
+      "year",
+      "model year",
+      "yr",
+      "year built",
+      "mfg year"
+    ],
+    "asset.serial": [
+      "serial",
+      "serial #",
+      "serial no",
+      "serial number",
+      "s/n",
+      "sn",
+      "vin",
+      "pin"
+    ]
+  },
+  "computed_columns": [
+    {
+      "tab": "MODELS",
+      "label": "Check",
+      "note": "Workbook formula for the customer; ignored when reading."
+    },
+    {
+      "tab": "ASSETS",
+      "label": "Check",
+      "note": "Workbook formula for the customer; ignored when reading."
+    }
+  ]
+}

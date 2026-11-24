@@ -14,7 +14,13 @@
   - Applied with the guarded reset planner, which gains the showcase, presenter and refresh kinds.
   - Rehearsed on the local stack (suite and real-app walkthrough) and on staging.
   - Dry-run only against Production ([E2B_REHEARSAL_REPORT.md](E2B_REHEARSAL_REPORT.md), [E2C_CUTOVER_PACKAGE.md](E2C_CUTOVER_PACKAGE.md)).
-- E2C is next. It starts only when the operator runs it, **never** automatically.
+- **E2C complete (2026-11-23):** the curated Northridge showcase behind the four unchanged printed routes, with getmulemark.com aligned ([WORK_LOG.md](WORK_LOG.md), E2C).
+- **E3 complete (2026-11-23):** the customer intake kit in [intake/](intake/README.md).
+  - **Customer packet:** the onboarding guide, the intake workbook, a completed example and CSV templates.
+  - **Tools:** check and prefill, which map onto today's importer and the E4 contract.
+  - **Internal:** email templates, the onboarding tracker, the approval wording (DRAFT) and the tag-production handoff.
+  - No app or Production change.
+- E4A is next. It starts only when the operator runs it, **never** automatically.
 
 This phase is not the older roadmap's "Phase E", and it is not an operational-hold phase.
 

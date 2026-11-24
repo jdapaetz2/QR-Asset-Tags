@@ -1,0 +1,1634 @@
+{
+  "schema_version": "1.3.0",
+  "manifest_id": "intake-northridge-rentals-northridge-example-1",
+  "kind": "customer-onboarding",
+  "batch": {
+    "batch_id": "northridge-example-1",
+    "launch_scope": "all",
+    "research_minutes_per_model_cap": 45
+  },
+  "organization": {
+    "name": "Northridge Rentals",
+    "fictional": true,
+    "support": {
+      "phone": "604-555-0142",
+      "email": "rentals@example.com",
+      "hours": "Mon–Fri 7 am–5 pm, Sat 8 am–noon"
+    },
+    "notifications": {
+      "return_mode": "daily_exceptions",
+      "address_role": "the notification email on COMPANY & PEOPLE"
+    },
+    "policies": [
+      {
+        "policy_id": "pol-fuel",
+        "text": "Return with a full tank, or we refuel at the posted rate.",
+        "owner": "customer"
+      },
+      {
+        "policy_id": "pol-cleaning",
+        "text": "Return clean. Hose off mud before you bring it back.",
+        "owner": "customer"
+      },
+      {
+        "policy_id": "pol-accessories",
+        "text": "Everything we send out comes back: straps, pins, remotes and keys.",
+        "owner": "customer"
+      },
+      {
+        "policy_id": "pol-damage-late",
+        "text": "Report damage right away with the Report button on the tag page.",
+        "owner": "customer"
+      },
+      {
+        "policy_id": "pol-other",
+        "text": "Call us before moving a machine to a different job site.",
+        "owner": "customer"
+      },
+      {
+        "policy_id": "pol-bigtex-35sa-12-return",
+        "text": "Return swept out, with the straps rolled up.",
+        "owner": "customer"
+      },
+      {
+        "policy_id": "pol-bigtex-14lp-14-return",
+        "text": "Return with the bed empty and lowered.",
+        "owner": "customer"
+      },
+      {
+        "policy_id": "pol-bobcat-e20-b3bl-canopy-return",
+        "text": "Return with a full tank and the bucket scraped clean.",
+        "owner": "customer"
+      },
+      {
+        "policy_id": "pol-caterpillar-301-5-canopy-return",
+        "text": "Return with a full tank.",
+        "owner": "customer"
+      }
+    ],
+    "approver": {
+      "role": "Operations manager",
+      "name_ref": "intake workbook, COMPANY & PEOPLE, Approver's name (private storage)"
+    },
+    "primary_color": "#1F5C3A",
+    "logo": {
+      "source_id": "src-logo-northridge-logo-png"
+    }
+  },
+  "sources": [
+    {
+      "source_id": "src-logo-northridge-logo-png",
+      "kind": "customer-file",
+      "title": "northridge logo.png",
+      "rights": {
+        "status": "customer-supplied",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-bigtex-35sa-12-manual",
+      "kind": "oem-manual",
+      "title": "Big Tex 35SA manual",
+      "url": "https://www.bigtextrailers.com/wp-content/uploads/2023/11/Big-Tex-Trailers_Owners-Manual_2020.pdf",
+      "rights": {
+        "status": "unknown",
+        "redistribution": "link-only",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-bigtex-35sa-12-instructions",
+      "kind": "customer-file",
+      "title": "Big Tex 35SA quick start.pdf",
+      "rights": {
+        "status": "customer-supplied",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-bigtex-35sa-12-photo",
+      "kind": "photo",
+      "title": "35SA side.jpg",
+      "rights": {
+        "status": "customer-supplied",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-bigtex-14lp-14-manual",
+      "kind": "oem-manual",
+      "title": "Big Tex 14LP manual",
+      "url": "https://www.bigtextrailers.com/wp-content/uploads/2023/11/Big-Tex-Trailers_Owners-Manual_2020-Dump-Trailers-2.pdf",
+      "rights": {
+        "status": "unknown",
+        "redistribution": "link-only",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-bobcat-e20-b3bl-canopy-manual",
+      "kind": "oem-manual",
+      "title": "Bobcat E20 manual",
+      "url": "https://shop.bobcat.com/ca/e20-excavator-operation-and-maintenance-digital-manual-7255004enuspdf",
+      "rights": {
+        "status": "unknown",
+        "redistribution": "link-only",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-bobcat-e20-b3bl-canopy-instructions",
+      "kind": "customer-file",
+      "title": "Bobcat E20 handover sheet.pdf",
+      "rights": {
+        "status": "customer-supplied",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-caterpillar-301-5-canopy-manual",
+      "kind": "oem-manual",
+      "title": "Caterpillar 301.5 manual (not established)",
+      "rights": {
+        "status": "unknown",
+        "redistribution": "blocked",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-photos-e20-01",
+      "kind": "photo",
+      "title": "Photos/E20-01/",
+      "rights": {
+        "status": "customer-supplied",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-photos-e20-02",
+      "kind": "photo",
+      "title": "Photos/E20-02/",
+      "rights": {
+        "status": "customer-supplied",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-photos-e20-03",
+      "kind": "photo",
+      "title": "Photos/E20-03/",
+      "rights": {
+        "status": "customer-supplied",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-photos-c301-1",
+      "kind": "photo",
+      "title": "Photos/C301-1/",
+      "rights": {
+        "status": "customer-supplied",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-photos-c301-2",
+      "kind": "photo",
+      "title": "Photos/C301-2/",
+      "rights": {
+        "status": "customer-supplied",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-photos-dt-14",
+      "kind": "photo",
+      "title": "Photos/DT-14/",
+      "rights": {
+        "status": "customer-supplied",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-photos-00101",
+      "kind": "photo",
+      "title": "Photos/00101/",
+      "rights": {
+        "status": "customer-supplied",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-photos-00102",
+      "kind": "photo",
+      "title": "Photos/00102/",
+      "rights": {
+        "status": "customer-supplied",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-photos-00103",
+      "kind": "photo",
+      "title": "Photos/00103/",
+      "rights": {
+        "status": "customer-supplied",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-photos-00104",
+      "kind": "photo",
+      "title": "Photos/00104/",
+      "rights": {
+        "status": "customer-supplied",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-photos-00105",
+      "kind": "photo",
+      "title": "Photos/00105/",
+      "rights": {
+        "status": "customer-supplied",
+        "redistribution": "public-host",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-00112-statement",
+      "kind": "customer-statement",
+      "title": "Customer statement, ASSETS row 24",
+      "rights": {
+        "status": "customer-supplied",
+        "redistribution": "private-only",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-file-35sa-yard-checklist-pdf",
+      "kind": "customer-file",
+      "title": "35SA yard checklist.pdf",
+      "applicability": "For Big Tex 35SA utility 12 ft",
+      "rights": {
+        "status": "customer-supplied",
+        "redistribution": "private-only",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    },
+    {
+      "source_id": "src-file-e20-quick-reference-card-pdf",
+      "kind": "oem-manual",
+      "title": "E20 quick reference card.pdf",
+      "applicability": "For Bobcat E20",
+      "rights": {
+        "status": "unknown",
+        "redistribution": "link-only",
+        "shareable_across_orgs": false
+      },
+      "verification": "unverified"
+    }
+  ],
+  "models": [
+    {
+      "model_key": "bigtex.35sa.12",
+      "manufacturer": "Big Tex",
+      "model": "35SA",
+      "category": "Utility trailer",
+      "configuration": {
+        "version": "12 ft deck",
+        "fuel_or_power": "None"
+      },
+      "applicability": {
+        "notes": "Manual changes by year or serial: No (customer)."
+      },
+      "manual": {
+        "source_id": "src-bigtex-35sa-12-manual",
+        "delivery": "link"
+      },
+      "templates": {
+        "return": "utility_trailer",
+        "outbound": "utility_trailer",
+        "equipment_page_seed": null
+      },
+      "common_accessories": [
+        "2 ratchet straps",
+        "safety chains",
+        "spare tire"
+      ],
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "model_key": "bigtex.14lp.14",
+      "manufacturer": "Big Tex",
+      "model": "14LP",
+      "category": "Dump trailer",
+      "configuration": {
+        "version": "14 ft, low profile",
+        "fuel_or_power": "Battery"
+      },
+      "applicability": {
+        "notes": "Manual changes by year or serial: No (customer)."
+      },
+      "manual": {
+        "source_id": "src-bigtex-14lp-14-manual",
+        "delivery": "link"
+      },
+      "templates": {
+        "return": "utility_trailer",
+        "outbound": "utility_trailer",
+        "equipment_page_seed": null
+      },
+      "common_accessories": [
+        "Hoist remote",
+        "tarp"
+      ],
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "Big Tex 14LP dump 14 ft: manual by link only."
+        ],
+        "missing_facts": []
+      }
+    },
+    {
+      "model_key": "bobcat.e20.b3bl-canopy",
+      "manufacturer": "Bobcat",
+      "model": "E20",
+      "category": "Compact excavator",
+      "configuration": {
+        "version": "Canopy",
+        "fuel_or_power": "Diesel"
+      },
+      "applicability": {
+        "notes": "Manual changes by year or serial: Yes (customer)."
+      },
+      "manual": {
+        "source_id": "src-bobcat-e20-b3bl-canopy-manual",
+        "delivery": "link"
+      },
+      "templates": {
+        "return": "mini_excavator_skid_steer",
+        "outbound": "mini_excavator_skid_steer",
+        "equipment_page_seed": null
+      },
+      "common_accessories": [
+        "Keys",
+        "bucket pin"
+      ],
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "Bobcat E20: manual by link only."
+        ],
+        "missing_facts": []
+      }
+    },
+    {
+      "model_key": "caterpillar.301-5.canopy",
+      "manufacturer": "Caterpillar",
+      "model": "301.5",
+      "category": "Mini excavator",
+      "configuration": {
+        "version": "Canopy",
+        "fuel_or_power": "Diesel"
+      },
+      "applicability": {
+        "notes": "Manual changes by year or serial: Not sure (customer)."
+      },
+      "manual": {
+        "source_id": "src-caterpillar-301-5-canopy-manual",
+        "delivery": "link"
+      },
+      "templates": {
+        "return": "mini_excavator_skid_steer",
+        "outbound": "mini_excavator_skid_steer",
+        "equipment_page_seed": null
+      },
+      "common_accessories": [
+        "Keys"
+      ],
+      "review": {
+        "status": "MULEMARK_REVIEW",
+        "blockers": [
+          "Cat 301.5: look for the maker's official manual (up to 45 minutes, no purchases); anything unresolved goes back in the one request.",
+          "Cat 301.5: check whether the manual changes by year or serial.",
+          "Cat 301.5: look for a permitted photo of this exact model (bounded; no photo work is included).",
+          "Cat 301.5: prepare the equipment page from the manual and your rules, then review it."
+        ],
+        "warnings": [],
+        "missing_facts": []
+      }
+    }
+  ],
+  "assets": [
+    {
+      "asset_code": "E20-01",
+      "asset_name": "Compact excavator E20",
+      "model_key": "bobcat.e20.b3bl-canopy",
+      "year": 2022,
+      "serial_number": "DEMO-B3BL11001",
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "Bobcat E20: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-photos-e20-01"
+      }
+    },
+    {
+      "asset_code": "E20-02",
+      "asset_name": "Compact excavator E20",
+      "model_key": "bobcat.e20.b3bl-canopy",
+      "year": 2023,
+      "serial_number": "DEMO-B3BL11002",
+      "fitted_options": [
+        "Hydraulic thumb"
+      ],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "Bobcat E20: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-photos-e20-02"
+      }
+    },
+    {
+      "asset_code": "E20-03",
+      "asset_name": "Compact excavator E20",
+      "model_key": "bobcat.e20.b3bl-canopy",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "CUSTOMER_INPUT_REQUIRED",
+        "blockers": [
+          "E20-03: the Bobcat E20 manual changes by year or serial. Add its serial number or year."
+        ],
+        "warnings": [
+          "Bobcat E20: manual by link only."
+        ],
+        "missing_facts": [
+          "E20-03: the Bobcat E20 manual changes by year or serial. Add its serial number or year."
+        ]
+      },
+      "photo": {
+        "source_id": "src-photos-e20-03"
+      }
+    },
+    {
+      "asset_code": "C301-1",
+      "asset_name": "Mini excavator 301.5",
+      "model_key": "caterpillar.301-5.canopy",
+      "year": 2021,
+      "serial_number": "DEMO-FH500101",
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "MULEMARK_REVIEW",
+        "blockers": [
+          "Cat 301.5: look for the maker's official manual (up to 45 minutes, no purchases); anything unresolved goes back in the one request.",
+          "Cat 301.5: check whether the manual changes by year or serial.",
+          "Cat 301.5: look for a permitted photo of this exact model (bounded; no photo work is included).",
+          "Cat 301.5: prepare the equipment page from the manual and your rules, then review it."
+        ],
+        "warnings": [],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-photos-c301-1"
+      }
+    },
+    {
+      "asset_code": "C301-2",
+      "asset_name": "Mini excavator 301.5",
+      "model_key": "caterpillar.301-5.canopy",
+      "year": 2021,
+      "serial_number": "DEMO-FH500102",
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "MULEMARK_REVIEW",
+        "blockers": [
+          "Cat 301.5: look for the maker's official manual (up to 45 minutes, no purchases); anything unresolved goes back in the one request.",
+          "Cat 301.5: check whether the manual changes by year or serial.",
+          "Cat 301.5: look for a permitted photo of this exact model (bounded; no photo work is included).",
+          "Cat 301.5: prepare the equipment page from the manual and your rules, then review it."
+        ],
+        "warnings": [],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-photos-c301-2"
+      }
+    },
+    {
+      "asset_code": "DT-14",
+      "asset_name": "Dump trailer 7' x 14' \"HD\", 14LP",
+      "model_key": "bigtex.14lp.14",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "DT-14: no serial number or year.",
+          "Big Tex 14LP dump 14 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-photos-dt-14"
+      },
+      "support_overrides": {
+        "phone": "604-555-0199 ext 2"
+      }
+    },
+    {
+      "asset_code": "PC-07",
+      "asset_name": "Plate compactor",
+      "model_key": null,
+      "category": "Plate compactor",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": false
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "CUSTOMER_INPUT_REQUIRED",
+        "blockers": [
+          "PC-07: which model is it? A photo of the model plate is enough."
+        ],
+        "warnings": [
+          "PC-07: no serial number or year.",
+          "PC-07: no photo yet."
+        ],
+        "missing_facts": [
+          "PC-07: which model is it? A photo of the model plate is enough."
+        ]
+      }
+    },
+    {
+      "asset_code": "00101",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00101: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-photos-00101"
+      }
+    },
+    {
+      "asset_code": "00102",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00102: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-photos-00102"
+      }
+    },
+    {
+      "asset_code": "00103",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00103: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-photos-00103"
+      }
+    },
+    {
+      "asset_code": "00104",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00104: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-photos-00104"
+      }
+    },
+    {
+      "asset_code": "00105",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00105: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-photos-00105"
+      }
+    },
+    {
+      "asset_code": "00106",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00106: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00107",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [
+        "Spare tire"
+      ],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00107: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00108",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00108: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00109",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00109: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00110",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00110: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00111",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00111: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00112",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "MULEMARK_REVIEW",
+        "blockers": [
+          "00112: review \"Ramp gate replaced with a 4 ft gate.\" before it's used on the page."
+        ],
+        "warnings": [
+          "00112: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      },
+      "exceptions": [
+        {
+          "step_id": "exception-1",
+          "text": "Ramp gate replaced with a 4 ft gate.",
+          "source_refs": [
+            {
+              "source_id": "src-00112-statement"
+            }
+          ],
+          "safety_critical": false,
+          "status": "REVIEW_REQUIRED",
+          "status_reason": "Customer statement; reviewed before any use."
+        }
+      ]
+    },
+    {
+      "asset_code": "00113",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00113: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00114",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00114: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00115",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00115: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00116",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00116: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00117",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00117: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00118",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00118: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00119",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00119: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00120",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00120: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00121",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00121: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00122",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00122: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00123",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00123: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00124",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00124: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00125",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00125: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00126",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00126: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00127",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00127: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00128",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00128: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00129",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00129: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00130",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00130: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00131",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00131: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00132",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00132: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00133",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00133: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00134",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00134: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00135",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00135: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00136",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00136: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00137",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00137: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00138",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00138: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00139",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00139: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    },
+    {
+      "asset_code": "00140",
+      "asset_name": "Utility trailer 12 ft",
+      "model_key": "bigtex.35sa.12",
+      "year": null,
+      "serial_number": null,
+      "fitted_options": [],
+      "qr": {
+        "create": true
+      },
+      "publish_intent": false,
+      "review": {
+        "status": "READY_WITH_WARNINGS",
+        "blockers": [],
+        "warnings": [
+          "00140: no serial number or year.",
+          "Big Tex 35SA utility 12 ft: manual by link only."
+        ],
+        "missing_facts": []
+      },
+      "photo": {
+        "source_id": "src-bigtex-35sa-12-photo"
+      }
+    }
+  ],
+  "approval": {
+    "status": "not_requested"
+  }
+}

@@ -2,3 +2,7 @@
 # keep their bytes as generated, whatever core.autocrlf says.
 docs/phase-e/packs/**/*.svg -text
 docs/phase-e/packs/**/*.patch -text
+# Phase E3 intake kit: every generated file is checked against docs/phase-e/intake/MANIFEST.json (SHA-256), and the
+# CSVs use CRLF on purpose: keep all bytes as written. The test fixtures (a CRLF fleet export) likewise.
+docs/phase-e/intake/** -text
+scripts/phase-e/intake/fixtures/** -text

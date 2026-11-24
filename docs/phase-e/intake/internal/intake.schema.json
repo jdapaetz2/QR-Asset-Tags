@@ -1,0 +1,695 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mulemark.io/schemas/phase-e/intake-1.0.0.json",
+  "title": "Mulemark normalized intake",
+  "description": "What the intake reader produces from the workbook, its CSV set or a fleet export: values keyed by the field mapping's stable keys (field-mapping JSON). Formulas are never evaluated; held-back values are null and listed in issues.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "company",
+    "people",
+    "assets",
+    "models",
+    "files",
+    "notes",
+    "issues"
+  ],
+  "properties": {
+    "meta": {
+      "type": "object"
+    },
+    "company": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "values",
+        "cells"
+      ],
+      "properties": {
+        "values": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "company.name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Company name (as renters see it)"
+            },
+            "company.support_phone": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Support phone"
+            },
+            "company.support_email": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Support email"
+            },
+            "company.support_hours": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Support hours"
+            },
+            "company.website": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Website"
+            },
+            "company.brand_color": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Brand color"
+            },
+            "company.logo_file": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Logo file"
+            },
+            "approver.name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Approver's name"
+            },
+            "approver.title": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Approver's job title"
+            },
+            "approver.email": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Approver's email"
+            },
+            "alerts.notification_email": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Notification email (one address)"
+            },
+            "alerts.damage": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Email damage reports"
+            },
+            "alerts.support": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Email support requests"
+            },
+            "alerts.urgent_email": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Urgent reports also to (one address)"
+            },
+            "alerts.return_mode": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Return emails"
+            },
+            "alerts.tag_updates": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Email tag order updates"
+            },
+            "alerts.photo_previews": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Photo previews in emails"
+            },
+            "tags.ship_to": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Ship tags to"
+            },
+            "tags.contact": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Delivery contact"
+            },
+            "tags.mounting": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "How tags attach"
+            },
+            "tags.size": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Tag size"
+            },
+            "tags.material": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Tag material"
+            },
+            "rules.fuel": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Fuel or charge on return"
+            },
+            "rules.cleaning": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Cleaning"
+            },
+            "rules.accessories": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Accessories"
+            },
+            "rules.damage_late": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Damage and late returns"
+            },
+            "rules.other": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Other rules renters must know"
+            }
+          }
+        },
+        "cells": {
+          "type": "object"
+        }
+      }
+    },
+    "people": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "row",
+          "values"
+        ],
+        "properties": {
+          "row": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "values": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "people.name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Name"
+              },
+              "people.email": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Email"
+              },
+              "people.role": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Role"
+              },
+              "people.notes": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Notes"
+              }
+            }
+          },
+          "cells": {
+            "type": "object"
+          },
+          "numeric": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "row",
+          "values"
+        ],
+        "properties": {
+          "row": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "values": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "asset.code": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Asset code"
+              },
+              "asset.name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Asset name"
+              },
+              "asset.model": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Model name (from MODELS)"
+              },
+              "asset.photo": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Photo"
+              },
+              "asset.tag": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Tag"
+              },
+              "asset.category": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Category"
+              },
+              "asset.year": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Year"
+              },
+              "asset.serial": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Serial number"
+              },
+              "asset.fitted": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Fitted options on this unit"
+              },
+              "asset.differences": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "What's different about this unit?"
+              },
+              "asset.unit_support": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Support contact for this unit"
+              },
+              "asset.notes": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Notes for Mulemark"
+              }
+            }
+          },
+          "cells": {
+            "type": "object"
+          },
+          "numeric": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "row",
+          "values"
+        ],
+        "properties": {
+          "row": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "values": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "model.name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Model name (your short name)"
+              },
+              "model.make": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Make"
+              },
+              "model.model": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Model"
+              },
+              "model.manual": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Manual"
+              },
+              "model.manual_share": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "May renters see the manual?"
+              },
+              "model.version": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Size or version"
+              },
+              "model.category": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Category"
+              },
+              "model.manual_depends": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Manual changes by year or serial?"
+              },
+              "model.instructions": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Your instructions for renters"
+              },
+              "model.photo": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Model photo"
+              },
+              "model.photo_permission": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Who took the model photo?"
+              },
+              "model.fuel": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Fuel or power"
+              },
+              "model.accessories": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Accessories sent out"
+              },
+              "model.return_rules": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Your return rules"
+              },
+              "model.questions": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Questions renters ask"
+              },
+              "model.notes": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Notes for Mulemark"
+              }
+            }
+          },
+          "cells": {
+            "type": "object"
+          },
+          "numeric": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "row",
+          "values"
+        ],
+        "properties": {
+          "row": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "values": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "file.name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "File or folder name"
+              },
+              "file.kind": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "What it is"
+              },
+              "file.for": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "For (asset code, model name or Company)"
+              },
+              "file.source": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Where is it from?"
+              },
+              "file.audience": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Who may see it?"
+              },
+              "file.notes": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Notes"
+              }
+            }
+          },
+          "cells": {
+            "type": "object"
+          },
+          "numeric": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "row",
+          "values"
+        ],
+        "properties": {
+          "row": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "values": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "note.about": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "About (asset code, model name or Company)"
+              },
+              "note.text": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "What we should know"
+              }
+            }
+          },
+          "cells": {
+            "type": "object"
+          },
+          "numeric": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "tab": {
+            "type": "string"
+          },
+          "row": {
+            "type": "integer"
+          },
+          "cell": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

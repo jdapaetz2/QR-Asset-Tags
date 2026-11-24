@@ -1,0 +1,17 @@
+[
+  {
+    "model_name": "Big Tex 35SA utility 12 ft",
+    "model_key": "bigtex.35sa.12",
+    "content_version": "e2a-03f71027105c"
+  },
+  {
+    "model_name": "Big Tex 14LP dump 14 ft",
+    "model_key": "bigtex.14lp.14",
+    "content_version": "e2a-69e05038816d"
+  },
+  {
+    "model_name": "Bobcat E20",
+    "model_key": "bobcat.e20.b3bl-canopy",
+    "content_version": "e2a-153ef9c948a4"
+  }
+]

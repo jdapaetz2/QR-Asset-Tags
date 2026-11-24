@@ -1,0 +1,53 @@
+{
+  "tool": "phase-e:intake:check",
+  "kit": "1.0",
+  "mapping_version": "1.0.0",
+  "workbook_version": "1.0",
+  "source": {
+    "kind": "xlsx",
+    "file": "EXAMPLE-mulemark-intake-workbook-v1.0.xlsx",
+    "sha256": "d3b81c411847b98492075d0b6d198aecb05f86b3dd9f709fb03dc041081a8552"
+  },
+  "batch_id": "northridge-example-1",
+  "checked_at": "2026-11-23",
+  "upload": {
+    "checked": true,
+    "files": 18
+  },
+  "prepared_models": [
+    "Big Tex 35SA utility 12 ft",
+    "Big Tex 14LP dump 14 ft",
+    "Bobcat E20"
+  ],
+  "summary": {
+    "assets": {
+      "READY": 0,
+      "READY_WITH_WARNINGS": 42,
+      "CUSTOMER_INPUT_REQUIRED": 2,
+      "MULEMARK_REVIEW": 3
+    },
+    "models": {
+      "READY": 0,
+      "READY_WITH_WARNINGS": 3,
+      "CUSTOMER_INPUT_REQUIRED": 0,
+      "MULEMARK_REVIEW": 1
+    },
+    "draftImportable": 47,
+    "total": 47
+  },
+  "items": {
+    "customer": 2,
+    "mulemark": 6,
+    "warnings": 46
+  },
+  "missing_information_email": "missing-information-email.md",
+  "manifest": {
+    "written": true,
+    "valid": true,
+    "errors": [],
+    "assets": 47,
+    "models": 4,
+    "excluded_from_manifest": []
+  },
+  "reader_notes": []
+}
