@@ -26,7 +26,8 @@ import { sniffImageType, type SniffedImageType } from "@/lib/media/sniff";
  * `limitInputPixels` on the decode itself. Every failure is a coarse class; this function never throws.
  */
 
-type SharpFactory = typeof import("sharp");
+// Sharp 0.35 ships ESM typings, where the module namespace is not callable: the factory is its default export.
+type SharpFactory = typeof import("sharp").default;
 
 /** Injectable for tests; production loads Sharp lazily so a missing native binary can never break notifications. */
 export type SharpLoader = () => Promise<SharpFactory | null>;
