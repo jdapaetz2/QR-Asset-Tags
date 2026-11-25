@@ -14,7 +14,7 @@ Edge runtime, or a self-hosted server).
 |---|---|
 | Branch | `fix/next-security-16-4-5`, cut from the Production commit `8f6c514` (`/api/version` and the GitHub deployments API both reported it live on 2026-11-23) |
 | Change | `package.json` (`next` and `eslint-config-next` pinned to `16.4.5`) and `package-lock.json` |
-| Status | **In Production** since 2026-11-24 16:00 UTC (the `e4e7e01` Preview, promoted by the operator). The Preview passed the staging smoke and the `after()` scan-logging check, and Production passed `npm run smoke:production` (below). The follow-ups at the end remain open |
+| Status | **In Production** since 2026-11-24 16:00 UTC (the `e4e7e01` Preview, promoted by the operator). The Preview passed the staging smoke and the `after()` scan-logging check, and Production passed `npm run smoke:production` (below). Follow-ups are listed at the end |
 
 ### Why
 
@@ -243,8 +243,13 @@ against an operator-designated test asset.
   `@vitest/mocker`; `typescript-eslint` with its `minimatch` and `brace-expansion` chain; `browserslist`,
   `baseline-browser-mapping`, `js-yaml` and `source-map-js`. None was reviewed here.
 - **Carry the upgrade into the working branches** (`phase-e/showcase-onboarding`, `fix/public-touch-targets`,
-  `fix/public-focus-not-obscured`), so local Playwright and dev servers stop running 16.2.9
-  (GHSA-p293-qw3h-jr36).
+  `fix/public-focus-not-obscured`). **Done.** The two `fix/public-*` branches merged this branch without conflicts on
+  2026-11-24 (`d1d6d3a`, `0877538`). `phase-e/showcase-onboarding` was fast-forwarded on 2026-11-25 to `f4db7f1`, a
+  merge prepared on `fix/phase-e-next-16-4-5`. There the intake kit's `docx` and `exceljs` made both package files
+  conflict: `package.json` took the two pins, and `package-lock.json` is a three-way merge that keeps this upgrade's
+  46 entries verbatim. Each merged tree passed lint, typecheck, `npm test`, the build and `check:scan-bundle`, with
+  routes and fonts identical to this branch, and each Preview built. Promoting any of the three keeps Production on
+  16.4.5, and their local Playwright and dev servers no longer run 16.2.9 (GHSA-p293-qw3h-jr36).
 - **CI on Node 22.** `ci.yml` runs on `main`, `pilot-credibility` and pull requests only, so pushing this branch ran no
   workflow. A pull request would run lint, typecheck, test and build, the e2e critical subset and the executed security
   suite.
