@@ -137,6 +137,65 @@ export function assertStandaloneLoopback() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
+// Windows port reservations (housekeeping, 2026-11-26; checked by scripts/verify-local-ports.mjs)
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Windows' default dynamic port range starts here; its NAT service (winnat) reserves blocks only from this range. */
+export const WINDOWS_DYNAMIC_PORT_START = 49152;
+
+/**
+ * The ports the local stack is configured to bind: every uncommented `port = N` or `<name>_port = N` line in
+ * supabase/config.toml. Commented-out services (for example `# smtp_port = 54325`) are skipped.
+ */
+export function configuredPorts(configToml) {
+  const ports = new Set();
+  for (const line of String(configToml).split(/\r?\n/)) {
+    const match = /^\s*(?:\w+_)?port\s*=\s*(\d+)\s*(?:#.*)?$/.exec(line);
+    if (match) ports.add(Number(match[1]));
+  }
+  return [...ports].sort((a, b) => a - b);
+}
+
+/**
+ * The rows of `netsh interface ipv4 show excludedportrange protocol=tcp`, as { start, end, administered }. Rows marked
+ * `*` are administered exclusions: ports an administrator set aside for their own programs. The other rows are
+ * Windows' own reservations (winnat, for WSL, Hyper-V and Docker Desktop), which refuse every listener.
+ */
+export function parseExcludedPortRanges(netshText) {
+  const ranges = [];
+  for (const line of String(netshText).split(/\r?\n/)) {
+    const match = /^\s*(\d+)\s+(\d+)\s*(\*)?\s*$/.exec(line);
+    if (match) ranges.push({ start: Number(match[1]), end: Number(match[2]), administered: match[3] === "*" });
+  }
+  return ranges;
+}
+
+const inRange = (port, range) => port >= range.start && port <= range.end;
+
+/** The ports inside a range Windows reserved for itself. Administered (`*`) ranges are the operator's and pass. */
+export function blockedPorts(ports, ranges) {
+  return ports.filter((port) => ranges.some((range) => !range.administered && inRange(port, range)));
+}
+
+/**
+ * The `netsh` lines that set the given ports aside for good, one line per run of consecutive ports. Only ports Windows
+ * could reserve (the dynamic range) and not set aside already. Run them as administrator; when a port is inside one of
+ * Windows' reservations, run `net stop winnat` before them and `net start winnat` after.
+ */
+export function portExclusionCommands(ports, ranges = []) {
+  const wanted = [...new Set(ports.map(Number))]
+    .filter((port) => port >= WINDOWS_DYNAMIC_PORT_START && !ranges.some((range) => range.administered && inRange(port, range)))
+    .sort((a, b) => a - b);
+  const runs = [];
+  for (const port of wanted) {
+    const last = runs.at(-1);
+    if (last && port === last.start + last.count) last.count += 1;
+    else runs.push({ start: port, count: 1 });
+  }
+  return runs.map(({ start, count }) => `netsh int ipv4 add excludedportrange protocol=tcp startport=${start} numberofports=${count}`);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
 // Grant parity (moved from tests/security/setup/grants.ts so both callers share one copy)
 // ---------------------------------------------------------------------------------------------------------------------
 

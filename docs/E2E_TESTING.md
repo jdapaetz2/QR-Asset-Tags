@@ -201,6 +201,25 @@ jobs:
   seeded users (default local password when unset).
 - **client control won't respond** — E2E uses the production build for hydration determinism; don't switch
   the web server to `next dev`.
+- **Windows: `supabase start` or a reset fails with "An attempt was made to access a socket in a way forbidden by
+  its access permissions"** — Windows' NAT service (winnat, used by WSL, Hyper-V and Docker Desktop) reserved a
+  block of ports that covers the stack's (2026-11-20: 54318–54417). `npm run verify:local-ports` names the ports
+  and prints the fix. It also runs before every reset (`predb:reset`, `pretest:e2e:reset`), so a reset stops
+  before it can leave the database container stopped. To keep Windows off the ports for good, run these once in
+  PowerShell opened with **Run as administrator** (each prints `Ok.`):
+
+  ```powershell
+  netsh int ipv4 add excludedportrange protocol=tcp startport=54320 numberofports=5
+  netsh int ipv4 add excludedportrange protocol=tcp startport=54327 numberofports=1
+  netsh int ipv4 add excludedportrange protocol=tcp startport=54329 numberofports=1
+  netsh int ipv4 add excludedportrange protocol=tcp startport=55432 numberofports=1
+  ```
+
+  They cover the ports in `supabase/config.toml` and the standalone restore database (55432); 54325 and 54326
+  are commented out in the config and stay free. If a line says the file is in use, either Windows already holds
+  the block (run `net stop winnat` before the lines and `net start winnat` after) or a program is using one of
+  those ports at that moment (wait a minute and retry). Undo with `delete` in place of `add`.
+  `scripts/lib/local-stack.test.mjs` fails if `config.toml` changes and these lines no longer match.
 
 ## Known limitations for A6.2
 

@@ -18,6 +18,9 @@ npx supabase start          # boots local Postgres/Auth/Storage (Docker)
 npm run test:security       # db reset (fresh migrations) + seed + executed RLS/storage/RPC
 ```
 
+On Windows, if `supabase start` or the reset cannot use its ports, run `npm run verify:local-ports` and see
+[E2E_TESTING.md, Troubleshooting](E2E_TESTING.md#troubleshooting).
+
 Other scripts:
 
 - `npm run db:reset` — apply `supabase/migrations/0001..latest` + `seed.sql` to a fresh local DB (Part G proof).

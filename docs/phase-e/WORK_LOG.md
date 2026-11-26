@@ -1127,10 +1127,74 @@ Kit 1.0 asked too much of both sides. Kit 2.0 makes onboarding a 30-minute call 
 3. **The first real customer comes after E4B.** Until then, the import and the page review are a screen share with their Administrator.
 4. **Carried from E2C:**
    - reset the Production database password;
-   - the `winnat` port fix;
-   - redacting the host echo;
+   - the `winnat` port fix (done 2026-11-26, see "Housekeeping");
+   - redacting the host echo (done 2026-11-26, see "Housekeeping");
    - releasing the tap-target and focus branches on their own.
 
 ### Next command
 
 - **Stop:** E3 (kit 2.0) is complete. E4A starts only when the operator runs it, never automatically.
+
+## Housekeeping (2026-11-26, done)
+
+Two follow-ups carried since E2C. The operator approved them on 2026-11-25 ("the two small housekeeping fixes").
+
+### Local Supabase ports (the `winnat` fix)
+
+- **Cause:** Windows' NAT service (`winnat`, used by WSL, Hyper-V and Docker Desktop) reserves random 100-port blocks from the dynamic range (49152 and up) at startup.
+  - On 2026-11-20 it held 54318–54417, which covers every local Supabase port.
+  - The `db reset` then left the database container stopped.
+- **Machine fix (operator, 2026-11-26):** four administered exclusions, so Windows can no longer reserve these ports:
+  - 54320–54324, 54327 and 54329;
+  - 55432, the standalone restore database.
+
+  `persistent` is netsh's default. To undo, run the same `netsh` lines with `delete`.
+  - **The first attempt** (one block, 54320–54329) was refused: another program's outbound connection held 54325 at that moment.
+  - The stack doesn't use 54325 or 54326 (SMTP and POP3 are commented out in `supabase/config.toml`), so the exclusions skip them.
+- **Repo:**
+  - **The check:** `scripts/verify-local-ports.mjs` (`npm run verify:local-ports`) compares the ports in `supabase/config.toml`, plus 55432, with `netsh interface ipv4 show excludedportrange protocol=tcp`:
+    - a stack port inside one of Windows' reservations fails and prints the fix;
+    - 55432 alone only warns;
+    - other platforms skip;
+    - a netsh failure only warns.
+  - **When it runs:** before every reset (`predb:reset`, `pretest:e2e:reset`), so a reset stops before it can leave the database half-started.
+  - **Helpers and tests:** in `scripts/lib/local-stack.mjs` and `.test.mjs`. One test fails if `config.toml` changes and the lines in `docs/E2E_TESTING.md` no longer match.
+  - **Docs:** `docs/E2E_TESTING.md` (Troubleshooting) and `docs/SECURITY_TESTING.md`.
+- **Proof:**
+  - netsh lists the four ranges with `*`, and the check passes.
+  - The local stack had been half-started since 2026-11-20: the database container only "Created", the other containers without host ports. `supabase stop` (volumes kept), then `supabase start`, published every port inside the exclusions.
+  - `phase-e:restore -- standalone-up`, then `standalone-down`: 55432 listened on 127.0.0.1 only, then nothing listened.
+
+### Database-address guard (the host echo)
+
+- **The fix:** `databaseConfig` in `scripts/lib/showcase-target.mjs`, behind both the staging and Production guards, no longer prints the parsed host, which a malformed password filled on 2026-11-20. The message names the variable and gives the fix: percent-encode @ / ? #.
+- **The test:** a fake password with an unencoded "@" then "/" makes the parser read `pw-fragment` as the host, and neither guard prints it. The test fails against the old message.
+- **Commit:** `29068f2`.
+
+### Gates and local suites (2026-11-26)
+
+| Check | Result |
+|---|---|
+| Lint, typecheck | Pass |
+| `npm test` | 220 files, 2,600 tests (2,594 + 6 new) |
+| Build (CI's placeholder env), `check:scan-bundle` | Pass; ok |
+| `test:security` (local stack, 0001–0041) | 11 files, 132 tests |
+| `test:phase-e-local` | 34/34 |
+| `test:phase-e-showcase-local` | 13/13 |
+| `test:phase-e-showcase-walkthrough` | 7/7 (1.9 min), as in E2C; the operator's Demo-plan step was added on 2026-11-03 |
+
+- **First local runs since 2026-11-04.** Each suite ran after `npm run db:reset` (the new check printed PASS) and the Kong health check. `/auth/v1/health` returned 200 every time, so no restart was needed.
+- **Afterwards:** the local stack was stopped (`supabase stop`, volumes kept).
+
+### Open, operator-pending
+
+1. **Reset the Production database password** (from E2C).
+2. **Release the tap-target, focus and sharp branches as one release** (recommended, 2026-11-25).
+   - Each promotion replaces all of Production, so promoting one branch alone drops the others' changes.
+   - The plan: merge `fix/deps-sharp-audit-triage` into `fix/public-focus-not-obscured` (which contains the tap fix), run every gate, test the one Preview (including the photo damage report for sharp), promote once, then merge it into phase-e.
+   - The focus fix's known gap: screens under about 780 px of visible height need a design decision.
+3. **The commercial and legal review of the kit 2.0 texts:** unchanged; see "E3 rework" above.
+
+### Next command
+
+- **Stop:** E4A starts only when the operator runs it, never automatically.
