@@ -33,7 +33,7 @@ const TARGET_DATABASES = {
   production: { ref: PRODUCTION_REF, label: "Production", envName: PRODUCTION_DB_ENV, caEnv: PRODUCTION_DB_CA_ENV, envFile: ".env.production-db.local", otherRef: STAGING_REF, otherName: "the staging project" },
 };
 
-/** A pg client config for the target's database, or an Error that names the problem but never the URL. */
+/** A pg client config for the target's database, or an Error that names the problem but never the URL or any part of it. */
 function databaseConfig(env, target, readFile) {
   const { ref, label, envName, caEnv, envFile, otherRef, otherName } = TARGET_DATABASES[target];
   const raw = String(env[envName] ?? "").trim();
@@ -52,7 +52,13 @@ function databaseConfig(env, target, readFile) {
   const direct = host === `db.${ref}.supabase.co`;
   const pooler = POOLER_HOST.test(host);
   if (port === 6543) throw new Error("port 6543 is the transaction pooler; one reset transaction needs the session pooler or the direct host (port 5432)");
-  if (!direct && !pooler) throw new Error(`host ${host} is neither the ${label} project's direct host nor a Supabase session pooler`);
+  // Never print the host: an unencoded "@" followed by "/", "?" or "#" in the password makes the parser read password
+  // characters as the host (2026-11-20).
+  if (!direct && !pooler) {
+    throw new Error(
+      `${envName}: the host is neither the ${label} project's direct host nor a Supabase session pooler. The host is not shown, because an unencoded @, /, ? or # in the password can put password characters there; percent-encode them.`
+    );
+  }
   if (port !== 5432) throw new Error(`port ${port}: the ${label} database is reached on port 5432`);
   if (direct && user !== "postgres") throw new Error(`the direct ${label} host takes the user postgres`);
   if (pooler && user !== `postgres.${ref}`) throw new Error(`the session pooler user must be postgres.${ref} (the ${label} project)`);
@@ -72,12 +78,12 @@ function databaseConfig(env, target, readFile) {
   };
 }
 
-/** A pg client config for the staging database, or an Error that names the problem but never the URL. */
+/** A pg client config for the staging database, or an Error that names the problem but never the URL or any part of it. */
 export function stagingDbConfig(env, { readFile = readFileSync } = {}) {
   return databaseConfig(env, "staging", readFile);
 }
 
-/** A pg client config for the Production database (E2C), or an Error that names the problem but never the URL. */
+/** A pg client config for the Production database (E2C), or an Error that names the problem but never the URL or any part of it. */
 export function productionDbConfig(env, { readFile = readFileSync } = {}) {
   return databaseConfig(env, "production", readFile);
 }

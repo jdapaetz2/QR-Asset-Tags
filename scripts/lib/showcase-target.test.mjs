@@ -87,6 +87,30 @@ describe("productionDbConfig (E2C)", () => {
       expect(err.message).not.toContain("fake-password");
     }
   });
+
+  it("never prints the parsed host, which a malformed password can fill (2026-11-20)", () => {
+    // An unencoded "@" and then "/" in the (fake) password make the URL parser read "pw-fragment" as the host.
+    const leaky = (ref) => `postgresql://postgres.${ref}:fake@pw-fragment/rest@aws-0-ca-central-1.pooler.supabase.com:5432/postgres`;
+    expect(new URL(leaky(PRODUCTION_REF)).hostname).toBe("pw-fragment");
+    const messageOf = (fn) => {
+      try {
+        fn();
+      } catch (err) {
+        return err.message;
+      }
+      return "no error";
+    };
+    const messages = [
+      messageOf(() => productionDbConfig(prodEnv(leaky(PRODUCTION_REF)))),
+      messageOf(() => stagingDbConfig(env(leaky(STAGING_REF)))),
+    ];
+    expect(messages[0]).toMatch(/^PHASE_E_PRODUCTION_DB_URL: the host is neither the Production project's/);
+    expect(messages[1]).toMatch(/^PHASE_E_STAGING_DB_URL: the host is neither the staging project's/);
+    for (const message of messages) {
+      expect(message).not.toContain("pw-fragment");
+      expect(message).toMatch(/percent-encode/);
+    }
+  });
 });
 
 describe("Production database proof (E2C)", () => {
