@@ -242,7 +242,7 @@ against an operator-designated test asset.
   `sharp` (direct, above); the root `postcss@8.5.15` via `@tailwindcss/postcss`; `zod`; `vite`, `vitest` and
   `@vitest/mocker`; `typescript-eslint` with its `minimatch` and `brace-expansion` chain; `browserslist`,
   `baseline-browser-mapping`, `js-yaml` and `source-map-js`. None was reviewed here. **Done in the next entry; 7
-  moderate entries remain until 2026-11-30.**
+  moderate entries remain until 2026-11-30.** They were cleared on 2026-11-27, in the 2026-11-27 entry.
 - **Carry the upgrade into the working branches** (`phase-e/showcase-onboarding`, `fix/public-touch-targets`,
   `fix/public-focus-not-obscured`). **Done.** The two `fix/public-*` branches merged this branch without conflicts on
   2026-11-24 (`d1d6d3a`, `0877538`). `phase-e/showcase-onboarding` was fast-forwarded on 2026-11-25 to `f4db7f1`, a
@@ -332,7 +332,7 @@ least two weeks old. Every version npm resolved was capped with `--before=2026-1
 | `browserslist` | 4.28.2 | **4.28.7** | 2026-07-21 | 126 days | First fixed release |
 | `baseline-browser-mapping` | 2.10.37 | **2.11.0** | 2026-07-21 | 126 days | First fixed release |
 | `js-yaml` | 4.2.0 | **4.3.2** | 2026-08-26 | 90 days | First release that fixes all three |
-| `typescript-eslint` → `minimatch` | 8.61.1 → 10.2.5 | **unchanged** | — | — | No `minimatch` 10.x is fixed. The first fix is `typescript-eslint` 8.73.0 (2026-11-16, 8 days old), which moves to `minimatch ^11.0.1`. Eligible from **2026-11-30** |
+| `typescript-eslint` → `minimatch` | 8.61.1 → 10.2.5 | **unchanged** | — | — | No `minimatch` 10.x is fixed. The first fix is `typescript-eslint` 8.73.0 (2026-11-16, 8 days old), which moves to `minimatch ^11.0.1`. Eligible from **2026-11-30**; taken on **2026-11-27** as a one-time exception (the 2026-11-27 entry) |
 
 `package.json` changed only on the `sharp` line. The direct dev dependencies keep their ranges (`^4`, `^4.1.9`), and
 the lockfile carries the newer versions.
@@ -459,7 +459,8 @@ both hosts; it makes scan-free `/nojs/t/` checks. The release is recorded in ful
 
 - **`typescript-eslint` 8.73.0 from 2026-11-30.** It is the first release that leaves `minimatch` 10.x, and it clears
   the last 7 entries. It is an in-range, lockfile-only update: `eslint-config-next` asks for `^8.56.0`. Re-run lint
-  afterwards.
+  afterwards. **Done on 2026-11-27**, three days early, as a one-time exception the operator approved. Lint is clean.
+  See the 2026-11-27 entry.
 - **The email logo.** `npm run brand:email-logo` now writes the 8-bit palette PNG (3,768 bytes). The committed 4-bit
   logo (2,176 bytes) stays until someone regenerates it on purpose. If you do, re-check the email size budgets and
   `lib/notifications/email-components.test.ts`.
@@ -469,5 +470,74 @@ both hosts; it makes scan-free `/nojs/t/` checks. The release is recorded in ful
   changes unless someone does that on purpose.
 - **Carried into the working branch.** `phase-e/showcase-onboarding` took the release in `2cbcd47` (2026-11-27). The
   three fix branches (`fix/deps-sharp-audit-triage`, `fix/public-touch-targets`, `fix/public-focus-not-obscured`)
-  are retired: never promote them again, because each one lacks the others' changes.
+  are retired: never promote them again, because each one lacks the others' changes. **They were deleted on
+  2026-11-27**, with their worktrees, on the operator's OK. Every commit on them is in phase-e.
 - **CI on Node 22** runs only on a pull request.
+
+---
+
+## 2026-11-27 — `typescript-eslint` 8.61.1 → 8.73.0 (`minimatch` 10 → 11)
+
+| | |
+|---|---|
+| Branch | `phase-e/showcase-onboarding`, as `9992b2f`. It was prepared in a temporary detached worktree of `436881f`, then phase-e was fast-forwarded to it. It is a lint-only tool: the build does not run lint, so no release is needed and the website does not change |
+| Change | `package-lock.json` only, 13 entries. `package.json` unchanged (`eslint-config-next` asks for `typescript-eslint` `^8.56.0`) |
+| Status | **Done** on phase-e. It reaches Production with the next release from phase-e; nothing there runs it |
+
+### Why
+
+These are the last 7 entries of the 2026-11-24 triage: `typescript-eslint` 8.61.1, five of its `@typescript-eslint/*`
+packages, and the `minimatch` 10.2.5 under them.
+- **The advisory:** [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249), moderate, globparts
+  amplification. Its first fixed `minimatch` is 11.0.1.
+- **The fix:** `typescript-eslint` 8.73.0 is the first release that moves to `minimatch ^11.0.1`.
+- **It never applied to Production:** it runs only in `npm run lint`, on the repository's own patterns (see the
+  2026-11-24 table).
+
+### Version choice
+
+The 14-day rule allowed 8.73.0 from 2026-11-30. **The operator approved a one-time exception on 2026-11-27**, when it
+was 11 days old. Every other version kept the rule: nothing else that was added or changed is newer than 2026-11-13.
+
+| Package | Was | Now | Published | Notes |
+|---|---|---|---|---|
+| `typescript-eslint` and its 10 `@typescript-eslint/*` packages | 8.61.1 | **8.73.0** | 2026-11-16 | The exception. The packages pin each other exactly |
+| `minimatch` (under `@typescript-eslint/typescript-estree`) | 10.2.5 | **11.0.1** | 2026-10-27 | The advisory's first fixed version, and the lowest that fits `^11.0.1` |
+| `@isaacs/nonrecursive-glob-match` | — | **1.1.0** (new) | 2026-11-05 | A `minimatch` 11 dependency |
+
+- **How:**
+  1. A temporary `overrides` block: `typescript-eslint` at `8.73.0`, and `minimatch` at `11.0.1` under `typescript-estree`.
+  2. `npm install --before=2026-11-16T18:00:00Z`.
+  3. `package.json` was restored byte for byte.
+- **npm also moved three entries that nothing required:**
+  - `ignore` 7.0.5 → 7.0.14, under the ESLint plugin;
+  - `brace-expansion` 5.0.12 → 5.0.13 and `semver` 7.8.4 → 7.8.6, under `typescript-estree`.
+  - Their entries were restored verbatim from the previous lockfile, and npm then accepted the file unchanged.
+- **Not installed:** `@typescript-eslint/typescript-estree` 8.73.0 adds `@typescript/native` as an optional peer, so npm
+  leaves it out. TypeScript 5.9.3 is inside the new peer range (`>=4.8.4 <6.1.0`).
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `npm install` after the pins were removed | Both package files byte-identical |
+| A fresh `npm ci`, then `npm install` | The same. `npm ls --all` exits 0; its only notes are unmet optional peers |
+| Lockfile diff against `436881f` | 13 entries: the 11 `typescript-eslint` packages, `minimatch` and the new helper. Publish dates checked for each |
+| `npm run lint` | Clean, with no new findings |
+| Typecheck, `npm test` | Pass; 220 files, 2,604 tests |
+| Build (CI's placeholder env), `check:scan-bundle` | Pass; ok. Route table and static media identical to `09496a5` |
+| `phase-e:intake:build -- --check` | 31 files match |
+| `npm audit` (phase-e) | 9 moderate before, **2** after (below) |
+| phase-e Preview | GitHub deployment `8118694557` (Preview, success, 2026-11-27 20:24 UTC) |
+
+### The 2 entries left on phase-e: `uuid` under `exceljs` (does not apply)
+
+| Entry | Advisory | Pulled in by | Runs in | Why it does not apply |
+|---|---|---|---|---|
+| `uuid` 8.3.2 (and `exceljs`, flagged for depending on it) | [GHSA-w5hq-g745-h8pq](https://github.com/advisories/GHSA-w5hq-g745-h8pq) moderate: a missing buffer bounds check in `v3`, `v5` and `v6` when a `buf` is passed. Fixed in 11.1.1, 12.0.1 and 13.0.1 | `exceljs` 4.4.0, a dev dependency of the intake kit (kit 2.0) | `phase-e:intake:build` and `onboard:*`, on the operator's machine | `exceljs` only calls `v4()`, without a buffer (`lib/xlsx/xform/sheet/cf-ext/cf-rule-ext-xform.js`). Production has no `exceljs` |
+
+- **Not in the 2026-11-24 count of 7:** that count was taken on the sharp branch, before kit 2.0 added `exceljs`.
+- **No in-range fix:** `exceljs` 4.4.0 is the latest release and asks for `uuid ^8.3.0`, and `npm audit fix --force` would
+  *downgrade* it to 3.4.0.
+- **Forcing `uuid` 11 in** with `overrides` is possible. It would need the intake kit's 31-file `--check` to prove that
+  nothing changes. Revisit when `exceljs` moves to a fixed `uuid`.

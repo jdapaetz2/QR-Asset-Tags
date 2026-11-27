@@ -1269,15 +1269,141 @@ One combined release of the three finished branches: sharp 0.35.5 with the `npm 
 
 ### Branches
 
-- **Retired:** `fix/deps-sharp-audit-triage`, `fix/public-touch-targets` and `fix/public-focus-not-obscured`. Never promote them: each lacks the others' changes. Deleting them, their worktrees and `release/2026-11-26` waits for the operator's OK.
-- **Production** runs `release/2026-11-26` (`09496a5`), and `phase-e/showcase-onboarding` contains it.
+- **Retired:** `fix/deps-sharp-audit-triage`, `fix/public-touch-targets` and `fix/public-focus-not-obscured`. Never promote them: each lacks the others' changes. Deleting them, their worktrees and `release/2026-11-26` waits for the operator's OK. **The three fix branches were deleted on 2026-11-27** (see "Ack card fits the screen"); `release/2026-11-26` is kept.
+- **Production** runs `release/2026-11-26` (`09496a5`), and `phase-e/showcase-onboarding` contains it. Until 2026-11-27 20:47 UTC; then the ack card fix (`d05b143`).
 
 ### Open, operator-pending
 
 1. **Reset the Production database password** (from E2C).
-2. **The focus fix's known gap:** on screens under about 780 px of visible height, focus can still land behind the open acknowledgement card. It needs a design decision.
+2. **The focus fix's known gap:** on screens under about 780 px of visible height, focus can still land behind the open acknowledgement card. It needs a design decision. **Done 2026-11-27:** measured properly, and fixed by fitting the card to the screen; see "Ack card fits the screen".
 3. **The commercial and legal review of the kit 2.0 texts:** unchanged; see "E3 rework" above.
-4. **`typescript-eslint` 8.73.0 from 2026-11-30:** the in-range, lockfile-only update that clears the last 7 `npm audit` entries (`docs/DEPENDENCY_ADVISORIES.md`).
+4. **`typescript-eslint` 8.73.0 from 2026-11-30:** the in-range, lockfile-only update that clears the last 7 `npm audit` entries (`docs/DEPENDENCY_ADVISORIES.md`). **Done 2026-11-27**, as a one-time exception; see "Ack card fits the screen".
+
+### Next command
+
+- **Stop:** E4A starts only when the operator runs it, never automatically.
+
+## Ack card fits the screen (2026-11-27, done)
+
+The open acknowledgement card now fits any screen, and its ✕ is always in view. The operator decided this on 2026-11-27 after seeing pictures of the focus gap: "The card needs to fit to the screen if the screen is smaller than its normal size. It doesn't need to grow for screens which are larger though. The user should always be able to see the X." A slim bar on phones was the fallback, if fitting proved infeasible; it didn't. The plan was approved in plan mode, together with typescript-eslint 8.73.0 and the branch deletions (both below).
+
+### What was wrong (measured 2026-11-27)
+
+A scratch capture (`qa-artifacts/focus-gap/`, gitignored) opened EXCAVATOR-017's scan page at 14 sizes. At each size it waited for the card, then tabbed through every control as the walkthrough's keyboard check does.
+
+| Screen (CSS px) | Card | Before the fix |
+|---|---|---|
+| Phones 390–430 wide | 608 px tall | Fits when the page gets more than about 625 px of height. A typical iPhone in Safari (390 × 664) keeps a 40 px strip of page above it |
+| Phones 360–375 wide | 644 px | Fits when the page gets more than about 660 px |
+| iPhone SE in Safari (375 × 548) | 644 px; its top 112 px above the screen | Title, ✕ and name label cut off, for everyone. 15 of 21 focused controls entirely hidden |
+| A phone turned sideways (844 × 340) | 512 px; its top 204 px above the screen | The same: 16 of 21 hidden |
+| Laptops, 1280 × 800 down to 1280 × 585 | 512 px | Fine |
+
+- **"Under about 780 px of visible height" was too rough** (the Release section's open item 2). The real limit is the card's own height: when the page gets less height than that, the card's top leaves the screen. That affects touch users as much as keyboard users.
+
+### The change
+
+- **`components/public/ack-prompt.tsx`:** the card is now a column of two parts:
+  - a title row (the title and the ✕) that never scrolls;
+  - a body (the form, "Dismiss for now" and the note) that scrolls inside the card when the card is capped.
+  - The spacing is unchanged.
+- **`app/globals.css`:** `[data-ack-prompt] > [role="dialog"]` gets `max-height: calc(100svh - 3.5rem)`, and `calc(100svh - 4.5rem)` from 40rem.
+  - Each subtraction is a 2.5rem strip of page above the card plus the overlay's own space under it: `pb-4`, plus `sm:bottom-4` from 40rem.
+  - Where the card fits, the cap never applies.
+  - The strip keeps a focused page control in view through the existing `--ack-prompt-cover` scroll-padding, so the focus gap is closed at every size.
+  - The plan's `vh` fallback line was dropped: Lightning CSS removed it from the build anyway, because every browser the build targets has `svh`.
+- **Unchanged:**
+  - the card stays non-blocking: it never takes focus and never makes the page inert;
+  - the wording, the 4 s delay, the 44 px targets and the sticky-bar handling;
+  - no new scan-page scripts, and nothing animates.
+- **Tests:**
+  - `components/public/ack-prompt.test.ts` asserts the cap, and that the ✕ sits outside the scrolling part.
+  - The walkthrough's story 1 (`expectPromptFits`) checks the open card. At 390 × 844 it keeps its full height. At 375 × 548 and 844 × 340 the whole card is on screen, its ✕ is on top, and the full keyboard check passes.
+
+### Branch and gates
+
+- **Branch:** `fix/ack-card-fits-screen`, cut from the Production commit `09496a5`, in the worktree `mulemark-worktrees\ack-card-fits-screen` (LF).
+- **Commit:** one, `d05b143`, pushed.
+
+| Check | Result |
+|---|---|
+| Lint, typecheck | Pass |
+| `npm test` | 213 files, 2,456 tests (2,454 + 2 new) |
+| Build (CI's placeholder env), `check:scan-bundle` | Pass; ok |
+| Route table and static media | Identical to a fresh build of `09496a5`: 75 route lines, 17 files |
+| Built CSS | Adds the two cap rules, `.min-h-0`, `.overscroll-contain` and `.pb-2`; nothing removed |
+| `test:phase-e-showcase-walkthrough` | 7/7 (3.0 min), including the two new short-screen views |
+| The 14-size capture, re-run | No focused control hidden at any size. The card is 492 px tall below a 40 px strip at 375 × 548, and 268 px at 844 × 340. Where it already fit, its size and position are unchanged; the pictures differ only in 2–37 anti-aliased corner pixels of the inner form box |
+
+### Preview and the operator's check (2026-11-27)
+
+- **Deployment:** GitHub deployment `8118624262` (Preview, success, 20:19 UTC), host `qr-asset-tags-naq8hg6p2-jdapaetz2-s-projects.vercel.app`.
+- **Staging smoke** against that host, with `QA_BASE_URL` set to the deployment: 29 checks, 28 pass, 0 fail, 1 skipped (the `dry_run` log line). Its acknowledgement check filled in and sent this card.
+- **The operator's phone check** on `/t/stg-qa-rented`: "checked". It covered:
+  - the card at full size;
+  - the phone turned sideways, with the ✕ in view and the form scrolling inside;
+  - the name field staying above the keyboard;
+  - closing the card with the ✕.
+
+### Promotion and Production (2026-11-27)
+
+- **Promotion (operator):** GitHub deployment `8119046631`: Production, success, 20:47:19 UTC, host `qr-asset-tags-fwjqkczn9-jdapaetz2-s-projects.vercel.app`.
+- **`/api/version`** on `mulemark.io` and `qr-asset-tags.vercel.app`: `d05b143`, environment `production` (20:47 UTC).
+- **`npm run smoke:production`:** 14 checks, 13 pass, 0 fail, 1 skipped (the scan-page render). It ran from the fix worktree, which holds no `.env.production-smoke.local`.
+- **`phase-e:health:production`:** 5/5 on both hosts. On the alias host, the conditional `7gzt4aqc` still shows the unavailable notice, unchanged.
+- **Rollback, if ever needed:** promote **Production rebuild of 5SDDN2e53** (`09496a5`) again, then rerun `smoke:production`.
+
+### Carried into phase-e
+
+- **Merge:** `fix/ack-card-fits-screen` into `phase-e/showcase-onboarding`, in the main checkout (`--no-ff`, `core.autocrlf=false`), as `36cc394` (parents `9992b2f` and `d05b143`), pushed.
+  - The tree equals the prediction (`3f303c13`).
+  - The 4 changed files are LF, and no CR was staged.
+- The phase-e Preview built as GitHub deployment `8119317113` (Preview, success, 21:05 UTC).
+
+| Check | Result |
+|---|---|
+| Package files | Unchanged by the merge; `node_modules` from `9992b2f`'s `npm ci` |
+| `verify:production-config` | 0 fail, 3 warn (shell env unset), 5 pass |
+| Lint, typecheck | Pass |
+| `npm test` | 220 files, 2,606 tests (2,604 plus the fix's 2) |
+| Build (CI's placeholder env), `check:scan-bundle` | Pass; ok. Routes and static media identical to the fix build; the CSS adds only phase-e's existing `.border-collapse` |
+| `phase-e:intake:build -- --check` | 31 files match |
+| `test:security` | 11 files, 132 tests |
+| `test:phase-e-local` | 34/34 |
+| `test:phase-e-showcase-local` | 13/13 |
+| `test:phase-e-showcase-walkthrough` | 7/7 (2.6 min) |
+
+- **Kong:** it routed Auth and Storage after every reset this time, so no restart was needed. It had needed one after 1 of that day's 4 earlier resets.
+- **Afterwards:** the local stack was stopped (`supabase stop`, volumes kept).
+
+### typescript-eslint 8.73.0 (2026-11-27)
+
+- **What:** `9992b2f` on phase-e, lockfile only:
+  - typescript-eslint and its 10 `@typescript-eslint/*` packages: 8.61.1 to 8.73.0 (2026-11-16, 11 days old);
+  - `minimatch`: 10.2.5 to 11.0.1;
+  - one new helper package.
+- **The exception:** a one-time exception to the 14-day rule, approved by the operator. Every other version kept the rule.
+- **Details and checks:** `docs/DEPENDENCY_ADVISORIES.md`, the 2026-11-27 entry. Lint was clean, and the build's routes and static media are identical to `09496a5`.
+- **`npm audit` on phase-e:** 9 moderate before, 2 after. The 2 left are `uuid` 8.3.2 under `exceljs` 4.4.0, the intake kit's spreadsheet library, which isn't in Production.
+  - `exceljs` only calls `uuid.v4()` without a buffer, so the advisory does not apply.
+  - No in-range fix exists.
+  - These 2 were never in the 2026-11-24 count of 7, which was taken before kit 2.0 added `exceljs`.
+- **How it was prepared:** in a temporary detached worktree, so its build never saw the main checkout's `.env.local`. phase-e was then fast-forwarded to it. The phase-e Preview built as GitHub deployment `8118694557` (Preview, success, 20:24 UTC).
+
+### Branches
+
+- **Deleted on 2026-11-27, on the operator's OK:** `fix/deps-sharp-audit-triage`, `fix/public-touch-targets` and `fix/public-focus-not-obscured`, here and on GitHub, with their worktrees.
+  - Every commit on them is in phase-e.
+  - The tap branch's last merge commit (`d1d6d3a`) adds nothing: its tree equals a clean re-merge of its parents.
+- **Kept:**
+  - `release/2026-11-26` and its worktree. The operator's OK named only the fix branches.
+  - `fix/ack-card-fits-screen` and its worktree. Never promote it once phase-e moves on, because it lacks phase-e's later changes.
+- **Production** runs `fix/ack-card-fits-screen` (`d05b143`), and `phase-e/showcase-onboarding` contains it.
+
+### Open, operator-pending
+
+1. **Reset the Production database password** (from E2C).
+2. **The commercial and legal review of the kit 2.0 texts:** unchanged; see "E3 rework" above.
 
 ### Next command
 
