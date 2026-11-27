@@ -200,3 +200,18 @@ main:has(> [data-ack-prompt]) {
 html:has([data-ack-prompt]) [data-sticky-actions] {
   visibility: hidden;
 }
+
+/* The open prompt never grows past the screen (operator, 2026-11-27). Where its natural height fits, nothing changes.
+   Otherwise it shrinks to leave a 2.5rem strip of the page above it (what a typical iPhone in Safari shows anyway), and
+   the part under its title row scrolls inside it, so the title and the ✕ always stay in view. The strip also gives a
+   focused page control room to show (the scroll-padding above). The rest of each subtraction is the overlay's own space
+   under the card: pb-4, plus sm:bottom-4 from 40rem. Small-viewport units keep the card steady while browser toolbars
+   slide. (Every browser the build targets has them, so the build drops a vh fallback; none is written here.) */
+[data-ack-prompt] > [role="dialog"] {
+  max-height: calc(100svh - 3.5rem);
+}
+@media (width >= 40rem) {
+  [data-ack-prompt] > [role="dialog"] {
+    max-height: calc(100svh - 4.5rem);
+  }
+}

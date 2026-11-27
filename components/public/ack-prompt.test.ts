@@ -68,3 +68,31 @@ describe("ack-prompt — keyboard focus is never hidden behind the prompt or the
     expect(bar).toContain('data-sticky-actions={preview ? undefined : ""}');
   });
 });
+
+// Fitting the screen (operator, 2026-11-27): the card never grows past the screen, and its ✕ is always in view.
+describe("ack-prompt — fits the screen, with the ✕ always in view", () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+  const css = readFileSync(resolve(root, "app/globals.css"), "utf8").replace(/\r\n/g, "\n");
+  const tsx = src.replace(/\r\n/g, "\n");
+
+  it("caps the card at the screen height less a 2.5rem strip of the page and the overlay's own space under it", () => {
+    expect(css).toContain('[data-ack-prompt] > [role="dialog"] {\n  max-height: calc(100svh - 3.5rem);\n}');
+    expect(css).toContain('@media (width >= 40rem) {\n  [data-ack-prompt] > [role="dialog"] {\n    max-height: calc(100svh - 4.5rem);\n  }');
+    // The space under the card that each cap subtracts besides the strip: pb-4 on phones, plus sm:bottom-4 from 40rem.
+    expect(tsx).toContain('className="fixed inset-x-0 bottom-0 z-50 px-4 pb-4 sm:bottom-4"');
+  });
+
+  it("keeps the title row and the ✕ outside the part that scrolls, which holds everything else", () => {
+    const body = tsx.indexOf('<div data-ack-prompt-body="" className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-4">');
+    const close = tsx.indexOf('aria-label="Dismiss"');
+    expect(body).toBeGreaterThan(-1);
+    expect(close).toBeGreaterThan(-1);
+    expect(close).toBeLessThan(body);
+    expect(tsx).toContain('className="mx-auto flex max-w-md flex-col rounded-lg border border-l-4 bg-card shadow-lg"');
+    expect(tsx).toContain('<div className="flex shrink-0 items-start justify-between gap-3 px-4 pt-4 pb-2">');
+    const scrolling = tsx.slice(body);
+    expect(scrolling).toContain("<AcknowledgementForm");
+    expect(scrolling).toContain("Dismiss for now");
+    expect(scrolling).not.toContain('aria-label="Dismiss"');
+  });
+});

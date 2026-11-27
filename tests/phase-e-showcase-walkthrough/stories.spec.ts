@@ -147,6 +147,43 @@ async function keyboardAndTargets(page: Page, { view }: { view?: string } = {}) 
   expect.soft(small, `${route}: touch targets under 44 x 44 px`).toEqual([]);
 }
 
+/**
+ * The open acknowledgement prompt fits the screen (operator, 2026-11-27): the whole card is inside the viewport, its ✕ is
+ * on top there (hit-tested at its centre), and the part under its title row scrolls inside the card only when the screen
+ * is too short for the card's natural height (`capped`). It first waits for the prompt to publish its cover for the
+ * current size, so a resize has settled.
+ */
+async function expectPromptFits(page: Page, { capped }: { capped: boolean }) {
+  const read = () =>
+    page.evaluate(() => {
+      const overlay = document.querySelector<HTMLElement>("[data-ack-prompt]");
+      const card = overlay?.querySelector<HTMLElement>('[role="dialog"]');
+      const body = overlay?.querySelector<HTMLElement>("[data-ack-prompt-body]");
+      const close = overlay?.querySelector<HTMLElement>('button[aria-label="Dismiss"]');
+      if (!overlay || !card || !body || !close) return null;
+      const bottom = Number.parseFloat(getComputedStyle(overlay).bottom) || 0;
+      const c = card.getBoundingClientRect();
+      const x = close.getBoundingClientRect();
+      const hit = document.elementFromPoint(x.left + x.width / 2, x.top + x.height / 2);
+      return {
+        settled: document.documentElement.style.getPropertyValue("--ack-prompt-cover") === `${Math.ceil(overlay.offsetHeight + bottom)}px`,
+        top: c.top,
+        bottom: c.bottom,
+        viewport: document.documentElement.clientHeight,
+        closeOnTop: !!hit && close.contains(hit),
+        scrolls: body.scrollHeight > body.clientHeight + 1,
+      };
+    });
+  await expect.poll(async () => (await read())?.settled ?? false).toBe(true);
+  const fit = await read();
+  if (!fit) throw new Error("the acknowledgement prompt is not open");
+  const size = `${page.viewportSize()?.width} x ${page.viewportSize()?.height}`;
+  expect.soft(fit.top, `${size}: the card's top is on screen`).toBeGreaterThanOrEqual(0);
+  expect.soft(fit.bottom, `${size}: the card's bottom is on screen`).toBeLessThanOrEqual(fit.viewport);
+  expect.soft(fit.closeOnTop, `${size}: the card's ✕ is visible and on top`).toBe(true);
+  expect.soft(fit.scrolls, `${size}: the card scrolls inside only when the screen is too short for it`).toBe(capped);
+}
+
 type Dataset = {
   assets: { asset_code: string; asset_id: string; short_code: string; active_rental_session_id: string | null }[];
   stories: Record<string, { sessions: { key: string; reference: string; status: string; records: { key: string; reference: string; status: string }[] }[]; incidents: { key: string; record: { reference: string; status: string } | null }[] }>;
@@ -241,6 +278,16 @@ test("story 1 — EXCAVATOR-017: the handoff, the manual, live acknowledgement a
   await shot(renter, "017", "1-scan-acknowledgement-prompt", "public scan page: identity, the handover wording, Manual, the active-rental acknowledgement prompt");
   // Every control is checked, the page's behind the open prompt included: they scroll clear of it (WCAG 2.2 SC 2.4.11).
   await keyboardAndTargets(renter, { view: "acknowledgement prompt open" });
+  // The card fits any screen and its ✕ always shows (operator, 2026-11-27). Here it keeps its full height. On an iPhone SE
+  // in Safari and on a phone turned sideways it shrinks to fit and scrolls inside, with every control still in view.
+  await expectPromptFits(renter, { capped: false });
+  for (const size of [{ width: 375, height: 548 }, { width: 844, height: 340 }]) {
+    await renter.setViewportSize(size);
+    await expectPromptFits(renter, { capped: true });
+    await keyboardAndTargets(renter, { view: `acknowledgement prompt open, ${size.width} x ${size.height}` });
+  }
+  await renter.setViewportSize({ width: 390, height: 844 });
+  await expectPromptFits(renter, { capped: false });
   await prompt.getByLabel("Your name").fill("Walkthrough renter (local)");
   await prompt.getByRole("checkbox").check();
   await prompt.getByRole("button", { name: "Acknowledge" }).click();
