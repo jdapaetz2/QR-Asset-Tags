@@ -26,6 +26,10 @@ const COVER_PROPERTY = "--ack-prompt-cover";
  * edge up to the card's top) as `--ack-prompt-cover` on <html>. app/globals.css turns that into scroll-padding, so a
  * focus move scrolls a page control clear of the card, and into room after the page, so the last controls can scroll
  * clear too. Only script can measure it: the card's height varies with the width, wrapping and validation messages.
+ *
+ * Fitting the screen (operator, 2026-11-27): the card never grows past the screen. app/globals.css caps its height,
+ * leaving a 2.5rem strip of the page above it. When the cap applies, only the part under the title row scrolls (inside
+ * the card), so the title and ✕ always stay in view. Where the card fits, nothing changes.
  */
 export function AckPrompt({
   shortCode,
@@ -105,10 +109,11 @@ export function AckPrompt({
       <div
         role="dialog"
         aria-label="Before you use this equipment"
-        className="mx-auto max-w-md rounded-lg border border-l-4 bg-card p-4 shadow-lg"
+        className="mx-auto flex max-w-md flex-col rounded-lg border border-l-4 bg-card shadow-lg"
         style={{ borderLeftColor: brand }}
       >
-        <div className="mb-2 flex items-start justify-between gap-3">
+        {/* The title row never scrolls, so the ✕ is always in view. On a short screen only the part below it scrolls. */}
+        <div className="flex shrink-0 items-start justify-between gap-3 px-4 pt-4 pb-2">
           <h2 className="text-sm font-semibold">Before you use this equipment</h2>
           {/* A 44px touch target; the negative margins keep the glyph where it was, in the card corner. */}
           <button
@@ -121,22 +126,24 @@ export function AckPrompt({
           </button>
         </div>
 
-        <AcknowledgementForm
-          shortCode={shortCode}
-          brand={brand}
-          onAcknowledged={completeAndHide}
-        />
+        <div data-ack-prompt-body="" className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-4">
+          <AcknowledgementForm
+            shortCode={shortCode}
+            brand={brand}
+            onAcknowledged={completeAndHide}
+          />
 
-        <button
-          type="button"
-          onClick={dismissForNow}
-          className="inline-flex min-h-11 items-center text-xs text-muted-foreground underline-offset-4 hover:underline"
-        >
-          Dismiss for now
-        </button>
-        <p className="mt-1 text-xs text-muted-foreground">
-          The acknowledgement will appear again the next time this tag is scanned.
-        </p>
+          <button
+            type="button"
+            onClick={dismissForNow}
+            className="inline-flex min-h-11 items-center text-xs text-muted-foreground underline-offset-4 hover:underline"
+          >
+            Dismiss for now
+          </button>
+          <p className="mt-1 text-xs text-muted-foreground">
+            The acknowledgement will appear again the next time this tag is scanned.
+          </p>
+        </div>
       </div>
     </div>
   );
