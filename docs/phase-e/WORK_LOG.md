@@ -1129,7 +1129,7 @@ Kit 1.0 asked too much of both sides. Kit 2.0 makes onboarding a 30-minute call 
    - reset the Production database password;
    - the `winnat` port fix (done 2026-11-26, see "Housekeeping");
    - redacting the host echo (done 2026-11-26, see "Housekeeping");
-   - releasing the tap-target and focus branches on their own.
+   - releasing the tap-target and focus branches (done 2026-11-27, together with sharp; see "Release (2026-11-26)").
 
 ### Next command
 
@@ -1189,11 +1189,95 @@ Two follow-ups carried since E2C. The operator approved them on 2026-11-25 ("the
 ### Open, operator-pending
 
 1. **Reset the Production database password** (from E2C).
-2. **Release the tap-target, focus and sharp branches as one release** (recommended, 2026-11-25).
+2. **Release the tap-target, focus and sharp branches as one release** (recommended, 2026-11-25; done 2026-11-27, see "Release (2026-11-26)").
    - Each promotion replaces all of Production, so promoting one branch alone drops the others' changes.
    - The plan: merge `fix/deps-sharp-audit-triage` into `fix/public-focus-not-obscured` (which contains the tap fix), run every gate, test the one Preview (including the photo damage report for sharp), promote once, then merge it into phase-e.
    - The focus fix's known gap: screens under about 780 px of visible height need a design decision.
 3. **The commercial and legal review of the kit 2.0 texts:** unchanged; see "E3 rework" above.
+
+### Next command
+
+- **Stop:** E4A starts only when the operator runs it, never automatically.
+
+## Release (2026-11-26, done)
+
+One combined release of the three finished branches: sharp 0.35.5 with the `npm audit` triage, the 44 px tap targets, and the WCAG 2.2 SC 2.4.11 focus fix. The operator said "go" on 2026-11-26 and approved the plan in plan mode.
+
+### Why one release
+
+- Each promotion replaces all of Production, so promoting one fix branch alone would have dropped the others' changes.
+- Every branch already contained Production's `e4e7e01`, and phase-e adds no app code over Production.
+
+### Branch and gates
+
+- **Branch:** `release/2026-11-26`, cut from the focus branch (`0877538`, which contains the tap fix `28a1212` and Next 16.4.5), in the worktree `mulemark-worktrees\release-2026-11-26`.
+- **Merge:** `fix/deps-sharp-audit-triage` (`4bc7b8f`), as `09496a5`, pushed. The tree equals the `git merge-tree` prediction (`bb7e4107`), and the package files are the sharp branch's, byte for byte.
+
+| Check | Result |
+|---|---|
+| `npm ci`, then `npm install` | Both package files byte-identical; `npm ls --all` clean; next 16.4.5, sharp 0.35.5 |
+| Lint, typecheck | Pass |
+| `npm test` | 213 files, 2,454 tests, the focus branch's count |
+| Build (CI's placeholder env), `check:scan-bundle` | Pass; ok |
+| Route table and static media | Identical to the focus branch: 76 route lines, 17 files |
+| `npm audit` | 7 moderate, as on the sharp branch |
+| `test:phase-e-showcase-walkthrough` | 7/7 (2.6 min), with the focus and 44 px checks on every view |
+
+### Preview (2026-11-26)
+
+- **Deployment:** GitHub deployment `8091823788` (Preview, success, 17:19 UTC), host `qr-asset-tags-3fx56hc3s-jdapaetz2-s-projects.vercel.app`, Vercel deployment `dpl_5SDDN2e53VcZoUSTRZsjb75thW5K`.
+- **Staging smoke** against that host, with the release's own `scripts/smoke/staging.mjs` and `QA_BASE_URL` set to the deployment rather than the branch alias: 29 checks, 28 pass, 0 fail, 1 skipped. The skip is the `dry_run` log line, read by hand below.
+- **The sharp runtime check:** at 21:25 UTC the operator sent one damage report with a 1.79 MB photo on `/t/stg-qa-public` (SUB-2026-B0CF57, in staging). Its notification line, read in the built-in browser (read only), came from that deployment:
+  - `previewRequestedCount` 1, `previewAttachedCount` 1, `previewFailureClass` null, `previewTransformMs` 1371, `previewBytesBucket` `lt_250kb`;
+  - outcome `dry_run`, reason `preview_environment`: no email.
+
+  So sharp 0.35.5 loads and transforms on Vercel's Linux.
+- **Expected in the same log:** two red `[storage]` lines on `/t/stg-qa-public` (`public-documents`, 1 requested, 1 failed). The staging QA seed creates the public manual's row but uploads no file (`scripts/staging/seed-staging-qa.mjs`), so signing fails and the page leaves that manual out, as designed.
+- **The optional operator checks** (button size on a phone, Tab focus with the acknowledgement prompt open) were not reported.
+
+### Promotion and Production (2026-11-27)
+
+- **Promotion (operator):** Vercel built **Production rebuild of 5SDDN2e53** (Ready in 51 s) and reported it to GitHub as deployment `8098905539`: Production, success, 00:44:07 UTC, host `qr-asset-tags-qd0bt41ns-jdapaetz2-s-projects.vercel.app`.
+- **`/api/version`** on `mulemark.io` and `qr-asset-tags.vercel.app`: `09496a5`, environment `production` (00:45 UTC).
+- **`npm run smoke:production`** (00:45 UTC): 14 checks, 13 pass, 0 fail, 1 skipped (the scan-page render). It ran from the release worktree, which holds no `.env.production-smoke.local`, as on 2026-11-24.
+- **`phase-e:health:production`:** 5/5 on both hosts (scan-free `/nojs/t/`). On the alias host, the conditional `7gzt4aqc` still shows the unavailable notice, unchanged.
+- **Rollback, if ever needed:** promote the previous Production deployment again (`e4e7e01`, **Production rebuild of FTkvSamdB**), then rerun `smoke:production`.
+
+### Carried into phase-e
+
+- **Merge:** `release/2026-11-26` into `phase-e/showcase-onboarding` in the main checkout (`--no-ff`, `core.autocrlf=false`), as `2cbcd47` (parents `707047a`, `09496a5`), pushed at 01:10 UTC. The tree equals the prediction (`4ce50b31`); the 14 changed files are LF and no CR was staged. The phase-e Preview built as GitHub deployment `8099250258` (Preview, success, 01:11 UTC).
+
+| Check | Result |
+|---|---|
+| `npm ci`, then `npm install` | Both package files byte-identical; `npm ls --all` clean; next 16.4.5, sharp 0.35.5, docx 9.15.2, exceljs 4.4.0 |
+| `verify:production-config` | 0 fail, 3 warn (shell env unset), 5 pass |
+| Lint, typecheck | Pass |
+| `npm test` | 220 files, 2,604 tests (2,600 plus the release's 4) |
+| Build (CI's placeholder env), `check:scan-bundle` | Pass; ok. Route manifest and static media identical to the release build |
+| `phase-e:intake:build -- --check` | 31 files match |
+| `test:security` | 11 files, 132 tests |
+| `test:phase-e-local` | 34/34, on the second run (below) |
+| `test:phase-e-showcase-local` | 13/13 |
+| `test:phase-e-showcase-walkthrough` | 7/7 (1.7 min) |
+
+- **Kong also goes stale on Storage.** The first `test:phase-e-local` run failed 24 of 34. Its first test's fixture upload got Kong's "An invalid response was received from the upstream server", and the other 23 depend on that export.
+  - **Cause:** the reset restarted Storage on a new container address, and Kong kept the old one (`connect() failed (113: Host is unreachable)`), while `/auth/v1/health` returned 200. It is the same quirk as E1's stale auth route.
+  - **Fix:** `docker restart supabase_kong_QR_Asset_Tags`; the suite then passed on a fresh reset.
+  - Kong needed the restart after two of the four resets. The check after each reset now probes `/storage/v1/status` as well as `/auth/v1/health`.
+- **Line endings:** the main checkout holds 237 older `i/lf w/crlf` working copies. Git treats them as unchanged, and every gate passed with them.
+- **Afterwards:** the local stack was stopped (`supabase stop`, volumes kept).
+
+### Branches
+
+- **Retired:** `fix/deps-sharp-audit-triage`, `fix/public-touch-targets` and `fix/public-focus-not-obscured`. Never promote them: each lacks the others' changes. Deleting them, their worktrees and `release/2026-11-26` waits for the operator's OK.
+- **Production** runs `release/2026-11-26` (`09496a5`), and `phase-e/showcase-onboarding` contains it.
+
+### Open, operator-pending
+
+1. **Reset the Production database password** (from E2C).
+2. **The focus fix's known gap:** on screens under about 780 px of visible height, focus can still land behind the open acknowledgement card. It needs a design decision.
+3. **The commercial and legal review of the kit 2.0 texts:** unchanged; see "E3 rework" above.
+4. **`typescript-eslint` 8.73.0 from 2026-11-30:** the in-range, lockfile-only update that clears the last 7 `npm audit` entries (`docs/DEPENDENCY_ADVISORIES.md`).
 
 ### Next command
 

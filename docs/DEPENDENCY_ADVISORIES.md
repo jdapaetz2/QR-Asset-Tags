@@ -264,7 +264,7 @@ against an operator-designated test asset.
 |---|---|
 | Branch | `fix/deps-sharp-audit-triage`, cut from `fix/next-security-16-4-5` at `e4e7e01`. Production was still on `8f6c514` (`/api/version`), so the 16.4.5 branch was the base |
 | Change | `package.json`: the `sharp` pin, `0.34.5` → `0.35.5`, and nothing else. `package-lock.json`: the in-range updates below. `lib/notifications/preview-image.ts`: one type line |
-| Status | Pushed, and the Preview built (below). This branch contains the 16.4.5 upgrade, so promoting its Preview releases both. Next: the sharp runtime check below, then operator review and promotion (Vercel → the branch-tip Preview → **Promote to Production**), then `npm run smoke:production` |
+| Status | **In Production** since 2026-11-27 00:44 UTC, in the combined release `release/2026-11-26` (`09496a5`, promoted by the operator) together with the 44 px tap targets and the focus fix. Its Preview passed the staging smoke and the sharp runtime check, and Production passed `npm run smoke:production` (below). Follow-ups are listed at the end |
 
 ### Why
 
@@ -425,16 +425,35 @@ state **success**, 2026-11-24 07:03 UTC. The host is `qr-asset-tags-pr3e9tfh8-jd
 Vercel Authentication. Vercel builds with the project's Node 22.x setting. Production still served `8f6c514`
 afterwards. The docs commit on top builds its own Preview, with identical application code.
 
-**Not verified here: sharp inside the Vercel runtime.** The Preview build proves the install and the trace. No
-automated check runs the preview transform on Vercel: the staging smoke uploads no photo.
-
-To check it before promoting:
-1. Submit a damage report with a JPEG photo on the Preview.
+**Sharp inside the Vercel runtime.** The Preview build proves the install and the trace, but no automated check runs
+the preview transform on Vercel: the staging smoke uploads no photo. The check is manual, before promoting:
+1. Submit a damage report with a photo on the Preview.
 2. In the deployment's runtime log, find the notification line (`dry_run` / `preview_environment`).
 3. Read its preview fields. `previewAttachedCount` 1 means sharp loaded. `previewFailureClass`
    `transformer_unavailable` would mean the binary failed to load.
 
 Hobby keeps runtime logs for one hour.
+
+**It passed on 2026-11-26,** on the combined release's Preview: branch `release/2026-11-26` at `09496a5`, GitHub
+deployment `8091823788`, host `qr-asset-tags-3fx56hc3s-jdapaetz2-s-projects.vercel.app`. At 21:25 UTC the operator
+sent one damage report with a 1.79 MB photo on the staging QA tag. Its notification line read:
+- `previewRequestedCount` 1, `previewAttachedCount` 1, `previewFailureClass` null;
+- `previewTransformMs` 1371, `previewBytesBucket` `lt_250kb`;
+- outcome `dry_run`, reason `preview_environment`, so no email was sent.
+
+**Production.** The operator promoted that Preview at 2026-11-27 00:44 UTC. Vercel built it as **Production rebuild
+of 5SDDN2e53** (Ready in 51 s) and reported it to GitHub as deployment `8098905539`:
+- environment **Production**, state **success**, 00:44:07 UTC;
+- host `qr-asset-tags-qd0bt41ns-jdapaetz2-s-projects.vercel.app`.
+
+By 00:45 UTC, `/api/version` on both `mulemark.io` and `qr-asset-tags.vercel.app` reported `09496a5` with
+environment `production`.
+
+**Production smoke.** `npm run smoke:production` ran from the release worktree at 00:45 UTC, with no
+`.env.production-smoke.local` and `PRODUCTION_SMOKE_SHORT_CODE` unset. Result: **14 checks, 13 pass, 0 fail, 1
+skipped** (the scan-page render, which would write a `scan_events` row). `phase-e:health:production` passed 5/5 on
+both hosts; it makes scan-free `/nojs/t/` checks. The release is recorded in full in `docs/phase-e/WORK_LOG.md`,
+"Release (2026-11-26)".
 
 ### Not changed here (follow-ups)
 
@@ -448,5 +467,7 @@ Hobby keeps runtime logs for one hour.
   `--preview` mode, three showcase illustrations re-encode to different PNG bytes with identical pixels. The committed
   WebP files are hashed in `docs/phase-e/showcase/media.json` and are re-rendered only with `--replace`, so nothing
   changes unless someone does that on purpose.
-- **Carry this into the working branches**, together with the 16.4.5 upgrade.
+- **Carried into the working branch.** `phase-e/showcase-onboarding` took the release in `2cbcd47` (2026-11-27). The
+  three fix branches (`fix/deps-sharp-audit-triage`, `fix/public-touch-targets`, `fix/public-focus-not-obscured`)
+  are retired: never promote them again, because each one lacks the others' changes.
 - **CI on Node 22** runs only on a pull request.
