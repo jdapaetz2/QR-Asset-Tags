@@ -13,8 +13,9 @@ import { withActionErrorRecovery } from "@/lib/forms/action-recovery";
 import { MEDIA_PATHS_FIELD, type PrepareUploadsAction } from "@/lib/forms/upload-contract";
 import { collectSelectedPhotos, stripSelectedPhotos, uploadPhotosDirect } from "@/lib/forms/upload-client";
 
+/** Shared public field: at least the 44px touch target (textareas are taller anyway). */
 export const fieldClass =
-  "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring";
+  "min-h-11 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring";
 
 type PublicFormAction = (
   state: PublicFormState,
@@ -174,7 +175,7 @@ export function PublicForm({
         </label>
       </div>
 
-      <Button type="submit" disabled={busy}>
+      <Button type="submit" disabled={busy} className="h-11">
         {progress
           ? `Uploading photos ${progress.done} of ${progress.total}…`
           : photos.preparing

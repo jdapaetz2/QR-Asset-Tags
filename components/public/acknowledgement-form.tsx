@@ -14,7 +14,7 @@ import {
 } from "@/lib/acknowledgements/acknowledgements";
 
 const fieldClass =
-  "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring";
+  "min-h-11 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring";
 
 /**
  * Optional public acknowledgement, shown on the scan page. On success it shows an
@@ -114,7 +114,7 @@ export function AcknowledgementForm({
             </label>
           </div>
 
-          <Button type="submit" disabled={pending} className="self-start">
+          <Button type="submit" disabled={pending} className="h-11 self-start">
             {pending ? "Recording…" : "Acknowledge"}
           </Button>
         </form>

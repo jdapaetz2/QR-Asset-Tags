@@ -34,17 +34,22 @@ async function axeCheck(page: Page) {
 }
 
 type Box = { x: number; y: number; width: number; height: number };
-const keyboard: { route: string; controls: number; stops: string[]; skipped: string[]; out_of_order: string[]; no_visible_focus: string[]; small_targets: string[] }[] = [];
+const keyboard: { route: string; controls: number; stops: string[]; skipped: string[]; out_of_order: string[]; obscured: string[]; no_visible_focus: string[]; small_targets: string[] }[] = [];
 
 /**
- * What axe cannot see (E2C Gate A): Tab reaches every control in DOM order, and each focused control visibly changes on
- * screen (compared pixel for pixel with the unfocused page). Both are asserted. Touch targets are measured against the
- * 44 x 44 px design rule (a checkbox, radio or file input by its label, which is what a finger presses; inline text
- * links exempt) and recorded in keyboard-targets.json, not asserted: the shared public components have known targets
- * under 44 px that predate Phase E (E2C Gate A finding, recorded in docs/phase-e/E2C_APPROVAL_PACKET.md).
+ * What axe cannot see (E2C Gate A), on the page as it is now: Tab reaches every control in DOM order; each focused control
+ * is not entirely hidden (WCAG 2.2 SC 2.4.11 Focus Not Obscured) and visibly changes on screen; and every control meets
+ * the 44 x 44 px touch-target design rule (a checkbox, radio or file input by its label, which is what a finger presses;
+ * inline text links exempt). All four are asserted (soft, so one run reports every page) and recorded in
+ * keyboard-targets.json. Both focus checks look at the screen as the user sees it: after the browser has scrolled the
+ * control into view, with whatever is fixed to the viewport (the sticky action bar, an open prompt) in place. Hidden
+ * means that none of 5 x 3 points across the control is on top there (hit-tested); the visible change compares the
+ * control's on-screen box focused and then blurred, at the same scroll, pixel for pixel. `view` names a state of the
+ * page, such as an open prompt, in the report and the failure messages.
  */
-async function keyboardAndTargets(page: Page) {
-  const route = new URL(page.url()).pathname;
+async function keyboardAndTargets(page: Page, { view }: { view?: string } = {}) {
+  const pathname = new URL(page.url()).pathname;
+  const route = view ? `${pathname} (${view})` : pathname;
   await page.mouse.move(0, 0);
   const controls = await page.evaluate(() => {
     const selector = 'a[href], button, input:not([type="hidden"]), select, textarea, summary, [tabindex]:not([tabindex="-1"])';
@@ -64,24 +69,23 @@ async function keyboardAndTargets(page: Page) {
           name: `${el.tagName.toLowerCase()}${el.getAttribute("type") ? `[${el.getAttribute("type")}]` : ""} "${text.slice(0, 48)}"`,
           radioGroup: el.matches('input[type="radio"]') ? (el as HTMLInputElement).name : null,
           inline: el.tagName === "A" && getComputedStyle(el).display === "inline",
-          box: { x: r.left + window.scrollX, y: r.top + window.scrollY, width: r.width, height: r.height },
+          width: r.width,
+          height: r.height,
         };
       });
   });
-  const clip = (b: Box) => ({ x: Math.max(0, b.x - 6), y: Math.max(0, b.y - 6), width: b.width + 12, height: b.height + 12 });
-  const shotOf = (b: Box) => page.screenshot({ fullPage: true, clip: clip(b), animations: "disabled", caret: "hide" });
-  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-  const before = new Map<number, Buffer>();
-  for (const c of controls) before.set(c.index, await shotOf(c.box));
   // Start sequential navigation at the top of the document.
   await page.evaluate(() => {
+    (document.activeElement as HTMLElement | null)?.blur();
     const start = document.createElement("span");
     start.tabIndex = -1;
     start.id = "kbd-start";
     document.body.prepend(start);
     start.focus();
   });
+  const shot = (clip: Box) => page.screenshot({ clip, animations: "disabled", caret: "hide" });
   const stops: number[] = [];
+  const obscured: string[] = [];
   const noFocus: string[] = [];
   for (let i = 0; i < controls.length + 3; i += 1) {
     await page.keyboard.press("Tab");
@@ -91,19 +95,56 @@ async function keyboardAndTargets(page: Page) {
     if (stops.includes(index)) break;
     stops.push(index);
     const control = controls[index];
-    if ((await shotOf(control.box)).equals(before.get(index) as Buffer)) noFocus.push(control.name);
+    // The focused control as it is on screen now (by its label for a checkbox, radio or file input): whether any of it is
+    // on top, and its box (6 px wider all round, for the focus ring) clipped to the viewport, or null when it is off screen.
+    const onScreen = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement;
+      const toggle = el.matches('input[type="checkbox"], input[type="radio"], input[type="file"]');
+      const label = toggle ? (el.closest("label") ?? (el.id ? document.querySelector<HTMLElement>(`label[for="${el.id}"]`) : null)) : null;
+      const r = (label ?? el).getBoundingClientRect();
+      const vw = document.documentElement.clientWidth;
+      const vh = document.documentElement.clientHeight;
+      let onTop = false;
+      for (let ix = 0; ix <= 4 && !onTop; ix += 1) {
+        for (let iy = 0; iy <= 2 && !onTop; iy += 1) {
+          const x = r.left + 1 + ((r.width - 2) * ix) / 4;
+          const y = r.top + 1 + ((r.height - 2) * iy) / 2;
+          if (x < 0 || y < 0 || x >= vw || y >= vh) continue;
+          const hit = document.elementFromPoint(x, y);
+          if (hit && (el.contains(hit) || !!label?.contains(hit))) onTop = true;
+        }
+      }
+      const x0 = Math.max(0, r.left - 6);
+      const y0 = Math.max(0, r.top - 6);
+      const x1 = Math.min(vw, r.right + 6);
+      const y1 = Math.min(vh, r.bottom + 6);
+      return { onTop, clip: x1 > x0 && y1 > y0 ? { x: x0, y: y0, width: x1 - x0, height: y1 - y0 } : null };
+    });
+    if (!onScreen.onTop) obscured.push(control.name);
+    if (!onScreen.clip) {
+      noFocus.push(control.name);
+      continue;
+    }
+    const focused = await shot(onScreen.clip);
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    const blurred = await shot(onScreen.clip);
+    // Back onto the control without scrolling, so the next Tab continues from it.
+    await page.evaluate((kbd) => document.querySelector<HTMLElement>(`[data-kbd="${kbd}"]`)?.focus({ preventScroll: true }), index);
+    if (focused.equals(blurred)) noFocus.push(control.name);
   }
   await page.evaluate(() => document.getElementById("kbd-start")?.remove());
   const reachedGroups = new Set(stops.map((s) => controls[s].radioGroup).filter(Boolean));
   const skipped = controls.filter((c) => !stops.includes(c.index) && !(c.radioGroup && reachedGroups.has(c.radioGroup))).map((c) => c.name);
   const outOfOrder = stops.filter((s, i) => i > 0 && s < stops[i - 1]).map((s) => controls[s].name);
   const small = controls
-    .filter((c) => !c.inline && (c.box.width < 44 || c.box.height < 44))
-    .map((c) => `${c.name} ${Math.round(c.box.width)}x${Math.round(c.box.height)}`);
-  keyboard.push({ route, controls: controls.length, stops: stops.map((s) => controls[s].name), skipped, out_of_order: outOfOrder, no_visible_focus: noFocus, small_targets: small });
+    .filter((c) => !c.inline && (c.width < 44 || c.height < 44))
+    .map((c) => `${c.name} ${Math.round(c.width)}x${Math.round(c.height)}`);
+  keyboard.push({ route, controls: controls.length, stops: stops.map((s) => controls[s].name), skipped, out_of_order: outOfOrder, obscured, no_visible_focus: noFocus, small_targets: small });
   expect.soft(skipped, `${route}: controls Tab never reaches`).toEqual([]);
   expect.soft(outOfOrder, `${route}: Tab order differs from the page order`).toEqual([]);
+  expect.soft(obscured, `${route}: focused controls entirely hidden (WCAG 2.2 SC 2.4.11)`).toEqual([]);
   expect.soft(noFocus, `${route}: focused controls with no visible change`).toEqual([]);
+  expect.soft(small, `${route}: touch targets under 44 x 44 px`).toEqual([]);
 }
 
 type Dataset = {
@@ -165,8 +206,14 @@ test("the operator's step — the owner puts Northridge on the Demo plan, and ev
     await expect(renter.locator("[data-demo-notice]")).toContainText("fictional");
     // The Start-Up Guides are parked (operator, 2026-11-02): no page offers one.
     await expect(renter.getByRole("link", { name: "Start-Up Guide" })).toHaveCount(0);
-    const prompt = renter.getByRole("dialog", { name: "Before you use this equipment" });
-    if (await prompt.isVisible().catch(() => false)) await prompt.getByRole("button", { name: "Dismiss for now" }).click();
+    // An asset on rent shows the acknowledgement prompt after its 4 s delay, which could land in the middle of the checks
+    // below: wait for it and dismiss it, so they see the page alone (story 1 checks the page with the prompt open).
+    if (a.active_rental_session_id) {
+      const prompt = renter.getByRole("dialog", { name: "Before you use this equipment" });
+      await expect(prompt).toBeVisible({ timeout: 10_000 });
+      await prompt.getByRole("button", { name: "Dismiss for now" }).click();
+      await expect(prompt).toHaveCount(0);
+    }
     await axeCheck(renter);
     await keyboardAndTargets(renter);
   }
@@ -192,6 +239,8 @@ test("story 1 — EXCAVATOR-017: the handoff, the manual, live acknowledgement a
   const prompt = renter.getByRole("dialog", { name: "Before you use this equipment" });
   await expect(prompt).toBeVisible({ timeout: 10_000 });
   await shot(renter, "017", "1-scan-acknowledgement-prompt", "public scan page: identity, the handover wording, Manual, the active-rental acknowledgement prompt");
+  // Every control is checked, the page's behind the open prompt included: they scroll clear of it (WCAG 2.2 SC 2.4.11).
+  await keyboardAndTargets(renter, { view: "acknowledgement prompt open" });
   await prompt.getByLabel("Your name").fill("Walkthrough renter (local)");
   await prompt.getByRole("checkbox").check();
   await prompt.getByRole("button", { name: "Acknowledge" }).click();
@@ -204,6 +253,7 @@ test("story 1 — EXCAVATOR-017: the handoff, the manual, live acknowledgement a
   await renter.waitForURL(/\/support\/thanks/);
   await expect(renter.getByText(/^SUB-\d{4}-[0-9A-F]{6}$/)).toBeVisible();
   await shot(renter, "017", "2-support-sent", "support request sent: the renter sees the SUB reference");
+  await keyboardAndTargets(renter);
   await renter.close();
 
   const page = await browser.newPage();

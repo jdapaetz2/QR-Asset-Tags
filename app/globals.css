@@ -174,3 +174,29 @@
     display: none;
   }
 }
+
+/* Scan pages (/t/): keyboard focus never parks behind what is fixed to the bottom of the viewport (WCAG 2.2 SC 2.4.11
+   Focus Not Obscured; W3C technique C43). A focus move scrolls a control into the viewport less scroll-padding. These
+   rules are unlayered, so they win over Tailwind utilities (main's pb-28). */
+
+/* Phones, where the sticky action bar shows (components/public/public-scanner-view.tsx, sm:hidden): its height (a 1px
+   border, 0.5rem padding, 3rem cells and the safe-area bottom padding) plus 0.5rem, so the focus ring clears it too. */
+@media (width < 40rem) {
+  html:has([data-sticky-actions]) {
+    scroll-padding-bottom: calc(1px + 4rem + max(0.5rem, env(safe-area-inset-bottom)));
+  }
+}
+
+/* The acknowledgement prompt covers more while it is open; components/public/ack-prompt.tsx publishes how much in
+   --ack-prompt-cover. Focus moves scroll clear of it, the page reserves the same room after its content (so its last
+   controls can scroll clear too), and the sticky bar under it leaves the Tab order (each of its actions is also on
+   the page). The prompt itself stays non-blocking. */
+html:has([data-ack-prompt]) {
+  scroll-padding-bottom: calc(var(--ack-prompt-cover, 0px) + 0.5rem);
+}
+main:has(> [data-ack-prompt]) {
+  padding-bottom: calc(var(--ack-prompt-cover, 0px) + 0.5rem);
+}
+html:has([data-ack-prompt]) [data-sticky-actions] {
+  visibility: hidden;
+}

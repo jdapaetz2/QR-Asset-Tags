@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { AcknowledgementForm } from "@/components/public/acknowledgement-form";
 import { ackPromptStorageKey } from "@/lib/rentals/rentals";
 
 const SHOW_DELAY_MS = 4000;
+
+/** How much of the viewport the open prompt covers, published on <html> for app/globals.css. */
+const COVER_PROPERTY = "--ack-prompt-cover";
 
 /**
  * Renter acknowledgement prompt (staff-aware, Phase 3C.6). Renders nothing unless the asset has an active rental
@@ -17,6 +20,12 @@ const SHOW_DELAY_MS = 4000;
  *    later scans in the SAME rental session on this device. A new session → new key → prompts again.
  *  - DISMISSING ("Dismiss for now" / ✕) closes it for THIS page view only — no localStorage key, no record — so
  *    it appears again on the next page load/scan. It does not reopen during the current mounted view.
+ *
+ * Keyboard focus (WCAG 2.2 SC 2.4.11 Focus Not Obscured): the card stays non-modal and never takes focus, so Tab
+ * still reaches the page behind it. While it is open it publishes how much of the viewport it covers (from the bottom
+ * edge up to the card's top) as `--ack-prompt-cover` on <html>. app/globals.css turns that into scroll-padding, so a
+ * focus move scrolls a page control clear of the card, and into room after the page, so the last controls can scroll
+ * clear too. Only script can measure it: the card's height varies with the width, wrapping and validation messages.
  */
 export function AckPrompt({
   shortCode,
@@ -34,6 +43,7 @@ export function AckPrompt({
 }) {
   const [visible, setVisible] = useState(false);
   const dismissedRef = useRef(false);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   const storageKey = sessionId ? ackPromptStorageKey(assetId, sessionId) : null;
 
@@ -51,6 +61,24 @@ export function AckPrompt({
     }, SHOW_DELAY_MS);
     return () => clearTimeout(timer);
   }, [storageKey, viewerIsAuthorizedStaff]);
+
+  // While open, publish the covered height before the first paint and keep it current; closing removes it.
+  useLayoutEffect(() => {
+    const overlay = overlayRef.current;
+    if (!visible || !overlay) return;
+    const root = document.documentElement;
+    const publish = () => {
+      const bottom = Number.parseFloat(getComputedStyle(overlay).bottom) || 0;
+      root.style.setProperty(COVER_PROPERTY, `${Math.ceil(overlay.offsetHeight + bottom)}px`);
+    };
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(overlay);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty(COVER_PROPERTY);
+    };
+  }, [visible]);
 
   // Completing the acknowledgement persists suppression for this session/device.
   const completeAndHide = useCallback(() => {
@@ -73,7 +101,7 @@ export function AckPrompt({
   if (viewerIsAuthorizedStaff || !sessionId || !visible) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 px-4 pb-4 sm:bottom-4">
+    <div ref={overlayRef} data-ack-prompt="" className="fixed inset-x-0 bottom-0 z-50 px-4 pb-4 sm:bottom-4">
       <div
         role="dialog"
         aria-label="Before you use this equipment"
@@ -82,11 +110,12 @@ export function AckPrompt({
       >
         <div className="mb-2 flex items-start justify-between gap-3">
           <h2 className="text-sm font-semibold">Before you use this equipment</h2>
+          {/* A 44px touch target; the negative margins keep the glyph where it was, in the card corner. */}
           <button
             type="button"
             onClick={dismissForNow}
             aria-label="Dismiss"
-            className="text-muted-foreground hover:text-foreground"
+            className="-my-2.5 -mr-4 inline-flex size-11 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground"
           >
             ✕
           </button>
@@ -101,7 +130,7 @@ export function AckPrompt({
         <button
           type="button"
           onClick={dismissForNow}
-          className="mt-3 text-xs text-muted-foreground underline-offset-4 hover:underline"
+          className="inline-flex min-h-11 items-center text-xs text-muted-foreground underline-offset-4 hover:underline"
         >
           Dismiss for now
         </button>

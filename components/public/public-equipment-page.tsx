@@ -77,7 +77,7 @@ export function PublicEquipmentPage({
         <div className="mt-6 flex justify-center print:hidden">
           <Link
             href={`/login?next=/staff/t/${shortCode}`}
-            className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            className="inline-flex min-h-11 items-center text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
           >
             Staff member? Sign in
           </Link>
